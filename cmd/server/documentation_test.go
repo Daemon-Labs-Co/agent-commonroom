@@ -9,6 +9,7 @@ import (
 )
 
 func TestDocumentationAllowlist(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if e := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Public guide"), 0600); e != nil {
 		t.Fatal(e)

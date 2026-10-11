@@ -18,7 +18,7 @@ import (
 )
 
 type server struct {
-	db      *pgxpool.Pool
+	db      eventDatabase
 	auth    *ownerAuth
 	mu      sync.Mutex
 	active  map[string]bool

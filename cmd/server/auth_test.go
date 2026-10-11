@@ -12,6 +12,7 @@ import (
 )
 
 func TestOwnerBoundary(t *testing.T) {
+	t.Parallel()
 	a, e := newOwnerAuth(strings.Repeat("a", 64), "127.0.0.1:8787")
 	if e != nil {
 		t.Fatal(e)
@@ -83,6 +84,7 @@ func TestOwnerBoundary(t *testing.T) {
 	}
 }
 func TestOwnerLoginRateLimit(t *testing.T) {
+	t.Parallel()
 	a, _ := newOwnerAuth(strings.Repeat("a", 64), "127.0.0.1:8787")
 	s := &server{auth: a}
 	for i := 0; i < 6; i++ {
@@ -99,6 +101,7 @@ func TestOwnerLoginRateLimit(t *testing.T) {
 	}
 }
 func TestOwnerKeyFile(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "private", "key")
 	first, e := loadOwnerKey(path)
 	if e != nil {

@@ -11,16 +11,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"github.com/jackc/pgx/v5/pgxpool"
+
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
 func TestPersonalRoomsAndVisibility(t *testing.T) {
+	t.Parallel()
 	st := room.State{Company: room.Company{ID: "company"}, Rooms: []room.Room{{ID: "dev"}, {ID: "qa"}}, Actors: []room.Actor{{ID: "one", Name: "Darrell", Role: "Developer", Kind: "human", Enabled: true, RoomIDs: []string{"dev"}}, {ID: "two", Name: "Darrell", Role: "QA", Kind: "human", Enabled: true, RoomIDs: []string{"qa"}}}, Connections: []room.Connection{{ID: "cli", Name: "Bot"}}}
 	projectActors(&st)
 	if !canAccess(st, "one", "personal-one") || canAccess(st, "one", "personal-two") || canAccess(st, "one", "qa") || !canAccess(st, ownerID, "personal-two") {
@@ -43,39 +43,10 @@ func TestPersonalRoomsAndVisibility(t *testing.T) {
 		t.Fatal("disabled account admitted")
 	}
 }
-func TestInvitationAuthorizationIntegration(t *testing.T) {
-	url := os.Getenv("COMMONROOM_TEST_DB")
-	if url == "" {
-		t.Skip("set COMMONROOM_TEST_DB for isolated PostgreSQL integration")
-	}
+func TestInvitationAuthorizationWithMockDB(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	admin, e := pgxpool.New(ctx, url)
-	if e != nil {
-		t.Fatal(e)
-	}
-	defer admin.Close()
-	schema := "test_members_" + id()
-	if _, e = admin.Exec(ctx, "CREATE SCHEMA "+schema); e != nil {
-		t.Fatal(e)
-	}
-	defer admin.Exec(ctx, "DROP SCHEMA "+schema+" CASCADE")
-	config, e := pgxpool.ParseConfig(url)
-	if e != nil {
-		t.Fatal(e)
-	}
-	config.ConnConfig.RuntimeParams["search_path"] = schema
-	db, e := pgxpool.NewWithConfig(ctx, config)
-	if e != nil {
-		t.Fatal(e)
-	}
-	defer db.Close()
-	migration, e := os.ReadFile("../../migrations/001.sql")
-	if e != nil {
-		t.Fatal(e)
-	}
-	if _, e = db.Exec(ctx, string(migration)); e != nil {
-		t.Fatal(e)
-	}
+	db := newMockDB(t)
 	a, _ := newOwnerAuth(strings.Repeat("a", 64), "127.0.0.1:8787")
 	s := &server{db: db, auth: a, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
 	mux := http.NewServeMux()
@@ -189,7 +160,11 @@ func TestInvitationAuthorizationIntegration(t *testing.T) {
 		t.Fatal("owner administration denied")
 	}
 	var count int
-	db.QueryRow(ctx, "SELECT count(*) FROM events WHERE kind='room.owner_access'").Scan(&count)
+	for _, event := range db.snapshot() {
+		if event.kind == "room.owner_access" {
+			count++
+		}
+	}
 	if count != 1 {
 		t.Fatal("owner access not audited")
 	}

@@ -6,6 +6,7 @@ import (
 )
 
 func TestAuditSummary(t *testing.T) {
+	t.Parallel()
 	cases := []struct{ kind, payload, want string }{
 		{"participant.created", `{"name":"Sofia","role":"Staff Engineer"}`, "Sofia joined a room as Staff Engineer"},
 		{"message.created", `{"author":"Mark","text":"private discussion"}`, "Mark sent a room message"},

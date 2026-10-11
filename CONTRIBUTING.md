@@ -8,7 +8,7 @@ Start with the [documentation index](docs/README.md) and [development guide](doc
 
 1. Use your own database and authentication keys. Never use live room history as a test fixture.
 2. Keep changes focused and describe the problem, resulting behavior, and validation.
-3. Run `make check`; use `COMMONROOM_TEST_DB` with a separate database for integration checks.
+3. Run `make test` during development and `make check` before review. All database test interactions are mocked; do not add tests that write to PostgreSQL. Use `make coverage` for coverage reports.
 4. Explain UI changes with screenshots that contain no private messages, credentials, or personal data.
 5. Update the README when capabilities or setup steps change. Do not describe saved configuration as an implemented execution guarantee.
 
@@ -23,3 +23,15 @@ Project contributions are intended for distribution under GPL-3.0-only, as descr
 Install Gitleaks from its official release or package distribution, then run `make secrets`. The repository includes a staged-content hook at `.githooks/pre-commit`; configure it with `git config core.hooksPath .githooks` if you do not already use a custom hook setup. If you have existing hooks, integrate this check into them instead. The hook blocks commits if the scanner is unavailable or finds a secret and redacts scanner output. It does not change commit signing or create commits.
 
 A local scanner can also be placed at ignored `bin/gitleaks`; the hook checks your PATH first. Ignore rules do not protect tracked files or prevent force-adding files. Git hooks can be bypassed, and scanners can miss credentials: inspect staged content and enable repository-side secret scanning/push protection when publishing. Do not add blanket scan exclusions to hide real findings. Never commit local scanner reports or copied credentials.
+
+## Feature completion rule
+
+A feature is complete only when it ships with:
+
+- Meaningful automated tests for its expected behavior, failure paths, permissions, and enabled/disabled states. Tests must be fast, parallel-safe, and use mocked database interactions; never insert fixtures into PostgreSQL.
+- Full feature documentation: purpose, configuration, usage, examples, permission/security implications, known limitations, and relevant technical/API contracts. Update in-app Help and installation/operations guides where applicable.
+- A documented feature flag allowing the capability to be enabled or disabled. Define its default, who may change it, whether it requires restart, and how existing data and running work are handled. Enforce the flag on the server as well as in the UI; a hidden button alone is insufficient.
+
+Flag changes must respect account permissions. Switching a capability off must preserve its history and data. Feature flags must never bypass authentication, authorization, audit integrity, or retention protections. Tests are mandatory and cannot be disabled through product feature flags.
+
+This rule applies to new features and enhancements going forward. Existing capabilities without flags are not retroactively claimed to satisfy it. Include tests, documentation links, and flag behavior in each review description. A test/infrastructure change does not need a product flag solely to disable its verification.

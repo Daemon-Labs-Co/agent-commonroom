@@ -165,7 +165,6 @@ Higher seniority means greater decision authority; humans default to 11 and agen
 | `DATABASE_URL` | Local config, then `postgres://localhost:5432/agentroom?sslmode=disable` | PostgreSQL connection |
 | `LISTEN_ADDR` | `127.0.0.1:8787` | Numeric loopback bind address |
 | `OWNER_KEY_FILE` | `.data/owner-key` | Initial setup-code path; public/private companion paths use suffixes |
-| `COMMONROOM_TEST_DB` | Unset | Optional PostgreSQL integration-test database |
 
 If `DATABASE_URL` is unset, `.data/local-config.json` can supply `{"databaseUrl":"postgres://localhost:5432/commonroom?sslmode=disable"}`. The server does not automatically load `.env`; `.env.example` documents values to export yourself. `.data/` contains private local configuration and authentication material and must stay out of version control.
 
@@ -197,15 +196,9 @@ make build
 
 `make secrets` runs the redacted Gitleaks secret scan; setup and the pre-commit hook are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-`make check` runs Go race tests, Go vet, and JavaScript syntax checks; Node.js is needed for the syntax checks. Database integration tests skip unless `COMMONROOM_TEST_DB` is set. To run them, create a separate disposable database:
+`make test` runs the fast Go suite. `make check` adds race detection, Go vet, JavaScript syntax checks, and help-reader security tests. `make coverage` reports statement coverage into the ignored `coverage/` directory. Tests run in parallel (default 8; override with `TEST_PARALLEL=4`) and have a 30-second timeout.
 
-```sh
-createdb commonroom_test
-export COMMONROOM_TEST_DB='postgres://localhost:5432/commonroom_test?sslmode=disable'
-go test -race ./...
-```
-
-The current member integration tests create and remove isolated schemas. Use a dedicated test database, not live application data.
+Tests use an in-memory database mock: **no PostgreSQL connection, schema creation, or database writes**, even if database environment variables are set. Provider command tests inspect arguments without launching agents or SSH. File fixtures use temporary directories. PostgreSQL, provider credentials, and running agents are not required for the suite. Mocks do not validate actual PostgreSQL migrations or provider interoperability.
 
 ## Code map
 

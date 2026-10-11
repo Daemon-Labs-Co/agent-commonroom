@@ -1,4 +1,4 @@
-.PHONY: run build test check secrets
+.PHONY: run build test test-race coverage check secrets
 
 run:
 	go run ./cmd/server
@@ -6,10 +6,20 @@ run:
 build:
 	go build -o bin/commonroom ./cmd/server
 
-test:
-	go test -race ./...
+TEST_PARALLEL ?= 8
 
-check: test
+test:
+	go test -parallel $(TEST_PARALLEL) -timeout 30s ./...
+
+test-race:
+	go test -race -parallel $(TEST_PARALLEL) -timeout 30s ./...
+
+coverage:
+	@mkdir -p coverage
+	go test -parallel $(TEST_PARALLEL) -timeout 30s -coverprofile=coverage/go.out ./...
+	go tool cover -func=coverage/go.out
+
+check: test-race
 	go vet ./...
 	node --check web/app.js
 	node --check web/features.js
