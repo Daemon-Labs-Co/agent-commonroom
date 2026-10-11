@@ -285,7 +285,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 	if len(args) == 0 {
 		return fail(errors.New("Worker action required"))
 	}
-	if args[0] == "auth-login-v1" || args[0] == "auth-status-v1" || args[0] == "verify-v1" {
+	if args[0] == "auth-login-v1" || args[0] == "auth-status-v1" || args[0] == "auth-logout-v1" || args[0] == "verify-v1" {
 		return workerProviderAuth(args, in, out, diagnostics)
 	}
 	if args[0] == "ready-v1" && len(args) == 1 {

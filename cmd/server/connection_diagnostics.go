@@ -61,10 +61,25 @@ func checkConnection(ctx context.Context, c room.Connection, alias, enabled stri
 	return checkConnectionDraft(ctx, c, alias, enabled, probe, true)
 }
 func checkConnectionDraft(ctx context.Context, c room.Connection, alias, enabled string, probe workerProbe, registered bool) connectionTestResult {
+	return checkConnectionDraftProgress(ctx, c, alias, enabled, probe, registered, nil)
+}
+
+// Progress reports real stage boundaries; SSH/Docker readiness remains one worker probe.
+func checkConnectionDraftProgress(ctx context.Context, c room.Connection, alias, enabled string, probe workerProbe, registered bool, progress func(connectionCheck)) connectionTestResult {
 	result := connectionTestResult{Status: "blocked", Checks: []connectionCheck{}, CheckedAt: time.Now().UTC()}
 	add := func(name, status, detail string) {
-		result.Checks = append(result.Checks, connectionCheck{name, status, detail})
+		check := connectionCheck{name, status, detail}
+		result.Checks = append(result.Checks, check)
+		if progress != nil {
+			progress(check)
+		}
 	}
+	start := func(name, detail string) {
+		if progress != nil {
+			progress(connectionCheck{name, "running", detail})
+		}
+	}
+	start("Worker configuration", "Checking adapter and approved worker address")
 	if c.Protocol != "CLI" {
 		result.Status = "unsupported"
 		add("Adapter", "unsupported", "This connection method can be registered, but its execution adapter is not implemented. No network request was made.")
@@ -80,6 +95,7 @@ func checkConnectionDraft(ctx context.Context, c room.Connection, alias, enabled
 		return result
 	}
 	add("Worker configuration", "passed", "Connection targets the approved isolated worker")
+	start("Worker runtime", "Connecting over verified SSH and checking the isolated Docker runtime")
 	raw, err := probe(ctx, worker, "ready-v1", "")
 	if err != nil {
 		add("Worker runtime", "failed", err.Error())
@@ -105,6 +121,7 @@ func checkConnectionDraft(ctx context.Context, c room.Connection, alias, enabled
 		add("Connection identity", "failed", "Connection identity is invalid")
 		return result
 	}
+	start("Connection credentials", "Checking this connection’s private credential status")
 	raw, err = probe(ctx, worker, "auth-status-v1", envelope)
 	if err != nil {
 		add("Connection credentials", "failed", err.Error())
@@ -123,6 +140,7 @@ func checkConnectionDraft(ctx context.Context, c room.Connection, alias, enabled
 		return result
 	}
 	add("Connection credentials", "passed", "Private credentials are saved for this connection; account validity has not been checked with the provider")
+	start("Provider response", "Waiting for the isolated agent’s fixed test reply")
 	raw, err = probe(ctx, worker, "verify-v1", envelope)
 	if err != nil {
 		result.Status = "failed"
@@ -204,9 +222,37 @@ func (s *server) connectionTest(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 40*time.Second)
 	defer cancel()
-	result := checkConnectionDraft(ctx, *connection, os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"), probeWorker, registered)
+	stream := strings.Contains(r.Header.Get("Accept"), "application/x-ndjson")
+	var progress func(connectionCheck)
+	var send func(any) bool
+	if stream {
+		w.Header().Set("Content-Type", "application/x-ndjson")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Accel-Buffering", "no")
+		encoder := json.NewEncoder(w)
+		send = func(value any) bool {
+			if encoder.Encode(value) != nil {
+				cancel()
+				return false
+			}
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			return true
+		}
+		progress = func(check connectionCheck) { send(map[string]any{"type": "stage", "check": check}) }
+	}
+	result := checkConnectionDraftProgress(ctx, *connection, os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"), probeWorker, registered, progress)
 	if s.append(r.Context(), "connection.tested", map[string]string{"actorId": ownerID, "connectionId": connection.ID, "status": result.Status}) != nil {
-		http.Error(w, "Unable to record connection check", 500)
+		if stream {
+			send(map[string]string{"type": "error", "message": "Unable to record connection check"})
+		} else {
+			http.Error(w, "Unable to record connection check", 500)
+		}
+		return
+	}
+	if stream {
+		send(map[string]any{"type": "result", "result": result})
 		return
 	}
 	reply(w, result)

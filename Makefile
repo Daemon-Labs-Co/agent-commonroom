@@ -33,6 +33,8 @@ check: test-race
 	node tests/feature-flag-tabs.test.cjs
 	node --check web/settings-tabs.js
 	node tests/settings-tabs.test.cjs
+	node --check web/organization-chart.js
+	node tests/organization-chart.test.cjs
 	node --check web/viewport-alignment.js
 	node --check web/overlay-layout.js
 	node tests/overlay-layout.test.cjs
@@ -45,6 +47,7 @@ check: test-race
 	node --check web/workflow-templates.js
 	node tests/workflow-templates.test.cjs
 	node --check web/provider-auth.js
+	node tests/provider-auth.test.cjs
 	node --check web/connection-testing.js
 	node tests/connection-testing.test.cjs
 	node --check web/connection-editor.js

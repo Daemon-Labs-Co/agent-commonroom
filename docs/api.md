@@ -100,3 +100,13 @@ Only `humanProfileImages` and `agentSafetyControls` are supported, and an explic
 ## Connection readiness
 
 See [Testing connections](connection-testing.md) for `POST /api/connections/test`, its response and owner/CSRF/feature enforcement. Checks send only a fixed, tool-disabled provider diagnostic prompt, without room history.
+
+## Company organization chart
+
+`GET /api/company/organization` requires an authenticated owner and enabled `companyOrgChart`; returns `company`, sanitized `actors`, room-profile metadata and `organization: {revision, nodes}`. No private keys, connection endpoints, conversation text or agent context/instructions are returned. Invited humans receive 403 and company graph nodes are removed from their `/api/state` projection. Responses are not cached; unsupported methods return 405.
+
+Save through `POST /api/events` with `kind: "company.organization.updated"` and `payload: {revision, nodes: [{actorId, reportsTo, x, y}]}`. A blank `reportsTo` means no manager. The supplied revision must match the current revision (409 otherwise); successful append increments it. Owner authentication and CSRF are required. Disabled features return 403; unknown/duplicate actors, missing manager nodes, self-reporting, cycles, nonfinite/out-of-bounds coordinates and graphs over 500 nodes return 400. This uses the existing serialized event mutation path and existing 64 KiB request limit, not a new database table or external service. Reporting relationships cannot change account roles, room permissions or work acceptance.
+
+Connection tests optionally accept `Accept: application/x-ndjson`. Each newline-delimited message is `{ "type": "stage", "check": { "name": "Worker runtime", "status": "running", "detail": "…" } }`, `{ "type": "result", "result": <existing test response> }`, or `{ "type": "error", "message": "safe error" }`. Authorization failures use normal HTTP errors before streaming. Clients must require a terminal result; an HTTP 200 or passed intermediate stage is insufficient. See [live connection progress](connection-testing.md#live-test-progress).
+
+`POST /api/provider-auth` also accepts `{ "action": "logout", "connectionId": "REGISTERED_ID" }`. Owner/CSRF, connection-sign-in feature flag, worker allowlist and incident checks apply. Active turns using that connection return 409. After audited intent, the worker clears only its scoped saved credential, returning `{ "signedOut": true }`; completion is audited before success. This does not revoke provider tokens or purge agent session volumes.

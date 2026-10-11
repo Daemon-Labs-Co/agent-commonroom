@@ -42,3 +42,24 @@ console.log('Create/edit tests use current unsaved fields and only the saved cre
 assert.ok(newFields.indexOf('id="connection-ssh-help"')<newFields.indexOf('connection-steps'));
 assert.equal((newFields.match(/id="connection-ssh-help"/g)||[]).length,1);
 console.log('Setup guide is directly accessible above the steps without expanding the form.');
+
+// Exercise the actual test-view controller with in-memory form/API doubles.
+(async()=>{
+ function element(){return {hidden:false,disabled:false,textContent:'',innerHTML:'',scrollTop:99,handlers:{},classList:{toggle(){}},setAttribute(){},addEventListener(k,f){this.handlers[k]=f},focus(){this.focused=true}}}
+ const main=element(),sidebar=element(),layout=element(),output=element(),back=element(),example=element(),endpoint=element(),actions=element();
+ let button,panel;actions.prepend=b=>button=b;layout.append=p=>panel=p;
+ const selectors={'form>.actions':actions,'.connection-layout':layout,'.connection-main':main,'.connection-sidebar':sidebar,'#connection-use-example':example};
+ const modal={querySelector:s=>selectors[s]},editor=element();
+ const values=new Map([['name','Draft'],['endpoint','ssh://worker'],['provider','claude'],['location','LAN'],['protocol','CLI']]);
+ context.document={createElement(tag){const e=element();if(tag==='section')e.querySelector=s=>s==='.connection-editor-test-results'?output:back;return e}};
+ context.FormData=function(){return values};context.note=()=>{};context.renderConnectionTestResult=(o,r)=>{o.innerHTML='Outcome: '+r.status};
+ context.connectionTestProgress=()=>()=>{};context.runConnectionTest=request=>context.api('connections/test',request);
+ let calls=0;context.api=async(path,request)=>{calls++;assert.equal(path,'connections/test');assert.equal(request.draft.name,'Draft');return {status:'needs-sign-in'}};
+ context.wireConnectionEditorTesting(modal,editor,endpoint,{id:'saved'});
+ assert.equal(panel.hidden,true);await button.onclick();assert.equal(main.hidden,true);assert.equal(sidebar.hidden,true);assert.equal(panel.hidden,false);assert.equal(output.innerHTML,'Outcome: needs-sign-in');assert.equal(button.textContent,'Test again');assert.equal(layout.scrollTop,0);
+ back.onclick();assert.equal(main.hidden,false);assert.equal(sidebar.hidden,false);assert.equal(panel.hidden,true);assert.equal(values.get('name'),'Draft');assert.equal(button.textContent,'Test connection');assert.equal(endpoint.focused,true);
+ context.api=async()=>{throw Error('Worker unavailable')};await button.onclick();assert.equal(output.textContent,'Worker unavailable');assert.equal(button.disabled,false);
+ context.api=async()=>{values.set('name','Changed while testing');return {status:'working'}};await button.onclick();assert.match(output.textContent,/Configuration changed/);
+ values.set('endpoint','');await button.onclick();assert.equal(panel.hidden,true);assert.equal(calls,1);
+ console.log('Test view transitions, retained drafts, errors, stale results and missing address passed.');
+})().catch(e=>{console.error(e);process.exitCode=1});

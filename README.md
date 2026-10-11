@@ -263,3 +263,5 @@ Settings is organized into Profile, Company, Features, Retention, Help and About
 Page content now anchors at the top-left, and long agent/human profile overlays use tabs. Both are owner-controlled Cosmetic features; see [layout guidance](docs/concepts.md#page-alignment-and-compact-profile-overlays).
 
 The visual organization chart, automatic tasks from discussions and automatic/human-managed development branch creation are separate upcoming features. See [planned feature work](docs/planned-features.md). Human profiles now show read-only account and visible room details; see [profile details](docs/concepts.md#human-account-and-room-details).
+
+The owner can manage a visual company organization chart under Settings → Company. Double-click an agent to edit its connection, or a human to edit their profile; an equivalent Edit button is available in the properties panel. Reporting relationships replace numbered decision seniority while the `companyOrgChart` feature is enabled. See [organization and authority](docs/concepts.md#company-organization-and-decision-authority) for usage, permissions, compatibility and current arbitration limitations.

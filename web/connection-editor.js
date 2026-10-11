@@ -40,6 +40,20 @@ function connectionEditorFields(c){
  '</aside></div>';
 }
 function connectionEditorTestRequest(data,saved){return {connectionId:saved?.id||'',draft:{name:String(data.get('name')||''),provider:String(data.get('provider')||''),protocol:String(data.get('protocol')||''),location:String(data.get('location')||''),endpoint:String(data.get('endpoint')||'').trim()}};}
+// Testing switches the existing overlay body, retaining the form and its drafts.
+function wireConnectionEditorTesting(modal,editor,endpoint,c){
+ const actions=modal.querySelector('form>.actions'),layout=modal.querySelector('.connection-layout'),main=modal.querySelector('.connection-main'),sidebar=modal.querySelector('.connection-sidebar');
+ const button=document.createElement('button');button.type='button';button.id='connection-editor-test';button.textContent='Test connection';actions.prepend(button);
+ const panel=document.createElement('section');panel.className='connection-editor-test-panel';panel.hidden=true;panel.setAttribute('aria-label','Connection test');
+ panel.innerHTML='<div class="connection-test-heading"><h3>Connection test</h3><button type="button" id="connection-test-back">Back to editing</button></div><div class="connection-editor-test-results" role="status" aria-live="polite" tabindex="-1"></div>';
+ layout.append(panel);const output=panel.querySelector('.connection-editor-test-results');
+ const show=testing=>{main.hidden=testing;sidebar.hidden=testing;panel.hidden=!testing;layout.classList.toggle('testing',testing);layout.scrollTop=0;button.textContent=testing?'Test again':'Test connection';if(testing)output.focus();else endpoint.focus()};
+ panel.querySelector('#connection-test-back').onclick=()=>show(false);
+ const payload=()=>connectionEditorTestRequest(new FormData(editor),c);
+ const invalidate=()=>{output.textContent='Configuration changed. Test again to check the current values.';};
+ editor.addEventListener('input',invalidate);editor.addEventListener('change',invalidate);modal.querySelector('#connection-use-example').addEventListener('click',invalidate);
+ button.onclick=async()=>{const request=payload();if(!request.draft.endpoint){show(false);note('Enter a worker address or service URL before testing.');return}show(true);button.disabled=true;output.textContent='Testing current configuration…';try{const progress=connectionTestProgress(output);const result=await runConnectionTest(request,check=>{if(JSON.stringify(request)===JSON.stringify(payload()))progress(check)},modal);if(JSON.stringify(request)!==JSON.stringify(payload())){invalidate();return}renderConnectionTestResult(output,result,modal)}catch(error){output.textContent=error.message}finally{button.disabled=false}};
+}
 const previousConnectionEditor=connection;
 connection=function(c){
  form(c?'Edit connection':'New connection',connectionEditorFields(c),d=>commit(c?'connection.updated':'connection.created',{...Object.fromEntries(d),...(c?{id:c.id}:{})}));
@@ -62,12 +76,7 @@ connection=function(c){
  modal.querySelector('#connection-ssh-help').onclick=()=>openDocumentation(editor.elements.protocol.value==='CLI'?'connection-sign-in':'connection-testing');
  modal.querySelector('button.primary').textContent=c?'Save changes':'Register connection';
  if(state.currentActorId==='local-owner'&&state.featureFlags?.connectionTesting!==false){
- const actions=modal.querySelector('form>.actions');const button=document.createElement('button');button.type='button';button.id='connection-editor-test';button.textContent='Test connection';actions.prepend(button);
- const output=document.createElement('section');output.className='connection-editor-test-results';output.setAttribute('role','status');output.hidden=true;modal.querySelector('.connection-sidebar').append(output);
- const payload=()=>connectionEditorTestRequest(new FormData(editor),c);
- const invalidate=()=>{if(!output.hidden){output.textContent='Configuration changed. Test again to check the current values.';}};
- editor.addEventListener('input',invalidate);editor.addEventListener('change',invalidate);modal.querySelector('#connection-use-example').addEventListener('click',invalidate);
- button.onclick=async()=>{const request=payload();output.hidden=false;if(!request.draft.endpoint){output.textContent='Enter a worker address or service URL before testing.';endpoint.focus();return;}button.disabled=true;output.textContent='Testing current configuration…';try{const result=await api('connections/test',request);if(JSON.stringify(request)!==JSON.stringify(payload())){invalidate();return;}output.innerHTML=connectionTestMarkup(result);}catch(error){output.textContent=error.message;}finally{button.disabled=false;}};
+ wireConnectionEditorTesting(modal,editor,endpoint,c);
  }
 
 };

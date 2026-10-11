@@ -74,8 +74,14 @@ func auditSummary(kind string, payload []byte) string {
 		return "Human name updated: " + label("name", "Member")
 	case "human.profile.updated":
 		return "Human profile updated"
+	case "company.organization.updated":
+		return "Owner updated company organization chart and reporting relationships"
 	case "company.updated":
 		return "Company settings updated: " + label("name", "Company")
+	case "provider.logout_requested":
+		return "Connection sign-out requested"
+	case "provider.signed_out":
+		return "Connection signed out; saved worker credentials cleared"
 	case "provider.login_launched":
 		return "Provider sign-in launched"
 	case "agent.error":

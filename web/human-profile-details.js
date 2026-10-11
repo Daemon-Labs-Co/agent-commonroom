@@ -2,7 +2,7 @@
 function humanAccountDetails(person, currentRoom){
  const rooms=(state.rooms||[]).filter(r=>r.personalActorId===person.id||(!r.personalActorId&&(person.id==='local-owner'||(person.roomIds||[]).includes(r.id))));
  const entries=[['Company',state.company?.name||'Company'],['Assigned role',person.role||'Human'],['Account status',person.enabled?'Enabled':'Disabled'],['Account ID',person.id],['Personal room',rooms.find(r=>r.personalActorId===person.id)?.name||'Not visible in this view'],['Shared room access',rooms.filter(r=>!r.personalActorId).map(r=>r.name).join(', ')||'No visible shared rooms']];
- if(currentRoom){const owner=person.id==='local-owner';entries.push(['Current room',currentRoom.name],['Room presence',owner&&currentRoom.humanPresent===false?'Away':'Member'],['Decision seniority',String(owner?(currentRoom.humanRank??11):11)]);}
+ if(currentRoom){const owner=person.id==='local-owner';entries.push(['Current room',currentRoom.name],['Room presence',owner&&currentRoom.humanPresent===false?'Away':'Member'],state.featureFlags?.companyOrgChart!==false?['Decision authority','Company reporting hierarchy']:['Decision seniority',String(owner?(currentRoom.humanRank??11):11)]);}
  return '<section class="human-account-details"><h3>Account and rooms</h3><dl>'+entries.map(([key,value])=>'<div><dt>'+esc(key)+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl><p class="muted">Account role and room access are managed by the owner. Only rooms visible to you are shown. These details are read-only.</p></section>';
 }
 function appendHumanAccountDetails(container,person,currentRoom){
