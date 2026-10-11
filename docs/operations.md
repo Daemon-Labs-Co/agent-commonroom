@@ -58,3 +58,7 @@ The Debian guide provides concrete commands. Test restore in an isolated install
 ## Troubleshooting and escalation
 
 Start with installation troubleshooting in the main README, then Debian service/tunnel checks if applicable. Share error summaries, application version, and redacted diagnostics; avoid raw private transcripts and credentials. Follow SECURITY.md for vulnerabilities and SECURITY_REVIEW.md for known limitations. No production service-level guarantees or automated recovery tools exist yet.
+
+## Guided connection editor flag
+
+`COMMONROOM_CONNECTION_EDITOR=true` (default) serves the compact editor. An operator can set it to `false` and restart to restore the previous form. This is a presentation flag: connection data, running agents, the API, and security checks remain unchanged. See [usage and technical behavior](concepts.md#guided-connection-editor). Invalid boolean values prevent startup.

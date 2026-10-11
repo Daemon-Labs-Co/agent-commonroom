@@ -25,6 +25,8 @@ check: test-race
 	node --check web/features.js
 	node --check web/workflows.js
 	node --check web/provider-auth.js
+	node --check web/connection-editor.js
+	node tests/connection-editor.test.cjs
 	node --check web/history.js
 	node --check web/help.js
 	node --check web/help-reader.js

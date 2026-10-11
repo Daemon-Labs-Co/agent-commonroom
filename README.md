@@ -163,6 +163,7 @@ Higher seniority means greater decision authority; humans default to 11 and agen
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Local config, then `postgres://localhost:5432/agentroom?sslmode=disable` | PostgreSQL connection |
+| `COMMONROOM_CONNECTION_EDITOR` | `true` | Guided connection form; set `false` and restart to restore the previous form |
 | `LISTEN_ADDR` | `127.0.0.1:8787` | Numeric loopback bind address |
 | `OWNER_KEY_FILE` | `.data/owner-key` | Initial setup-code path; public/private companion paths use suffixes |
 
@@ -222,3 +223,5 @@ The local event trigger and checksum chain do **not** provide absolute immutabil
 ## Contributing and licensing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and [SECURITY.md](SECURITY.md) for vulnerability handling. Bundled provider icons retain their upstream MIT notice in `web/icons/LICENSE.lobe-icons`. Provider names and logos identify supported integrations and do not imply endorsement. Agent CommonRoom is licensed under [GNU GPL version 3 only](LICENSE) (`GPL-3.0-only`). Copyright © 2026 Agent CommonRoom contributors. Distributed derivative software must retain GPL terms and provide corresponding source as required by the license. GPLv3 does not impose a source-sharing requirement merely for operating modified software as a network service; that is a distinction from AGPL.
+
+The [guided connection editor](docs/concepts.md#guided-connection-editor) explains provider, method, and location choices with concise contextual help.
