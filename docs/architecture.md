@@ -84,3 +84,7 @@ Because the project is open source, you **CAN** fork it and circumvent the isola
 That remains a source modification at the fork operator's risk, not a supported configuration. Do not represent a modified direct-execution adapter as isolated. Document this warning at adapter types, turn methods and command construction functions when introducing or changing execution paths.
 
 See the [remote worker requirements](container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Remote-worker transport is planned; current direct SSH dispatch remains blocked.
+
+### Development workspace admission
+
+[Development workspaces](development-workspaces.md) add an explicit off-by-default operator capability, not an isolation exception. The controller and worker each enforce room/snapshot allowlists. Provider development tools use the outer hardened container as their execution backend, avoiding nested bubblewrap namespace requirements. The worker mounts a verified Git bundle read-only; bootstrap clones it into private writable storage and verifies shell, Git, feature branch and file/.git writes before starting a provider. No host-execution fallback, privileged container or writable host repository is supported. Source forks CAN bypass this contract, BUT doing so exposes host authority to provider tools.

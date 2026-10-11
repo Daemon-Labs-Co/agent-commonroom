@@ -6,7 +6,7 @@
 
 Managed Codex and Claude turns now use a mandatory rootless Docker worker on Linux. There is no enable/disable flag and no direct-process fallback. Direct macOS/Windows execution remains blocked. Approved SSH worker transport is implemented; see [connection sign-in](connection-sign-in.md). CommonRoom's UI and database can still be used without an execution worker.
 
-This first worker uses private Docker volumes, **not approved host-directory mounts**. Existing repositories are not automatically imported. Room directory selection, Git worktree provisioning, artifact export remain follow-up work. Workspace files persist in the task membership's private work volume; containers are disposable. This is not yet the complete coding workspace experience.
+The default worker uses private Docker volumes and chat-only provider policies. Operators can explicitly configure room-scoped [development workspaces](development-workspaces.md): a reviewed, checksummed Git bundle is mounted read-only and cloned into a writable private feature branch before the provider starts. No host working directory is mounted writable. Room directory-selection UI, task-specific worktrees, patch export and merge automation remain follow-up work.
 
 ## Set up a Linux worker
 

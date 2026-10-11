@@ -10,10 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN test -n "$CODEX_VERSION" && test -n "$CLAUDE_VERSION" \
  && npm install --global --allow-scripts=@anthropic-ai/claude-code "@openai/codex@$CODEX_VERSION" "@anthropic-ai/claude-code@$CLAUDE_VERSION" \
  && mkdir -p /home/agent /workspace && chown 1000:1000 /home/agent /workspace
-COPY docker/agent/entrypoint.cjs /opt/commonroom/entrypoint.cjs
+COPY docker/agent/entrypoint.cjs docker/agent/workspace.cjs /opt/commonroom/
 # Normalize both directory traversal and file readability regardless of the
 # build context umask; COPY --chmod also applies to newly created parents.
-RUN chmod 0755 /opt/commonroom && chmod 0644 /opt/commonroom/entrypoint.cjs
+RUN chmod 0755 /opt/commonroom && chmod 0644 /opt/commonroom/entrypoint.cjs /opt/commonroom/workspace.cjs
 USER 1000:1000
 WORKDIR /workspace
 ENTRYPOINT ["node", "/opt/commonroom/entrypoint.cjs"]

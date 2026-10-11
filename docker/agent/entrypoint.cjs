@@ -3,6 +3,7 @@ const net = require('node:net');
 const fs = require('node:fs');
 const path = require('node:path');
 const cp = require('node:child_process');
+const {prepareWorkspace} = require('./workspace.cjs');
 
 // Provider storage must match the worker's export paths. An image's passwd home,
 // inherited CODEX_HOME, or OS keyring must never redirect a connection's login.
@@ -34,6 +35,10 @@ function run(provider, args, options = {}) {
   const files = options.fs || fs, network = options.net || net, processes = options.cp || cp;
   const exit = options.exit || (code => process.exit(code));
   const plan = providerInvocation(provider, args, options.env || process.env, options.home);
+  // Readiness is mandatory for configured development turns and runs before
+  // credentials are copied or the provider is started. Login remains separate.
+  const workspace = !plan.login ? prepareWorkspace(plan.env, {fs: files, cp: processes}) : null;
+  if (workspace) plan.env = workspace.env;
   files.mkdirSync(plan.dir, {recursive: true, mode: 0o700});
   if (!plan.login) {
     files.copyFileSync('/run/provider-auth.json', plan.credential);
@@ -47,7 +52,7 @@ function run(provider, args, options = {}) {
   });
   server.on('error', () => exit(70));
   server.listen(18080, '127.0.0.1', () => {
-    const child = processes.spawn(plan.provider, plan.args, {stdio: 'inherit', shell: false, env: plan.env});
+    const child = processes.spawn(plan.provider, plan.args, {stdio: 'inherit', shell: false, env: plan.env, ...(workspace ? {cwd: workspace.cwd} : {})});
     child.on('error', () => { server.close(); exit(70); });
     child.on('exit', code => {
       server.close();
@@ -68,6 +73,6 @@ function run(provider, args, options = {}) {
 }
 if (require.main === module) {
   try { run(process.argv[2], process.argv.slice(3)); }
-  catch { process.exit(64); }
+  catch (error) { console.error("Isolated agent startup failed:", error.message); process.exit(64); }
 }
 module.exports = {providerInvocation, run};

@@ -19,12 +19,15 @@ import (
 // codexAdapter runs Codex conversations through the current local/SSH launcher.
 // All model turns use the mandatory isolated worker; no direct fallback exists.
 // The required execution contract is mandatory isolation, with no product toggle
-// or fallback to host execution. Read-only provider settings are defense in
+// or fallback to host execution. Chat read-only provider settings are defense in
 // depth, not room filesystem, credential or network boundaries.
 // A source fork CAN bypass that contract, BUT doing so exposes the OS account's
 // readable files, credentials and network access to compromised agent behavior.
 // See docs/architecture.md#mandatory-container-isolation-design-contract.
-type codexAdapter struct{ endpoint, executionKey string }
+type codexAdapter struct {
+	endpoint, executionKey string
+	development            bool
+}
 
 func (codexAdapter) Capabilities() room.Capabilities {
 	return room.Capabilities{Launch: true, Resume: true}
@@ -34,7 +37,7 @@ func (codexAdapter) Capabilities() room.Capabilities {
 // every turn uses it and fails closed if containment cannot be established.
 // Existing external session IDs do not confer permission to run on the host.
 func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
-	args := []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only", "-c", `approval_policy="never"`}
+	args := providerTurnArgs("codex", a.development)
 	if thread != "" {
 		args = append(args, "resume", thread)
 	}
@@ -454,13 +457,24 @@ func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
 	key := p.RoomID + "/" + p.ID + "/" + p.ConnectionID + "/" + endpoint
-	if p.ThreadID != "" && p.ExecutionMode != "container-v1" {
-		s.finishAgentTurn(ctx, p, "", endpoint, errors.New("Legacy host session cannot resume inside isolation; invite a fresh agent"))
+	repository, policyErr := controllerDevelopmentRepository(p.RoomID, os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
+	if policyErr != nil {
+		s.finishAgentTurn(ctx, p, "", endpoint, policyErr)
 		return
 	}
-	var adapter sessionAdapter = codexAdapter{endpoint: endpoint, executionKey: key}
+	mode, thread, sessionErr := agentExecutionSession(p.ExecutionMode, p.ThreadID, repository)
+	if sessionErr != nil {
+		s.finishAgentTurn(ctx, p, "", endpoint, sessionErr)
+		return
+	}
+	p.ThreadID = thread
+	if repository != "" {
+		prompt = "Development workspace: /workspace/repository. Work on its existing feature branch; never commit or push. Host files and unrestricted internet are unavailable.\n\n" + prompt
+	}
+
+	var adapter sessionAdapter = codexAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
 	if endpoint == "claude" || strings.HasSuffix(endpoint, "/claude") {
-		adapter = claudeAdapter{endpoint: endpoint, executionKey: key}
+		adapter = claudeAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
 	}
 	text, err := adapter.Run(ctx, p.ThreadID, prompt, func(thread string) error {
 		s.mu.Lock()
@@ -482,7 +496,7 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 		if !found {
 			return errors.New("participant removed")
 		}
-		p.ExecutionMode = "container-v1"
+		p.ExecutionMode = mode
 		p.ThreadID = thread
 		return s.append(ctx, "participant.session", p)
 	})
@@ -534,10 +548,15 @@ type sessionAdapter interface {
 }
 
 // claudeAdapter invokes Claude through the mandatory isolated worker.
-// Disabled tools/MCP are defense in depth alongside container isolation. A source fork CAN remove isolation, BUT doing so
+// Chat disables tools; approved development workspaces enable fixed built-in
+// tools under the same container boundary. MCP remains disabled.
+// A source fork CAN remove isolation, BUT doing so
 // exposes account files/credentials and permits host-side effects if provider
 // safeguards are bypassed. No supported flag may enable that bypass.
-type claudeAdapter struct{ endpoint, executionKey string }
+type claudeAdapter struct {
+	endpoint, executionKey string
+	development            bool
+}
 
 func (claudeAdapter) Capabilities() room.Capabilities {
 	return room.Capabilities{Launch: true, Resume: true}
@@ -547,7 +566,7 @@ func (claudeAdapter) Capabilities() room.Capabilities {
 // and resource limits before launch;
 // isolation failure must block execution rather than fall back to this launcher.
 func (a claudeAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
-	args := []string{"--print", "--output-format", "json", "--tools", "", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--disable-slash-commands", "--safe-mode"}
+	args := providerTurnArgs("claude", a.development)
 	if thread != "" {
 		args = append(args, "--resume", thread)
 	}
