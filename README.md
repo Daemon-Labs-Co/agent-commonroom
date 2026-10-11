@@ -249,3 +249,15 @@ See [isolated connection sign-in](docs/connection-sign-in.md) for remote Codex/C
 [Testing connections](docs/connection-testing.md): per-connection setup and provider-response checks and troubleshooting from the Connections screen.
 
 [Help window preference](docs/help-display.md): choose same-window or separate-window documentation per human profile.
+
+Squad names now open profiles; human Leave appears inside the eligible room-profile overlay. Agent invitations use spacious Agent, Role and Context tabs. Standard question-mark help controls sit beside the overlay close X or the relevant field. These have owner-controlled cosmetic flags under Settings → Feature flags → Cosmetic. See [squad profiles, invitations and flag behavior](docs/concepts.md#squad-profiles-and-invitations).
+
+Human sessions now survive refreshes and server restarts for their existing eight-hour lifetime, using private server-side storage rather than saved PEM keys. Set `COMMONROOM_PERSISTENT_SESSIONS=false` to disable restart persistence; restart required. See [human login persistence](docs/concepts.md#human-login-persistence). Feature controls are grouped into Security, Cosmetic, Connections and Workflows tabs under Settings → Feature flags.
+
+History date tabs separate Today, Yesterday, recent weeks and previous months; search filters the selected period. See [history date tabs](docs/concepts.md#history-date-tabs).
+
+Settings is organized into Profile, Company, Features, Retention, Help and About tabs according to the current human’s permissions. Retention policy is under Settings; the sidebar History page focuses on activity. This does not enable purge or alter the minimum 30-day retention requirement.
+
+## Planned feature work
+
+The visual organization chart, automatic tasks from discussions and automatic/human-managed development branch creation are separate upcoming features. See [planned feature work](docs/planned-features.md). Human profiles now show read-only account and visible room details; see [profile details](docs/concepts.md#human-account-and-room-details).

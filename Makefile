@@ -25,6 +25,19 @@ check: test-race
 	node --test tests/agent-entrypoint.test.cjs tests/credential-export.test.cjs
 	node --check web/app.js
 	node --check web/features.js
+	node --check web/squad-profiles.js
+	node --check web/agent-invitation.js
+	node --check web/help-icons.js
+	node tests/help-icons.test.cjs
+	node --check web/feature-flag-tabs.js
+	node tests/feature-flag-tabs.test.cjs
+	node --check web/settings-tabs.js
+	node tests/settings-tabs.test.cjs
+	node --check web/human-profile-details.js
+	node tests/human-profile-details.test.cjs
+	node --check web/room-sections.js
+	node tests/room-sections.test.cjs
+	node tests/room-presentation.test.cjs
 	node --check web/workflows.js
 	node --check web/workflow-templates.js
 	node tests/workflow-templates.test.cjs
@@ -38,6 +51,8 @@ check: test-race
 	node --check web/agent-safety.js
 	node tests/agent-safety.test.cjs
 	node --check web/history.js
+	node --check web/history-date-groups.js
+	node tests/history-date-groups.test.cjs
 	node --check web/help.js
 	node tests/help-preferences.test.cjs
 	node --check web/help-reader.js

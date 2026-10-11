@@ -1,0 +1,28 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+let forms=[],closed=0,leaveCalls=0,oldInvites=0,renderCalls=0,contextCalls=0;
+const makeNode=()=>({attributes:{},children:[],setAttribute(k,v){this.attributes[k]=v},append(b){this.children.push(b)},focus(){this.focused=true}});
+const panels=[0,1,2].map(()=>({...makeNode(),querySelector(){return details}}));let tabNav;
+const actions={prepend(b){this.button=b}},primary={},cancel={},details={addEventListener(){},children:[],replaceWith(node){this.replacement=node}},modal={classList:{add(){},remove(){}},addEventListener(){},querySelectorAll(){return panels},querySelector(s){return s==='.primary'?primary:s==='.invitation-grid'?{before(nav){tabNav=nav}}:details},close(){closed++}};
+const ctx=vm.createContext({state:{currentActorId:'local-owner',actors:[],rooms:[],connections:[{id:'a"<',name:'Claude <staff>'}],featureFlags:{}},view:'Settings',roomId:'room',render(){renderCalls++},invite(){oldInvites++},esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),field:(label,name,value)=>`<label>${label}<input name="${name}" value="${value}"></label>`,randomName:()=> 'Maya',profileFields:()=>'<details><summary>Engineering title and behaviour</summary><input name="challenge" value="1"></details>',contextFields:()=>'<textarea name="additionalContext"></textarea>',wireContextPreview(){contextCalls++},commit:()=>Promise.resolve(),note(){},form(...args){forms.push(args)},memberAccessForm(person){forms.push(['access',person])},$:s=>s==='#modal .actions'?actions:s==='#modal .primary'?primary:s==='#cancel'?cancel:modal,document:{createElement(){return makeNode()},querySelectorAll(){return []}}});
+vm.runInContext(fs.readFileSync('web/squad-profiles.js','utf8'),ctx);
+const policy=(id,actor,personal)=>JSON.parse(JSON.stringify(vm.runInContext(`squadProfilePolicy({id:${JSON.stringify(id)}},{personalActorId:${JSON.stringify(personal)}},${JSON.stringify(actor)})`,ctx)));
+assert.deepEqual(policy('local-owner','local-owner',undefined),{self:true,edit:true,leave:true});
+assert.equal(policy('local-owner','local-owner','local-owner').leave,false);
+assert.equal(policy('developer','developer',undefined).leave,false);
+assert.equal(policy('developer','qa',undefined).edit,false);
+ctx.person={id:'local-owner',name:'Mark'};ctx.room={};ctx.edit={onclick(){forms.push(['edit'])}};ctx.leave={onclick:async()=>{leaveCalls++}};
+vm.runInContext('openSquadHumanProfile(person,room,edit,leave)',ctx);
+assert.equal(forms.at(-1)[0],'edit');assert.equal(actions.button.type,'button');
+(async()=>{
+ await actions.button.onclick();assert.equal(leaveCalls,1);assert.equal(closed,1);
+ ctx.state.currentActorId='qa';ctx.person={id:'developer',name:'Darrell',role:'Developer'};
+ vm.runInContext('openSquadHumanProfile(person,room,null,null)',ctx);assert.equal(forms.at(-1)[0],'Human profile');assert.equal(primary.hidden,true);
+ ctx.state.currentActorId='local-owner';vm.runInContext('openSquadHumanProfile(person,room,null,null)',ctx);assert.equal(forms.at(-1)[0],'access');
+ let removed=false,clicked=false;const strong={textContent:'Claude',replaceChildren(button){this.button=button}};
+ ctx.row={querySelector(){return strong}};ctx.open=()=>{clicked=true};vm.runInContext('squadProfileName(row,open)',ctx);assert.equal(strong.button.textContent,'Claude');assert.equal(strong.button.type,'button');strong.button.onclick();assert.equal(clicked,true);
+ vm.runInContext(fs.readFileSync('web/agent-invitation.js','utf8'),ctx);
+ vm.runInContext('invite()',ctx);const invitation=forms.at(-1);assert.equal(invitation[0],'Invite agent');assert(invitation[1].includes('Claude &lt;staff>'));assert(invitation[1].includes('a&quot;&lt;'));assert(invitation[1].includes('invitation-grid'));assert(invitation[1].includes('additionalContext'));assert.equal(details.open,true);assert.equal(panels[0].hidden,false);assert.equal(panels[1].hidden,true);tabNav.children[1].onclick();assert.equal(panels[0].hidden,true);assert.equal(panels[1].hidden,false);tabNav.children[1].onkeydown({key:'ArrowRight',preventDefault(){}});assert.equal(panels[2].hidden,false);assert.equal(tabNav.children[2].focused,true);assert.equal(primary.textContent,'Invite agent');assert.equal(contextCalls,1);
+ ctx.state.featureFlags.agentInvitationLayout=false;vm.runInContext('invite()',ctx);assert.equal(oldInvites,1);
+ ctx.state.featureFlags.squadProfileActions=false;vm.runInContext('render()',ctx);assert.equal(renderCalls,1);
+ console.log('Squad profile access, leave eligibility/action, keyboard controls, invitation escaping/layout and disabled fallbacks passed.');
+})().catch(err=>{console.error(err);process.exitCode=1});
