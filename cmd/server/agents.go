@@ -16,22 +16,36 @@ import (
 	"agentroom/internal/room"
 )
 
-// This first adapter owns only Codex sessions created by this application.
-// It never resumes a user-supplied or unrelated session automatically.
-type codexAdapter struct{ endpoint string }
+// codexAdapter runs Codex conversations through the current local/SSH launcher.
+// All model turns use the mandatory isolated worker; no direct fallback exists.
+// The required execution contract is mandatory isolation, with no product toggle
+// or fallback to host execution. Read-only provider settings are defense in
+// depth, not room filesystem, credential or network boundaries.
+// A source fork CAN bypass that contract, BUT doing so exposes the OS account's
+// readable files, credentials and network access to compromised agent behavior.
+// See docs/architecture.md#mandatory-container-isolation-design-contract.
+type codexAdapter struct{ endpoint, executionKey string }
 
 func (codexAdapter) Capabilities() room.Capabilities {
 	return room.Capabilities{Launch: true, Resume: true}
 }
+
+// Run starts or resumes a model turn through the isolated worker;
+// every turn uses it and fails closed if containment cannot be established.
+// Existing external session IDs do not confer permission to run on the host.
 func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
 	args := []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only", "-c", `approval_policy="never"`}
 	if thread != "" {
 		args = append(args, "resume", thread)
 	}
 	args = append(args, "-")
-	cmd := codexCommand(ctx, a.endpoint, args...)
+	cmd, cleanup, err := isolatedAgentCommand(ctx, a.endpoint, a.executionKey, args...)
+	if err != nil {
+		return "", err
+	}
+	defer cleanup()
 	cmd.Stdin = strings.NewReader(prompt)
-	var stderr bytes.Buffer
+	var stderr limitedAgentOutput
 	cmd.Stderr = &stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -65,6 +79,11 @@ func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread f
 			}
 		}
 		if e.Type == "item.completed" && e.Item.Type == "agent_message" {
+			if len(text)+len(e.Item.Text) > 4*1024*1024 {
+				cmd.Process.Kill()
+				streamErr = errors.New("Agent output exceeded limit")
+				break
+			}
 			text += e.Item.Text + "\n"
 		}
 		if e.Type == "turn.failed" {
@@ -229,8 +248,8 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		reply(w, map[string]bool{"removed": true})
 		return
 	}
-	if st.Incident {
-		http.Error(w, "Agent access blocked by integrity incident", 409)
+	if st.Incident || s.agentsBlockedLocked(st, roomID) {
+		http.Error(w, "Agent access blocked by an integrity incident or emergency stop", 409)
 		return
 	}
 	// Check every retained record before dispatch. A failed check also opens incident mode.
@@ -369,6 +388,14 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			skipped[p.Name] = "Already working"
 			continue
 		}
+		if e := isolationAvailable(endpoint); e != nil {
+			if req.Action == "send" {
+				http.Error(w, e.Error(), 503)
+				return
+			}
+			skipped[p.Name] = e.Error()
+			continue
+		}
 		targets = append(targets, p)
 		endpoints[p.ID] = endpoint
 	}
@@ -426,9 +453,14 @@ func (b *bufferResponse) WriteHeader(n int)           { b.status = n }
 func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
-	var adapter sessionAdapter = codexAdapter{endpoint: endpoint}
+	key := p.RoomID + "/" + p.ID + "/" + p.ConnectionID + "/" + endpoint
+	if p.ThreadID != "" && p.ExecutionMode != "container-v1" {
+		s.finishAgentTurn(ctx, p, "", endpoint, errors.New("Legacy host session cannot resume inside isolation; invite a fresh agent"))
+		return
+	}
+	var adapter sessionAdapter = codexAdapter{endpoint: endpoint, executionKey: key}
 	if endpoint == "claude" || strings.HasSuffix(endpoint, "/claude") {
-		adapter = claudeAdapter{endpoint: endpoint}
+		adapter = claudeAdapter{endpoint: endpoint, executionKey: key}
 	}
 	text, err := adapter.Run(ctx, p.ThreadID, prompt, func(thread string) error {
 		s.mu.Lock()
@@ -436,6 +468,9 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 		st, e := s.load(ctx)
 		if e != nil {
 			return e
+		}
+		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) {
+			return errors.New("agent turn cancelled or blocked")
 		}
 		found := false
 		for _, current := range st.Participants {
@@ -447,9 +482,15 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 		if !found {
 			return errors.New("participant removed")
 		}
+		p.ExecutionMode = "container-v1"
 		p.ThreadID = thread
 		return s.append(ctx, "participant.session", p)
 	})
+	s.finishAgentTurn(ctx, p, text, endpoint, err)
+}
+
+// finishAgentTurn discards cancelled results even if dispatch has been resumed.
+func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, endpoint string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer delete(s.active, p.ID)
@@ -470,7 +511,13 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 		return
 	}
 	p.Status = "Idle"
-	if err != nil {
+	if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) {
+		p.Status = "Stopped"
+		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"})
+	} else if err != nil || ctx.Err() != nil {
+		if err == nil {
+			err = ctx.Err()
+		}
 		p.Status = "Blocked"
 		s.append(context.Background(), "agent.error", map[string]string{"participantId": p.ID, "name": p.Name, "error": err.Error()})
 	} else if !st.Incident {
@@ -479,45 +526,43 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 	s.append(context.Background(), "participant.session", p)
 }
 
-// SSH uses a configured alias and quotes every remote argument; prompts travel over stdin.
-func codexCommand(ctx context.Context, endpoint string, args ...string) *exec.Cmd {
-	if strings.HasPrefix(endpoint, "ssh://") {
-		host := strings.TrimPrefix(endpoint, "ssh://")
-		remote := "exec ~/.local/bin/codex"
-		for _, arg := range args {
-			remote += " '" + strings.ReplaceAll(arg, "'", "'\\''") + "'"
-		}
-		return exec.CommandContext(ctx, "ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, remote)
-	}
-	return exec.CommandContext(ctx, "codex", args...)
-}
-
+// sessionAdapter abstracts model turns, not a security boundary. Implementations
+// must use mandatory container execution; exposing an unrestricted
+// Run implementation must not become an alternate dispatch path.
 type sessionAdapter interface {
 	Run(context.Context, string, string, func(string) error) (string, error)
 }
-type claudeAdapter struct{ endpoint string }
+
+// claudeAdapter invokes Claude through the mandatory isolated worker.
+// Disabled tools/MCP are defense in depth alongside container isolation. A source fork CAN remove isolation, BUT doing so
+// exposes account files/credentials and permits host-side effects if provider
+// safeguards are bypassed. No supported flag may enable that bypass.
+type claudeAdapter struct{ endpoint, executionKey string }
 
 func (claudeAdapter) Capabilities() room.Capabilities {
 	return room.Capabilities{Launch: true, Resume: true}
 }
+
+// Run starts a Claude turn with controlled egress, private session storage
+// and resource limits before launch;
+// isolation failure must block execution rather than fall back to this launcher.
 func (a claudeAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
 	args := []string{"--print", "--output-format", "json", "--tools", "", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--disable-slash-commands", "--safe-mode"}
 	if thread != "" {
 		args = append(args, "--resume", thread)
 	}
-	cmd := exec.CommandContext(ctx, "claude", args...)
-	if strings.HasPrefix(a.endpoint, "ssh://") {
-		host := strings.TrimSuffix(strings.TrimPrefix(a.endpoint, "ssh://"), "/claude")
-		remote := "exec ~/.local/bin/claude"
-		for _, arg := range args {
-			remote += " '" + strings.ReplaceAll(arg, "'", "'\\''") + "'"
-		}
-		cmd = exec.CommandContext(ctx, "ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, remote)
+	cmd, cleanup, commandErr := isolatedAgentCommand(ctx, a.endpoint, a.executionKey, args...)
+	if commandErr != nil {
+		return "", commandErr
 	}
+	defer cleanup()
 	cmd.Stdin = strings.NewReader(prompt)
-	var stderr bytes.Buffer
+	var stderr limitedAgentOutput
 	cmd.Stderr = &stderr
-	out, processErr := cmd.Output()
+	var output limitedAgentOutput
+	cmd.Stdout = &output
+	processErr := cmd.Run()
+	out := output.Bytes()
 	var err error
 	var result struct {
 		Session string `json:"session_id"`

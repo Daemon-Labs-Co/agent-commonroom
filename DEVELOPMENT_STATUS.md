@@ -39,3 +39,9 @@ Existing conversation dialog accepts a Codex/Jerry conversation UUID. It validat
 ## Optional invitation context and regular CLI invitations
 
 Invitations and profiles support optional notes/transcripts, saved-conversation text preview, source labels, and editable excerpts. Context is persisted in profile revisions and supplied to Codex turns. Standard CLI connections with endpoint `codex` can now be invited and messaged directly. A participant named Jerry was invited through this path and received a harmless context fixture. Execution remains read-only; this is not a live terminal bridge or completed room directory sandbox.
+
+## Requested future work — pluggable memory management
+
+- Add a pluggable memory-management provider and integrate **Fulginn** (name supplied by the owner; exact project/API remains to be confirmed). This is a recorded feature request, not an implemented integration or part of the overnight bug-fixing scope.
+- Preserve room/project/application scope, access control, conflict resolution, immutable audit provenance, and retention rules across provider implementations.
+- Before implementation, confirm Fulginn’s interface, storage/deployment requirements and migration behavior. Follow the feature-completion rules: meaningful mocked tests, user and technical documentation, and a documented feature flag.

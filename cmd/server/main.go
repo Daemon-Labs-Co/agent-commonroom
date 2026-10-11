@@ -18,11 +18,15 @@ import (
 )
 
 type server struct {
-	db      eventDatabase
-	auth    *ownerAuth
-	mu      sync.Mutex
-	active  map[string]bool
-	cancels map[string]context.CancelFunc
+	safetyUIDefault  bool
+	stopAll          bool
+	stopRooms        map[string]bool
+	templatesEnabled bool
+	db               eventDatabase
+	auth             *ownerAuth
+	mu               sync.Mutex
+	active           map[string]bool
+	cancels          map[string]context.CancelFunc
 }
 
 func id() string {
@@ -37,9 +41,14 @@ func checksum(previous, kind, payload string) string {
 	return hex.EncodeToString(h[:])
 }
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--agent-worker" {
+		os.Exit(agentWorkerMain(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
+	}
 	ctx := context.Background()
 	var localConfig struct {
-		DatabaseURL string `json:"databaseUrl"`
+		DatabaseURL         string `json:"databaseUrl"`
+		RemoteWorkerAlias   string `json:"remoteWorkerAlias"`
+		RemoteWorkerEnabled bool   `json:"remoteWorkerEnabled"`
 	}
 	if raw, e := os.ReadFile(".data/local-config.json"); e == nil {
 		if e = json.Unmarshal(raw, &localConfig); e != nil {
@@ -47,6 +56,15 @@ func main() {
 		}
 	} else if !os.IsNotExist(e) {
 		log.Fatal(e)
+	}
+	if os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS") == "" && localConfig.RemoteWorkerAlias != "" {
+		os.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", localConfig.RemoteWorkerAlias)
+	}
+	if os.Getenv("COMMONROOM_REMOTE_WORKER") == "" && localConfig.RemoteWorkerEnabled {
+		os.Setenv("COMMONROOM_REMOTE_WORKER", "true")
+	}
+	if flag := os.Getenv("COMMONROOM_REMOTE_WORKER"); flag != "" && flag != "true" && flag != "false" {
+		log.Fatal("COMMONROOM_REMOTE_WORKER must be true or false")
 	}
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
@@ -81,12 +99,25 @@ func main() {
 	mux.HandleFunc("/api/state", s.state)
 	mux.HandleFunc("/api/events", s.events)
 	mux.HandleFunc("/api/integrity", s.integrity)
+	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
+	mux.HandleFunc("/api/connections/test", s.connectionTest)
 	editorEnabled, err := connectionEditorEnabled()
 	if err != nil {
 		log.Fatal("COMMONROOM_CONNECTION_EDITOR must be true or false")
 	}
+	s.templatesEnabled, err = workflowTemplatesEnabled()
+	if err != nil {
+		log.Fatal("COMMONROOM_WORKFLOW_TEMPLATES must be true or false")
+	}
+	safetyUI, err := agentSafetyUIEnabled()
+	if err != nil {
+		log.Fatal("COMMONROOM_AGENT_SAFETY_UI must be true or false")
+	}
+	s.safetyUIDefault = safetyUI
+	mux.Handle("/agent-safety.js", s.agentSafetyScript("web"))
+	mux.Handle("/workflow-templates.js", optionalScriptHandler(s.templatesEnabled, "web", "workflow-templates.js"))
 	mux.Handle("/connection-editor.js", connectionEditorHandler(editorEnabled, "web"))
 	mux.Handle("/help/", documentationHandler("."))
 	mux.Handle("/", http.FileServer(http.Dir("web")))
@@ -113,16 +144,16 @@ func main() {
 	log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", addr)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
 		if strings.HasPrefix(r.URL.Path, "/help/") {
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'self'")
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("Cache-Control", "no-store")
 		}
 		s.auth.protect(s.actorGuard(mux)).ServeHTTP(w, r)
 	})
-	log.Fatal((&http.Server{Addr: addr, Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second}).ListenAndServe())
+	log.Fatal((&http.Server{Addr: addr, Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 50 * time.Second}).ListenAndServe())
 }
 func reply(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -186,6 +217,34 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			return st, err
 		}
 		switch kind {
+		case "actor.help.updated":
+			var v struct {
+				ID   string `json:"id"`
+				Mode string `json:"mode"`
+			}
+			if err := json.Unmarshal(data, &v); err != nil {
+				return st, err
+			}
+			projectActors(&st)
+			for i := range st.Actors {
+				if st.Actors[i].ID == v.ID {
+					st.Actors[i].HelpDisplay = v.Mode
+				}
+			}
+		case "actor.image.updated":
+			var v struct {
+				ID    string `json:"id"`
+				Image string `json:"image"`
+			}
+			if err := json.Unmarshal(data, &v); err != nil {
+				return st, err
+			}
+			projectActors(&st)
+			for i := range st.Actors {
+				if st.Actors[i].ID == v.ID {
+					st.Actors[i].Image = v.Image
+				}
+			}
 		case "actor.name.updated":
 			var v struct {
 				ID   string `json:"id"`
@@ -207,6 +266,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			found := false
 			for i, a := range st.Actors {
 				if a.ID == v.ID {
+					v.HelpDisplay = a.HelpDisplay
 					st.Actors[i] = v
 					found = true
 				}
@@ -307,6 +367,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					for j, member := range st.Participants {
 						if member.ConnectionID == v.ID {
 							st.Participants[j].ThreadID = ""
+							st.Participants[j].ExecutionMode = ""
 							st.Participants[j].Status = ""
 							if room.SupportsAgent(v) {
 								st.Participants[j].Status = "Idle"
@@ -382,6 +443,40 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.Messages = append(st.Messages, v)
+		case "feature.flag.updated":
+			var v struct {
+				Name    string `json:"name"`
+				Enabled bool   `json:"enabled"`
+			}
+			if e := json.Unmarshal(data, &v); e != nil {
+				return st, e
+			}
+			if st.FeatureFlags == nil {
+				st.FeatureFlags = map[string]bool{}
+			}
+			st.FeatureFlags[v.Name] = v.Enabled
+		case "agents.stop", "agents.resume":
+			var v struct {
+				Scope  string `json:"scope"`
+				RoomID string `json:"roomId"`
+			}
+			if e := json.Unmarshal(data, &v); e != nil {
+				return st, e
+			}
+			if v.Scope == "application" {
+				st.AgentsStopped = kind == "agents.stop"
+			} else if v.Scope == "room" {
+				kept := []string{}
+				for _, rid := range st.AgentStopRooms {
+					if rid != v.RoomID {
+						kept = append(kept, rid)
+					}
+				}
+				if kind == "agents.stop" {
+					kept = append(kept, v.RoomID)
+				}
+				st.AgentStopRooms = kept
+			}
 		case "incident.opened":
 			st.Incident = true
 		case "incident.recovered":
@@ -421,6 +516,15 @@ func (s *server) state(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	s.mu.Lock()
+	if st.FeatureFlags == nil {
+		st.FeatureFlags = map[string]bool{}
+	}
+	st.FeatureFlags["agentSafetyControls"] = s.agentSafetyControlsEnabled(st)
+	st.FeatureFlags["humanProfileImages"] = humanProfileImagesEnabled(st)
+	st.AgentRoomStopped = s.agentsBlockedLocked(st, rid)
+	st.AgentsStopped = st.AgentsStopped || s.stopAll
+	s.mu.Unlock()
 	reply(w, visibleState(st, requestActor(r), rid))
 }
 func (s *server) events(w http.ResponseWriter, r *http.Request) {
@@ -462,12 +566,23 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	defer s.mu.Unlock()
 	r.Body = http.MaxBytesReader(w, r.Body, 65536)
 	var req struct {
-		Kind    string          `json:"kind"`
-		Payload json.RawMessage `json:"payload"`
+		TemplateID string          `json:"templateId"`
+		Kind       string          `json:"kind"`
+		Payload    json.RawMessage `json:"payload"`
 	}
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
 		http.Error(w, "Invalid JSON", 400)
 		return
+	}
+	if req.TemplateID != "" {
+		if !s.templatesEnabled {
+			http.Error(w, "Workflow templates are disabled", 403)
+			return
+		}
+		if req.Kind != "workflow.revised" || !knownWorkflowTemplate(req.TemplateID) {
+			http.Error(w, "Unknown workflow template", 400)
+			return
+		}
 	}
 	st, err := s.load(r.Context())
 	if err != nil {
@@ -480,7 +595,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if requestActor(r) != ownerID {
-		allowed := req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised"
+		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised"
 		a, _ := member(st, requestActor(r))
 		if req.Kind == "workflow.revised" && a.Role == "Developer" {
 			allowed = true
@@ -514,6 +629,61 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	}
 	var p any
 	switch req.Kind {
+	case "feature.flag.updated":
+		var v struct {
+			Name    string `json:"name"`
+			Enabled *bool  `json:"enabled"`
+		}
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice") || v.Enabled == nil {
+			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
+			return
+		}
+		p = v
+	case "actor.help.updated":
+		var v struct {
+			ID   string `json:"id"`
+			Mode string `json:"mode"`
+		}
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Mode != "same-window" && v.Mode != "separate-window") {
+			http.Error(w, "Choose same-window or separate-window", 400)
+			return
+		}
+		if enabled, ok := st.FeatureFlags["helpWindowChoice"]; ok && !enabled {
+			http.Error(w, "Help window choice is disabled", 403)
+			return
+		}
+		v.ID = requestActor(r)
+		if a, ok := member(st, v.ID); !ok || a.Kind != "human" {
+			http.Error(w, "Human profile required", 403)
+			return
+		}
+		p = v
+	case "actor.image.updated":
+		var v struct {
+			ID    string  `json:"id"`
+			Image *string `json:"image"`
+		}
+		if json.Unmarshal(req.Payload, &v) != nil || v.Image == nil {
+			http.Error(w, "Image required (empty removes photo)", 400)
+			return
+		}
+		v.ID = requestActor(r)
+		if a, ok := member(st, v.ID); !ok || a.Kind != "human" {
+			http.Error(w, "Human profile required", 403)
+			return
+		}
+		if !humanProfileImagesEnabled(st) && *v.Image != "" {
+			http.Error(w, "Profile photos are disabled", 403)
+			return
+		}
+		image, err := normalizeProfileImage(*v.Image)
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		v.Image = &image
+		p = v
+
 	case "actor.name.updated":
 		var v struct {
 			ID   string `json:"id"`
@@ -781,8 +951,8 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		}
 		p = v
 	case "participant.created", "participant.updated":
-		if st.Incident {
-			http.Error(w, "Invitations/profile activation blocked during incident", 409)
+		if st.Incident || s.agentsBlockedLocked(st, roomID) {
+			http.Error(w, "Invitations/profile activation blocked during an incident or emergency stop", 409)
 			return
 		}
 		var v room.Participant
@@ -819,6 +989,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		}
 		if req.Kind == "participant.created" {
 			v.ThreadID = ""
+			v.ExecutionMode = ""
 			v.Status = ""
 			for _, c := range st.Connections {
 				if c.ID == v.ConnectionID && room.SupportsAgent(c) {
@@ -830,8 +1001,19 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			found = false
 			for _, b := range st.Participants {
 				if b.ID == v.ID && b.RoomID == roomID {
-					v.ThreadID = b.ThreadID
-					v.Status = b.Status
+					if v.ConnectionID != b.ConnectionID {
+						if s.active[b.ID] {
+							http.Error(w, "Cannot reassign a working agent", 409)
+							return
+						}
+						v.ThreadID = ""
+						v.ExecutionMode = ""
+						v.Status = "Idle"
+					} else {
+						v.ThreadID = b.ThreadID
+						v.ExecutionMode = b.ExecutionMode
+						v.Status = b.Status
+					}
 					found = true
 				}
 			}
@@ -897,7 +1079,11 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Commit failed", 500)
 		return
 	}
-	reply(w, map[string]bool{"committed": true})
+	result := map[string]any{"committed": true}
+	if workflow, ok := p.(room.Workflow); ok {
+		result["workflowId"] = workflow.ID
+	}
+	reply(w, result)
 }
 func (s *server) integrity(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {

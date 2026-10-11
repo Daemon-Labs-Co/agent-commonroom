@@ -64,6 +64,10 @@ func (s *server) actorGuard(next http.Handler) http.Handler {
 		if actor == "" {
 			actor = ownerID
 		}
+		if r.URL.Path == "/api/agent-safety" && actor == ownerID {
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), actorContextKey{}, actor)))
+			return
+		}
 		st, e := s.load(r.Context())
 		if e != nil {
 			http.Error(w, "Account unavailable", 503)
@@ -233,6 +237,7 @@ func (s *server) members(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		v.Image = ""
 		v.ID = id()
 		v.Kind = "human"
 		v.Enabled = true
@@ -247,6 +252,7 @@ func (s *server) members(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Member changed; reload", 409)
 			return
 		}
+		v.Image = old.Image
 		v.Kind = old.Kind
 		v.PublicKey = old.PublicKey
 		v.Revision++

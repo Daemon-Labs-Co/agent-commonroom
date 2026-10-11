@@ -1,0 +1,6 @@
+# Only the agent bootstrap belongs in this build context.
+**
+!docker/
+!docker/agent/
+!docker/agent/Dockerfile
+!docker/agent/entrypoint.cjs

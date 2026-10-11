@@ -21,14 +21,24 @@ coverage:
 
 check: test-race
 	go vet ./...
+	node --check docker/agent/entrypoint.cjs
 	node --check web/app.js
 	node --check web/features.js
 	node --check web/workflows.js
+	node --check web/workflow-templates.js
+	node tests/workflow-templates.test.cjs
 	node --check web/provider-auth.js
+	node --check web/connection-testing.js
+	node tests/connection-testing.test.cjs
 	node --check web/connection-editor.js
 	node tests/connection-editor.test.cjs
+	node --check web/profile-images.js
+	node tests/profile-images.test.cjs
+	node --check web/agent-safety.js
+	node tests/agent-safety.test.cjs
 	node --check web/history.js
 	node --check web/help.js
+	node tests/help-preferences.test.cjs
 	node --check web/help-reader.js
 	node tests/help-reader.test.cjs
 

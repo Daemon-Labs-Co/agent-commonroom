@@ -27,6 +27,11 @@ func (b *cappedStatusOutput) Write(p []byte) (int, error) {
 	}
 	return b.Buffer.Write(p)
 }
+
+// providerAuth exposes owner-authorized connection login/status through the
+// approved isolated SSH worker. Passwords and OAuth codes remain in Terminal.
+// Disabling its feature flag cannot disable execution isolation or restore a
+// host CLI fallback. Source forks CAN bypass this, BUT expose host credentials.
 func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 	if requestActor(r) != ownerID {
 		http.Error(w, "Owner permission required", 403)
@@ -54,75 +59,81 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "State unavailable", 503)
 		return
 	}
-	found := false
+	endpoint := ""
 	for _, c := range st.Connections {
-		if c.ID == req.ConnectionID && localClaudeConnection(c.Protocol, c.Endpoint) {
-			found = true
+		if c.ID == req.ConnectionID && c.Protocol == "CLI" {
+			endpoint = c.Endpoint
 		}
 	}
-	if !found {
-		http.Error(w, "This action supports registered local Claude CLI connections only", 400)
+	if endpoint == "" {
+		http.Error(w, "Choose a registered CLI connection", 400)
 		return
 	}
-	if st.Incident {
+	if !connectionSignInEnabled(st.FeatureFlags) {
+		http.Error(w, "Connection sign-in is disabled in Settings", 403)
+		return
+	}
+	alias, provider, err := remoteWorkerEndpoint(endpoint, os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"))
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	s.mu.Lock()
+	stopped := s.agentsBlockedLocked(st, requestedRoom(r))
+	s.mu.Unlock()
+	if st.Incident || stopped {
 		http.Error(w, "Provider operations blocked during an integrity incident", 409)
 		return
 	}
-	binary, e := exec.LookPath("claude")
+	encoded, e := encodeWorkerAuth(workerAuthRequest{Version: 1, Connection: req.ConnectionID, Provider: provider})
 	if e != nil {
-		http.Error(w, "Claude CLI is not installed on this computer", 503)
-		return
-	}
-	binary, e = filepath.Abs(binary)
-	if e != nil {
-		http.Error(w, "Claude executable unavailable", 503)
+		http.Error(w, "Invalid connection identity", 400)
 		return
 	}
 	switch req.Action {
 	case "status":
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
-		cmd := exec.CommandContext(ctx, binary, "auth", "status")
+		cmd := workerSSHCommand(ctx, alias, "auth-status-v1", encoded)
 		var out cappedStatusOutput
 		cmd.Stdout = &out
 		cmd.Stderr = io.Discard
-		processErr := cmd.Run()
-		var status struct {
-			LoggedIn bool `json:"loggedIn"`
-		}
-		if json.Unmarshal(out.Bytes(), &status) != nil {
-			http.Error(w, "Unable to check Claude sign-in status", 502)
+		if cmd.Run() != nil {
+			http.Error(w, "Worker unavailable or not configured; check remote worker setup", 503)
 			return
 		}
-		if processErr != nil && status.LoggedIn {
-			http.Error(w, "Unable to confirm Claude sign-in", 502)
+		var result struct {
+			CredentialPresent bool `json:"credentialPresent"`
+		}
+		if json.Unmarshal(out.Bytes(), &result) != nil {
+			http.Error(w, "Worker returned invalid status", 502)
 			return
 		}
-		reply(w, map[string]bool{"loggedIn": status.LoggedIn})
+		reply(w, map[string]any{"credentialPresent": result.CredentialPresent, "provider": provider})
 	case "login":
 		if runtime.GOOS != "darwin" {
-			http.Error(w, "In-app login launch currently supports macOS only", 501)
+			http.Error(w, "Automatic Terminal launch requires macOS; use the documented worker sign-in command", 501)
 			return
 		}
-		// Run the official interactive flow in Terminal; never proxy credentials or OAuth output.
 		if e = os.MkdirAll(".data", 0700); e != nil {
 			http.Error(w, "Unable to prepare sign-in", 500)
 			return
 		}
-		script, e := os.CreateTemp(".data", "claude-login-*.command")
+		script, e := os.CreateTemp(".data", "connection-login-*.command")
 		if e != nil {
 			http.Error(w, "Unable to prepare sign-in", 500)
 			return
 		}
-		path, pathErr := filepath.Abs(script.Name())
-		if pathErr != nil {
+		path, e := filepath.Abs(script.Name())
+		if e != nil {
 			script.Close()
 			os.Remove(script.Name())
 			http.Error(w, "Unable to prepare sign-in", 500)
 			return
 		}
+		command := interactiveWorkerLogin(alias, encoded)
 		if e = script.Chmod(0700); e == nil {
-			_, e = script.WriteString("#!/bin/sh\ntrap 'rm -- \"$0\"' EXIT\n" + shellArgument(binary) + " auth login --claudeai\n")
+			_, e = script.WriteString("#!/bin/sh\ntrap 'rm -- \"$0\"' EXIT\n" + command + "\n")
 		}
 		closeErr := script.Close()
 		if e != nil || closeErr != nil {
@@ -130,15 +141,17 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Unable to prepare sign-in", 500)
 			return
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-		if e = exec.CommandContext(ctx, "/usr/bin/open", "-a", "Terminal", path).Run(); e != nil {
+		// Audit intent before launching; provider URLs, codes and credentials never enter the log.
+		if e = s.append(r.Context(), "provider.login_launched", map[string]string{"actorId": ownerID, "connectionId": req.ConnectionID, "provider": provider}); e != nil {
 			os.Remove(path)
-			http.Error(w, "Unable to open Claude sign-in in Terminal", 502)
+			http.Error(w, "Unable to record sign-in request", 500)
 			return
 		}
-		if e = s.append(r.Context(), "provider.login_launched", map[string]string{"actorId": ownerID, "connectionId": req.ConnectionID, "provider": "claude"}); e != nil {
-			http.Error(w, "Sign-in launched but audit recording failed", 500)
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		if exec.CommandContext(ctx, "/usr/bin/open", "-a", "Terminal", path).Run() != nil {
+			os.Remove(path)
+			http.Error(w, "Unable to open sign-in Terminal", 502)
 			return
 		}
 		reply(w, map[string]bool{"launched": true})

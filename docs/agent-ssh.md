@@ -1,5 +1,8 @@
 # Connect Codex or Claude agents over SSH
 
+> Managed agent execution now requires the [Linux/rootless-Docker worker](container-isolation.md). Direct SSH model dispatch is blocked until a remote isolated worker is implemented. Earlier SSH endpoint setup in this guide does not bypass that restriction.
+
+
 [Documentation index](README.md) · [Connection concepts](concepts.md#connections-versus-participants)
 
 An endpoint such as `ssh://debian-codex` is not a full remote executable URL. The part after `ssh://` names a host entry in the SSH configuration of the account running Agent CommonRoom. That entry supplies the real hostname, remote username, SSH port, and key.
@@ -122,3 +125,5 @@ Save the connection, open the target room, choose Invite agent, assign its profi
 - Works interactively, fails in app: check BatchMode, service HOME/PATH, key passphrases, and noninteractive remote startup behavior.
 
 Remote process cancellation and complete workspace/network isolation are not yet guaranteed. See the [security review](../SECURITY_REVIEW.md) before treating this conversational integration as a production agent execution boundary.
+
+See the [remote worker requirements](container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Remote-worker transport is planned; current direct SSH dispatch remains blocked.
