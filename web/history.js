@@ -9,7 +9,10 @@ async function loadAuditHistory(){
   const query=target.querySelector('input').value.trim().toLowerCase();
   const shown=events.filter(e=>(e.summary+' '+e.kind).toLowerCase().includes(query));
   count.textContent=shown.length+' of '+events.length+' recent records (up to 200)';
-  list.innerHTML=shown.map(e=>`<article class="audit-event"><div class="audit-description">${esc(e.summary||e.kind.replaceAll('.',' '))}</div><time datetime="${esc(e.at)}">${esc(new Date(e.at).toLocaleString())}</time><details><summary>Verification details · record #${e.sequence}</summary><dl><dt>Event type</dt><dd>${esc(e.kind)}</dd><dt>Checksum</dt><dd><code>${esc(e.hash)}</code></dd></dl></details></article>`).join('')||'<p class="muted">No matching activity.</p>';
+  const renderEvent=e=>`<article class="audit-event"><div class="audit-description">${esc(e.summary||e.kind.replaceAll('.',' '))}</div><time datetime="${esc(e.at)}">${esc(new Date(e.at).toLocaleString())}</time><details><summary>Verification details · record #${e.sequence}</summary><dl><dt>Event type</dt><dd>${esc(e.kind)}</dd><dt>Checksum</dt><dd><code>${esc(e.hash)}</code></dd></dl></details></article>`;
+  if(typeof drawAuditDateTabs==='function'&&state?.featureFlags?.historyDateGroups!==false){
+   const visible=drawAuditDateTabs(list,events,query,renderEvent,draw);count.textContent=visible+' of '+events.length+' recent records (up to 200)';
+  }else list.innerHTML=shown.map(renderEvent).join('')||'<p class="muted">No matching activity.</p>';
  };
  target.querySelector('input').addEventListener('input',draw);draw();
 }

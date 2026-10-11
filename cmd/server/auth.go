@@ -23,6 +23,7 @@ type ownerAuth struct {
 	mu                     sync.Mutex
 	publicKey              *rsa.PublicKey
 	setupPath, privatePath string
+	sessionPath            string
 	setupPending           bool
 	challenges             map[string]ownerChallenge
 	key                    string
@@ -102,8 +103,12 @@ func (a *ownerAuth) session(r *http.Request) (ownerSession, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	session, ok := a.sessions[cookie.Value]
+	if !ok {
+		session, ok = a.sessions[sessionDigest(cookie.Value)]
+	}
 	if !ok || !time.Now().Before(session.Expires) {
 		delete(a.sessions, cookie.Value)
+		delete(a.sessions, sessionDigest(cookie.Value))
 		return ownerSession{}, false
 	}
 	return session, true
@@ -194,15 +199,21 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(a.sessions) >= 32 {
-		http.Error(w, "Too many active sessions; sign out of another session or restart the server", 429)
+		http.Error(w, "Too many active sessions; sign out of another session or wait for expiry", 429)
 		return
 	}
 	if old, e := r.Cookie("commonroom_session"); e == nil {
 		delete(a.sessions, old.Value)
+		delete(a.sessions, sessionDigest(old.Value))
 	}
 	token := id() + id()
 	session := ownerSession{ActorID: actorID, CSRF: id() + id(), Expires: now.Add(8 * time.Hour)}
 	a.sessions[token] = session
+	if err := a.persistSessionsLocked(); err != nil {
+		delete(a.sessions, token)
+		http.Error(w, "Unable to save private session", 503)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
 	reply(w, map[string]any{"csrf": session.CSRF, "actorId": actorID, "actorType": "human", "keySetupPending": a.setupPending && actorID == ownerID})
 }
@@ -217,7 +228,20 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	if cookie, e := r.Cookie("commonroom_session"); e == nil {
 		s.auth.mu.Lock()
+		previous := s.auth.sessions[cookie.Value]
+		hashed, hasHash := s.auth.sessions[sessionDigest(cookie.Value)]
 		delete(s.auth.sessions, cookie.Value)
+		delete(s.auth.sessions, sessionDigest(cookie.Value))
+		if err := s.auth.persistSessionsLocked(); err != nil {
+			if hasHash {
+				s.auth.sessions[sessionDigest(cookie.Value)] = hashed
+			} else {
+				s.auth.sessions[cookie.Value] = previous
+			}
+			s.auth.mu.Unlock()
+			http.Error(w, "Unable to persist sign-out; please retry", 503)
+			return
+		}
 		s.auth.mu.Unlock()
 	}
 	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: "", Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: -1})

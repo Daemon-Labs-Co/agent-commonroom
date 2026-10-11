@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -116,6 +117,16 @@ func main() {
 		log.Fatal("COMMONROOM_AGENT_SAFETY_UI must be true or false")
 	}
 	s.safetyUIDefault = safetyUI
+	mux.Handle("/viewport-alignment.js", s.roomPresentationScript("web", "viewport-alignment.js", "topAlignedViews"))
+	mux.Handle("/overlay-layout.js", s.roomPresentationScript("web", "overlay-layout.js", "compactProfileOverlays"))
+	mux.Handle("/human-profile-details.js", s.roomPresentationScript("web", "human-profile-details.js", "humanProfileDetails"))
+	mux.Handle("/room-sections.js", s.roomPresentationScript("web", "room-sections.js", "roomSections"))
+	mux.Handle("/settings-tabs.js", s.roomPresentationScript("web", "settings-tabs.js", "settingsTabs"))
+	mux.Handle("/history-date-groups.js", s.roomPresentationScript("web", "history-date-groups.js", "historyDateGroups"))
+	mux.Handle("/feature-flag-tabs.js", s.roomPresentationScript("web", "feature-flag-tabs.js", "featureFlagTabs"))
+	mux.Handle("/help-icons.js", s.roomPresentationScript("web", "help-icons.js", "standardHelpIcons"))
+	mux.Handle("/squad-profiles.js", s.roomPresentationScript("web", "squad-profiles.js", "squadProfileActions"))
+	mux.Handle("/agent-invitation.js", s.roomPresentationScript("web", "agent-invitation.js", "agentInvitationLayout"))
 	mux.Handle("/agent-safety.js", s.agentSafetyScript("web"))
 	mux.Handle("/workflow-templates.js", optionalScriptHandler(s.templatesEnabled, "web", "workflow-templates.js"))
 	mux.Handle("/connection-editor.js", connectionEditorHandler(editorEnabled, "web"))
@@ -139,6 +150,13 @@ func main() {
 	}
 	if err = s.auth.prepareRSA(keyPath); err != nil {
 		log.Fatal(err)
+	}
+	persistentSessions, err := persistentHumanSessionsEnabled()
+	if err != nil {
+		log.Fatal("COMMONROOM_PERSISTENT_SESSIONS must be true or false")
+	}
+	if err = s.auth.configureSessionPersistence(filepath.Join(filepath.Dir(keyPath), "human-sessions.json"), persistentSessions); err != nil {
+		log.Fatal("Private session storage unavailable: ", err)
 	}
 	log.Printf("Owner setup code file: %s (keep private)", keyPath)
 	log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", addr)
@@ -634,7 +652,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}
