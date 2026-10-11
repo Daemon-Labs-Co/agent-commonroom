@@ -1,0 +1,68 @@
+.env
+.env.*
+!.env.example
+.data/
+bin/
+.DS_Store
+*.log
+*.test
+coverage.out
+coverage.html
+# Authentication keys and invitation credentials
+*.pem
+commonroom-member*.json
+commonroom-invitation-*.json
+# Local database exports
+*.dump
+*.sql.gz
+
+# Local credential stores and private configuration
+secrets/
+.secret/
+.secrets/
+credentials/
+.ssh/
+.aws/
+.azure/
+.config/gcloud/
+.npmrc
+.netrc
+.pypirc
+.pgpass
+.pg_service.conf
+local-config.json
+credentials.json
+credentials-*.json
+service-account*.json
+service_account*.json
+application_default_credentials.json
+# Private SSH keys and certificate/key bundles
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+# Local archives/exports; retain source migrations
+backups/
+exports/
+*.backup
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.sql.bak
+backup*.sql
+*-backup.sql
+# Local scanner output
+secret-scan*.json
+secret-scan*.sarif

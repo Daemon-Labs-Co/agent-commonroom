@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+# Scan staged content, including force-added files. Preserve signing: this
+# hook validates only and never creates or modifies a commit.
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+if command -v gitleaks >/dev/null 2>&1; then
+    scanner=gitleaks
+elif [ -x "$repo_root/bin/gitleaks" ]; then
+    scanner="$repo_root/bin/gitleaks"
+else
+    echo "Commit blocked: install Gitleaks to scan staged files for secrets." >&2
+    exit 1
+fi
+exec "$scanner" git --staged --redact --no-banner .
