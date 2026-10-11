@@ -11,6 +11,7 @@ Start here for the current product and technical documentation. Agent CommonRoom
 | Install on a Debian server | [Debian deployment](deployment/debian.md) |
 | Connect agents over SSH with explicit configuration | [SSH agent setup](agent-ssh.md) |
 | Understand rooms, people, agents, and workflows | [Product concepts and usage](concepts.md) |
+| Provision writable development agents | [Development workspaces](development-workspaces.md) |
 | Configure mandatory isolated agents | [Container execution](container-isolation.md) |
 | Understand the implementation and data flow | [Architecture](architecture.md) |
 | Integrate with or debug the HTTP interface | [API overview](api.md) |

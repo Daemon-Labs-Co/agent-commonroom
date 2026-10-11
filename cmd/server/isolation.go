@@ -94,6 +94,21 @@ func isolatedAgentCommand(ctx context.Context, endpoint, key string, args ...str
 	return localIsolatedAgentCommand(ctx, endpoint, key, "", args...)
 }
 func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string, args ...string) (*exec.Cmd, func(), error) {
+	return localIsolatedDevelopmentCommand(ctx, endpoint, key, jobID, "", args...)
+}
+
+// Development changes only the private workspace and provider tool policy; the
+// rootless container boundary remains mandatory. A source bypass CAN expose host
+// authority, BUT invalidates containment and must never be an automatic fallback.
+func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, repository string, args ...string) (*exec.Cmd, func(), error) {
+	bundle, err := workerDevelopmentBundle(key, repository, os.Getenv("COMMONROOM_WORKER_DEVELOPMENT"), os.Getenv("COMMONROOM_WORKER_DEVELOPMENT_REPOSITORIES"))
+	if err != nil {
+		return nil, nil, err
+	}
+	if developmentTurnArgs(endpoint, args) != (repository != "") {
+		return nil, nil, errors.New("Provider policy does not match the workspace")
+	}
+
 	if strings.TrimSpace(key) == "" || len(key) > 1024 {
 		return nil, nil, errors.New("Isolated execution requires a bounded membership identity")
 	}
@@ -152,7 +167,7 @@ func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string,
 		cleanupDir()
 		return nil, nil, err
 	}
-	digest := sha256.Sum256([]byte(key))
+	digest := sha256.Sum256([]byte(key + repository))
 	volume := "commonroom-session-" + hex.EncodeToString(digest[:16])
 	name := "commonroom-turn-" + id()
 	if jobID != "" {
@@ -177,7 +192,11 @@ func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string,
 			cleanupDir()
 		})
 	}
-	cmd := exec.CommandContext(ctx, "docker", isolatedRunArgs(os.Getenv("COMMONROOM_AGENT_IMAGE"), name, volume, gateway.socket, credential, endpoint, args)...)
+	runArgs := isolatedRunArgs(os.Getenv("COMMONROOM_AGENT_IMAGE"), name, volume, gateway.socket, credential, endpoint, args)
+	if repository != "" {
+		runArgs = developmentRunArgs(runArgs, bundle, repository, volume)
+	}
+	cmd := exec.CommandContext(ctx, "docker", runArgs...)
 	// Only Docker selection and minimum platform variables, never provider keys.
 	cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "XDG_RUNTIME_DIR=" + os.Getenv("XDG_RUNTIME_DIR")}
 	cmd.WaitDelay = 2 * time.Second

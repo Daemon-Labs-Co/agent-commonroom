@@ -45,6 +45,12 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "--agent-worker" {
 		os.Exit(agentWorkerMain(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
 	}
+	developmentEnabled, developmentRegistry, developmentErr := loadControllerDevelopmentConfiguration(".data/development-workspaces.json", os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
+	if developmentErr != nil {
+		log.Fatal(developmentErr)
+	}
+	os.Setenv("COMMONROOM_DEVELOPMENT_WORKSPACES", developmentEnabled)
+	os.Setenv("COMMONROOM_DEVELOPMENT_REPOSITORIES", developmentRegistry)
 	ctx := context.Background()
 	var localConfig struct {
 		DatabaseURL         string `json:"databaseUrl"`

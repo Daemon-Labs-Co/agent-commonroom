@@ -46,11 +46,12 @@ func remoteWorkerEndpoint(endpoint, configured, enabled string) (string, string,
 }
 
 type workerRunRequest struct {
-	Version  int      `json:"version"`
-	JobID    string   `json:"jobId"`
-	Provider string   `json:"provider"`
-	Key      string   `json:"key"`
-	Args     []string `json:"args"`
+	Version    int      `json:"version"`
+	JobID      string   `json:"jobId"`
+	Provider   string   `json:"provider"`
+	Key        string   `json:"key"`
+	Args       []string `json:"args"`
+	Repository string   `json:"repository,omitempty"`
 }
 
 func encodeWorkerRequest(v workerRunRequest) (string, error) {
@@ -81,7 +82,9 @@ func decodeWorkerRequest(encoded string) (workerRunRequest, error) {
 }
 
 // validateWorkerRun forbids arbitrary CLI options, mounts, environment and shell
-// commands. Provider arguments must match the existing constrained chat policy.
+// commands. Provider arguments must match the exact chat policy or the explicit
+// development policy bound to an approved snapshot. The worker independently
+// verifies its administrator-owned room registry before any launch.
 func validateWorkerRun(v workerRunRequest) error {
 	if v.Version != 1 || !validWorkerJobID(v.JobID) || strings.TrimSpace(v.Key) == "" || len(v.Key) > 1024 {
 		return errors.New("Invalid worker identity")
@@ -89,16 +92,20 @@ func validateWorkerRun(v workerRunRequest) error {
 	base := []string{}
 	suffix := []string{}
 	threadFlag := ""
-	if v.Provider == "codex" {
-		base = []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only", "-c", `approval_policy="never"`}
-		suffix = []string{"-"}
-		threadFlag = "resume"
-	} else if v.Provider == "claude" {
-		base = []string{"--print", "--output-format", "json", "--tools", "", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--disable-slash-commands", "--safe-mode"}
-		threadFlag = "--resume"
-	} else {
+	if v.Repository != "" && !repositoryDigestPattern.MatchString(v.Repository) {
+		return errors.New("Invalid development repository digest")
+	}
+	if v.Provider != "codex" && v.Provider != "claude" {
 		return errors.New("Unsupported worker provider")
 	}
+	base = providerTurnArgs(v.Provider, v.Repository != "")
+	if v.Provider == "codex" {
+		suffix = []string{"-"}
+		threadFlag = "resume"
+	} else {
+		threadFlag = "--resume"
+	}
+
 	n := len(base) + len(suffix)
 	if len(v.Args) != n && len(v.Args) != n+2 {
 		return errors.New("Forbidden worker arguments")
@@ -135,7 +142,14 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 	if err != nil {
 		return nil, nil, err
 	}
-	request := workerRunRequest{Version: 1, JobID: id(), Provider: provider, Key: key, Args: args}
+	repository := ""
+	if developmentTurnArgs(provider, args) {
+		repository, err = controllerDevelopmentRepository(strings.SplitN(key, "/", 2)[0], os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
+		if err != nil || repository == "" {
+			return nil, nil, errors.New("Development workspace is not enabled for this room")
+		}
+	}
+	request := workerRunRequest{Version: 1, JobID: id(), Provider: provider, Key: key, Args: args, Repository: repository}
 	encoded, err := encodeWorkerRequest(request)
 	if err != nil {
 		return nil, nil, err
@@ -167,8 +181,10 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 }
 
 type workerConfiguration struct {
-	Image   string `json:"image"`
-	AuthDir string `json:"authDir"`
+	Image                   string                           `json:"image"`
+	AuthDir                 string                           `json:"authDir"`
+	DevelopmentEnabled      bool                             `json:"developmentEnabled,omitempty"`
+	DevelopmentRepositories map[string]developmentRepository `json:"developmentRepositories,omitempty"`
 }
 type workerJobRecord struct {
 	JobID    string `json:"jobId"`
@@ -269,9 +285,15 @@ func configureWorker() error {
 	var c workerConfiguration
 	decoder := json.NewDecoder(strings.NewReader(string(raw)))
 	decoder.DisallowUnknownFields()
-	if decoder.Decode(&c) != nil || !validAgentImage(c.Image) || !filepath.IsAbs(c.AuthDir) {
+	if decoder.Decode(&c) != nil || decoder.Decode(new(any)) != io.EOF || !validAgentImage(c.Image) || !filepath.IsAbs(c.AuthDir) {
 		return errors.New("Worker requires a digest-pinned image and absolute authDir")
 	}
+	if err := validateDevelopmentRegistry(c.DevelopmentRepositories); err != nil {
+		return err
+	}
+	registry, _ := json.Marshal(c.DevelopmentRepositories)
+	os.Setenv("COMMONROOM_WORKER_DEVELOPMENT_REPOSITORIES", string(registry))
+	os.Setenv("COMMONROOM_WORKER_DEVELOPMENT", fmt.Sprint(c.DevelopmentEnabled))
 	os.Setenv("COMMONROOM_AGENT_IMAGE", c.Image)
 	os.Setenv("COMMONROOM_AGENT_AUTH_DIR", c.AuthDir)
 	return nil
@@ -430,7 +452,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		writeWorkerRecord(dir, record, false)
 		return fail(errors.New("Worker prompt exceeded limit"))
 	}
-	cmd, cleanup, err := localIsolatedAgentCommand(ctx, request.Provider, request.Key, request.JobID, request.Args...)
+	cmd, cleanup, err := localIsolatedDevelopmentCommand(ctx, request.Provider, request.Key, request.JobID, request.Repository, request.Args...)
 	if err != nil {
 		record.Status = "failed"
 		writeWorkerRecord(dir, record, false)

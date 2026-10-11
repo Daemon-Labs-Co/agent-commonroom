@@ -22,7 +22,7 @@ coverage:
 check: test-race
 	go vet ./...
 	node --check docker/agent/entrypoint.cjs
-	node --test tests/agent-entrypoint.test.cjs tests/credential-export.test.cjs
+	node --test tests/agent-entrypoint.test.cjs tests/credential-export.test.cjs tests/workspace-readiness.test.cjs
 	node --check web/app.js
 	node --check web/features.js
 	node --check web/squad-profiles.js
