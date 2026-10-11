@@ -1,0 +1,17 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const code = fs.readFileSync('web/help-reader.js', 'utf8').split('(async()=>{')[0];
+const context = vm.createContext({ URL });
+vm.runInContext(code, context);
+vm.runInContext(`catalog = [{id:'concepts',path:'docs/concepts.md'},{id:'index',path:'docs/README.md'}]`, context);
+const call = expression => vm.runInContext(expression, context);
+assert.equal(call(`destination('javascript:alert(1)', {path:'docs/concepts.md'})`), null);
+assert.equal(call(`destination('https://outside.example/image.jpg', {path:'docs/concepts.md'}, true)`), null);
+assert.equal(call(`destination('../.data/owner-key', {path:'docs/concepts.md'})`), null);
+assert.equal(call(`destination('concepts.md#shared-memory', {path:'docs/README.md'})`), '/help/?doc=concepts#shared-memory');
+assert.equal(call(`destination('screenshots/room.jpg', {path:'docs/README.md'}, true)`), '/help/image/room.jpg');
+assert.match(call(`inline('<script>alert(1)</script>', {path:'docs/concepts.md'})`), /&lt;script&gt;/);
+assert.doesNotMatch(call(`inline('[run](javascript:alert)', {path:'docs/concepts.md'})`), /href=/);
+assert.match(call('markdown(' + JSON.stringify('# Heading\n\n| A | B |\n| --- | --- |\n| safe | text |') + ', {path:"docs/concepts.md"})'), /<table>/);
+console.log('Help reader URL, escaping, image, and table checks passed.');

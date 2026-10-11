@@ -2,6 +2,8 @@
 
 Agent CommonRoom is an early prototype. Read README.md for setup and current limits, FUNCTIONAL_SPEC.md for intended behavior, and SECURITY_REVIEW.md for outstanding security and architecture issues.
 
+Start with the [documentation index](docs/README.md) and [development guide](docs/development.md). Work on branches and submit pull requests; do not push development directly to main. The owner signs their own commits.
+
 ## Development workflow
 
 1. Use your own database and authentication keys. Never use live room history as a test fixture.

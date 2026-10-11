@@ -74,7 +74,7 @@ BUILD
 sudo install -d -o commonroom -g commonroom -m 0700 /opt/agent-commonroom/.data
 ```
 
-Retain `web/`, `migrations/`, and the license notices alongside the executable: the executable does not embed these assets. Run it from the repository root.
+Retain `web/`, `docs/`, the root documentation files, `migrations/`, and the license notices alongside the executable: the executable does not embed these assets. Run it from the repository root.
 
 ## 4. Configure the service
 
@@ -160,6 +160,8 @@ Paste it into the browser through the tunnel, download your owner private key, s
 After successful RSA key sign-in, the server removes the setup code and pending private-key copy; the public-key file remains. Later sign-ins use your saved key. Restarting the service invalidates browser sessions but does not invalidate that saved key. Key recovery and rotation are not implemented.
 
 ## 7. Configure agent connections for the server
+
+Use the [step-by-step SSH agent guide](../agent-ssh.md) for host aliases, remote usernames/ports, keys, host verification, and runtime-account connection tests.
 
 When Agent CommonRoom runs on Debian, **Local means the Debian server**, not your laptop.
 

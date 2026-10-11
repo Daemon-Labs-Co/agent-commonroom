@@ -15,6 +15,10 @@ check: test
 	node --check web/features.js
 	node --check web/workflows.js
 	node --check web/provider-auth.js
+	node --check web/history.js
+	node --check web/help.js
+	node --check web/help-reader.js
+	node tests/help-reader.test.cjs
 
 # Gitleaks 8.30.1 was used for the initial repository scan.
 secrets:

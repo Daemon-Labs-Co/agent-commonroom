@@ -4,6 +4,12 @@ A local workspace where humans and AI agents collaborate in rooms, with individu
 
 Agent CommonRoom is an early development prototype built with Go, PostgreSQL, and browser JavaScript. It runs on your computer and currently supports conversational Codex and Claude CLI agents, locally or over SSH. The workflow editor saves and validates graphs; workflow execution is not implemented yet.
 
+## Documentation
+
+Read these guides inside the app using **Help** in the header or **Help & documentation** beside Settings. Contextual Help links are available on feature screens and forms. The standalone reader is at `/help/`.
+
+Browse the [documentation index](docs/README.md) for product concepts, architecture, the HTTP API, development, operations, and Debian deployment. Detailed source comments and per-file technical references will be added in subsequent passes.
+
 ## Screenshots
 
 These screenshots use fictional people, conversations, and connections in a separate read-only preview of the current interface. They contain no live workspace data and do not imply workflow execution is available.
@@ -45,6 +51,8 @@ Edit and validate workflow drafts; Run remains disabled until the execution engi
 The server, migration, and web assets must be run from the repository root. There is no frontend package installation or bundling step.
 
 ## Remote server installation
+
+For nginx with an existing database, see [nginx and existing PostgreSQL](docs/deployment/nginx-postgresql.md). pgvector is documented as an optional DBA-managed prerequisite; semantic memory is not implemented.
 
 To run Agent CommonRoom on your Debian server, follow the [Debian remote-install guide](docs/deployment/debian.md). It covers dependencies, a dedicated service account, PostgreSQL, systemd startup, owner setup, agent authentication, SSH-tunnel browser access, backups, and troubleshooting.
 
@@ -93,7 +101,7 @@ go run ./cmd/server
 
 The example assumes PostgreSQL accepts your local account. Adjust the connection string for your database installation; never commit credentials. `sslmode=disable` here is for a local development database. Startup automatically applies `migrations/001.sql`; the database user needs permission to create the schema objects and triggers.
 
-Open [Agent CommonRoom](http://127.0.0.1:8787). The server listens on numeric loopback addresses only. Do not expose it through a reverse proxy or tunnel as a production service.
+Open [Agent CommonRoom](http://127.0.0.1:8787). The server listens on numeric loopback addresses only. Use remote access only through the documented private SSH tunnel or private nginx setup; public hosting is unsupported.
 
 ### 4. Complete first owner sign-in
 
@@ -123,6 +131,8 @@ Create a connection first, then invite it into a room with its own profile.
 | Local Claude | CLI | `claude` | Connections → Claude sign-in on macOS, or authenticate the CLI separately |
 | SSH Codex | CLI | `ssh://your-ssh-alias` | Authenticate Codex on the remote machine |
 | SSH Claude | CLI | `ssh://your-ssh-alias/claude` | Authenticate Claude on the remote machine |
+
+For complete alias, hostname, user, port, key, host-verification, and connection-test examples, follow [SSH agent setup](docs/agent-ssh.md).
 
 SSH uses configured aliases and noninteractive authentication. Remote executables are currently expected at `~/.local/bin/codex` or `~/.local/bin/claude`; arbitrary remote executable paths are not supported. Never place passwords, tokens, or private keys in endpoints.
 
