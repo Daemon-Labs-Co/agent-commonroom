@@ -208,8 +208,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Action == "remove" {
 		found := false
+		participantName := ""
 		for _, p := range st.Participants {
 			if p.ID == req.ParticipantID {
+				participantName = p.Name
 				found = true
 			}
 		}
@@ -217,7 +219,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Participant not found", 404)
 			return
 		}
-		if err = s.append(r.Context(), "participant.removed", map[string]string{"id": req.ParticipantID, "actor": "human"}); err != nil {
+		if err = s.append(r.Context(), "participant.removed", map[string]string{"id": req.ParticipantID, "actor": "human", "name": participantName}); err != nil {
 			http.Error(w, "Removal could not be committed", 500)
 			return
 		}
@@ -464,13 +466,13 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 		}
 	}
 	if !found {
-		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "reason": "removed from room"})
+		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "name": p.Name, "reason": "removed from room"})
 		return
 	}
 	p.Status = "Idle"
 	if err != nil {
 		p.Status = "Blocked"
-		s.append(context.Background(), "agent.error", map[string]string{"participantId": p.ID, "error": err.Error()})
+		s.append(context.Background(), "agent.error", map[string]string{"participantId": p.ID, "name": p.Name, "error": err.Error()})
 	} else if !st.Incident {
 		s.append(context.Background(), "message.created", room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()})
 	}

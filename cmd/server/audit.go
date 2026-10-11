@@ -1,0 +1,90 @@
+package main
+
+import (
+	"encoding/json"
+	"strings"
+	"unicode"
+)
+
+// auditSummary derives a display description without changing the signed event
+// payload or exposing message bodies, credentials, instructions, or raw errors.
+func auditSummary(kind string, payload []byte) string {
+	var p map[string]json.RawMessage
+	if json.Unmarshal(payload, &p) != nil {
+		p = nil
+	}
+	label := func(key, fallback string) string {
+		var value string
+		json.Unmarshal(p[key], &value)
+		value = strings.TrimSpace(strings.Map(func(r rune) rune {
+			if unicode.IsControl(r) {
+				return ' '
+			}
+			return r
+		}, value))
+		chars := []rune(value)
+		if len(chars) > 120 {
+			value = string(chars[:120]) + "…"
+		}
+		if value == "" {
+			return fallback
+		}
+		return value
+	}
+	name := label("name", "Agent")
+	title := label("title", "Untitled")
+	switch kind {
+	case "room.created":
+		return "Room created: " + label("name", "Room")
+	case "room.updated":
+		return "Room settings updated: " + label("name", "Room")
+	case "room.owner_access":
+		return "Owner viewed a personal room"
+	case "connection.created":
+		return "Connection added: " + label("name", "Connection")
+	case "connection.updated":
+		return "Connection settings updated: " + label("name", "Connection")
+	case "connection.deleted":
+		return "Connection removed"
+	case "participant.created":
+		return name + " joined a room as " + label("role", "an agent")
+	case "participant.updated":
+		return name + "’s room profile was updated"
+	case "participant.removed":
+		return name + " removed from a room"
+	case "participant.session":
+		return name + "’s session updated · " + label("status", "status recorded")
+	case "participant.history_attached":
+		return "An existing conversation was attached to an agent"
+	case "message.created":
+		return label("author", "A participant") + " sent a room message"
+	case "memory.revised":
+		return "Shared memory updated: " + title + " · " + label("scope", "room") + " scope"
+	case "task.revised":
+		return "Task updated: " + title + " · " + label("status", "status recorded")
+	case "evidence.created":
+		return "Evidence added: " + title
+	case "workflow.revised":
+		return "Workflow updated: " + label("name", "Workflow")
+	case "actor.revised":
+		return "Member account updated: " + label("name", "Member") + " · " + label("role", "role recorded")
+	case "actor.name.updated":
+		return "Human name updated: " + label("name", "Member")
+	case "human.profile.updated":
+		return "Human profile updated"
+	case "company.updated":
+		return "Company settings updated: " + label("name", "Company")
+	case "provider.login_launched":
+		return "Provider sign-in launched"
+	case "agent.error":
+		return name + " turn failed; check the agent connection and provider diagnostics"
+	case "agent.stopped":
+		return name + " stopped after being removed from a room"
+	case "incident.opened":
+		return "Integrity failure detected; human investigation required"
+	case "incident.recovered":
+		return "Human recorded an integrity recovery decision"
+	default:
+		return "Activity recorded: " + strings.ReplaceAll(kind, ".", " ")
+	}
+}

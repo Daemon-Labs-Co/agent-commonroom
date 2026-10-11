@@ -83,6 +83,7 @@ func main() {
 	mux.HandleFunc("/api/integrity", s.integrity)
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
+	mux.Handle("/help/", documentationHandler("."))
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 	addr := os.Getenv("LISTEN_ADDR")
 	if addr == "" {
@@ -108,6 +109,9 @@ func main() {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+		if strings.HasPrefix(r.URL.Path, "/help/") {
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'")
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("Cache-Control", "no-store")
 		}
@@ -416,7 +420,7 @@ func (s *server) state(w http.ResponseWriter, r *http.Request) {
 }
 func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		rows, err := s.db.Query(r.Context(), "SELECT sequence,kind,committed_at,hash FROM events ORDER BY sequence DESC LIMIT 200")
+		rows, err := s.db.Query(r.Context(), "SELECT sequence,kind,committed_at,hash,payload FROM events ORDER BY sequence DESC LIMIT 200")
 		if err != nil {
 			http.Error(w, "Unable to load events", 500)
 			return
@@ -426,12 +430,17 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var seq int64
 			var kind, hash string
+			var payload []byte
 			var at time.Time
-			if err = rows.Scan(&seq, &kind, &at, &hash); err != nil {
+			if err = rows.Scan(&seq, &kind, &at, &hash, &payload); err != nil {
 				http.Error(w, "Unable to read event", 500)
 				return
 			}
-			result = append(result, map[string]any{"sequence": seq, "kind": kind, "at": at, "hash": hash})
+			result = append(result, map[string]any{"sequence": seq, "kind": kind, "at": at, "hash": hash, "summary": auditSummary(kind, payload)})
+		}
+		if rows.Err() != nil {
+			http.Error(w, "Unable to read events", 500)
+			return
 		}
 		reply(w, result)
 		return
