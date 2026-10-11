@@ -79,3 +79,83 @@ Tasks have an assignee, optional reviewer, criteria, status, and revision. Evide
 Workflows belong to rooms. Add nodes, connect outputs to inputs, edit properties, save versions, and Validate. Validation reports structural/assignment problems; Save accepts incomplete drafts. Run is disabled. Retry/timeouts, approvals, evidence requirements, and room handoffs stored in the graph do not execute yet.
 
 Human overrides, acceptance authority, and immutable history remain product requirements with incomplete enforcement. Consult the security review before treating the prototype as a production policy system.
+
+## Workflow templates
+
+Open **Workflow templates** in the main menu (or **Browse templates** inside the editor). The catalog offers:
+
+| Template | Intended outcome |
+| --- | --- |
+| Idea assessment | A human idea reviewed for value, functionality, feasibility, and estimated effort |
+| Feature development | Implementation with tests, documentation, a feature flag, evidence, and independent QA |
+| UI refinement | Interaction design, implementation, browser checks, visual evidence, and human review |
+| Bug investigation | Reproduction, root cause, fix, regression test, and verified resolution |
+| Security review | Authorized threat review, prioritized findings, remediation evidence, and residual-risk decisions |
+| Documenter | Documentation audit, complete guides/source comments, verified examples, and independent accuracy review |
+| Disaster planning | Failure scenarios, recovery objectives, a recovery runbook, rehearsal planning, and readiness review |
+| Cooperative adversarial review | Builder proposal, evidence-based challenge, reconciliation, independent review, and human resolution |
+
+Choose **Apply to room**, select a room you can access, and confirm **Apply template**. This creates a new saved workflow and opens that room’s editor. Reapplying creates another copy; it does not overwrite an existing workflow. An unsaved editor draft requires confirmation before it is left. Each copy has fresh node/edge IDs, detailed instructions, an evidence step, an independent review with a changes loop, and human acceptance. The default revision limit is three iterations; node timeouts default to 300 seconds with no retries.
+
+Assign actual room agents to task and review nodes, adapt their instructions and evidence requirements, then Validate and Save. Templates describe suggested roles; they do not invite agents, assign authority, execute tests, or automatically gather evidence. Validation initially reports unassigned agents. **Run is still disabled**: the runner, enforced human approvals, evidence gates, retries, and automatic review loops have not been implemented. Use the graphs as collaboration plans until execution is available.
+
+Owners and Developers may apply templates to rooms they can access. QA members may browse the catalog but cannot apply templates. Room authorization and workflow validation remain server-enforced. Templates cannot override access, immutable history, or other security rules. Shared catalog availability does not expose another room’s workflows.
+
+### Configuration and technical contract
+
+`COMMONROOM_WORKFLOW_TEMPLATES` defaults to `true`. An operator can set it to `false` and restart to hide the catalog and restore the previous single-template editor. Existing saved workflows, history, room membership, and ordinary workflow editing are retained. The flag is managed through the server environment, not a browser control; invalid boolean values prevent startup. The server serves no catalog script when disabled and rejects explicit template-application requests.
+
+The catalog and graph factory are in `web/workflow-templates.js`. The server gates the script and validates known template IDs. Applying calls `POST /api/events?room=<id>` with `kind: "workflow.revised"`, top-level `templateId`, and a new workflow payload. The API returns `workflowId` so the client opens the exact created workflow, rather than choosing whichever workflow was saved most recently by another actor. Room scoping, permissions, revision rules, and append-only event storage remain unchanged. Subsequent edits use the ordinary workflow API without template metadata.
+
+Automated tests cover graph structure, valid output ports, review loops, room-agent assignments, fresh IDs, independent copies, delivery guidance, new-workflow persistence, room access, role restrictions, unknown IDs, and both flag states. All persistence tests use an in-memory mock. Live workflow execution is neither tested nor enabled.
+
+### Documenter and disaster planning
+
+**Documenter** starts by defining the audience and scope. Agents audit the existing guides against source, write missing user/technical documentation and appropriate source comments, check links/examples, gather evidence, and request independent accuracy/usability review before human acceptance. Its output is documented behavior with links and a verification record, not a claim that untested setup instructions work.
+
+**Disaster planning** identifies critical systems, acceptable downtime/data loss, dependencies, failure scenarios and responsible people. Agents define recovery time objectives (how quickly service should return) and recovery point objectives (how much data loss is acceptable), then prepare backup/restore procedures, escalation responsibilities, rollback criteria and a recovery runbook. The rehearsal step plans a tabletop exercise or separately authorized isolated verification. It does not authorize production restores, deletion, failover, or changes to immutable history. Evidence must distinguish completed checks from untested assumptions. An independent reviewer challenges readiness before the human accepts residual risks and follow-up priorities.
+
+Both use the same **Apply to room** flow, three-iteration default, fresh-copy behavior, unassigned agent slots, room permissions and `COMMONROOM_WORKFLOW_TEMPLATES` flag described above. Neither template executes automatically or schedules rehearsals; Run remains disabled. Graph/copy tests and mock-only API tests cover both new template IDs, including disabled-flag rejection.
+
+### Cooperative adversarial review
+
+This template uses cooperation to define the common goal and adversarial review to stress-test the proposed work. Its sequence is **Human goal → Builder proposal → Challenger critique → Reconciliation → Evidence → Independent review → Human decision → Finish**. The review’s changes output returns to the builder; the default maximum revision count is three, as with other templates.
+
+Assign different agents to the Builder and Challenger steps, ideally with another independent reviewer. Constructive challenge level 1 is suggested for the builder; critical level 2 or adversarial level 3 is suggested for the challenger. These are prompt/profile suggestions, not enforced permissions or automatic profile changes. The reconciliation step may go to the builder or a neutral facilitator. A human decides unresolved tradeoffs; agents should record disagreement instead of inventing consensus.
+
+Criticisms must identify evidence, risks or concrete alternatives. The evidence step records the original proposal, critique, revised outcome, accepted/rejected criticisms and unresolved issues. Critique targets the work, never the participants. Titles, challenge levels and persuasive arguments confer no extra authority or tool access.
+
+Apply it through **Workflow templates → Apply to room**. It uses the existing catalog flag and room permissions, creates a fresh saved copy, and leaves agents unassigned. Tests cover its connected graph, review loop, fresh copies, builder/challenger/reconciliation sequence, guidance, application and disabled-flag rejection through an in-memory database mock. Execution, multi-round debate, enforcing distinct agents, consensus and escalation are not automated; Run remains disabled.
+
+## Emergency agent cutoff
+
+The owner can choose **Stop all agents** in the header or **Stop room agents** in a room. Confirm the scope and optionally record a reason. New agent dispatch and session creation/invitation in the stopped scope are blocked; managed turns receive cancellation requests. Human access, saved messages, memory, evidence and workflows are preserved. Per-agent **Remove** remains available and also requests cancellation.
+
+Use **Resume all agents** or **Resume room agents** explicitly to allow new requests. Resuming application dispatch does not clear separately stopped rooms, and resuming a room cannot bypass an application stop or integrity incident. Cancelled work is not restarted. A cancelled turn’s result is discarded even if dispatch has since resumed. Completed effects and already recorded messages cannot be undone.
+
+A successfully recorded stop is replayed from event history on restart. Application stop cancels registered managed turns before recording its audit event and does not require a successful database state read. An audit failure returns an error but retains an in-memory stop latch. **That unrecorded latch does not survive restart**; investigate and successfully record the stop before restarting. Room stop requires state loading to identify its participants; use the application stop when database reads are unavailable. Stop requests serialize with other agent operations; the server must be running and reachable, and an operation holding the server lock can delay a stop.
+
+Cancellation kills the directly managed local CLI/SSH command on a best-effort basis. It is not proof that remote processes, child processes, provider-side operations or tools already launched elsewhere have terminated. CLI agents have no independently authenticated CommonRoom credentials to revoke. This is a dispatch cutoff, not operating-system containment or continuous detection of policy violations. For a suspected rogue agent, verify shutdown on its host and isolate/revoke host or provider access separately where needed. Automatic policy monitoring and complete integrity-triggered process shutdown remain future work.
+
+`COMMONROOM_AGENT_SAFETY_UI` defaults to `true` and sets the initial visibility. The owner can override it in **Settings → Feature flags → Security → Emergency agent controls**. The saved setting survives restarts; changing it reloads the page. **Backend stop enforcement and the protected API cannot be disabled by this UI flag**; an active stop stays active, and the emergency banner remains visible. Owner permissions and CSRF/Host/Origin protection remain mandatory. See the operations/API guides for access when controls are hidden.
+
+Tests use mocked database interactions to verify scoped cancellation, persistent replay, explicit resume, role/CSRF restrictions, database-read outages, audit failures, flag states, and rejection of late cancelled results. No real provider processes or database fixtures are launched by these tests.
+
+## Human profile photos and feature flags
+
+In Settings, choose **Edit profile → Change profile photo**. The same option is available from your own squad profile. Upload a JPEG or PNG up to 5 MB, inspect the preview, and save. The browser reduces it to a maximum of 160 pixels per side; the server validates bounded raster data and re-encodes it as JPEG without original metadata. SVG, GIF and remote image URLs are rejected. Initials remain the fallback when no photo is set.
+
+The photo belongs to the human account, rather than a room or role. It appears in each room's squad and beside messages identified by that human's account ID. Earlier messages display the current profile photo; their stored text, authors and immutable records are not rewritten. Legacy messages without an account identity retain initials unless explicitly identified as the original “You” owner. Members can change only their own image; they cannot change their roles or another account's photo. Owner access edits preserve the person's photo.
+
+Photo revisions are append-only audit events. Removing a photo clears the current display, but earlier image records remain subject to the configured retention window and human-authorized purge. Do not upload images you need immediately erased from all historical records.
+
+Owners see grouped flags under **Settings → Feature flags**:
+
+| Group | Flag | Default | Management |
+|---|---|---|---|
+| Cosmetic | Human profile photos (`humanProfileImages`) | On | Settings; disabled blocks uploads and hides photos, but permits self-removal |
+| Security | Emergency agent controls (`agentSafetyControls`) | On | Settings override; environment supplies initial default |
+| Connections | Guided connection editor | On | `COMMONROOM_CONNECTION_EDITOR`; restart required |
+| Workflows | Workflow templates | On | `COMMONROOM_WORKFLOW_TEMPLATES`; restart required |
+
+Saved flags are immutable events and survive restarts. Re-enabling photos restores any retained current photos. Cosmetic settings grant no permissions. Emergency controls visibility never disables stop enforcement, clears an active stop, or bypasses an integrity incident.

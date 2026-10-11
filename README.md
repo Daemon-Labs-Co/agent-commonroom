@@ -148,7 +148,7 @@ For a registered local `claude` connection, the owner can choose Claude sign-in 
 
 Messages default to the room. Select an agent or use its mention to request a response; `@room` requests attention from the supported room agents. Merely posting to the room does not guarantee an agent turn. Additional room history and memory are supplied when an agent is invoked, while its native session preserves its own prior turns.
 
-These adapters are conversational trials. Claude tools/MCP/slash commands are disabled and Codex uses a read-only sandbox. Room directories are not yet a complete filesystem or network isolation boundary. Do not provide untrusted agents or prompts with sensitive credentials or workspaces.
+These adapters are conversational trials. Claude tools/MCP/slash commands are disabled and Codex uses a read-only sandbox. Room directories are not yet a complete filesystem or network isolation boundary. Managed turns now require the [Linux/rootless-Docker worker](docs/container-isolation.md), with no supported bypass switch. macOS/Windows and direct SSH dispatch are blocked. Existing host sessions cannot automatically resume inside the worker. Approved repository mounts and remote workers remain unimplemented. Do not provide untrusted agents or prompts with sensitive credentials or workspaces.
 
 ## Tasks, evidence, and workflows
 
@@ -163,6 +163,8 @@ Higher seniority means greater decision authority; humans default to 11 and agen
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Local config, then `postgres://localhost:5432/agentroom?sslmode=disable` | PostgreSQL connection |
+| `COMMONROOM_AGENT_SAFETY_UI` | `true` | Initial emergency controls visibility; owner Settings override persists; backend safety remains enforced when hidden |
+| `COMMONROOM_WORKFLOW_TEMPLATES` | `true` | Main-menu template catalog; set `false` and restart to restore the previous template option |
 | `COMMONROOM_CONNECTION_EDITOR` | `true` | Guided connection form; set `false` and restart to restore the previous form |
 | `LISTEN_ADDR` | `127.0.0.1:8787` | Numeric loopback bind address |
 | `OWNER_KEY_FILE` | `.data/owner-key` | Initial setup-code path; public/private companion paths use suffixes |
@@ -225,3 +227,25 @@ The local event trigger and checksum chain do **not** provide absolute immutabil
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and [SECURITY.md](SECURITY.md) for vulnerability handling. Bundled provider icons retain their upstream MIT notice in `web/icons/LICENSE.lobe-icons`. Provider names and logos identify supported integrations and do not imply endorsement. Agent CommonRoom is licensed under [GNU GPL version 3 only](LICENSE) (`GPL-3.0-only`). Copyright © 2026 Agent CommonRoom contributors. Distributed derivative software must retain GPL terms and provide corresponding source as required by the license. GPLv3 does not impose a source-sharing requirement merely for operating modified software as a network service; that is a distinction from AGPL.
 
 The [guided connection editor](docs/concepts.md#guided-connection-editor) explains provider, method, and location choices with concise contextual help.
+
+Browse **Workflow templates** in the main menu and apply an [idea, development, UI, bug, security, documentation, disaster-planning, or cooperative adversarial template](docs/concepts.md#workflow-templates) to a room. These create saved plans; automatic execution is not yet enabled.
+
+Owners can [stop agent dispatch for a room or the application](docs/concepts.md#emergency-agent-cutoff), request cancellation, and explicitly resume. Remote/child-process termination is not guaranteed.
+
+### Grouped feature flags and human photos
+
+Owners manage flags in **Settings → Feature flags**. **Security** contains emergency controls; **Cosmetic** contains human profile photos (enabled by default). **Connections** and **Workflows** identify the existing environment-configured connection editor and template flags; those require a restart.
+
+Edit your human profile in Settings or the squad, then select **Change profile photo**. Upload an optional JPEG/PNG, preview it and save; select **Remove my photo** to return to initials. Photos appear in the squad and beside your human messages across accessible rooms. See [profile photos and flags](docs/concepts.md#human-profile-photos-and-feature-flags) for limits and retention.
+
+### Mandatory agent worker setup
+
+Before sending an agent turn, follow the [container execution setup](docs/container-isolation.md): configure a local Linux rootless Docker daemon with enforceable limits, a reviewed digest-pinned provider image and dedicated provider credential files. Missing prerequisites block agent execution; the browser UI remains usable. No isolation-disable feature flag exists.
+
+See the [remote worker requirements](docs/container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Remote-worker transport is planned; current direct SSH dispatch remains blocked.
+
+See [isolated connection sign-in](docs/connection-sign-in.md) for remote Codex/Claude authentication, connection credential storage and the Security feature flag.
+
+[Testing connections](docs/connection-testing.md): per-connection setup and provider-response checks and troubleshooting from the Connections screen.
+
+[Help window preference](docs/help-display.md): choose same-window or separate-window documentation per human profile.

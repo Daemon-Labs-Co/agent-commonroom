@@ -11,6 +11,11 @@ import (
 )
 
 // historyRPC uses the supported app-server protocol without starting model turns.
+// This is a current host-side history utility, not an isolated agent worker.
+// Under the mandatory-isolation design, human-authorized history import must be
+// a separate trusted capability; agents must not inherit access to the user's
+// whole session store. Imported context never authorizes host execution.
+// See docs/architecture.md#mandatory-container-isolation-design-contract.
 func historyRPC(ctx context.Context, method string, params any) (json.RawMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()

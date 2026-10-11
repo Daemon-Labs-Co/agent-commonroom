@@ -1,5 +1,8 @@
 # Install Agent CommonRoom on a Debian server
 
+> Managed agent execution now requires the [Linux/rootless-Docker worker](../container-isolation.md). Direct SSH model dispatch is blocked until a remote isolated worker is implemented. Earlier SSH endpoint setup in this guide does not bypass that restriction.
+
+
 This guide runs Agent CommonRoom privately on Debian and reaches it from your computer through an SSH tunnel. It does not enable public HTTP/HTTPS hosting or remove the application's loopback-only request checks. The commands are intended for a fresh installation; adapt them rather than replacing an existing installation or database.
 
 The guide has been checked against the current application configuration and official dependency documentation, but has not yet been exercised end to end on a fresh Debian server.
@@ -220,3 +223,5 @@ This guide does not implement backup automation, restoration tooling, external i
 - [OpenSSH port forwarding](https://man.openbsd.org/ssh.1)
 - [systemd service units](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)
 - [systemd execution options](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)
+
+See the [remote worker requirements](../container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Remote-worker transport is planned; current direct SSH dispatch remains blocked.

@@ -35,3 +35,7 @@ A feature is complete only when it ships with:
 Flag changes must respect account permissions. Switching a capability off must preserve its history and data. Feature flags must never bypass authentication, authorization, audit integrity, or retention protections. Tests are mandatory and cannot be disabled through product feature flags.
 
 This rule applies to new features and enhancements going forward. Existing capabilities without flags are not retroactively claimed to satisfy it. Include tests, documentation links, and flag behavior in each review description. A test/infrastructure change does not need a product flag solely to disable its verification.
+
+## Mandatory execution boundary
+
+Container isolation for managed agent development is a required security boundary, exempt from the optional-feature flag rule. Do not add an off switch, per-connection host-execution exception or automatic uncontained fallback. Document the contract and source-level bypass risks at adapter types and launch methods. Managed model turns must use the isolated worker. Do not reintroduce direct local/SSH launches; preserve the documented platform restrictions and disclose live-runtime verification gaps. See [the architecture contract](docs/architecture.md#mandatory-container-isolation-design-contract).

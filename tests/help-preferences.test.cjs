@@ -1,0 +1,10 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const select={},control={querySelector:()=>select},iframe={},dialog={open:false,querySelector:s=>s==='.help-display-control'?control:s==='iframe'?iframe:null,showModal(){this.open=true;}};
+let calls=[],notices=[],popup={opener:{}};
+const context=vm.createContext({state:{currentActorId:'human-a',actors:[{id:'human-a',helpDisplay:'separate-window'},{id:'other',helpDisplay:'same-window'}],featureFlags:{}},window:{open(...args){calls.push(args);return popup}},document:{querySelector:()=>dialog},note:m=>notices.push(m),commit:()=>Promise.resolve()});
+vm.runInContext(fs.readFileSync('web/help.js','utf8').split('function helpButton')[0],context);
+assert.equal(vm.runInContext('helpDisplayMode()',context),'separate-window');vm.runInContext(`openDocumentation('connection-sign-in','safe heading')`,context);assert.equal(calls.length,1);assert.equal(popup.opener,null);assert.equal(calls[0][0],'/help/?doc=connection-sign-in#safe%20heading');assert.equal(dialog.open,false);
+popup=null;vm.runInContext(`openDocumentation('index')`,context);assert.equal(dialog.open,true);assert.equal(iframe.src,'/help/?doc=index');assert.equal(notices.length,1);
+context.state.featureFlags.helpWindowChoice=false;calls=[];vm.runInContext(`openDocumentation('index')`,context);assert.equal(calls.length,0);assert.equal(control.hidden,true);assert.equal(vm.runInContext('helpDisplayMode()',context),'same-window');
+context.state.featureFlags.helpWindowChoice=true;context.state.currentActorId='new-human';assert.equal(vm.runInContext('helpDisplayMode()',context),'same-window');
+console.log('Per-human help choice, URL encoding, popup isolation, blocked-popup fallback and disabled/default behavior passed.');

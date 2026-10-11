@@ -9,6 +9,10 @@ import (
 // connectionEditorHandler gates the optional presentation layer at the server.
 // Disabling it leaves the existing editor and connection API available.
 func connectionEditorHandler(enabled bool, root string) http.Handler {
+	return optionalScriptHandler(enabled, root, "connection-editor.js")
+}
+
+func optionalScriptHandler(enabled bool, root, filename string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			http.Error(w, "Method not allowed", 405)
@@ -21,7 +25,7 @@ func connectionEditorHandler(enabled bool, root string) http.Handler {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		http.ServeFile(w, r, root+"/connection-editor.js")
+		http.ServeFile(w, r, root+"/"+filename)
 	})
 }
 func connectionEditorEnabled() (bool, error) {

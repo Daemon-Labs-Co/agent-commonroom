@@ -3,8 +3,8 @@
 function connectionHint(protocol,location,provider){
  const remote=location!=='Local',claude=provider==='claude';
  if(protocol==='CLI')return remote?
-  {label:'SSH endpoint',placeholder:claude?'ssh://debian-claude/claude':'ssh://jerry',text:'Use an SSH alias configured for the account running CommonRoom. No username, port, or password goes here.',example:claude?'ssh://debian-claude/claude':'ssh://jerry',status:'Available for Codex and Claude'}:
-  {label:'Local command',placeholder:claude?'claude':'codex',text:'The CLI must be installed and signed in on the computer running CommonRoom. No port is needed.',example:claude?'claude':'codex',status:'Available for Codex and Claude'};
+  {label:'Container worker address',placeholder:claude?'ssh://commonroom-worker/claude':'ssh://commonroom-worker',text:'Use the approved Linux worker alias configured in CommonRoom. The worker runs the agent in an isolated container; it does not launch an existing host CLI. Sign in and test this connection after registration.',example:claude?'ssh://commonroom-worker/claude':'ssh://commonroom-worker',status:['openai','claude'].includes(provider)?'Requires worker setup and connection sign-in · not yet verified':'Provider adapter unavailable · registration only'}:
+  {label:'Container provider',placeholder:claude?'claude':'codex',text:'Local execution requires a Linux server with configured rootless Docker and a pinned agent image. Direct host execution is blocked. For this Mac, choose Internal network and use the approved worker address.',example:claude?'claude':'codex',status:['openai','claude'].includes(provider)?'Linux container worker required · not yet verified':'Provider adapter unavailable · registration only'};
  const scheme=protocol==='WebSocket'?(remote?'wss':'ws'):(remote?'https':'http');
  const path=protocol==='MCP'?'mcp':protocol==='WebSocket'?'ws':'api';
  const host=location==='Local'?'127.0.0.1:8080':location==='LAN'?'agent.internal:8080':'agent.example.com';
@@ -29,17 +29,17 @@ function connectionAddressModel(c){
  }};
 }
 function connectionEditorFields(c){
- const location=c?.location||(c?.endpoint?.startsWith('ssh://')?'LAN':'Local');
+ const location=c?.location||(c?.endpoint?.startsWith('ssh://')?'LAN':c?'Local':'LAN');
  const provider=c?connectionProvider(c):'openai';
  const options=(items,current)=>items.map(([value,label])=>`<option value="${esc(value)}" ${current===value?'selected':''}>${esc(label)}</option>`).join('');
- return '<p class="connection-intro">Register an agent here, then invite it to a room.</p>'+field('Connection name','name',c?.name||'')+
- '<div class="connection-pair"><label class="field">Provider<select name="provider">'+options([['openai','OpenAI / Codex'],['claude','Claude'],['gemini','Gemini'],['meta','Meta'],['deepseek','DeepSeek'],['generic','Other / custom']],provider)+'</select></label><label class="field">Connection method<select name="protocol">'+options([['CLI','CLI program'],['HTTP','HTTP · registration only'],['WebSocket','WebSocket · registration only'],['MCP','MCP · registration only']],c?.protocol||'CLI')+'</select></label></div>'+
- '<fieldset class="connection-location"><legend>Where does it run?</legend>'+[['Local','This computer','The CommonRoom server'],['LAN','Internal network','A reachable machine on your LAN'],['Remote/Internet','Remote / internet','Outside your internal network']].map(([value,title,detail])=>`<label class="location-choice"><input type="radio" name="location" value="${value}" ${location===value?'checked':''}><span><strong>${title}</strong><small>${detail}</small></span></label>`).join('')+'</fieldset>'+
+ return '<div class="connection-layout"><section class="connection-main" aria-label="Connection details"><p class="connection-intro">Choose your provider and where its worker runs.</p>'+field('Connection name','name',c?.name||'')+
+ '<div class="connection-pair"><label class="field">Provider<select name="provider">'+options([['openai','OpenAI / Codex'],['claude','Claude'],['gemini','Gemini'],['meta','Meta'],['deepseek','DeepSeek'],['generic','Other / custom']],provider)+'</select></label><label class="field">Connection method<select name="protocol">'+options([['CLI','Containerized CLI'],['HTTP','HTTP · registration only'],['WebSocket','WebSocket · registration only'],['MCP','MCP · registration only']],c?.protocol||'CLI')+'</select></label></div>'+
+ '<fieldset class="connection-location"><legend>Where is the worker or service?</legend>'+[['Local','This computer','The CommonRoom server'],['LAN','Internal network','A reachable machine on your LAN'],['Remote/Internet','Remote / internet','Outside your internal network']].map(([value,title,detail])=>`<label class="location-choice"><input type="radio" name="location" value="${value}" ${location===value?'checked':''}><span><strong>${title}</strong><small>${detail}</small></span></label>`).join('')+'</fieldset>'+
  '<label class="field"><span id="connection-address-label">Agent address</span><input name="endpoint" value="'+esc(c?.endpoint||'')+'" required aria-describedby="connection-address-help" autocomplete="off" spellcheck="false"></label>'+
- '<div id="connection-address-help" class="connection-guidance" aria-live="polite"><span id="connection-adapter-status"></span><p id="connection-short-help"></p><button type="button" id="connection-use-example">Use example</button></div>'+
- '<details class="connection-details"><summary>Setup instructions</summary><p>CLI integrations support Codex and Claude saved sessions. Local commands are <code>codex</code> and <code>claude</code>. Remote aliases use <code>ssh://alias</code> for Codex or <code>ssh://alias/claude</code> for Claude. Configure keys, usernames and ports in the runtime account’s SSH config.</p><p>HTTP, WebSocket and MCP can be registered, but their adapters are not implemented. Other provider icons do not add executable adapters.</p><p>Examples are placeholders. Never put passwords, keys or tokens in the address.</p><button type="button" id="connection-ssh-help">SSH setup guide</button></details>'+
- (c?'<p class="connection-edit-note">Changing the address or method starts fresh agent sessions. Saved messages remain intact.</p>':'');
+ (c?'<p class="connection-edit-note">Changing the address or method starts fresh agent sessions. Saved messages remain intact.</p>':'')+'</section><aside class="connection-sidebar" aria-label="Setup guidance"><div class="connection-sidebar-heading"><h3>Set up your connection</h3><button type="button" id="connection-ssh-help" aria-haspopup="dialog" aria-label="Open setup instructions">Setup guide</button></div><p class="connection-intro">Register a connection here, then sign in and test it before inviting agents. Registration alone does not mean the connection works.</p><ol class="connection-steps"><li><strong>Register</strong><span>Save the provider and worker address.</span></li><li><strong>Sign in</strong><span>Authenticate this connection with the provider.</span></li><li><strong>Test connection</strong><span>Verify a reply before inviting agents.</span></li></ol><h4>For this configuration</h4><div id="connection-address-help" class="connection-guidance" aria-live="polite"><span id="connection-adapter-status"></span><p id="connection-short-help"></p><button type="button" id="connection-use-example">Use example</button></div>'+
+ '</aside></div>';
 }
+function connectionEditorTestRequest(data,saved){return {connectionId:saved?.id||'',draft:{name:String(data.get('name')||''),provider:String(data.get('provider')||''),protocol:String(data.get('protocol')||''),location:String(data.get('location')||''),endpoint:String(data.get('endpoint')||'').trim()}};}
 const previousConnectionEditor=connection;
 connection=function(c){
  form(c?'Edit connection':'New connection',connectionEditorFields(c),d=>commit(c?'connection.updated':'connection.created',{...Object.fromEntries(d),...(c?{id:c.id}:{})}));
@@ -53,12 +53,21 @@ connection=function(c){
   const protocol=editor.elements.protocol.value,location=editor.elements.location.value,provider=editor.elements.provider.value;
   const hint=connectionHint(protocol,location,provider);example=hint.example;
   const address=addresses.next(protocol,location,provider,endpoint.value);endpoint.value=address.value;endpoint.type=address.hidden?'hidden':'text';endpoint.required=!address.hidden;endpoint.closest('label').hidden=address.hidden;
-  modal.querySelector('#connection-use-example').hidden=address.hidden;modal.querySelector('#connection-ssh-help').hidden=!address.ssh;
+  modal.querySelector('#connection-use-example').hidden=address.hidden;
   modal.querySelector('#connection-address-label').textContent=hint.label;endpoint.placeholder=hint.placeholder;
   modal.querySelector('#connection-short-help').textContent=hint.text+(address.hidden?' Command: '+address.value+'.':'');modal.querySelector('#connection-adapter-status').textContent=hint.status;
  };
  editor.addEventListener('change',update);update();
  modal.querySelector('#connection-use-example').onclick=()=>{endpoint.value=example;endpoint.focus()};
- modal.querySelector('#connection-ssh-help').onclick=()=>openDocumentation('ssh');
- modal.querySelector('button.primary').textContent=c?'Save changes':'Add connection';
+ modal.querySelector('#connection-ssh-help').onclick=()=>openDocumentation(editor.elements.protocol.value==='CLI'?'connection-sign-in':'connection-testing');
+ modal.querySelector('button.primary').textContent=c?'Save changes':'Register connection';
+ if(state.currentActorId==='local-owner'&&state.featureFlags?.connectionTesting!==false){
+ const actions=modal.querySelector('form>.actions');const button=document.createElement('button');button.type='button';button.id='connection-editor-test';button.textContent='Test connection';actions.prepend(button);
+ const output=document.createElement('section');output.className='connection-editor-test-results';output.setAttribute('role','status');output.hidden=true;modal.querySelector('.connection-sidebar').append(output);
+ const payload=()=>connectionEditorTestRequest(new FormData(editor),c);
+ const invalidate=()=>{if(!output.hidden){output.textContent='Configuration changed. Test again to check the current values.';}};
+ editor.addEventListener('input',invalidate);editor.addEventListener('change',invalidate);modal.querySelector('#connection-use-example').addEventListener('click',invalidate);
+ button.onclick=async()=>{const request=payload();output.hidden=false;if(!request.draft.endpoint){output.textContent='Enter a worker address or service URL before testing.';endpoint.focus();return;}button.disabled=true;output.textContent='Testing current configuration…';try{const result=await api('connections/test',request);if(JSON.stringify(request)!==JSON.stringify(payload())){invalidate();return;}output.innerHTML=connectionTestMarkup(result);}catch(error){output.textContent=error.message;}finally{button.disabled=false;}};
+ }
+
 };

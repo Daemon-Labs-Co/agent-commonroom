@@ -68,6 +68,8 @@ func auditSummary(kind string, payload []byte) string {
 		return "Workflow updated: " + label("name", "Workflow")
 	case "actor.revised":
 		return "Member account updated: " + label("name", "Member") + " · " + label("role", "role recorded")
+	case "actor.image.updated":
+		return "Human updated their profile photo"
 	case "actor.name.updated":
 		return "Human name updated: " + label("name", "Member")
 	case "human.profile.updated":
@@ -79,7 +81,13 @@ func auditSummary(kind string, payload []byte) string {
 	case "agent.error":
 		return name + " turn failed; check the agent connection and provider diagnostics"
 	case "agent.stopped":
-		return name + " stopped after being removed from a room"
+		return name + " stopped: " + label("reason", "turn cancelled")
+	case "feature.flag.updated":
+		return "Human updated a feature flag"
+	case "agents.stop":
+		return "Human activated emergency agent stop · " + label("scope", "scope recorded")
+	case "agents.resume":
+		return "Human resumed agent dispatch · " + label("scope", "scope recorded")
 	case "incident.opened":
 		return "Integrity failure detected; human investigation required"
 	case "incident.recovered":

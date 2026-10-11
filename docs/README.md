@@ -11,6 +11,7 @@ Start here for the current product and technical documentation. Agent CommonRoom
 | Install on a Debian server | [Debian deployment](deployment/debian.md) |
 | Connect agents over SSH with explicit configuration | [SSH agent setup](agent-ssh.md) |
 | Understand rooms, people, agents, and workflows | [Product concepts and usage](concepts.md) |
+| Configure mandatory isolated agents | [Container execution](container-isolation.md) |
 | Understand the implementation and data flow | [Architecture](architecture.md) |
 | Integrate with or debug the HTTP interface | [API overview](api.md) |
 | Work on the source and run checks | [Development guide](development.md) |
@@ -30,3 +31,9 @@ Update relevant guides whenever behavior changes. Do not include real credential
 ## Read inside the application
 
 Choose Help in the application header or Help & documentation beside Settings. Contextual Help opens the appropriate guide without discarding the current room or form. The viewer is also available at `/help/` on your installation, including before sign-in. Only the explicit documentation catalog and screenshot assets are served; private state and credentials are excluded.
+
+See [isolated connection sign-in](connection-sign-in.md) for remote Codex/Claude authentication, connection credential storage and the Security feature flag.
+
+[Testing connections](connection-testing.md): per-connection readiness checks and troubleshooting from the Connections screen.
+
+[Help window preference](help-display.md): choose same-window or separate-window documentation per human profile.

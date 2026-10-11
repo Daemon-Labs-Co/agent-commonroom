@@ -68,3 +68,35 @@ provider-auth accepts `{"action":"status","connectionId":"<id>"}` or action logi
 Expect 400 for malformed/unsupported operations, 401 for missing/expired sessions, 403 for access/token/host checks, 404 for missing objects where the handler uses it, 409 for conflicts or unavailable participants, 429 for login/challenge limits, and 5xx for storage/provider failures. Exact statuses vary by handler. Bodies are usually plain text rather than a stable structured error schema.
 
 There is no API versioning, OpenAPI schema, idempotency-key support, durable workflow execution API, or complete per-actor capability model. Do not retry arbitrary mutations automatically: an interrupted multi-record operation may already have applied part of its work. Read state and review history first.
+
+### Applying workflow templates
+
+`POST /api/events?room=<id>` accepts top-level `templateId` for a `workflow.revised` request. The templates flag must be enabled, the ID must be known, and the caller must be an owner or authorized Developer with room access. A new payload without `id` creates a workflow; the response includes `workflowId`. Ordinary manual saves remain available when the catalog flag is off. See [template usage and configuration](concepts.md#workflow-templates).
+
+### Emergency agent safety
+
+`POST /api/agent-safety?room=<id>` requires an authenticated owner session and `X-CSRF-Token`. The body is `{ "action": "stop", "scope": "application", "reason": "optional explanation" }`. Actions are `stop`/`resume`; scopes are `application`/`room`. Reasons are limited to 500 characters. Scope `room` requires an existing room; application stop does not depend on a database read.
+
+Success returns `action`, `scope`, `recorded: true`, and `remoteTerminationConfirmed: false`. A resume conflicting with an integrity incident or global stop returns 409. Audit failure returns 503 and leaves local stop latches active. Event kinds `agents.stop` and `agents.resume` preserve the decision. State exposes `agentsStopped` and `agentRoomStopped`; internal stopped-room IDs are not included in state JSON. The backend remains active even when its optional UI flag is disabled. See [cutoff limitations](concepts.md#emergency-agent-cutoff).
+
+### Profile photos and saved feature flags
+
+Authenticated, CSRF-protected `POST /api/events` supports:
+
+```json
+{"kind":"actor.image.updated","payload":{"image":"data:image/jpeg;base64,..."}}
+```
+
+An empty `image` removes the current photo. The server binds the event's account ID to the authenticated human, ignoring submitted IDs and role fields. Input accepts JPEG/PNG data URLs only, at most 32 KB decoded and 256 × 256 pixels; accepted data is re-encoded as JPEG at quality 80, limited again to 32 KB. The normal 64 KB event request limit also applies. Missing/invalid image returns 400; disabled uploads return 403. Clearing one's photo remains allowed with the flag off. This uses immutable event storage, not a public upload directory. `actors[].image` holds the current normalized data URL. CSP allows same-origin and data images, not arbitrary external image servers.
+
+Owner-only saved flags use:
+
+```json
+{"kind":"feature.flag.updated","payload":{"name":"humanProfileImages","enabled":false}}
+```
+
+Only `humanProfileImages` and `agentSafetyControls` are supported, and an explicit boolean is required. Unsupported names/missing values return 400; nonowners return 403. `/api/state` includes effective `featureFlags`. Photo default is true. The emergency flag overrides `COMMONROOM_AGENT_SAFETY_UI`; hiding it never resumes dispatch. `/agent-safety.js` serves no content when disabled, and returns 503 if its saved settings cannot be loaded. Protected emergency APIs remain enabled. Environment-only flags continue to follow the configuration table in the README.
+
+## Connection readiness
+
+See [Testing connections](connection-testing.md) for `POST /api/connections/test`, its response and owner/CSRF/feature enforcement. Checks send only a fixed, tool-disabled provider diagnostic prompt, without room history.

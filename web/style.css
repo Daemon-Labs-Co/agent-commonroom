@@ -138,3 +138,50 @@ main.workflow-main{max-width:none;padding:20px;min-width:0}.wf-toolbar{display:f
 
 #modal.connection-editor{width:min(620px,94vw);max-height:90dvh;overflow-y:auto;padding:26px}#modal.connection-editor h2{margin-bottom:4px}#modal.connection-editor h2+.context-help{position:absolute;right:62px;top:16px;margin:0}#modal.connection-editor .connection-intro{font-size:13px;color:#697087;margin:6px 0 20px}.connection-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.connection-pair .field{margin-top:0}.connection-location{border:0;padding:0;margin:8px 0 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.connection-location legend{font-size:12px;font-weight:500;margin-bottom:8px}.location-choice{display:flex;align-items:flex-start;gap:8px;padding:12px 9px;border:1px solid #dddfea;border-radius:8px;cursor:pointer;background:#fff}.location-choice:has(:checked){border-color:#2855ed;background:#f8f9ff;box-shadow:0 0 0 1px #2855ed}.location-choice input{margin:2px 0 0;accent-color:#2855ed}.location-choice span{display:grid;gap:5px}.location-choice strong{font-size:12px;font-weight:600}.location-choice small{font-size:10px;line-height:1.4;color:#697087}.connection-guidance{border-left:3px solid #dce5ff;padding:3px 0 3px 12px}.connection-guidance>span{font-size:11px;font-weight:600;color:#35476a}.connection-guidance p{font-size:12px;margin:6px 0}.connection-guidance button{font-size:11px;min-height:26px;padding:3px 7px}.connection-details{margin-top:18px!important}.connection-details p{font-size:12px}.connection-edit-note{font-size:11px!important}.connection-editor .actions{position:sticky;bottom:-26px;background:#fff;padding-bottom:18px;margin-bottom:-18px}@media(max-width:520px){.connection-pair{grid-template-columns:1fr;gap:0}.connection-location{grid-template-columns:1fr}.location-choice small{font-size:11px}.connection-editor .actions{position:static}}
 .connection-editor label[hidden],.connection-editor button[hidden]{display:none!important}
+
+.template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}.template-card{display:flex;flex-direction:column;margin:0;padding:22px}.template-card h2{font-size:17px}.template-card>p{font-size:13px}.template-card small{color:var(--muted);font-size:11px}.template-card .template-route{font-size:11px;color:#697087;line-height:1.8;margin:18px 0}.template-card button{align-self:flex-start;margin-top:auto}.template-note{font-size:13px;color:#697087;margin-bottom:22px}
+
+.human-photo{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.human-photo-preview{width:80px;height:80px;object-fit:cover;border-radius:16px;margin:12px 0}
+
+/* Spacious connection overlay; setup and authentication guidance stay adjacent. */
+#modal.connection-editor{width:min(1040px,96vw);max-width:1040px;max-height:90dvh;padding:0;overflow:hidden}
+#modal.connection-editor>h2{font-size:22px;padding:24px 96px 20px 28px;margin:0;border-bottom:1px solid var(--border)}
+#modal.connection-editor>.modal-close{top:20px;right:20px}
+#modal.connection-editor h2+.context-help{top:22px;right:66px}
+#modal.connection-editor form{display:flex;flex-direction:column;min-height:0}
+.connection-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,1fr);gap:32px;padding:28px;max-height:calc(90dvh - 160px);overflow-y:auto;overscroll-behavior:contain}
+.connection-main,.connection-sidebar{min-width:0}
+#modal.connection-editor .connection-intro{font-size:13px;line-height:1.6;margin:0 0 22px}
+.connection-main>.field{margin:0 0 24px}
+.connection-main .field{font-size:13px}
+.connection-main input,.connection-main select{min-height:44px;padding:11px 12px}
+.connection-main .connection-pair{gap:20px;margin-bottom:12px}
+.connection-main .connection-location{gap:10px;margin-bottom:26px}
+.connection-main .connection-location legend{font-size:13px;margin-bottom:12px}
+.connection-main .location-choice{padding:14px 12px;min-height:96px;gap:9px}
+.connection-main .location-choice input{min-height:0;margin-top:3px;padding:0;flex-shrink:0}
+.connection-main .location-choice small{font-size:11px}
+.connection-sidebar{background:#faf9fc;border:1px solid var(--border);border-radius:12px;padding:22px;align-self:start}
+.connection-sidebar h3{font-size:15px;margin:0 0 12px}
+.connection-sidebar h4{font-size:12px;margin:24px 0 12px;color:var(--muted)}
+.connection-steps{list-style:none;counter-reset:setup;margin:0;padding:0;display:grid;gap:18px}
+.connection-steps li{counter-increment:setup;display:grid;grid-template-columns:27px minmax(0,1fr);gap:2px 10px;font-size:12px}
+.connection-steps li::before{content:counter(setup);grid-row:span 2;width:26px;height:26px;display:grid;place-items:center;background:#edf2ff;color:var(--action);border-radius:50%;font-weight:600}
+.connection-steps span{color:var(--muted);line-height:1.5}
+.connection-sidebar .connection-guidance{padding:0;border-left:0}
+.connection-sidebar .connection-guidance>span{display:block;font-size:12px;line-height:1.5}
+.connection-sidebar .connection-guidance p{margin:10px 0 14px;line-height:1.6}
+.connection-sidebar .connection-guidance button{padding:7px 10px;min-height:34px;font-size:12px}
+.connection-sidebar .connection-details{border-top:1px solid var(--border);padding-top:18px;margin:22px 0 0!important}
+.connection-sidebar .connection-details summary{font-weight:600;line-height:1.5}
+#modal.connection-editor form>.actions{position:static;margin:0;padding:18px 28px;border-top:1px solid var(--border);background:#fff;gap:10px}
+#modal.connection-editor form>.actions button{min-height:40px;padding:9px 18px}
+@media(max-width:780px){.connection-layout{grid-template-columns:1fr;gap:24px;padding:22px;max-height:calc(90dvh - 160px)}#modal.connection-editor>h2{padding-left:22px}.connection-sidebar{padding:20px}#modal.connection-editor form>.actions{padding:16px 22px}}
+@media(max-width:520px){.connection-main .connection-pair{grid-template-columns:1fr;gap:0}.connection-main .connection-location{grid-template-columns:1fr}.connection-main .location-choice{min-height:0}.connection-main .connection-location small{font-size:12px}.connection-layout{padding:18px}#modal.connection-editor>h2{font-size:20px;padding-left:18px}}
+
+#modal.connection-editor #connection-editor-test{margin-right:auto}.connection-editor-test-results{border-top:1px solid var(--border);padding-top:18px;margin-top:22px}.connection-editor-test-results h3{font-size:14px;line-height:1.5}.connection-editor-test-results .evidence-entry{padding:10px 0}.connection-editor-test-results .evidence-entry p{font-size:12px}.connection-editor-test-results[hidden]{display:none}@media(max-width:520px){#modal.connection-editor #connection-editor-test{flex-basis:100%;margin-right:0}}
+
+.connection-sidebar-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}.connection-sidebar-heading h3{margin:0;min-width:0;line-height:1.5}.connection-sidebar-heading button{flex-shrink:0;min-height:32px;padding:5px 9px;font-size:11px}.connection-sidebar-heading+.connection-intro{margin-bottom:20px!important}
+
+.help-display-control{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;white-space:nowrap}.help-display-control select{padding:5px 8px;min-height:32px;font-size:12px}.help-display-control[hidden]{display:none}.help-dialog-header{gap:12px}@media(max-width:600px){.help-dialog-header>strong{display:none}.help-display-control{margin-left:0;flex:1}}

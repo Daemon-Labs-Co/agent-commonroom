@@ -1,5 +1,8 @@
 # Operations guide
 
+> Managed agent execution now requires the [Linux/rootless-Docker worker](container-isolation.md). Direct SSH model dispatch is blocked until a remote isolated worker is implemented. Earlier SSH endpoint setup in this guide does not bypass that restriction.
+
+
 [Documentation index](README.md)
 
 ## Supported installations
@@ -62,3 +65,19 @@ Start with installation troubleshooting in the main README, then Debian service/
 ## Guided connection editor flag
 
 `COMMONROOM_CONNECTION_EDITOR=true` (default) serves the compact editor. An operator can set it to `false` and restart to restore the previous form. This is a presentation flag: connection data, running agents, the API, and security checks remain unchanged. See [usage and technical behavior](concepts.md#guided-connection-editor). Invalid boolean values prevent startup.
+
+## Workflow template catalog flag
+
+`COMMONROOM_WORKFLOW_TEMPLATES=true` enables the main-menu catalog by default. Set `false` and restart to disable catalog serving and explicit template application. Existing workflows and ordinary editing remain available; no records are removed and no agent work is stopped. Only the server operator can change this environment setting. See [workflow templates](concepts.md#workflow-templates).
+
+## Emergency stop procedure
+
+1. As owner, select **Stop all agents**, or **Stop room agents** for a scoped stop. Confirm the action and optional reason.
+2. Verify the emergency banner and readable stop event. Cancellation is requested; do not infer remote termination from the banner.
+3. Inspect affected hosts, processes and provider/tool access. Use host/network containment where the application alone cannot stop ongoing effects.
+4. If audit recording fails, the current process remains stopped locally. Do not restart until the failure is investigated and the stop is recorded successfully; an unrecorded latch is not durable.
+5. Resume explicitly after investigation. Application resume retains separate room stops; cancelled turns are not restarted. Integrity incidents block resume.
+
+The server must be reachable; serialized operations can delay the stop. Use host-level controls if it is unavailable. The owner can hide controls in **Settings → Feature flags → Security**. `COMMONROOM_AGENT_SAFETY_UI` supplies the initial default; a saved setting overrides it. Neither disables backend enforcement. With controls hidden, use an existing owner session’s protected [agent-safety API](api.md#emergency-agent-safety); do not expose credentials in URLs or shared scripts. These controls do not provide automatic rogue-behavior detection or guaranteed remote/child-process termination.
+
+Profile photos use bounded immutable event storage. Revisions increase audit storage and remain until eligible human-authorized purge. Disable new uploads and display through Settings → Feature flags → Cosmetic; this is a presentation option, not historical erasure. No filesystem upload directory or additional image service is required.

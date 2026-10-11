@@ -1,0 +1,3 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const context={};vm.createContext(context);vm.runInContext(fs.readFileSync('web/agent-safety.js','utf8').split('const safetyRender=')[0],context);
+assert.equal(context.agentSafetyChoice(false,false,'room').action,'stop');assert.equal(context.agentSafetyChoice(false,true,'room').action,'resume');assert.equal(context.agentSafetyChoice(true,true,'room').disabled,true);assert.equal(context.agentSafetyChoice(true,false,'application').action,'resume');assert.equal(context.agentSafetyChoice(false,true,'application').action,'stop');
+console.log('Emergency stop/resume scope controls passed.');

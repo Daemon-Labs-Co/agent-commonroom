@@ -17,6 +17,7 @@ type Connection struct {
 }
 type Participant struct {
 	ActorID           string `json:"actorId"`
+	ExecutionMode     string `json:"executionMode,omitempty"`
 	CompanyID         string `json:"companyId"`
 	Discipline        string `json:"discipline"`
 	Level             string `json:"level"`
@@ -90,28 +91,34 @@ type Company struct {
 	Description string `json:"description"`
 }
 type Actor struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Title     string   `json:"title"`
-	Kind      string   `json:"kind"`
-	Role      string   `json:"role"`
-	Enabled   bool     `json:"enabled"`
-	PublicKey string   `json:"publicKey,omitempty"`
-	RoomIDs   []string `json:"roomIds"`
-	Revision  int      `json:"revision"`
-	ChangedBy string   `json:"changedBy"`
+	HelpDisplay string   `json:"helpDisplay,omitempty"`
+	Image       string   `json:"image,omitempty"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Title       string   `json:"title"`
+	Kind        string   `json:"kind"`
+	Role        string   `json:"role"`
+	Enabled     bool     `json:"enabled"`
+	PublicKey   string   `json:"publicKey,omitempty"`
+	RoomIDs     []string `json:"roomIds"`
+	Revision    int      `json:"revision"`
+	ChangedBy   string   `json:"changedBy"`
 }
 type State struct {
-	Actors         []Actor    `json:"actors"`
-	CurrentActorID string     `json:"currentActorId"`
-	Company        Company    `json:"company"`
-	HumanCompanyID string     `json:"humanCompanyId"`
-	HumanTitle     string     `json:"humanTitle"`
-	HumanName      string     `json:"humanName"`
-	Workflows      []Workflow `json:"workflows"`
-	Rooms          []Room     `json:"rooms"`
-	Tasks          []Task     `json:"tasks"`
-	Evidence       []Evidence `json:"evidence"`
+	FeatureFlags     map[string]bool `json:"featureFlags"`
+	AgentsStopped    bool            `json:"agentsStopped"`
+	AgentRoomStopped bool            `json:"agentRoomStopped"`
+	AgentStopRooms   []string        `json:"-"`
+	Actors           []Actor         `json:"actors"`
+	CurrentActorID   string          `json:"currentActorId"`
+	Company          Company         `json:"company"`
+	HumanCompanyID   string          `json:"humanCompanyId"`
+	HumanTitle       string          `json:"humanTitle"`
+	HumanName        string          `json:"humanName"`
+	Workflows        []Workflow      `json:"workflows"`
+	Rooms            []Room          `json:"rooms"`
+	Tasks            []Task          `json:"tasks"`
+	Evidence         []Evidence      `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`
