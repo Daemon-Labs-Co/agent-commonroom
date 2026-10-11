@@ -6,6 +6,7 @@ import (
 )
 
 func TestClaudeSignInBoundaries(t *testing.T) {
+	t.Parallel()
 	if !localClaudeConnection("CLI", "claude") {
 		t.Fatal("local Claude rejected")
 	}

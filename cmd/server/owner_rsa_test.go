@@ -19,6 +19,7 @@ import (
 )
 
 func TestRSAOwnerLifecycle(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "setup")
 	code, e := loadOwnerKey(path)
 	if e != nil {

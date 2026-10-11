@@ -13,7 +13,6 @@ Run privately on loopback on your computer, or on a Debian server accessed throu
 | DATABASE_URL | Overrides local config; otherwise falls back to .data/local-config.json and the development default. |
 | LISTEN_ADDR | Defaults to 127.0.0.1:8787; numeric loopback only. |
 | OWNER_KEY_FILE | Defaults to .data/owner-key; companion public/private files use suffixes. |
-| COMMONROOM_TEST_DB | Test-only integration database setting, not the runtime database. |
 | web/ and migrations/ | Required alongside the executable; run from repository root. |
 | .env.example | Documents environment variables; the server does not load .env automatically. |
 
