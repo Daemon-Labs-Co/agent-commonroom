@@ -83,6 +83,11 @@ func main() {
 	mux.HandleFunc("/api/integrity", s.integrity)
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
+	editorEnabled, err := connectionEditorEnabled()
+	if err != nil {
+		log.Fatal("COMMONROOM_CONNECTION_EDITOR must be true or false")
+	}
+	mux.Handle("/connection-editor.js", connectionEditorHandler(editorEnabled, "web"))
 	mux.Handle("/help/", documentationHandler("."))
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 	addr := os.Getenv("LISTEN_ADDR")

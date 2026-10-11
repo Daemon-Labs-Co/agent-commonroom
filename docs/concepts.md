@@ -22,6 +22,22 @@ See [SSH agent setup](agent-ssh.md) for concrete remote-host configuration and t
 
 Working adapters are CLI Codex and Claude, locally or over SSH. HTTP, WebSocket, and MCP registrations are placeholders. Website addresses for ChatGPT or Claude are not adapter endpoints. Agent provider authentication is separate from human sign-in.
 
+### Guided connection editor
+
+Choose **Connections → Plug in agent** to open **New connection**. Give it a name, select the provider icon and connection method, then choose where it runs:
+
+- **This computer:** the computer running the CommonRoom server. CLI examples are `codex` or `claude`; no port is needed.
+- **Internal network:** a reachable machine on your LAN. CLI endpoints refer to an SSH alias configured for the server account.
+- **Remote / internet:** a service outside the internal network. Remote CLI agents still use SSH aliases; URL registrations need the complete documented service URL.
+
+Local OpenAI/Codex and Claude CLI connections automatically use `codex` or `claude`; no address field is shown. Remote CLI choices show an SSH endpoint, while HTTP, WebSocket and MCP show a service URL. Other local CLI providers and nonstandard saved commands retain an editable command field. Address drafts are remembered separately for each method/location (and CLI provider), so switching to a web method never carries an SSH alias into its URL. Returning to a previous choice restores its draft. **Use example** explicitly replaces the visible address with a placeholder to edit. Open **Setup instructions** or the **SSH setup guide** for detailed help. Do not include credentials in addresses. Saving registers a connection; invite its agent to a room separately.
+
+Only Codex and Claude CLI adapters currently respond in rooms. Other provider selections choose icons, not new adapters. HTTP, WebSocket and MCP are marked **registration only**; selecting them does not enable agent execution. Examples are not live services.
+
+Editing uses the same form and preserves saved values. Changing a method/address resets native sessions according to existing server rules; active work blocks those changes. History stays saved. The owner controls connections; other members retain their existing permission limits. The redesigned form changes presentation, not authorization, persistence, or execution capabilities.
+
+The optional server flag `COMMONROOM_CONNECTION_EDITOR` defaults to `true`. Set it to `false` and restart the application to restore the previous editor. Only operators with access to the server environment can change it; there is no browser setting for this flag. The server then serves no replacement editor script, without disabling connections, deleting data, or interrupting existing work. The existing connection API is unchanged. Enabled/disabled serving, guidance, safe rendering, preservation of edited values, and connection validation are covered by automated tests; live provider interoperability still requires separate verification.
+
 ## Profiles and challenge levels
 
 Engineering discipline, level, speciality, and assignment describe the participant's job. They influence prompt guidance; they do not grant operating-system permissions.
