@@ -44,6 +44,12 @@ Edit and validate workflow drafts; Run remains disabled until the execution engi
 
 The server, migration, and web assets must be run from the repository root. There is no frontend package installation or bundling step.
 
+## Remote server installation
+
+To run Agent CommonRoom on your Debian server, follow the [Debian remote-install guide](docs/deployment/debian.md). It covers dependencies, a dedicated service account, PostgreSQL, systemd startup, owner setup, agent authentication, SSH-tunnel browser access, backups, and troubleshooting.
+
+The supported approach keeps the app on server loopback and forwards it over SSH. Public HTTP/HTTPS hosting is not implemented. When installed remotely, local agents run on the server rather than your laptop. The guide is source-checked documentation; a fresh Debian deployment has not yet been validated end to end.
+
 ## Installation
 
 ### 1. Get the source
