@@ -230,3 +230,15 @@ main.settings-main{margin:0;align-self:start;justify-self:start}
 .settings-tabbar{display:flex;align-items:flex-start;gap:16px;margin:4px 0 22px;padding-bottom:12px;border-bottom:1px solid var(--border)}.settings-tabbar>.settings-tabs{flex:1;min-width:0;margin:0;padding:0;border:0}.settings-tabbar>.settings-help{margin-left:auto;flex-shrink:0;align-self:center}
 .room-section-list{display:flex;flex-direction:column;gap:4px}.room-section-list[hidden]{display:none}.rooms-heading .room-section-toggle{justify-content:flex-start;flex:1;min-width:0;width:auto;height:auto;font-size:13px;font-weight:700;letter-spacing:.15px;color:var(--button-text);padding:7px 0;border:0;background:none}.room-section-toggle::before{content:'⌄';font-size:16px;width:12px;color:#2855ed}.room-section-toggle[aria-expanded=false]::before{content:'›'}
 .human-account-details{border-top:1px solid var(--border);margin-top:16px;padding-top:12px}.human-account-details h3{font-size:13px;margin:0 0 10px}.human-account-details dl{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin:0}.human-account-details dt{font-size:11px;color:var(--muted)}.human-account-details dd{font-size:12px;margin:2px 0 0;overflow-wrap:anywhere}@media(max-width:420px){.human-account-details dl{grid-template-columns:1fr}}
+/* Stable origin for every application page, independent of content height. */
+.top-aligned-views .shell>main{margin:0;align-self:start;justify-self:start}
+#modal.compact-profile{width:min(900px,94vw);max-height:90dvh;padding:26px;overflow-y:auto}
+.profile-overlay-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:10px;margin:16px 0}
+.profile-overlay-tabs [aria-selected=true]{color:var(--action);border-color:var(--action);background:#f6f8ff}
+.profile-overlay-panel[hidden]{display:none}.profile-overlay-panel{min-width:0}
+.profile-role-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}.profile-role-grid>p,.profile-role-grid>.field:has(input[type=range]){grid-column:1/-1}
+.profile-role-grid>.field-guidance-row{grid-column:1/-1}
+#modal.compact-profile form>.actions{position:sticky;bottom:-26px;background:white;border-top:1px solid var(--border);margin-top:18px;padding:12px 0}
+.compact-profile .context-section>summary{display:none}.compact-profile .context-section textarea{height:100px;min-height:80px;max-height:140px}
+.compact-profile .conversation-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}.compact-profile .conversation-picker>.field{margin:0}.compact-profile .conversation-picker>.conversation-results,.compact-profile .conversation-picker>details{grid-column:1/-1}
+@media(max-width:480px){.profile-role-grid{grid-template-columns:1fr}}

@@ -11,7 +11,7 @@ import (
 
 func TestRoomPresentationFlags(t *testing.T) {
 	t.Parallel()
-	for _, flag := range []string{"squadProfileActions", "agentInvitationLayout", "standardHelpIcons", "featureFlagTabs", "historyDateGroups", "settingsTabs", "roomSections", "humanProfileDetails"} {
+	for _, flag := range []string{"squadProfileActions", "agentInvitationLayout", "standardHelpIcons", "featureFlagTabs", "historyDateGroups", "settingsTabs", "roomSections", "humanProfileDetails", "topAlignedViews", "compactProfileOverlays"} {
 		t.Run(flag, func(t *testing.T) {
 			t.Parallel()
 			s, db, h := mockServer(t)

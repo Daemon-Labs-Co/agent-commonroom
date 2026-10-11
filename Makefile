@@ -33,6 +33,9 @@ check: test-race
 	node tests/feature-flag-tabs.test.cjs
 	node --check web/settings-tabs.js
 	node tests/settings-tabs.test.cjs
+	node --check web/viewport-alignment.js
+	node --check web/overlay-layout.js
+	node tests/overlay-layout.test.cjs
 	node --check web/human-profile-details.js
 	node tests/human-profile-details.test.cjs
 	node --check web/room-sections.js

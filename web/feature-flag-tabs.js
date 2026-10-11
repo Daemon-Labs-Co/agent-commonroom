@@ -3,6 +3,7 @@ function featureFlagCategory(title){
  if(title==='Room presentation')return 'Cosmetic';
  return ['Security','Cosmetic','Connections','Workflows'].find(group=>title.startsWith(group+' ·'))||null;
 }
+function featureFlagTitle(title,category){const prefix=category+' ·';return title.startsWith(prefix)?title.slice(prefix.length).trim():title}
 let activeFeatureCategory='Security';
 function groupFeatureFlags(){
  if(view!=='Settings'||state.currentActorId!=='local-owner'||state.featureFlags?.featureFlagTabs===false)return;
@@ -22,7 +23,7 @@ function groupFeatureFlags(){
   panels[group].append(node);
  }
  base.replaceWith(section);
- for(const card of cards){if(card===base)continue;const heading=card.querySelector(':scope > h2,:scope > h3');const category=featureFlagCategory(heading?.textContent||'');if(category){card.classList.add('feature-flag-item');panels[category].append(card)}}
+ for(const card of cards){if(card===base)continue;const heading=card.querySelector(':scope > h2,:scope > h3');const category=featureFlagCategory(heading?.textContent||'');if(category){heading.textContent=featureFlagTitle(heading.textContent,category);card.querySelectorAll(':scope > h3').forEach(subheading=>{if(subheading.textContent===category)subheading.remove()});card.classList.add('feature-flag-item');panels[category].append(card)}}
  activate(groups.includes(activeFeatureCategory)?activeFeatureCategory:'Security');
 }
 const featureTabsRender=render;render=function(){featureTabsRender();groupFeatureFlags()};

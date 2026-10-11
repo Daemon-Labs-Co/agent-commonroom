@@ -117,6 +117,8 @@ func main() {
 		log.Fatal("COMMONROOM_AGENT_SAFETY_UI must be true or false")
 	}
 	s.safetyUIDefault = safetyUI
+	mux.Handle("/viewport-alignment.js", s.roomPresentationScript("web", "viewport-alignment.js", "topAlignedViews"))
+	mux.Handle("/overlay-layout.js", s.roomPresentationScript("web", "overlay-layout.js", "compactProfileOverlays"))
 	mux.Handle("/human-profile-details.js", s.roomPresentationScript("web", "human-profile-details.js", "humanProfileDetails"))
 	mux.Handle("/room-sections.js", s.roomPresentationScript("web", "room-sections.js", "roomSections"))
 	mux.Handle("/settings-tabs.js", s.roomPresentationScript("web", "settings-tabs.js", "settingsTabs"))
@@ -650,7 +652,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}
