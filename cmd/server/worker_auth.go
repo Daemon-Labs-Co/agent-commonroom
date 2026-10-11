@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -182,46 +183,94 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 	if run.Run() != nil {
 		return fail(errors.New("Provider sign-in did not complete; existing credentials were preserved"))
 	}
-	source := "/home/agent/.codex/auth.json"
-	if v.Provider == "claude" {
-		source = "/home/agent/.claude/.credentials.json"
-	}
-	target := filepath.Join(dir, "credential.json")
-	if exec.CommandContext(ctx, "docker", "cp", name+":"+source, target).Run() != nil {
-		return fail(errors.New("Provider did not produce a supported credential file"))
-	}
-	fi, err := os.Lstat(target)
-	if err != nil || !fi.Mode().IsRegular() || fi.Size() > 65536 {
-		return fail(errors.New("Invalid provider credential file"))
-	}
-	raw, err := os.ReadFile(target)
-	if err != nil || !json.Valid(raw) || len(raw) <= 2 {
-		return fail(errors.New("Invalid provider credential JSON"))
-	}
-	if err = os.MkdirAll(root, 0700); err != nil {
-		return fail(err)
-	}
-	f, err := os.CreateTemp(root, ".login-")
+	exportArgs, err := workerCredentialExportArgs(os.Getenv("COMMONROOM_AGENT_IMAGE"), volume, v.Provider)
 	if err != nil {
 		return fail(err)
 	}
-	defer os.Remove(f.Name())
-	if _, err = f.Write(raw); err != nil {
-		f.Close()
-		return fail(err)
+	var exported credentialExportOutput
+	export := exec.CommandContext(ctx, "docker", exportArgs...)
+	export.Stdout = &exported
+	// Export output contains credentials. Never forward either stream to logs.
+	if export.Run() != nil {
+		return fail(errors.New("Provider credential export failed; existing credentials were preserved"))
 	}
-	if err = f.Sync(); err != nil {
-		f.Close()
-		return fail(err)
+	target := filepath.Join(dir, "credential.json")
+	if err = os.WriteFile(target, exported.Bytes(), 0600); err != nil {
+		return fail(errors.New("Unable to stage private provider credential"))
 	}
-	if err = f.Close(); err != nil {
-		return fail(err)
-	}
-	if err = os.Rename(f.Name(), credential); err != nil {
+	if err = persistWorkerCredential(root, v.Provider, target); err != nil {
 		return fail(err)
 	}
 	fmt.Fprintln(out, "Connection sign-in saved. Return to CommonRoom and choose Check sign-in.")
 	return 0
+}
+
+// credentialExportOutput bounds sensitive output in memory; callers must never
+// forward it to diagnostics. Overflow fails the export instead of truncating it.
+type credentialExportOutput struct{ bytes.Buffer }
+
+func (b *credentialExportOutput) Write(p []byte) (int, error) {
+	if b.Len()+len(p) > 65536 {
+		return 0, io.ErrShortBuffer
+	}
+	return b.Buffer.Write(p)
+}
+
+// workerCredentialExportArgs reads one known credential from the connection's
+// login volume in a non-root, network-disabled container. The volume is read-only;
+// there are no host paths, provider invocation, gateway, or Docker socket mounts.
+// Source forks CAN weaken these limits, BUT risk exposing every host credential.
+func workerCredentialExportArgs(image, volume, provider string) ([]string, error) {
+	path := "/home/agent/.codex/auth.json"
+	if provider == "claude" {
+		path = "/home/agent/.claude/.credentials.json"
+	} else if provider != "codex" {
+		return nil, errors.New("Unsupported credential provider")
+	}
+	// O_NOFOLLOW also rejects symlink substitution between stat and open. Read
+	// at most the limit plus one byte, even if the file grows after inspection.
+	script := `const fs=require("node:fs");try{const fd=fs.openSync(process.argv[1],fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);const st=fs.fstatSync(fd);if(!st.isFile()||st.size<=2||st.size>65536)process.exit(78);const b=Buffer.alloc(65537);const n=fs.readSync(fd,b,0,b.length,0);fs.closeSync(fd);if(n<=2||n>65536)process.exit(78);JSON.parse(b.subarray(0,n).toString());process.stdout.write(b.subarray(0,n));}catch{process.exit(78);}`
+	return []string{"run", "--rm", "--pull=never", "--network=none", "--read-only", "--user", "1000:1000", "--cap-drop=ALL", "--security-opt=no-new-privileges:true", "--pids-limit=32", "--memory=128m", "--memory-swap=128m", "--cpus=1", "--log-driver=none", "--workdir", "/", "--mount", "type=volume,src=" + volume + ",dst=/home/agent,readonly", "--entrypoint", "node", image, "-e", script, path}, nil
+}
+
+// persistWorkerCredential validates only the exported provider file and replaces
+// the connection's private credential atomically. Invalid/missing exports leave
+// the previous login untouched. No credential bytes are written to diagnostics.
+func persistWorkerCredential(root, provider, source string) error {
+	if provider != "codex" && provider != "claude" {
+		return errors.New("Unsupported credential provider")
+	}
+	fi, err := os.Lstat(source)
+	if err != nil || !fi.Mode().IsRegular() || fi.Size() > 65536 {
+		return errors.New("Invalid provider credential file")
+	}
+	raw, err := os.ReadFile(source)
+	if err != nil || len(raw) > 65536 || len(raw) <= 2 || !json.Valid(raw) {
+		return errors.New("Invalid provider credential JSON")
+	}
+	if err = os.MkdirAll(root, 0700); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(root, ".login-")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	if _, err = f.Write(raw); err != nil {
+		f.Close()
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	if err = os.Rename(f.Name(), filepath.Join(root, providerCredentialName(provider))); err != nil {
+		return err
+	}
+	return nil
 }
 
 // workerVerifyConnection runs only a fixed, tool-disabled conversation through

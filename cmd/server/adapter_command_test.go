@@ -72,3 +72,18 @@ func TestDockerSecurityPrerequisites(t *testing.T) {
 		}
 	}
 }
+
+// Docker must keep stdin open: Codex receives its bounded prompt over stdin,
+// including fresh connection checks. A missing -i silently drops the message.
+func TestIsolatedRunKeepsPromptInputOpen(t *testing.T) {
+	t.Parallel()
+	args := isolatedRunArgs("sha256:trusted", "name", "volume", "/tmp/socket", "/tmp/auth", "codex", []string{"exec", "-"})
+	if len(args) < 2 || args[0] != "run" || args[1] != "-i" {
+		t.Fatal("isolated turns must accept prompt stdin")
+	}
+	for _, arg := range args {
+		if arg == "-t" || arg == "--tty" {
+			t.Fatal("machine-readable turns must not use a terminal")
+		}
+	}
+}

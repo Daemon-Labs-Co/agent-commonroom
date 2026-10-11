@@ -45,3 +45,11 @@ Invitations and profiles support optional notes/transcripts, saved-conversation 
 - Add a pluggable memory-management provider and integrate **Fulginn** (name supplied by the owner; exact project/API remains to be confirmed). This is a recorded feature request, not an implemented integration or part of the overnight bug-fixing scope.
 - Preserve room/project/application scope, access control, conflict resolution, immutable audit provenance, and retention rules across provider implementations.
 - Before implementation, confirm Fulginn’s interface, storage/deployment requirements and migration behavior. Follow the feature-completion rules: meaningful mocked tests, user and technical documentation, and a documented feature flag.
+
+## Worker credential persistence — Codex verified
+
+11 October 2026: the provider launcher fixes the Codex/Claude credential directories and explicitly selects file-based Codex storage. The slim image supplies the native clients' system TLS CA bundle and normalizes non-root launcher permissions. Credential export now uses a separate network-disabled, non-root container with only the login volume mounted read-only, bounded private output and atomic mode-0600 storage. Isolated turns keep stdin open so prompts reach the provider.
+
+`make test`, `make check` and `make secrets` passed. Regression tests cover launcher behavior, actual exporter-script success/failure paths, export isolation arguments, bounded output, prompt forwarding, and preservation of old credentials on invalid exports. Automated tests use synthetic temporary files and mocked interactions, without PostgreSQL, Docker or provider launches.
+
+Live Debian validation: a fresh human-authorized Codex login returned **Connection sign-in saved** for the dedicated `overnight-maintenance` connection. A new SSH process reported `credentialPresent:true`; a fresh isolated container then completed the fixed, tool-disabled connection check with `verified:true`. The worker binary and pinned provider image were updated. This verifies persistence across worker processes and disposable containers, not a host reboot, token expiry/refresh, other connection identities or Claude authentication. Unattended maintenance remains stopped.

@@ -81,3 +81,17 @@ Configure an appropriate rootless worker account and verify daemon access under 
 ### Completion criteria
 
 Remote support is complete only after mocked protocol tests cover identity/scope denial, invalid launch requests, readiness failures, duplicate submissions, disconnect/reconnect, output bounds and cancellation outcomes. Database interactions remain mocked; no test data may be inserted into PostgreSQL. A separate controlled deployment check must verify Linux/rootless-Docker containment, provider connectivity, denied filesystem/network access and descendant shutdown using harmless fixtures before relying on the worker for live development. No supported feature flag may disable isolation or restore direct execution.
+
+### Provider credential location contract
+
+`docker/agent/entrypoint.cjs` supplies a fixed provider launch environment for login and execution. Codex uses `CODEX_HOME=/home/agent/.codex` and file-based credential storage; Claude uses `CLAUDE_CONFIG_DIR=/home/agent/.claude`. A successful login must create a regular credential file at the worker's expected export path. The image explicitly installs the entrypoint with readable file permissions and a traversable parent directory for its non-root user. It also installs the system CA certificate bundle used by native provider clients, without disabling TLS verification. `persistWorkerCredential` validates the exported JSON and atomically installs it with mode 0600, preserving the old login when export validation fails.
+
+Codex uses the existing loopback proxy environment with platform proxy discovery/fallback disabled. The mandatory Docker/network gateway boundary is unchanged. Regression tests mock provider processes and use temporary files; no database or live-provider calls are made. Rebuild and repin the image after changing this contract; a source-only controller update cannot repair an older worker image.
+
+### Private credential export boundary
+
+After provider login exits successfully, the worker reads the known credential file through a separate non-root container with networking disabled and only the login home volume mounted read-only. This avoids Docker file-copy failures against stopped login containers. The exporter rejects missing files, symlinks, directories, invalid JSON and files over 64 KB. Its output stays in bounded private worker memory and a mode-0600 temporary file; neither output stream is forwarded to diagnostics. Atomic installation preserves existing connection credentials on failure. Login and export containers and temporary volumes are removed afterward. This remains under the existing owner-only `connectionSignIn` feature flag (enabled by default); it introduces no isolation bypass or additional toggle.
+
+Regression tests exercise the actual fixed exporter script with synthetic temporary files, its Docker isolation arguments, output limits, and atomic persistence. Automated tests do not access a database or launch Docker/provider agents. A successful browser login followed by status from a fresh worker process is still required to verify a deployment.
+
+Isolated model turns keep standard input open (`docker run -i`) so the adapter can deliver its bounded prompt. They do not allocate a terminal, preserving machine-readable responses. Interactive human login separately uses a terminal. A saved credential and a successful live connection check are separate states.

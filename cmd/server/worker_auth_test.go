@@ -99,3 +99,109 @@ func TestInteractiveLoginCommand(t *testing.T) {
 		t.Fatal("secret transport")
 	}
 }
+
+func TestPersistWorkerCredential(t *testing.T) {
+	t.Parallel()
+	for _, provider := range []string{"codex", "claude"} {
+		t.Run(provider, func(t *testing.T) {
+			t.Parallel()
+			dir := t.TempDir()
+			source := filepath.Join(dir, "export.json")
+			root := filepath.Join(dir, "connection", provider)
+			raw := []byte(`{"fixture":"first"}`)
+			if err := os.WriteFile(source, raw, 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err := persistWorkerCredential(root, provider, source); err != nil {
+				t.Fatal(err)
+			}
+			target := filepath.Join(root, providerCredentialName(provider))
+			info, err := os.Stat(target)
+			if err != nil || info.Mode().Perm() != 0600 || !credentialPresent(target) {
+				t.Fatal("private login not saved", err)
+			}
+			for _, invalid := range []string{"{}", "not-json", strings.Repeat("x", 65537)} {
+				os.WriteFile(source, []byte(invalid), 0600)
+				if err := persistWorkerCredential(root, provider, source); err == nil {
+					t.Fatal("invalid export accepted")
+				}
+				got, err := os.ReadFile(target)
+				if err != nil || string(got) != string(raw) {
+					t.Fatal("previous login replaced", err)
+				}
+			}
+			os.Remove(source)
+			os.Symlink(target, source)
+			if persistWorkerCredential(root, provider, source) == nil {
+				t.Fatal("symlink export accepted")
+			}
+			os.Remove(source)
+			if persistWorkerCredential(root, provider, source) == nil {
+				t.Fatal("missing export accepted")
+			}
+			os.WriteFile(source, []byte(`{"fixture":"second"}`), 0600)
+			if err := persistWorkerCredential(root, provider, source); err != nil {
+				t.Fatal(err)
+			}
+			got, _ := os.ReadFile(target)
+			if string(got) != `{"fixture":"second"}` {
+				t.Fatal("replacement not saved")
+			}
+			files, _ := filepath.Glob(filepath.Join(root, ".login-*"))
+			if len(files) != 0 {
+				t.Fatal("temporary credential leaked")
+			}
+		})
+	}
+}
+
+func TestWorkerCredentialExportPolicy(t *testing.T) {
+	t.Parallel()
+	for _, provider := range []string{"codex", "claude"} {
+		args, err := workerCredentialExportArgs("sha256:trusted", "private-login-volume", provider)
+		if err != nil {
+			t.Fatal(err)
+		}
+		joined := strings.Join(args, " ")
+		for _, required := range []string{"--network=none", "--read-only", "1000:1000", "--cap-drop=ALL", "no-new-privileges:true", "--log-driver=none", "type=volume,src=private-login-volume,dst=/home/agent,readonly", "O_NOFOLLOW", "65537", "JSON.parse"} {
+			if !strings.Contains(joined, required) {
+				t.Fatalf("missing export boundary %s", required)
+			}
+		}
+		for _, forbidden := range []string{"type=bind", "provider.sock", "docker.sock", "HTTP_PROXY", "auth-login", "--privileged"} {
+			if strings.Contains(joined, forbidden) {
+				t.Fatalf("unexpected export capability %s", forbidden)
+			}
+		}
+		mounts := 0
+		for _, arg := range args {
+			if arg == "--mount" {
+				mounts++
+			}
+		}
+		if mounts != 1 {
+			t.Fatal("export must mount only the login volume")
+		}
+		expected := "/home/agent/.codex/auth.json"
+		if provider == "claude" {
+			expected = "/home/agent/.claude/.credentials.json"
+		}
+		if args[len(args)-1] != expected {
+			t.Fatal("wrong credential file")
+		}
+	}
+	if _, err := workerCredentialExportArgs("image", "volume", "shell"); err == nil {
+		t.Fatal("unsupported provider accepted")
+	}
+}
+
+func TestCredentialExportOutputLimit(t *testing.T) {
+	t.Parallel()
+	var output credentialExportOutput
+	if n, err := output.Write([]byte(strings.Repeat("x", 65536))); err != nil || n != 65536 {
+		t.Fatal(n, err)
+	}
+	if n, err := output.Write([]byte("x")); err == nil || n != 0 || output.Len() != 65536 {
+		t.Fatal("overflow must fail without retaining extra bytes")
+	}
+}
