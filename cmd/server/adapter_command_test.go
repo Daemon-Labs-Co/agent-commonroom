@@ -52,7 +52,7 @@ func TestProviderEgressPolicy(t *testing.T) {
 		provider, host string
 		allowed        bool
 	}{
-		{"codex", "api.openai.com", true}, {"claude", "api.anthropic.com", true}, {"claude", "api.openai.com", false}, {"codex", "api.openai.com.attacker.example", false}, {"codex", "localhost", false}, {"codex", "169.254.169.254", false}, {"codex", "api.openai.com.", false}, {"unknown", "api.openai.com", false},
+		{"codex", "api.openai.com", true}, {"claude", "api.anthropic.com", true}, {"claude", "claude.com", true}, {"claude", "platform.claude.com", true}, {"claude", "console.anthropic.com", true}, {"claude", "claude.ai", true}, {"claude", "platform.claude.com.attacker.example", false}, {"claude", "evil.platform.claude.com", false}, {"claude", "platform.claude.com.", false}, {"codex", "platform.claude.com", false}, {"unknown", "claude.com", false}, {"claude", "api.openai.com", false}, {"codex", "api.openai.com.attacker.example", false}, {"codex", "localhost", false}, {"codex", "169.254.169.254", false}, {"codex", "api.openai.com.", false}, {"unknown", "api.openai.com", false},
 	} {
 		if providerHostAllowed(c.provider, c.host) != c.allowed {
 			t.Fatal("egress policy incorrect", c)

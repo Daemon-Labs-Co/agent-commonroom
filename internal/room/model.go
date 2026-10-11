@@ -90,6 +90,19 @@ type Company struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
+
+// OrganizationChart is owner-managed company metadata. Reporting relationships
+// replace numbered decision seniority but do not grant permissions or tool access.
+type OrganizationChart struct {
+	Revision int                `json:"revision"`
+	Nodes    []OrganizationNode `json:"nodes"`
+}
+type OrganizationNode struct {
+	ActorID   string  `json:"actorId"`
+	ReportsTo string  `json:"reportsTo"`
+	X         float64 `json:"x"`
+	Y         float64 `json:"y"`
+}
 type Actor struct {
 	HelpDisplay string   `json:"helpDisplay,omitempty"`
 	Image       string   `json:"image,omitempty"`
@@ -105,20 +118,21 @@ type Actor struct {
 	ChangedBy   string   `json:"changedBy"`
 }
 type State struct {
-	FeatureFlags     map[string]bool `json:"featureFlags"`
-	AgentsStopped    bool            `json:"agentsStopped"`
-	AgentRoomStopped bool            `json:"agentRoomStopped"`
-	AgentStopRooms   []string        `json:"-"`
-	Actors           []Actor         `json:"actors"`
-	CurrentActorID   string          `json:"currentActorId"`
-	Company          Company         `json:"company"`
-	HumanCompanyID   string          `json:"humanCompanyId"`
-	HumanTitle       string          `json:"humanTitle"`
-	HumanName        string          `json:"humanName"`
-	Workflows        []Workflow      `json:"workflows"`
-	Rooms            []Room          `json:"rooms"`
-	Tasks            []Task          `json:"tasks"`
-	Evidence         []Evidence      `json:"evidence"`
+	Organization     OrganizationChart `json:"organization"`
+	FeatureFlags     map[string]bool   `json:"featureFlags"`
+	AgentsStopped    bool              `json:"agentsStopped"`
+	AgentRoomStopped bool              `json:"agentRoomStopped"`
+	AgentStopRooms   []string          `json:"-"`
+	Actors           []Actor           `json:"actors"`
+	CurrentActorID   string            `json:"currentActorId"`
+	Company          Company           `json:"company"`
+	HumanCompanyID   string            `json:"humanCompanyId"`
+	HumanTitle       string            `json:"humanTitle"`
+	HumanName        string            `json:"humanName"`
+	Workflows        []Workflow        `json:"workflows"`
+	Rooms            []Room            `json:"rooms"`
+	Tasks            []Task            `json:"tasks"`
+	Evidence         []Evidence        `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`

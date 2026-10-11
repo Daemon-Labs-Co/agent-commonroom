@@ -97,6 +97,7 @@ func main() {
 	mux.HandleFunc("/api/owner-key/download", s.downloadOwnerKey)
 	mux.HandleFunc("/api/logout", s.logout)
 	mux.HandleFunc("/api/session", s.session)
+	mux.HandleFunc("/api/company/organization", s.organization)
 	mux.HandleFunc("/api/state", s.state)
 	mux.HandleFunc("/api/events", s.events)
 	mux.HandleFunc("/api/integrity", s.integrity)
@@ -117,6 +118,7 @@ func main() {
 		log.Fatal("COMMONROOM_AGENT_SAFETY_UI must be true or false")
 	}
 	s.safetyUIDefault = safetyUI
+	mux.Handle("/organization-chart.js", s.roomPresentationScript("web", "organization-chart.js", "companyOrgChart"))
 	mux.Handle("/viewport-alignment.js", s.roomPresentationScript("web", "viewport-alignment.js", "topAlignedViews"))
 	mux.Handle("/overlay-layout.js", s.roomPresentationScript("web", "overlay-layout.js", "compactProfileOverlays"))
 	mux.Handle("/human-profile-details.js", s.roomPresentationScript("web", "human-profile-details.js", "humanProfileDetails"))
@@ -291,6 +293,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			if !found {
 				st.Actors = append(st.Actors, v)
+			}
+		case "company.organization.updated":
+			if err := json.Unmarshal(data, &st.Organization); err != nil {
+				return st, err
 			}
 		case "company.updated":
 			json.Unmarshal(data, &st.Company)
@@ -652,7 +658,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}
@@ -719,6 +725,26 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		v.Name = strings.TrimSpace(v.Name)
 		p = v
 
+	case "company.organization.updated":
+		if enabled, exists := st.FeatureFlags["companyOrgChart"]; exists && !enabled {
+			http.Error(w, "Company organization chart is disabled", 403)
+			return
+		}
+		var v room.OrganizationChart
+		if json.Unmarshal(req.Payload, &v) != nil {
+			http.Error(w, "Invalid organization chart", 400)
+			return
+		}
+		if v.Revision != st.Organization.Revision {
+			http.Error(w, "Organization changed; reload before saving", 409)
+			return
+		}
+		if err := validateOrganization(v, st.Actors); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		v.Revision++
+		p = v
 	case "company.updated":
 		var v room.Company
 		if json.Unmarshal(req.Payload, &v) != nil || strings.TrimSpace(v.Name) == "" || len(v.Name) > 100 || len(v.Description) > 2000 {

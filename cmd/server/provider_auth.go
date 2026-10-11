@@ -1,6 +1,7 @@
 package main
 
 import (
+	"agentroom/internal/room"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -32,6 +33,15 @@ func (b *cappedStatusOutput) Write(p []byte) (int, error) {
 // approved isolated SSH worker. Passwords and OAuth codes remain in Terminal.
 // Disabling its feature flag cannot disable execution isolation or restore a
 // host CLI fallback. Source forks CAN bypass this, BUT expose host credentials.
+func connectionHasActiveAgent(st room.State, active map[string]bool, connection string) bool {
+	for _, p := range st.Participants {
+		if p.ConnectionID == connection && active[p.ID] {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 	if requestActor(r) != ownerID {
 		http.Error(w, "Owner permission required", 403)
@@ -103,13 +113,52 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var result struct {
-			CredentialPresent bool `json:"credentialPresent"`
+			CredentialPresent *bool `json:"credentialPresent"`
 		}
-		if json.Unmarshal(out.Bytes(), &result) != nil {
+		if json.Unmarshal(out.Bytes(), &result) != nil || result.CredentialPresent == nil {
 			http.Error(w, "Worker returned invalid status", 502)
 			return
 		}
-		reply(w, map[string]any{"credentialPresent": result.CredentialPresent, "provider": provider})
+		reply(w, map[string]any{"credentialPresent": *result.CredentialPresent, "provider": provider})
+	case "logout":
+		// Serialize against dispatch; already-running turns must finish or be stopped first.
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		current, err := s.load(r.Context())
+		if err != nil {
+			http.Error(w, "State unavailable", 503)
+			return
+		}
+		if connectionHasActiveAgent(current, s.active, req.ConnectionID) {
+			http.Error(w, "Stop or finish this connection's active agents before signing out", 409)
+			return
+		}
+		if s.append(r.Context(), "provider.logout_requested", map[string]string{"actorId": ownerID, "connectionId": req.ConnectionID, "provider": provider}) != nil {
+			http.Error(w, "Unable to record sign-out request", 500)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		cmd := workerSSHCommand(ctx, alias, "auth-logout-v1", encoded)
+		var output cappedStatusOutput
+		cmd.Stdout = &output
+		cmd.Stderr = io.Discard
+		if cmd.Run() != nil {
+			http.Error(w, "Sign-out unconfirmed; worker unavailable or authentication busy. Check sign-in status before retrying", 503)
+			return
+		}
+		var result struct {
+			SignedOut bool `json:"signedOut"`
+		}
+		if json.Unmarshal(output.Bytes(), &result) != nil || !result.SignedOut {
+			http.Error(w, "Worker returned invalid sign-out result", 502)
+			return
+		}
+		if s.append(r.Context(), "provider.signed_out", map[string]string{"actorId": ownerID, "connectionId": req.ConnectionID, "provider": provider}) != nil {
+			http.Error(w, "Credentials cleared but audit completion failed; check sign-in status", 500)
+			return
+		}
+		reply(w, map[string]bool{"signedOut": true})
 	case "login":
 		if runtime.GOOS != "darwin" {
 			http.Error(w, "Automatic Terminal launch requires macOS; use the documented worker sign-in command", 501)

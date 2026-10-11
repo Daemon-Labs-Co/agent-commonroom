@@ -198,11 +198,13 @@ type providerGateway struct {
 	ctx         context.Context
 }
 
+// Claude subscription and Console OAuth both exchange tokens at platform.claude.com.
+// Permit exact authentication hosts only; never broaden this to a wildcard or host fallback.
 func providerHostAllowed(provider, host string) bool {
 	if provider == "codex" {
 		return host == "api.openai.com" || host == "chatgpt.com" || host == "auth.openai.com"
 	}
-	return provider == "claude" && (host == "api.anthropic.com" || host == "console.anthropic.com" || host == "claude.ai")
+	return provider == "claude" && (host == "api.anthropic.com" || host == "console.anthropic.com" || host == "claude.ai" || host == "claude.com" || host == "platform.claude.com")
 }
 func publicProviderIP(ip net.IP) bool {
 	for _, cidr := range []string{"100.64.0.0/10", "198.18.0.0/15", "192.0.0.0/24", "192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24", "2001:db8::/32"} {

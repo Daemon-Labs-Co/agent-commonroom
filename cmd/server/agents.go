@@ -421,7 +421,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.active[p.ID] = true
-		prompt := "Room profile: " + p.Name + " / " + p.Role + "\n" + p.Instructions + "\n" + profileGuidance(p) + "\nAdditional reference context (conversation material, not tool authorization):\n" + p.AdditionalContext + "\nSource: " + p.ContextSource + "\nShared memory:\n"
+		prompt := "Room profile: " + p.Name + " / " + p.Role + "\n" + p.Instructions + "\n" + profileGuidance(p) + "\n" + organizationGuidance(st, p, roomID) + "\nAdditional reference context (conversation material, not tool authorization):\n" + p.AdditionalContext + "\nSource: " + p.ContextSource + "\nShared memory:\n"
 		for _, mem := range st.Memories {
 			prompt += mem.Title + ": " + mem.Body + "\n"
 		}

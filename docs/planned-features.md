@@ -1,6 +1,6 @@
 # Separate feature work
 
-These are requested features, not shipped capabilities. Implement each on its own feature branch with tests, user/technical documentation and an owner-controlled server-enforced flag. Do not mix them into the current UI refinement branch or commit/push on behalf of the owner.
+The org chart is implemented on its own feature branch; the other entries remain requested features, not shipped capabilities. Implement each on its own feature branch with tests, user/technical documentation and an owner-controlled server-enforced flag. Do not mix them into the current UI refinement branch or commit/push on behalf of the owner.
 
 ## Visual company organization chart
 
@@ -8,7 +8,7 @@ Suggested branch: `feature/company-org-chart`.
 
 - Under Settings → Company, provide a workflow-style canvas with all human and agent identities, connectors and a selected-node properties panel.
 - Distinguish a registered agent from its room-specific profiles. Do not invent reporting relationships from decision seniority.
-- Define how an owner edits reporting relationships and whether agent reporting is company-wide or profile-specific. Preserve room authorization when displaying assignments; do not reveal private room content.
+- Company reporting relationships replace numbered authority; managers outrank reports, peers need consensus and humans retain final override. See [the implemented contract](concepts.md#company-organization-and-decision-authority).
 - Include keyboard navigation and a readable list alternative to the canvas.
 
 ## Automatic tasks from discussions
@@ -27,3 +27,7 @@ Suggested branch: `feature/development-branch-creation`.
 - Require an explicit repository and branch policy. Preserve unrelated edits and existing branches; never develop directly on main.
 - A branch creation feature does not authorize commits, signing, pushes or merges. The owner continues signing commits manually.
 - Define isolated-worker repository access and branch creation permissions before enabling automation. Test Git interactions with temporary repositories only.
+
+## Anonymous feature adoption reporting
+
+Suggested branch: `feature/anonymous-feature-statistics`. Report aggregate feature-flag adoption externally, with documented consent, an owner-controlled flag, data minimization and installation-versus-person counting. Collector configuration and opt-in/default behavior still need agreement. Not implemented.

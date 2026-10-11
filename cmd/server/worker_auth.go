@@ -75,6 +75,29 @@ func providerCredentialName(provider string) string {
 	}
 	return "auth.json"
 }
+
+// Forget only this connection/provider's stored credential; provider-wide revocation is separate.
+func clearWorkerCredential(root, provider string) error {
+	err := os.Remove(filepath.Join(root, providerCredentialName(provider)))
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+func lockWorkerCredential(root string) (func(), error) {
+	if err := os.MkdirAll(root, 0700); err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(filepath.Join(root, ".auth.lock"), os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return nil, err
+	}
+	if err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		f.Close()
+		return nil, errors.New("Connection authentication is busy; finish the current sign-in first")
+	}
+	return func() { syscall.Flock(int(f.Fd()), syscall.LOCK_UN); f.Close() }, nil
+}
 func credentialPresent(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil || !fi.Mode().IsRegular() || fi.Mode().Perm()&0077 != 0 || fi.Size() > 65536 {
@@ -109,8 +132,20 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 	if args[0] == "verify-v1" {
 		return workerVerifyConnection(v, out, diagnostics)
 	}
-	if args[0] != "auth-login-v1" {
+	if args[0] != "auth-login-v1" && args[0] != "auth-logout-v1" {
 		return fail(errors.New("Unsupported authentication action"))
+	}
+	unlock, err := lockWorkerCredential(root)
+	if err != nil {
+		return fail(err)
+	}
+	defer unlock()
+	if args[0] == "auth-logout-v1" {
+		if err = clearWorkerCredential(root, v.Provider); err != nil {
+			return fail(errors.New("Unable to clear connection credentials"))
+		}
+		json.NewEncoder(out).Encode(map[string]bool{"signedOut": true})
+		return 0
 	}
 	if err = isolationAvailable(v.Provider); err != nil {
 		return fail(err)

@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -180,5 +182,78 @@ func TestDraftAPILeavesConnectionUnchanged(t *testing.T) {
 	w := mockRequest(h, "POST", "/api/connections/test", `{"draft":{"id":"saved","protocol":"CLI","endpoint":"ssh://worker"}}`)
 	if w.Code != 400 {
 		t.Fatal("draft credential identity override accepted", w.Code)
+	}
+}
+
+func TestConnectionProgressRealStageBoundaries(t *testing.T) {
+	t.Parallel()
+	for _, signedIn := range []bool{true, false} {
+		var events []connectionCheck
+		probe := func(ctx context.Context, alias, action, envelope string) ([]byte, error) {
+			expected := map[string]string{"ready-v1": "Worker runtime", "auth-status-v1": "Connection credentials", "verify-v1": "Provider response"}[action]
+			last := events[len(events)-1]
+			if last.Name != expected || last.Status != "running" {
+				t.Fatalf("probe started without progress: %+v", last)
+			}
+			switch action {
+			case "ready-v1":
+				return []byte(`{"version":1,"configured":true,"runtimeReady":true}`), nil
+			case "auth-status-v1":
+				if signedIn {
+					return []byte(`{"credentialPresent":true}`), nil
+				}
+				return []byte(`{"credentialPresent":false}`), nil
+			default:
+				return []byte(`{"version":1,"connection":"fixture","provider":"codex","verified":true}`), nil
+			}
+		}
+		result := checkConnectionDraftProgress(context.Background(), room.Connection{ID: "fixture", Protocol: "CLI", Endpoint: "ssh://worker"}, "worker", "true", probe, true, func(c connectionCheck) { events = append(events, c) })
+		if signedIn {
+			if result.Status != "working" || len(events) != 8 {
+				t.Fatal(result, events)
+			}
+		} else {
+			if result.Status != "needs-sign-in" || len(events) != 6 {
+				t.Fatal(result, events)
+			}
+		}
+	}
+}
+func TestConnectionProgressStreamControls(t *testing.T) {
+	t.Parallel()
+	s, db, _ := mockServer(t)
+	db.seed("connection.created", room.Connection{ID: "fixture", Protocol: "HTTP", Endpoint: "https://invalid.example", Name: "Fixture"})
+	h := s.auth.protect(s.actorGuard(http.HandlerFunc(s.connectionTest)))
+	request := func() *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", "http://127.0.0.1:8787/api/connections/test", strings.NewReader(`{"connectionId":"fixture"}`))
+		r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: "owner"})
+		r.Header.Set("X-CSRF-Token", "csrf")
+		r.Header.Set("Accept", "application/x-ndjson")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	w := request()
+	if w.Code != 200 || w.Header().Get("Content-Type") != "application/x-ndjson" || !w.Flushed {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	lines := strings.Split(strings.TrimSpace(w.Body.String()), "\n")
+	if len(lines) != 3 {
+		t.Fatal(lines)
+	}
+	var terminal struct {
+		Type   string
+		Result connectionTestResult
+	}
+	if json.Unmarshal([]byte(lines[2]), &terminal) != nil || terminal.Type != "result" || terminal.Result.Status != "unsupported" {
+		t.Fatal(lines)
+	}
+	db.seed("feature.flag.updated", map[string]any{"name": "connectionTesting", "enabled": false})
+	if w = request(); w.Code != 403 || w.Flushed {
+		t.Fatal("disabled stream started")
+	}
+	s.auth.sessions["owner"] = ownerSession{ActorID: "developer", CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
+	if w = request(); w.Code != 403 || w.Flushed {
+		t.Fatal("non-owner stream started")
 	}
 }

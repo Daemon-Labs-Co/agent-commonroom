@@ -205,3 +205,66 @@ func TestCredentialExportOutputLimit(t *testing.T) {
 		t.Fatal("overflow must fail without retaining extra bytes")
 	}
 }
+
+func TestClearWorkerCredentialScopeAndLock(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	first := filepath.Join(root, "connection-a", "claude")
+	other := filepath.Join(root, "connection-b", "claude")
+	os.MkdirAll(first, 0700)
+	os.MkdirAll(other, 0700)
+	for _, dir := range []string{first, other} {
+		if err := os.WriteFile(filepath.Join(dir, ".credentials.json"), []byte(`{"fixture":true}`), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unlock, err := lockWorkerCredential(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second, e := lockWorkerCredential(first); e == nil {
+		second()
+		t.Fatal("concurrent sign-in/out accepted")
+	}
+	unlock()
+	if err := clearWorkerCredential(first, "claude"); err != nil {
+		t.Fatal(err)
+	}
+	if credentialPresent(filepath.Join(first, ".credentials.json")) {
+		t.Fatal("credentials remain")
+	}
+	if !credentialPresent(filepath.Join(other, ".credentials.json")) {
+		t.Fatal("other connection cleared")
+	}
+	if err := clearWorkerCredential(first, "claude"); err != nil {
+		t.Fatal("idempotent logout", err)
+	}
+	unlock, err = lockWorkerCredential(first)
+	if err != nil {
+		t.Fatal("lock not released", err)
+	}
+	unlock()
+}
+func TestSignOutActiveConnectionGuard(t *testing.T) {
+	t.Setenv("COMMONROOM_REMOTE_WORKER", "true")
+	t.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", "worker")
+	s, db, _ := mockServer(t)
+	db.seed("connection.created", room.Connection{ID: "c", Protocol: "CLI", Endpoint: "ssh://worker"})
+	db.seed("participant.created", room.Participant{ID: "p", ConnectionID: "c", RoomID: "engineering"})
+	s.active["p"] = true
+	h := s.auth.protect(s.actorGuard(http.HandlerFunc(s.providerAuth)))
+	w := mockRequest(h, "POST", "/api/provider-auth", `{"action":"logout","connectionId":"c"}`)
+	if w.Code != 409 || !strings.Contains(w.Body.String(), "active agents") {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	db.seed("feature.flag.updated", map[string]any{"name": "connectionSignIn", "enabled": false})
+	w = mockRequest(h, "POST", "/api/provider-auth", `{"action":"logout","connectionId":"c"}`)
+	if w.Code != 403 {
+		t.Fatal("disabled logout accepted")
+	}
+	s.auth.sessions["owner"] = ownerSession{ActorID: "developer", CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
+	w = mockRequest(h, "POST", "/api/provider-auth", `{"action":"logout","connectionId":"c"}`)
+	if w.Code != 403 {
+		t.Fatal("non-owner logout accepted")
+	}
+}
