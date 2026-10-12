@@ -22,7 +22,7 @@ These screenshots use fictional people, conversations, and connections in a sepa
 
 ![Agent CommonRoom workflow canvas with node library and properties panel](docs/screenshots/workflow.jpg)
 
-Edit and validate workflow drafts; Run remains disabled until the execution engine is implemented.
+Edit, validate and save workflows. Enable the optional sequential runner to dispatch isolated agent steps, independent reviews and explicit human gates. See [workflow execution](docs/workflow-execution.md) for limits and recovery.
 
 ### Agent connections
 
@@ -148,15 +148,15 @@ For a registered local `claude` connection, the owner can choose Claude sign-in 
 
 Messages default to the room. Select an agent or use its mention to request a response; `@room` requests attention from the supported room agents. Merely posting to the room does not guarantee an agent turn. Additional room history and memory are supplied when an agent is invoked, while its native session preserves its own prior turns.
 
-These adapters are conversational trials. Claude tools/MCP/slash commands are disabled and Codex uses a read-only sandbox. Room directories are not yet a complete filesystem or network isolation boundary. Managed turns now require the [Linux/rootless-Docker worker](docs/container-isolation.md), with no supported bypass switch. macOS/Windows and direct SSH dispatch are blocked. Existing host sessions cannot automatically resume inside the worker. Approved repository mounts and remote workers remain unimplemented. Do not provide untrusted agents or prompts with sensitive credentials or workspaces.
+Managed turns require the [Linux/rootless-Docker worker](docs/container-isolation.md), locally on supported Linux or through the approved remote worker. There is no host-execution bypass. Chat connections remain read-only; administrator-approved [development workspaces](docs/development-workspaces.md) enable private writable repository snapshots for selected rooms. Existing host sessions cannot automatically resume inside the worker. General directory permissions, automatic patch export and shared workspace synchronization remain incomplete.
 
 ## Tasks, evidence, and workflows
 
 Tasks support assignment, reviewer selection, lifecycle edits, explicit dispatch, and human-entered evidence. Evidence is organized as Changes, Checks, Artifacts, and Review. Check counts are not inferred, and automatic evidence collection and artifact uploads are not implemented.
 
-In a room's Workflows tab, add and connect nodes, edit their properties, arrange the graph, and save it. Validate checks assignments, connectivity, and reachability; incomplete drafts can still be saved. Delete removes a selected node, and Undo restores edits. Run is intentionally disabled pending a durable execution engine. Saved retry, timeout, iteration, approval, evidence, and room-handoff settings are not active execution guarantees.
+In a room's Workflows tab, add and connect nodes, edit their properties, arrange the graph, and save it. Validate checks assignments, connectivity, and reachability; incomplete drafts can still be saved. Delete removes a selected node, and Undo restores edits. The optional `workflowExecution` flag enables Run for saved sequential graphs. The runner records attempts, routes explicit review outcomes, enforces iteration limits and pauses for evidence and human approval. Parallel work, automatic retries, cross-room handoffs and automatic patch/test-evidence export remain unavailable. See [usage and recovery](docs/workflow-execution.md).
 
-Higher seniority means greater decision authority; humans default to 11 and agents use 1–10. Equal seniority requires consensus by design. Automated conflict discussion, human timeouts, and seniority arbitration remain planned features.
+The company organization chart supplies reporting-authority guidance: managers outrank reports, peers need consensus and humans retain the final override. Workflow human acceptance remains explicitly owner-controlled. Automatic conflict arbitration and escalation timers remain planned.
 
 ## Configuration
 

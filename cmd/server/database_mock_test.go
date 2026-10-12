@@ -65,6 +65,20 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 	events := d.snapshot()
 	values := [][]any{}
 	switch sql {
+	case historyFlagSQL:
+		for i := len(events) - 1; i >= 0; i-- {
+			if events[i].kind != "feature.flag.updated" {
+				continue
+			}
+			var flag struct {
+				Name string `json:"name"`
+			}
+			_ = json.Unmarshal([]byte(events[i].payload), &flag)
+			if flag.Name == args[0].(string) {
+				values = append(values, []any{[]byte(events[i].payload)})
+				break
+			}
+		}
 	case "SELECT kind,payload FROM events ORDER BY sequence":
 		for _, e := range events {
 			values = append(values, []any{e.kind, []byte(e.payload)})

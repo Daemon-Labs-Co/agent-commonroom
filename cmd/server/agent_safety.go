@@ -91,6 +91,15 @@ func (s *server) agentSafety(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	if req.Action == "stop" {
+		for _, run := range st.WorkflowRuns {
+			if req.Scope == "application" || run.RoomID == rid {
+				if cancel := s.workflowLive[run.ID]; cancel != nil {
+					cancel()
+				}
+			}
+		}
+	}
 	event := map[string]string{"actorId": ownerID, "scope": req.Scope, "reason": strings.TrimSpace(req.Reason)}
 	if req.Scope == "room" {
 		event["roomId"] = rid

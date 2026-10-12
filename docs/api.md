@@ -116,3 +116,74 @@ Connection tests optionally accept `Accept: application/x-ndjson`. Each newline-
 Owner-authenticated `GET /api/events?page=true` returns `{events,nextBefore}` with at most 100 summaries. Pass the previous `nextBefore` as `before` for the next older page. Optional `from`/`until` timestamps use RFC3339 and an inclusive/exclusive date window; malformed cursors/ranges return 400. The server uses parameterized keyset queries and a fixed 101-record lookahead. Raw payloads remain private. The legacy unpaged endpoint still returns its latest-200 array. Reads never alter checksums, history, retention or authorization.
 
 Cosmetic flag events also accept owner-only `roomViewportFit` and `featureFlagSwitches`, both defaulting on. Their presentation modules are gated through `/room-viewport.js` and `/feature-switches.js`; disabled modules return 204 with no-store caching. Disabling these flags does not relax room permissions or security enforcement. See [room viewport and feature switches](concepts.md#room-viewport-and-feature-switches) for usage and defaults.
+
+## Workflow execution
+
+Owner-only `GET /api/workflow-runs?room=ROOM` lists room run snapshots, even while execution is disabled. A previously running snapshot without a live driver is recorded as interrupted. `POST` also requires the session CSRF token and trusted Host/Origin.
+
+- Start: `{ "action":"start", "workflowId":"ID", "revision":1, "input":"Approved task" }` returns HTTP 202 and the pinned run.
+- Advance evidence/approval: `{ "action":"advance", "runId":"ID", "revision":N, "port":"next", "evidence":"Artifact references and decision rationale" }`.
+- Decision: same advance contract with `port` equal to `yes` or `no`.
+- Human rework: `{ "action":"reject", "runId":"ID", "revision":N, "evidence":"Requested changes" }` at an approval gate returns to the latest implementation node.
+- Recover: `{ "action":"resume", "runId":"ID", "revision":N }`; only failed/interrupted runs can recover, within visit limits, after inspecting possible partial side effects.
+- Stop: `{ "action":"cancel", "runId":"ID", "revision":N }`; remains available with the feature disabled.
+
+All mutations require the current run/graph revision. Foreign-room IDs return 404, stale/busy/unsafe state 409, unsupported graphs 400, disabled execution/non-owner/invalid CSRF 403. `workflow.run.updated` events cannot be supplied through the generic events endpoint. The workflowExecution flag is changed through owner-only feature.flag.updated; absent means off. See [complete run schema, lifecycle, bounds and security contract](workflow-execution.md).
+
+## Agent status explanations
+
+With owner-controlled `agentStatusDetails` enabled (default on), room-scoped state
+participants contain `statusDetails: {activity, reason, next}`. These fields are
+server-derived safe summaries, not editable profile properties. Disabled state
+omits them. Internal `agent.activity` events identify generic chat activity or a
+workflow/step title; `agent.error` events supply the recorded cause. Both are
+rejected through the public generic events endpoint. Ordinary profile edits retain
+current diagnostic history; a new non-blocked session clears the prior error.
+
+`cmd/server/agent_status.go` classifies failures using allowlisted wording, bounds
+activity labels and prioritizes incident/emergency stops. `web/agent-status.js`
+uses text nodes, keyboard focus and an unclipped fixed-position tooltip. Mock-only
+Go tests and synthetic DOM tests cover legacy fallbacks, both flag states, stale
+errors, room scope, safe rendering and keyboard/pointer cleanup.
+
+## Human attention requests
+
+With `humanAttention` enabled (default on), agent message state includes
+`humanRequest: "explicit" | "suggested"` and, after acknowledgment,
+`attentionAcknowledgedBy: ACTOR_ID`. Rooms include `pendingHumanRequests` when
+nonzero. Projection occurs before existing authorized-room filtering; no hidden
+room messages or counts are returned. Original messages are never edited.
+
+Authenticated room-authorized humans POST through `/api/events`:
+`{"kind":"message.attention.acknowledged","payload":{"messageId":"ID"}}`.
+The server supplies actor/room identity, validates an agent request in that room,
+and makes repeated acknowledgment idempotent. Missing/foreign/human messages
+return 404; agent accounts, disabled feature or invalid CSRF return 403. Generic
+human message creation clears any forged attention fields and agent identity.
+Only the owner can change the feature flag.
+
+`cmd/server/human_attention.go` provides default-on flag handling, explicit protocol
+and conservative phrase classification, immutable acknowledgment projection and
+room counts. `web/human-attention.js` renders text-only badges/banner/counts, moves
+to a request and submits acknowledgment. It runs before message-order/viewport
+wrappers so existing scroll restoration accounts for its layout. Tests mock all
+database operations and use synthetic DOM fixtures for detection, idempotency,
+identity/room boundaries, both flag states, safe display and error handling.
+
+## Refined History presentation
+
+When `historyRefinement` is enabled (default on), owner-only GET `/api/events`
+responses add `presentation` to each event: `category`, `tone` (info/warning/error/
+success), `routine`, and optional recorded `actor`, `actorId`, `subject`, `roomId`,
+`outcome`, safe `explanation` and `next`. This is an allowlisted projection; raw
+payloads are never returned. Original sequence/kind/at/hash/summary fields and
+100-record keyset paging remain unchanged. Disabled responses omit presentation.
+
+`cmd/server/history_presentation.go` classifies events and reads only the latest
+flag record through a parameterized, one-record query. It does not load the full
+event stream to enrich a page. Flag read failures fail the response rather than
+assuming enablement. `web/history-presentation.js` defines safe cards, daily groups,
+filters and loaded-count statistics; `web/history.js` retains async paging, stale
+response protection and per-visit filter state. Tests use mock queries and synthetic
+UI events for both flag states, permissions, privacy, filtering, day grouping,
+noise visibility and pagination compatibility.

@@ -33,6 +33,13 @@ func hasMember(st room.State, rid, pid string) bool {
 	return false
 }
 func scoped(st room.State, rid string) room.State {
+	runs := []room.WorkflowRun{}
+	for _, run := range st.WorkflowRuns {
+		if run.RoomID == rid {
+			runs = append(runs, run)
+		}
+	}
+	st.WorkflowRuns = runs
 	ws := []room.Workflow{}
 	for _, w := range st.Workflows {
 		if w.RoomID == rid {

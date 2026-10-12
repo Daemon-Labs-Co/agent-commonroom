@@ -25,6 +25,7 @@ var documentationCatalog = []documentationEntry{
 	{"connection-sign-in", "Isolated connection sign-in", "docs/connection-sign-in.md"},
 	{"isolation", "Mandatory container execution", "docs/container-isolation.md"},
 	{"development-workspaces", "Ready-to-work development agents", "docs/development-workspaces.md"},
+	{"workflow-execution", "Running workflows", "docs/workflow-execution.md"},
 	{"api", "HTTP API", "docs/api.md"},
 	{"development", "Development", "docs/development.md"},
 	{"operations", "Operations and backups", "docs/operations.md"},

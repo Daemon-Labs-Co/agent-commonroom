@@ -119,6 +119,7 @@ func visibleState(st room.State, actor, rid string) room.State {
 	st.Actors = actors
 	if actor != ownerID {
 		st.Organization = room.OrganizationChart{}
+		st.WorkflowRuns = nil
 		cs := []room.Connection{}
 		for _, c := range st.Connections {
 			for _, p := range st.Participants {

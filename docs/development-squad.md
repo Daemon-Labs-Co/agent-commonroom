@@ -82,7 +82,7 @@ they do not execute cross-room dispatch themselves. Specialist workflow nodes
 have room-local profile assignments.
 
 Graph validation checks structure and assignment. It does not execute tests,
-prove consensus, enforce a join barrier or certify security. Run remains disabled.
+prove consensus, enforce a join barrier or certify security. The optional sequential runner is described in [workflow execution](workflow-execution.md); this setup alone does not enable it.
 Cross-room task movement, automatic branch management, repository mounting and
 artifact export are not established by this configuration. Current isolated
 execution does not grant this squad access to the developer's host checkout.
