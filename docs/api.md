@@ -114,3 +114,5 @@ Connection tests optionally accept `Accept: application/x-ndjson`. Each newline-
 ### Paged event history
 
 Owner-authenticated `GET /api/events?page=true` returns `{events,nextBefore}` with at most 100 summaries. Pass the previous `nextBefore` as `before` for the next older page. Optional `from`/`until` timestamps use RFC3339 and an inclusive/exclusive date window; malformed cursors/ranges return 400. The server uses parameterized keyset queries and a fixed 101-record lookahead. Raw payloads remain private. The legacy unpaged endpoint still returns its latest-200 array. Reads never alter checksums, history, retention or authorization.
+
+Cosmetic flag events also accept owner-only `roomViewportFit` and `featureFlagSwitches`, both defaulting on. Their presentation modules are gated through `/room-viewport.js` and `/feature-switches.js`; disabled modules return 204 with no-store caching. Disabling these flags does not relax room permissions or security enforcement. See [room viewport and feature switches](concepts.md#room-viewport-and-feature-switches) for usage and defaults.

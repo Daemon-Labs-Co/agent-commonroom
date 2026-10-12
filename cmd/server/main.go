@@ -130,6 +130,9 @@ func main() {
 	mux.Handle("/human-profile-details.js", s.roomPresentationScript("web", "human-profile-details.js", "humanProfileDetails"))
 	mux.Handle("/room-sections.js", s.roomPresentationScript("web", "room-sections.js", "roomSections"))
 	mux.Handle("/settings-tabs.js", s.roomPresentationScript("web", "settings-tabs.js", "settingsTabs"))
+	mux.Handle("/room-viewport.js", s.roomPresentationScript("web", "room-viewport.js", "roomViewportFit"))
+	mux.Handle("/feature-switches.js", s.roomPresentationScript("web", "feature-switches.js", "featureFlagSwitches"))
+	mux.Handle("/room-message-order.js", s.roomPresentationScript("web", "room-message-order.js", "newestMessagesFirst"))
 	mux.Handle("/history-date-groups.js", s.roomPresentationScript("web", "history-date-groups.js", "historyDateGroups"))
 	mux.Handle("/feature-flag-tabs.js", s.roomPresentationScript("web", "feature-flag-tabs.js", "featureFlagTabs"))
 	mux.Handle("/help-icons.js", s.roomPresentationScript("web", "help-icons.js", "standardHelpIcons"))
@@ -685,7 +688,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}

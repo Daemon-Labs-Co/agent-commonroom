@@ -26,6 +26,6 @@ const helpPreferenceRender=render;render=function(){helpPreferenceRender();if(vi
  document.querySelector('#main').append(card);const select=card.querySelector('select');select.value=helpDisplayMode();select.onchange=()=>commit('actor.help.updated',{mode:select.value}).catch(e=>note(e.message));
  }
  if(state.currentActorId==='local-owner'){
- const card=document.createElement('section');card.className='card';card.innerHTML='<h3>Cosmetic · Help window choice</h3><p>Let humans choose same-window or separate-window help.</p><button>Toggle help window choice</button>';card.querySelector('button').onclick=()=>commit('feature.flag.updated',{name:'helpWindowChoice',enabled:state.featureFlags?.helpWindowChoice===false});document.querySelector('#main').append(card);
+ const card=document.createElement('section');card.className='card';card.innerHTML='<h3>Cosmetic · Help window choice</h3><p>Let humans choose same-window or separate-window help.</p><button>Toggle help window choice</button>';card.querySelector('button').dataset.featureFlag='helpWindowChoice';card.querySelector('button').onclick=()=>commit('feature.flag.updated',{name:'helpWindowChoice',enabled:state.featureFlags?.helpWindowChoice===false});document.querySelector('#main').append(card);
  }
 };

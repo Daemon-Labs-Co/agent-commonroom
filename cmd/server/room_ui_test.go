@@ -11,7 +11,7 @@ import (
 
 func TestRoomPresentationFlags(t *testing.T) {
 	t.Parallel()
-	for _, flag := range []string{"squadProfileActions", "agentInvitationLayout", "standardHelpIcons", "featureFlagTabs", "historyDateGroups", "settingsTabs", "roomSections", "humanProfileDetails", "topAlignedViews", "compactProfileOverlays", "companyOrgChart"} {
+	for _, flag := range []string{"squadProfileActions", "agentInvitationLayout", "standardHelpIcons", "featureFlagTabs", "historyDateGroups", "settingsTabs", "roomSections", "humanProfileDetails", "topAlignedViews", "compactProfileOverlays", "companyOrgChart", "newestMessagesFirst", "roomViewportFit", "featureFlagSwitches"} {
 		t.Run(flag, func(t *testing.T) {
 			t.Parallel()
 			s, db, h := mockServer(t)
@@ -31,7 +31,11 @@ func TestRoomPresentationFlags(t *testing.T) {
 					t.Fatal("flag delivery must not be cached")
 				}
 			}
-			check(200)
+			if flag == "newestMessagesFirst" {
+				check(204)
+			} else {
+				check(200)
+			}
 			for _, enabled := range []bool{false, true} {
 				value := "false"
 				expected := 204
