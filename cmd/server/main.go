@@ -559,7 +559,19 @@ func (s *server) state(w http.ResponseWriter, r *http.Request) {
 }
 func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		rows, err := s.db.Query(r.Context(), "SELECT sequence,kind,committed_at,hash,payload FROM events ORDER BY sequence DESC LIMIT 200")
+		paged := r.URL.Query().Get("page") == "true"
+		sql := "SELECT sequence,kind,committed_at,hash,payload FROM events ORDER BY sequence DESC LIMIT 200"
+		var args []any
+		if paged {
+			var err error
+			args, err = auditPageBounds(r.URL.Query())
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			sql = auditPageSQL
+		}
+		rows, err := s.db.Query(r.Context(), sql, args...)
 		if err != nil {
 			http.Error(w, "Unable to load events", 500)
 			return
@@ -579,6 +591,15 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		}
 		if rows.Err() != nil {
 			http.Error(w, "Unable to read events", 500)
+			return
+		}
+		if paged {
+			var next any
+			if len(result) > 100 {
+				result = result[:100]
+				next = result[99]["sequence"]
+			}
+			reply(w, map[string]any{"events": result, "nextBefore": next})
 			return
 		}
 		reply(w, result)

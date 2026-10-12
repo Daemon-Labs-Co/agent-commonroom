@@ -78,6 +78,21 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 			e := events[i]
 			values = append(values, []any{int64(i + 1), e.kind, time.Unix(int64(i), 0).UTC(), e.hash, []byte(e.payload)})
 		}
+	case auditPageSQL:
+		for i := len(events) - 1; i >= 0 && len(values) < 101; i-- {
+			at := time.Unix(int64(i), 0).UTC()
+			if args[0] != nil && int64(i+1) >= args[0].(int64) {
+				continue
+			}
+			if args[1] != nil && at.Before(args[1].(time.Time)) {
+				continue
+			}
+			if args[2] != nil && !at.Before(args[2].(time.Time)) {
+				continue
+			}
+			e := events[i]
+			values = append(values, []any{int64(i + 1), e.kind, at, e.hash, []byte(e.payload)})
+		}
 	default:
 		d.t.Errorf("unexpected mock query: %s", sql)
 		return nil, errors.New("unexpected SQL")

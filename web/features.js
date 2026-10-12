@@ -2,7 +2,7 @@ let roomId=localStorage.getItem('commonroom-room')||'engineering';
 const names=['Alex','Amelia','Arjun','Ava','Benjamin','Chloe','Daniel','Elena','Ethan','Freya','Gabriel','Grace','Hannah','Isaac','Isla','James','Leila','Liam','Maya','Noah','Oliver','Priya','Samuel','Sofia','Theo','Zoe','Codex'];
 function randomName(){const used=new Set(state.participants.map(p=>p.name));const pool=names.filter(n=>!used.has(n));return (pool.length?pool:names)[Math.floor(Math.random()*(pool.length||names.length))]}
 const baseApi=api;
-api=async function(path,body){return baseApi(path+'?room='+encodeURIComponent(roomId),body)};
+api=async function(path,body){return baseApi(path+(path.includes('?')?'&':'?')+'room='+encodeURIComponent(roomId),body)};
 const baseRender=render;
 render=function(){
  baseRender();
