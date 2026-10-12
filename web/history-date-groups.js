@@ -16,9 +16,10 @@ function renderAuditDateGroups(events,renderEvent,now=new Date()){
  const groups=new Map();for(const event of events){const bucket=auditDateBucket(event.at,now);if(!groups.has(bucket.key))groups.set(bucket.key,{...bucket,events:[]});groups.get(bucket.key).events.push(event)}
  return [...groups.values()].sort((a,b)=>a.order-b.order).map(group=>'<section class="audit-date-group"><h3>'+esc(group.label)+'</h3>'+group.events.map(renderEvent).join('')+'</section>').join('');
 }
-let selectedAuditDateGroup='all';
-function auditHistoryTabs(events,query,renderEvent,selected='all',now=new Date()){
+let selectedAuditDateGroup='today';
+function auditHistoryTabs(events,query,renderEvent,selected='today',now=new Date()){
  const buckets=new Map();for(const event of events){const bucket=auditDateBucket(event.at,now);buckets.set(bucket.key,bucket)}
+ buckets.set('today',{key:'today',label:'Today',order:0});
  const tabs=[{key:'all',label:'All activity',order:-2},...[...buckets.values()].sort((a,b)=>a.order-b.order)];
  const active=tabs.some(tab=>tab.key===selected)?selected:'all';
  const shown=events.filter(event=>(active==='all'||auditDateBucket(event.at,now).key===active)&&(event.summary+' '+event.kind).toLowerCase().includes(query));

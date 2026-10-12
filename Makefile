@@ -59,6 +59,7 @@ check: test-race
 	node --check web/history.js
 	node --check web/history-date-groups.js
 	node tests/history-date-groups.test.cjs
+	node --test tests/history-pagination.test.cjs
 	node --check web/help.js
 	node tests/help-preferences.test.cjs
 	node --check web/help-reader.js

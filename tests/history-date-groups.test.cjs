@@ -12,3 +12,5 @@ const render=e=>'<article>'+e.summary+'</article>';let tabs=ctx.auditHistoryTabs
 tabs=ctx.auditHistoryTabs(records,'room',render,'today',now);assert.equal(tabs.count,0);assert(tabs.html.includes('No matching activity in this period.'));assert(tabs.html.includes('Yesterday'),'search must preserve date navigation');
 tabs=ctx.auditHistoryTabs(records,'room',render,'all',now);assert.equal(tabs.count,1);assert(tabs.html.includes('Room created'));tabs=ctx.auditHistoryTabs(records,'',render,'missing',now);assert.equal(tabs.active,'all');assert.equal(tabs.count,2);
 console.log('History tabs isolate date periods, search within the active tab and retain navigation on empty results.');
+
+const emptyToday=ctx.auditHistoryTabs([records[1]],'',render,undefined,now);assert.equal(emptyToday.active,'today');assert.equal(emptyToday.count,0);assert(emptyToday.html.includes('Today'));
