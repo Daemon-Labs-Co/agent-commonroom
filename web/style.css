@@ -303,3 +303,47 @@ button.feature-switch[aria-checked=true]{background:#2855ed}
 .feature-switch[aria-checked=true] .feature-switch-knob{transform:translateX(18px)}
 .feature-switch:focus-visible{outline:2px solid #2855ed;outline-offset:4px}
 @media(prefers-reduced-motion:reduce){button.feature-switch,.feature-switch-knob{transition:none}}
+
+.wf-run-panel { flex:none; max-height:190px; overflow:auto; margin:0 0 12px; }
+.wf-run-row { padding:8px 0; border-top:1px solid var(--border,#e4e5ef); }
+.wf-run-row button { margin-right:8px; }
+.wf-output { white-space:pre-wrap; overflow-wrap:anywhere; max-height:240px; overflow:auto; }
+
+.agent-status-help { cursor:help; border-radius:3px; }
+.agent-status-tooltip { position:fixed; z-index:1000; max-width:min(340px,calc(100vw - 16px)); padding:12px 14px; border:1px solid var(--border); border-radius:8px; background:#fff; color:#18213b; box-shadow:0 8px 24px #18213b26; font-size:12px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; pointer-events:none; }
+
+.squad-menu-floating { position:fixed; z-index:900; overflow-y:auto; overscroll-behavior:contain; }
+.squad-menu-layout .squad-members:has(.participant-menu[open]) { padding-bottom:0; }
+
+/* Explicit message anchoring owns refresh position; avoid a second browser shift. */
+.room-viewport-fit .message-list { overflow-anchor:none; }
+
+.attention-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 18px; background:#eef2ff; color:#243ca8; border-bottom:1px solid #d8e1ff; }
+.message.attention-required { border-left:3px solid #3155ee; background:#f7f9ff; padding-left:12px; border-radius:6px; }
+.attention-message-label { font-size:11px; font-weight:650; color:#2946b5; background:#edf2ff; padding:2px 7px; border-radius:5px; }
+.attention-handled .attention-message-label { color:#6d6880; background:#f5f4f8; }
+.attention-acknowledge { margin-top:8px; font-size:12px; }
+.attention-room-count { margin-left:auto; border-radius:10px; background:#e5ebff; color:#2946b5; font-size:11px; font-weight:650; padding:1px 6px; }
+@media(max-width:599px) { .attention-banner { flex-wrap:wrap; } .message-meta { flex-wrap:wrap; } }
+
+nav .attention-room-button { min-width:0; max-width:100%; }
+.attention-room-label { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; }
+.attention-room-count { flex:0 0 auto; }
+
+.audit-toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-bottom:16px; }
+.audit-toolbar label { display:grid; gap:5px; font-size:12px; color:var(--muted); }
+.audit-toolbar label:first-child { flex:1; min-width:220px; }
+.audit-toolbar input[type=search] { width:100%; }
+.audit-toolbar .audit-routine-filter { display:flex; align-items:center; padding-bottom:8px; }
+.audit-overview { display:flex; flex-wrap:wrap; gap:10px 24px; padding:12px 16px; border:1px solid var(--border); border-radius:8px; margin-bottom:16px; color:var(--muted); }
+.audit-overview strong { color:#18213b; }
+.audit-day h3 { font-size:13px; margin:20px 0 10px; color:#6d6880; }
+.audit-refined { border:1px solid var(--border); border-left:3px solid #b7c1e6; border-radius:8px; padding:14px 16px; margin:8px 0; display:block; }
+.audit-event-heading { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:7px; }
+.audit-event-heading time { margin-left:auto; color:var(--muted); font-size:12px; }
+.audit-category,.audit-outcome { font-size:11px; border-radius:5px; padding:2px 7px; background:#f4f5fc; color:#49557c; }
+.audit-tone-error { border-left-color:#c43c48; }.audit-tone-error .audit-outcome { color:#a12d38; background:#fff0f1; }
+.audit-tone-warning { border-left-color:#c38a24; }.audit-tone-warning .audit-outcome { color:#846019; background:#fff7e8; }
+.audit-tone-success { border-left-color:#42835d; }.audit-tone-success .audit-outcome { color:#316446; background:#eef8f1; }
+.audit-context { margin:4px 0; color:var(--muted); font-size:12px; }.audit-explanation,.audit-next { font-size:13px; margin:6px 0; }
+.audit-technical { margin-top:10px; }.audit-technical code { overflow-wrap:anywhere; }.audit-technical dl { font-size:12px; }

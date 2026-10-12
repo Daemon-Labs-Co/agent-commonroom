@@ -78,7 +78,7 @@ Separate projects and complete project permissions do not exist yet. Non-owner m
 
 Tasks have an assignee, optional reviewer, criteria, status, and revision. Evidence entries record human-provided Changes, Checks, Artifacts, or Review. They are assertions supplied by a person, not automatically verified tool results. Automatic QA transitions, evidence collection, and file uploads are pending.
 
-Workflows belong to rooms. Add nodes, connect outputs to inputs, edit properties, save versions, and Validate. Validation reports structural/assignment problems; Save accepts incomplete drafts. Run is disabled. Retry/timeouts, approvals, evidence requirements, and room handoffs stored in the graph do not execute yet.
+Workflows belong to rooms. Add nodes, connect outputs to inputs, edit properties, save versions, and Validate. Validation reports structural/assignment problems; Save accepts incomplete drafts. Run is available when the owner enables `workflowExecution`. Supported sequential nodes execute with bounded timeouts, explicit review outcomes and human gates. Parallel nodes, retries and cross-room handoffs are rejected or unavailable. See [workflow execution](workflow-execution.md).
 
 Human overrides, acceptance authority, and immutable history remain product requirements with incomplete enforcement. Consult the security review before treating the prototype as a production policy system.
 
@@ -99,7 +99,7 @@ Open **Workflow templates** in the main menu (or **Browse templates** inside the
 
 Choose **Apply to room**, select a room you can access, and confirm **Apply template**. This creates a new saved workflow and opens that room’s editor. Reapplying creates another copy; it does not overwrite an existing workflow. An unsaved editor draft requires confirmation before it is left. Each copy has fresh node/edge IDs, detailed instructions, an evidence step, an independent review with a changes loop, and human acceptance. The default revision limit is three iterations; node timeouts default to 300 seconds with no retries.
 
-Assign actual room agents to task and review nodes, adapt their instructions and evidence requirements, then Validate and Save. Templates describe suggested roles; they do not invite agents, assign authority, execute tests, or automatically gather evidence. Validation initially reports unassigned agents. **Run is still disabled**: the runner, enforced human approvals, evidence gates, retries, and automatic review loops have not been implemented. Use the graphs as collaboration plans until execution is available.
+Assign actual room agents to task and review nodes, adapt their instructions and evidence requirements, then Validate and Save. Templates describe suggested roles; they do not invite agents, assign authority, execute tests, or automatically gather evidence. Validation initially reports unassigned agents. **Execution is off by default**. The sequential runner supports isolated agent steps, review loops and human evidence/approval gates. Assign independent implementation and review agents and use timeouts no greater than 180 seconds. Parallel nodes and automatic retries remain unsupported. See [workflow execution](workflow-execution.md).
 
 Owners and Developers may apply templates to rooms they can access. QA members may browse the catalog but cannot apply templates. Room authorization and workflow validation remain server-enforced. Templates cannot override access, immutable history, or other security rules. Shared catalog availability does not expose another room’s workflows.
 
@@ -117,7 +117,7 @@ Automated tests cover graph structure, valid output ports, review loops, room-ag
 
 **Disaster planning** identifies critical systems, acceptable downtime/data loss, dependencies, failure scenarios and responsible people. Agents define recovery time objectives (how quickly service should return) and recovery point objectives (how much data loss is acceptable), then prepare backup/restore procedures, escalation responsibilities, rollback criteria and a recovery runbook. The rehearsal step plans a tabletop exercise or separately authorized isolated verification. It does not authorize production restores, deletion, failover, or changes to immutable history. Evidence must distinguish completed checks from untested assumptions. An independent reviewer challenges readiness before the human accepts residual risks and follow-up priorities.
 
-Both use the same **Apply to room** flow, three-iteration default, fresh-copy behavior, unassigned agent slots, room permissions and `COMMONROOM_WORKFLOW_TEMPLATES` flag described above. Neither template executes automatically or schedules rehearsals; Run remains disabled. Graph/copy tests and mock-only API tests cover both new template IDs, including disabled-flag rejection.
+Both use the same **Apply to room** flow, three-iteration default, fresh-copy behavior, unassigned agent slots, room permissions and `COMMONROOM_WORKFLOW_TEMPLATES` flag described above. Neither template schedules rehearsals. Optional sequential execution dispatches assigned steps; rehearsal instructions do not authorize production operations. Graph/copy tests and mock-only API tests cover both new template IDs, including disabled-flag rejection.
 
 ### Cooperative adversarial review
 
@@ -127,7 +127,7 @@ Assign different agents to the Builder and Challenger steps, ideally with anothe
 
 Criticisms must identify evidence, risks or concrete alternatives. The evidence step records the original proposal, critique, revised outcome, accepted/rejected criticisms and unresolved issues. Critique targets the work, never the participants. Titles, challenge levels and persuasive arguments confer no extra authority or tool access.
 
-Apply it through **Workflow templates → Apply to room**. It uses the existing catalog flag and room permissions, creates a fresh saved copy, and leaves agents unassigned. Tests cover its connected graph, review loop, fresh copies, builder/challenger/reconciliation sequence, guidance, application and disabled-flag rejection through an in-memory database mock. Execution, multi-round debate, enforcing distinct agents, consensus and escalation are not automated; Run remains disabled.
+Apply it through **Workflow templates → Apply to room**. It uses the existing catalog flag and room permissions, creates a fresh saved copy, and leaves agents unassigned. Tests cover its connected graph, review loop, fresh copies, builder/challenger/reconciliation sequence, guidance, application and disabled-flag rejection through an in-memory database mock. The optional sequential runner can dispatch these steps and follow review feedback. Review agents must be distinct from implementation agents. Consensus and escalation are not automated.
 
 ## Emergency agent cutoff
 
@@ -279,3 +279,138 @@ Room fitting keeps the desktop page header, room controls and message composer i
 Feature flags appear as rounded on/off switches in Settings → Features, with labels, visible On/Off state, keyboard-operable native buttons and `role="switch"`/`aria-checked`. Cobalt indicates on; gray indicates off. Saving temporarily disables that flag's switch to prevent duplicate requests. Errors restore its preceding state and show the reason; successful saves reload and return to the same feature category. Only the owner can save flag changes, through the existing authenticated event API. Existing emergency stops remain enforced when their controls are hidden. Deployment-only settings that require configuration/restart remain informational rather than presenting switches that cannot change them.
 
 Technical modules: `room-viewport.js` applies/removes the scoped body class only for an active room conversation; CSS uses flex/grid with `min-height:0` and preserves a nonshrinking composer. `feature-switches.js` replaces identified flag controls after settings/category layout, manages per-flag pending saves, and preserves the category through a short-lived session-storage UI preference consumed by `features.js`. Labels use text nodes. Reduced-motion preferences disable knob animation. Tests cover both feature flags and server delivery/permissions with mocked database interactions; synthetic UI tests cover defaults, accessible attributes, duplicate-click prevention, save rollback, unauthorized callers, view transitions and disabled fallbacks.
+
+### Agent status explanations
+
+Hover over an agent's squad status, focus it with Tab, or tap it to see **Doing**,
+**Why** and **Next**. Escape, pointer exit, loss of focus, scrolling or navigation
+closes the tooltip. Room chat turns record “Replying to a room message”; workflow
+turns record their workflow/step title. Historical turns without activity or error
+records explicitly show that information as unavailable. Recognized failures have
+safe explanations for time limits, sandbox namespaces, read-only workspaces,
+worker/provider connectivity, sign-in, review format and workflow limits. Unknown
+failures direct the owner to History rather than exposing raw stderr.
+
+The owner-controlled Cosmetic flag `agentStatusDetails` defaults **on** under
+Settings → Features. It changes immediately after save/reload without restart.
+Off removes details from server state and gates `/agent-status.js`; it never changes
+execution, stop enforcement or recorded audit events. Existing room access controls
+also apply to these explanations. The tooltip omits raw credentials, paths, prompts
+and provider output. An output report of being blocked is not itself a recorded
+execution failure; this feature reports application status and recorded errors.
+
+### Squad action menus
+
+Only one squad action menu stays open. Opening another closes the first; clicking
+outside, pressing Escape, scrolling its surrounding area, resizing or navigation
+closes it. Escape returns focus to the menu trigger; Arrow Down opens and focuses
+the first enabled action. Menus open above the trigger when space below is limited
+and remain inside the browser viewport. The scrollable squad no longer adds artificial
+bottom padding for an open menu. Existing Message, Edit profile and Remove actions
+and their permissions remain unchanged.
+
+The owner-controlled Cosmetic flag `squadMenuLayout` (**Contained squad action
+menus**) defaults on. Save/reload applies changes without restart; off restores
+native menus and blocks `/squad-menus.js` delivery server-side. No agent execution,
+audit, retention or access policy changes. Technical module: `web/squad-menus.js`;
+synthetic tests cover exclusivity, edge positioning, dismissal, keyboard focus and
+both states, with mocked server tests for flag authorization and script delivery.
+
+### Stable conversation scrolling
+
+With **Room fits visible window** (`roomViewportFit`, default on) enabled,
+conversation scroll position is restored after room tabs, task cards, avatars and
+message ordering finish rendering. Status-only refreshes keep the current message
+edge when within 24 pixels of it, or retain the first visible message and its offset
+when reading older material. New messages, room changes or display-order changes
+still follow the configured newest-message edge. Both bottom-first and top-first
+presentation are supported. Browser scroll anchoring is disabled only for this
+explicitly managed message panel to prevent a second correction.
+
+Disabling the existing owner-controlled flag restores the previous render-time
+scroll behavior; no extra setting is required. The server continues gating
+`/room-viewport.js`, and message history/order/prompts remain unchanged. Technical
+helpers `captureRoomScroll`/`restoreRoomScroll` in `web/room-viewport.js` use stable
+`data-message-id` attributes and visible-row offsets. Synthetic tests reproduce the
+intermediate larger-panel clamp, verify older-message anchoring and both message
+orders, and cover disabled behavior. Tests use no database or real messages.
+
+Manual browser regression: `COMMONROOM_BROWSER_SCROLL_TEST=1 go test ./cmd/server
+-run '^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v` serves a 60-second,
+localhost-only fixture on port 8794. Its messages and periodic status refreshes
+exist only in the in-memory mock; no provider runs and no PostgreSQL writes occur.
+
+### Messages needing human attention
+
+Agent messages requiring approval, a decision, clarification or missing information
+can start with `[HUMAN ACTION REQUIRED]`. New managed **chat** prompts request this
+convention when **Human attention requests** is enabled. Explicit requests receive
+a **Needs your attention** badge, a cobalt accent and pale background. The protocol marker is hidden from the displayed message body while its original text remains in history. A room banner
+counts outstanding requests and **View request** moves to the oldest one. Sidebar
+room counts expose outstanding requests only for rooms the signed-in human can
+access. Counts persist across reloads because they derive from retained events.
+
+A small set of direct request phrases in older agent messages produces **May need
+your attention** instead. This is a suggestion, not proof: quoted phrases may be
+false positives, and indirect requests may be missed. A question mark alone does
+not trigger an alert. Agents should use the explicit first-line convention for
+reliable detection. Human-authored messages cannot impersonate agent requests.
+
+**Acknowledge** records who saw the request and clears its outstanding alert; it
+**does not** accept work, approve a workflow, grant permissions or resolve the
+underlying question. Any authenticated human with room access may acknowledge;
+agent accounts may not. The original message remains immutable. An acknowledged
+badge stays visible, and later messages can create new requests independently.
+
+The owner-controlled Cosmetic flag `humanAttention` defaults **on**, changes with
+save/reload and requires no restart to toggle. Off hides highlighting/counts, omits
+attention metadata from API state, gates `/human-attention.js`, blocks acknowledgment
+and stops adding the convention to new chat prompts. Prior message/acknowledgment
+records remain; already-running prompts are not recalled. Re-enabling restores the
+projection, including previous acknowledgments. Workflow approval nodes keep their
+separate execution contract; this feature does not pause or drive workflow nodes.
+No sounds, desktop notifications or external transmissions are added.
+
+Manual attention UI verification uses the 60-second in-memory fixture:
+`COMMONROOM_BROWSER_ATTENTION_TEST=1 go test ./cmd/server -run
+'^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v`. It contains synthetic explicit,
+suggested and routine agent messages. Acknowledgment affects only the mock store.
+
+### Organized History
+
+History opens **Today** and keeps asynchronous 100-record pages and **Load more**.
+The refined view groups visible events by calendar day, labels their category and
+outcome, and shows actor/room/subject context only when recorded or resolvable from
+the authorized state. A workflow run's creator is labelled **Run owner** rather
+than being presented as the agent executing each step. Missing historical actor or
+scope information is not invented. Original summaries, timestamps, sequences and
+checksums remain available under **Technical details**.
+
+Search covers **loaded** descriptions, event types and displayed context, not the
+entire database. Category and outcome filters distinguish Messages, Agents,
+Workflows, Tasks & evidence, Memory, Connections, People & company, Rooms,
+Security, Settings and Other. The default view hides routine session/activity and
+running-workflow updates; **Show routine updates** exposes them. Failed/blocked/
+interrupted updates are never classified as routine. Loaded-record statistics
+explicitly show loaded, shown, error/attention and routine counts; they are not
+installation-wide totals. Filters persist during this History visit, including
+background renders, and reset on a new visit.
+
+Agent failures include allowlisted explanations and a next step without exposing
+raw provider errors. Event payloads, private message bodies, endpoints, credentials
+and instructions are not returned by this presentation. History remains owner-only.
+
+The owner-controlled Cosmetic flag `historyRefinement` (**Organized event history**)
+defaults **on**. Saving/reloading applies it without restart. Off restores the earlier
+layout, blocks `/history-presentation.js`, and omits enriched metadata from history
+responses while keeping bounded pagination and audit protections. Date tabs remain
+controlled separately by `historyDateGroups`. Neither flag rewrites, deletes or
+changes verification of stored events.
+
+**Refresh activity** fetches a fresh first page for the selected period, using the
+current calendar boundaries and retaining filters. It resets loaded continuation
+pages. Agent-status polling does not replace the refined History page while you
+are reading, filtering or opening technical details; use this explicit refresh to
+see new records. The manual synthetic fixture is
+`COMMONROOM_BROWSER_HISTORY_TEST=1 go test ./cmd/server -run
+'^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v` (60 seconds, in-memory only).

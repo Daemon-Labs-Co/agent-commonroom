@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');const crypto=require('node:crypto');
-const context={crypto,render:()=>{},window:{addEventListener:()=>{}},state:{participants:[{id:'reviewer'}]},structuredClone};vm.createContext(context);
+const context={setInterval:()=>{},crypto,render:()=>{},window:{addEventListener:()=>{}},state:{participants:[{id:'reviewer'}]},structuredClone};vm.createContext(context);
 vm.runInContext(fs.readFileSync('web/workflows.js','utf8'),context);vm.runInContext(fs.readFileSync('web/workflow-templates.js','utf8'),context);
 const catalog=vm.runInContext('workflowTemplates',context);assert.equal(catalog.length,8);assert.equal(new Set(catalog.map(t=>t.id)).size,8);
 for(const template of catalog){

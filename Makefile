@@ -23,6 +23,12 @@ check: test-race
 	go vet ./...
 	node --check docker/agent/entrypoint.cjs
 	node --test tests/agent-entrypoint.test.cjs tests/credential-export.test.cjs tests/workspace-readiness.test.cjs
+	node --check web/human-attention.js
+	node --test tests/human-attention.test.cjs
+	node --check web/squad-menus.js
+	node --test tests/squad-menus.test.cjs
+	node --check web/agent-status.js
+	node --test tests/agent-status.test.cjs
 	node --check web/app.js
 	node --check web/features.js
 	node --check web/squad-profiles.js
@@ -45,8 +51,10 @@ check: test-race
 	node tests/room-presentation.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
+	node --test tests/room-scroll-stability.test.cjs
 	node --check web/feature-switches.js
 	node --test tests/ui-switches-viewport.test.cjs
+	node --test tests/workflow-execution.test.cjs
 	node --check web/workflows.js
 	node --check web/workflow-templates.js
 	node tests/workflow-templates.test.cjs
@@ -60,6 +68,8 @@ check: test-race
 	node tests/profile-images.test.cjs
 	node --check web/agent-safety.js
 	node tests/agent-safety.test.cjs
+	node --check web/history-presentation.js
+	node --test tests/history-presentation.test.cjs
 	node --check web/history.js
 	node --check web/history-date-groups.js
 	node tests/history-date-groups.test.cjs

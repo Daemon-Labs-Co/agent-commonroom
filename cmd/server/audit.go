@@ -34,6 +34,12 @@ func auditSummary(kind string, payload []byte) string {
 	name := label("name", "Agent")
 	title := label("title", "Untitled")
 	switch kind {
+	case "message.attention.acknowledged":
+		return "Human acknowledged an agent attention request"
+	case "agent.activity":
+		return "Agent activity started"
+	case "workflow.run.updated":
+		return "Workflow execution · " + label("status", "updated")
 	case "room.created":
 		return "Room created: " + label("name", "Room")
 	case "room.updated":

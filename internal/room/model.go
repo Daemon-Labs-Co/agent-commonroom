@@ -16,26 +16,27 @@ type Connection struct {
 	Endpoint  string `json:"endpoint"`
 }
 type Participant struct {
-	ActorID           string `json:"actorId"`
-	ExecutionMode     string `json:"executionMode,omitempty"`
-	CompanyID         string `json:"companyId"`
-	Discipline        string `json:"discipline"`
-	Level             string `json:"level"`
-	Speciality        string `json:"speciality"`
-	Assignment        string `json:"assignment"`
-	Challenge         *int   `json:"challenge"`
-	RoomID            string `json:"roomId"`
-	ID                string `json:"id"`
-	ConnectionID      string `json:"connectionId"`
-	Name              string `json:"name"`
-	Role              string `json:"role"`
-	Instructions      string `json:"instructions"`
-	Rank              int    `json:"rank"`
-	Accept            bool   `json:"accept"`
-	AdditionalContext string `json:"additionalContext"`
-	ContextSource     string `json:"contextSource"`
-	ThreadID          string `json:"threadId"`
-	Status            string `json:"status"`
+	StatusDetails     *AgentStatusDetails `json:"statusDetails,omitempty"`
+	ActorID           string              `json:"actorId"`
+	ExecutionMode     string              `json:"executionMode,omitempty"`
+	CompanyID         string              `json:"companyId"`
+	Discipline        string              `json:"discipline"`
+	Level             string              `json:"level"`
+	Speciality        string              `json:"speciality"`
+	Assignment        string              `json:"assignment"`
+	Challenge         *int                `json:"challenge"`
+	RoomID            string              `json:"roomId"`
+	ID                string              `json:"id"`
+	ConnectionID      string              `json:"connectionId"`
+	Name              string              `json:"name"`
+	Role              string              `json:"role"`
+	Instructions      string              `json:"instructions"`
+	Rank              int                 `json:"rank"`
+	Accept            bool                `json:"accept"`
+	AdditionalContext string              `json:"additionalContext"`
+	ContextSource     string              `json:"contextSource"`
+	ThreadID          string              `json:"threadId"`
+	Status            string              `json:"status"`
 }
 type Memory struct {
 	RoomID   string `json:"roomId"`
@@ -46,24 +47,27 @@ type Memory struct {
 	Revision int    `json:"revision"`
 }
 type Message struct {
-	ActorID   string    `json:"actorId"`
-	ActorType string    `json:"actorType"`
-	Provider  string    `json:"provider,omitempty"`
-	RoomID    string    `json:"roomId"`
-	ID        string    `json:"id"`
-	Author    string    `json:"author"`
-	Text      string    `json:"text"`
-	Created   time.Time `json:"created"`
+	HumanRequest            string    `json:"humanRequest,omitempty"`
+	AttentionAcknowledgedBy string    `json:"attentionAcknowledgedBy,omitempty"`
+	ActorID                 string    `json:"actorId"`
+	ActorType               string    `json:"actorType"`
+	Provider                string    `json:"provider,omitempty"`
+	RoomID                  string    `json:"roomId"`
+	ID                      string    `json:"id"`
+	Author                  string    `json:"author"`
+	Text                    string    `json:"text"`
+	Created                 time.Time `json:"created"`
 }
 type Room struct {
-	PersonalActorID string `json:"personalActorId"`
-	CompanyID       string `json:"companyId"`
-	HumanPresent    *bool  `json:"humanPresent"`
-	HumanRank       *int   `json:"humanRank"`
-	HumanName       string `json:"humanName"`
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Description     string `json:"description"`
+	PendingHumanRequests int    `json:"pendingHumanRequests,omitempty"`
+	PersonalActorID      string `json:"personalActorId"`
+	CompanyID            string `json:"companyId"`
+	HumanPresent         *bool  `json:"humanPresent"`
+	HumanRank            *int   `json:"humanRank"`
+	HumanName            string `json:"humanName"`
+	ID                   string `json:"id"`
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
 }
 type Task struct {
 	ID       string `json:"id"`
@@ -129,6 +133,7 @@ type State struct {
 	HumanCompanyID   string            `json:"humanCompanyId"`
 	HumanTitle       string            `json:"humanTitle"`
 	HumanName        string            `json:"humanName"`
+	WorkflowRuns     []WorkflowRun     `json:"workflowRuns"`
 	Workflows        []Workflow        `json:"workflows"`
 	Rooms            []Room            `json:"rooms"`
 	Tasks            []Task            `json:"tasks"`
@@ -182,4 +187,39 @@ type Workflow struct {
 	MaxIterations int            `json:"maxIterations"`
 	Nodes         []WorkflowNode `json:"nodes"`
 	Edges         []WorkflowEdge `json:"edges"`
+}
+
+// WorkflowRun is an append-only projection of a pinned graph and its execution.
+// Outputs are provider reports, not independently verified filesystem evidence.
+type WorkflowRun struct {
+	ID       string         `json:"id"`
+	RoomID   string         `json:"roomId"`
+	Workflow Workflow       `json:"workflow"`
+	Revision int            `json:"revision"`
+	Status   string         `json:"status"`
+	NodeID   string         `json:"nodeId"`
+	Input    string         `json:"input"`
+	Detail   string         `json:"detail"`
+	ActorID  string         `json:"actorId"`
+	Updated  time.Time      `json:"updated"`
+	Visits   map[string]int `json:"visits"`
+	Steps    []WorkflowStep `json:"steps"`
+}
+
+// WorkflowStep pins each completed attempt's output, hash, identity and evidence.
+type WorkflowStep struct {
+	NodeID    string    `json:"nodeId"`
+	AgentID   string    `json:"agentId"`
+	Output    string    `json:"output"`
+	SHA256    string    `json:"sha256"`
+	Evidence  string    `json:"evidence"`
+	Port      string    `json:"port"`
+	Completed time.Time `json:"completed"`
+}
+
+// AgentStatusDetails is a safe display projection, never raw provider output.
+type AgentStatusDetails struct {
+	Activity string `json:"activity"`
+	Reason   string `json:"reason"`
+	Next     string `json:"next"`
 }

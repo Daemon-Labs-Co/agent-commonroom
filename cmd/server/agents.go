@@ -418,6 +418,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, p := range targets {
+		if err = s.append(r.Context(), "agent.activity", map[string]string{"participantId": p.ID, "activity": "Replying to a room message"}); err != nil {
+			http.Error(w, "Activity audit failed", 500)
+			return
+		}
 		p.Status = "Working"
 		if err = s.append(r.Context(), "participant.session", p); err != nil {
 			http.Error(w, "Commit failed", 500)
@@ -437,6 +441,9 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			prompt += msg.Author + ": " + msg.Text + "\n"
 		}
 		prompt += "Human message: " + req.Text
+		if humanAttentionEnabled(st) {
+			prompt += humanAttentionGuidance
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		s.cancels[p.ID] = cancel
 		go s.runAgent(ctx, cancel, p, prompt, endpoints[p.ID])
@@ -456,16 +463,22 @@ func (b *bufferResponse) WriteHeader(n int)           { b.status = n }
 func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
+	text, err := s.executeAgentTurn(ctx, p, prompt, endpoint)
+	s.finishAgentTurn(ctx, p, text, endpoint, err)
+}
+
+// executeAgentTurn is shared by chat and workflows. It always uses the isolated
+// worker. A source-level host fallback CAN bypass containment, BUT would expose
+// host secrets and invalidate the mandatory execution boundary.
+func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, prompt, endpoint string) (string, error) {
 	key := p.RoomID + "/" + p.ID + "/" + p.ConnectionID + "/" + endpoint
 	repository, policyErr := controllerDevelopmentRepository(p.RoomID, os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 	if policyErr != nil {
-		s.finishAgentTurn(ctx, p, "", endpoint, policyErr)
-		return
+		return "", policyErr
 	}
 	mode, thread, sessionErr := agentExecutionSession(p.ExecutionMode, p.ThreadID, repository)
 	if sessionErr != nil {
-		s.finishAgentTurn(ctx, p, "", endpoint, sessionErr)
-		return
+		return "", sessionErr
 	}
 	p.ThreadID = thread
 	if repository != "" {
@@ -500,7 +513,7 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 		p.ThreadID = thread
 		return s.append(ctx, "participant.session", p)
 	})
-	s.finishAgentTurn(ctx, p, text, endpoint, err)
+	return text, err
 }
 
 // finishAgentTurn discards cancelled results even if dispatch has been resumed.

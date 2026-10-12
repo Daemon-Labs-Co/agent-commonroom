@@ -75,7 +75,7 @@ const workflowTemplates=[
 ];
 function buildWorkflowTemplate(id){
  const template=workflowTemplates.find(t=>t.id===id);if(!template)throw Error('Unknown workflow template');
- const nodes=template.steps.map(([type,title,instructions],i)=>({id:wfId(),type,title,instructions,x:60+(i%3)*290,y:60+Math.floor(i/3)*230,agentId:'',timeout:300,retries:0,evidence:['evidence','review','approval'].includes(type)?'Changes, checks and relevant documentation; record unresolved limitations.':''}));
+ const nodes=template.steps.map(([type,title,instructions],i)=>({id:wfId(),type,title,instructions,x:60+(i%3)*290,y:60+Math.floor(i/3)*230,agentId:'',timeout:180,retries:0,evidence:['evidence','review','approval'].includes(type)?'Changes, checks and relevant documentation; record unresolved limitations.':''}));
  const edges=nodes.slice(0,-1).map((n,i)=>({id:wfId(),from:n.id,to:nodes[i+1].id,port:n.type==='review'?'passed':'next'}));
  const review=nodes.find(n=>n.type==='review');edges.push({id:wfId(),from:review.id,to:nodes[1].id,port:'changes'});
  return {name:template.name,revision:0,maxIterations:3,nodes,edges};

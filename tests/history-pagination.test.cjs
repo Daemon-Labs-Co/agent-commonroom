@@ -2,13 +2,13 @@
 process.env.TZ='America/Toronto';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('web/history.js','utf8');
-function fixture(grouped=true){
+function fixture(grouped=true,refined=false){
  const calls=[],pending=[],buttons=[];
  const list={innerHTML:'',querySelectorAll(){return buttons},querySelector(){return null}};
- const input={value:'',addEventListener(){}};const count={};
- const target={isConnected:true,innerHTML:'',querySelector(selector){return selector==='.audit-list'?list:selector==='.audit-count'?count:input}};
- const context=vm.createContext({Date,URLSearchParams,render(){},view:'History & retention',document:{querySelector(){return target}},state:{featureFlags:{historyDateGroups:grouped}},auditDateBucket(){return {key:'today'}},esc:String,api(url){calls.push(url);return new Promise((resolve,reject)=>pending.push({resolve,reject}))}});
- vm.runInContext(source,context);return {context,calls,pending,target,list,buttons};
+ const input={value:'',addEventListener(){}};const count={};const refreshButton={};const category={value:'All categories',addEventListener(k,fn){this.change=fn}},outcome={value:'all',addEventListener(k,fn){this.change=fn}},routine={checked:false,addEventListener(k,fn){this.change=fn}};
+ const target={isConnected:true,innerHTML:'',querySelector(selector){return selector==='.audit-list'?list:selector==='.audit-count'?count:selector==='.audit-refresh'?refreshButton:selector==='.audit-category-filter'?category:selector==='.audit-outcome-filter'?outcome:selector==='.audit-routine-filter input'?routine:input}};
+ const context=vm.createContext({Date,URLSearchParams,render(){},view:'History & retention',document:{querySelector(){return target}},state:{featureFlags:{historyDateGroups:grouped},actors:[],rooms:[]},auditDateBucket(){return {key:'today'}},esc:String,api(url){calls.push(url);return new Promise((resolve,reject)=>pending.push({resolve,reject}))}});
+ if(refined)vm.runInContext(fs.readFileSync('web/history-presentation.js','utf8'),context);vm.runInContext(source,context);return {context,calls,pending,target,list,buttons,category,outcome,routine,refreshButton};
 }
 test('opens Today with one bounded asynchronous request and visible loading state',async()=>{
  const f=fixture();const load=f.context.loadAuditHistory();assert.equal(f.calls.length,1);assert(f.calls[0].includes('page=true'));assert(f.calls[0].includes('from='));assert(f.list.innerHTML.includes('Loading activity'));assert(f.list.innerHTML.includes('aria-selected="true"'));f.pending[0].resolve({events:[],nextBefore:null});await load;assert(f.list.innerHTML.includes('No matching activity'));assert.equal(f.calls.length,1);
@@ -41,4 +41,19 @@ test('room-scoped API preserves pagination date parameters',async()=>{
  const wrapper=fs.readFileSync('web/features.js','utf8').match(/const baseApi=api;\napi=async function[^\n]+/)[0];vm.runInContext(wrapper,context);
  await context.api('events?page=true&from=2026-10-11T04%3A00%3A00.000Z');assert.equal(calls[0],'events?page=true&from=2026-10-11T04%3A00%3A00.000Z&room=engineering');
  await context.api('state');assert.equal(calls[1],'state?room=engineering');
+});
+
+test('refined loader filters loaded data and preserves filters across background rerenders',async()=>{
+ const f=fixture(true,true),load=f.context.loadAuditHistory();
+ const event=(sequence,summary,category,tone,routine=false)=>({sequence,summary,kind:'synthetic',hash:'synthetic',at:new Date().toISOString(),presentation:{category,tone,routine}});
+ f.pending[0].resolve({events:[event(3,'Routine session entry','Agents','info',true),event(2,'Connection failure','Agents','error'),event(1,'Task accepted','Tasks & evidence','success')],nextBefore:null});await load;
+ assert(!f.list.innerHTML.includes('Routine session entry'));assert(f.list.innerHTML.includes('Connection failure'));assert(f.list.innerHTML.includes('Task accepted'));
+ f.category.value='Agents';f.category.change();assert(!f.list.innerHTML.includes('Task accepted'));
+ f.category.value='All categories';f.category.change();f.outcome.value='success';f.outcome.change();assert(!f.list.innerHTML.includes('Connection failure'));assert(f.list.innerHTML.includes('Task accepted'));
+ await f.context.loadAuditHistory();assert.equal(f.outcome.value,'success');assert.equal(f.calls.length,1);
+});
+
+test('explicit refresh resets loaded pages without clearing selected filters',async()=>{
+ const f=fixture(true,true),load=f.context.loadAuditHistory();f.pending[0].resolve({events:[],nextBefore:50});await load;
+ f.category.value='Agents';f.category.change();f.refreshButton.onclick();assert.equal(f.calls.length,2);assert(!f.calls[1].includes('before='));f.pending[1].resolve({events:[],nextBefore:null});await new Promise(resolve=>setImmediate(resolve));assert.equal(f.category.value,'Agents');
 });

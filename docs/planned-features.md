@@ -31,3 +31,51 @@ Suggested branch: `feature/development-branch-creation`.
 ## Anonymous feature adoption reporting
 
 Suggested branch: `feature/anonymous-feature-statistics`. Report aggregate feature-flag adoption externally, with documented consent, an owner-controlled flag, data minimization and installation-versus-person counting. Collector configuration and opt-in/default behavior still need agreement. Not implemented.
+
+## Consistent action-button spacing
+
+Requested 12 October 2026. Connection-row Edit, Delete, Sign out and Test connection
+buttons visually touch. Apply consistent horizontal/vertical gaps and wrapping to
+all action groups; preserve destructive-action distinction and keyboard focus.
+Deliver separately with responsive UI checks, documentation and the required flag.
+This backlog entry does not change current button layout.
+
+## Tasks arising from workflow execution
+
+These are documented follow-up tasks, not automatically created CommonRoom tasks.
+Source: [the shipped sequential runner and its limits](workflow-execution.md).
+
+| Task | Acceptance target | Status |
+| --- | --- | --- |
+| WF-01: Reviewable artifact handoff | Export a bounded patch and artifacts from the isolated workspace, identify the exact source revision, and make them available to an independent reviewer without broadening repository access. | Backlog |
+| WF-02: Verified execution evidence | Capture actual command/test outcomes and bind them to the reviewed revision; distinguish collected evidence from model assertions and human notes. | Backlog |
+| WF-03: Parallel workflow joins | Execute independent branches and join them only when required branches succeed; enforce cancellation, timeout and failed-branch behavior. | Backlog |
+| WF-04: Cross-room handoff | Transfer task context and approved evidence to a destination room while preserving membership, repository and approval boundaries. | Backlog |
+| WF-05: Durable controller recovery | Reconcile orphaned workers and use durable leases without silently repeating mutating steps or accepting stale results. | Backlog |
+
+Each implementation needs its own scoped design, meaningful mock-only tests,
+user/technical documentation and an enforced flag where applicable. A backlog
+entry does not authorize automatic assignment, execution, commit, push or merge.
+
+## Follow-up tasks from human attention requests
+
+- HA-01: Evaluate detection precision/recall on synthetic examples and improve the
+  adapter response contract; do not treat quoted instructions as authoritative.
+- HA-02: Define optional per-human ownership and notification preferences before
+  adding reminders, escalation or desktop notifications. Current acknowledgment
+  is room-wide and never approval.
+
+Source: [human attention behavior and limitations](concepts.md#messages-needing-human-attention).
+These are repository backlog entries; automatic CommonRoom task creation is not
+implemented by this feature.
+
+## Follow-up tasks from History refinement
+
+- HI-01: Define consistent event performer/subject/scope attribution for future
+  records. Do not infer an editor from an affected participant identity or rewrite
+  old events to invent missing attribution.
+- HI-02: Design bounded server-side search and export with permission checks,
+  privacy controls and retention safeguards. Current search covers loaded pages.
+
+Source: [Organized History](concepts.md#organized-history). These remain repository
+backlog entries, not automatically created application tasks.

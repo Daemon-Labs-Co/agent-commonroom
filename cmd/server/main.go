@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,9 @@ import (
 )
 
 type server struct {
+	workflowLive     map[string]context.CancelFunc
+	workflowTurn     func(context.Context, room.Participant, string, string) (string, error)
+	workflowReady    func(string) error
 	safetyUIDefault  bool
 	stopAll          bool
 	stopRooms        map[string]bool
@@ -109,6 +113,7 @@ func main() {
 	mux.HandleFunc("/api/integrity", s.integrity)
 	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
+	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
 	mux.HandleFunc("/api/connections/test", s.connectionTest)
 	editorEnabled, err := connectionEditorEnabled()
@@ -130,6 +135,10 @@ func main() {
 	mux.Handle("/human-profile-details.js", s.roomPresentationScript("web", "human-profile-details.js", "humanProfileDetails"))
 	mux.Handle("/room-sections.js", s.roomPresentationScript("web", "room-sections.js", "roomSections"))
 	mux.Handle("/settings-tabs.js", s.roomPresentationScript("web", "settings-tabs.js", "settingsTabs"))
+	mux.Handle("/history-presentation.js", s.roomPresentationScript("web", "history-presentation.js", "historyRefinement"))
+	mux.Handle("/human-attention.js", s.roomPresentationScript("web", "human-attention.js", "humanAttention"))
+	mux.Handle("/squad-menus.js", s.roomPresentationScript("web", "squad-menus.js", "squadMenuLayout"))
+	mux.Handle("/agent-status.js", s.roomPresentationScript("web", "agent-status.js", "agentStatusDetails"))
 	mux.Handle("/room-viewport.js", s.roomPresentationScript("web", "room-viewport.js", "roomViewportFit"))
 	mux.Handle("/feature-switches.js", s.roomPresentationScript("web", "feature-switches.js", "featureFlagSwitches"))
 	mux.Handle("/room-message-order.js", s.roomPresentationScript("web", "room-message-order.js", "newestMessagesFirst"))
@@ -233,6 +242,9 @@ func (s *server) append(ctx context.Context, kind string, payload any) error {
 	return tx.Commit(ctx)
 }
 func (s *server) load(ctx context.Context) (room.State, error) {
+	activities := map[string]string{}
+	failures := map[string]string{}
+	acknowledged := map[string]string{}
 	st := room.State{Company: room.Company{ID: "company", Name: "My company"}, HumanCompanyID: "company", Workflows: []room.Workflow{}, Rooms: []room.Room{{ID: "engineering", Name: "Engineering room"}}, Tasks: []room.Task{}, Evidence: []room.Evidence{}, Connections: []room.Connection{}, Participants: []room.Participant{}, Memories: []room.Memory{}, Messages: []room.Message{}}
 	rows, err := s.db.Query(ctx, "SELECT kind,payload FROM events ORDER BY sequence")
 	if err != nil {
@@ -318,6 +330,22 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			st.HumanName = v.Name
 			if v.Title != nil {
 				st.HumanTitle = *v.Title
+			}
+		case "workflow.run.updated":
+			var run room.WorkflowRun
+			if json.Unmarshal(data, &run) != nil {
+				return st, fmt.Errorf("Invalid workflow run event")
+			}
+			found := false
+			for i, old := range st.WorkflowRuns {
+				if old.ID == run.ID {
+					st.WorkflowRuns[i] = run
+					found = true
+					break
+				}
+			}
+			if !found {
+				st.WorkflowRuns = append(st.WorkflowRuns, run)
 			}
 		case "workflow.revised":
 			var v room.Workflow
@@ -416,6 +444,20 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				v.RoomID = "engineering"
 			}
 			st.Participants = append(st.Participants, v)
+		case "agent.activity":
+			var activity struct {
+				ParticipantID string `json:"participantId"`
+				Activity      string `json:"activity"`
+			}
+			json.Unmarshal(data, &activity)
+			activities[activity.ParticipantID] = activity.Activity
+		case "agent.error":
+			var failure struct {
+				ParticipantID string `json:"participantId"`
+				Error         string `json:"error"`
+			}
+			json.Unmarshal(data, &failure)
+			failures[failure.ParticipantID] = failure.Error
 		case "participant.updated", "participant.session":
 			var v room.Participant
 			json.Unmarshal(data, &v)
@@ -425,6 +467,13 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			for i, p := range st.Participants {
 				if p.ID == v.ID {
 					st.Participants[i] = v
+					if kind == "participant.session" && v.Status != "Blocked" {
+						delete(failures, v.ID)
+					}
+					if v.ConnectionID != p.ConnectionID {
+						delete(failures, v.ID)
+						delete(activities, v.ID)
+					}
 				}
 			}
 		case "memory.revised":
@@ -455,6 +504,13 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.Participants = kept
+		case "message.attention.acknowledged":
+			var ack struct {
+				MessageID string `json:"messageId"`
+				ActorID   string `json:"actorId"`
+			}
+			json.Unmarshal(data, &ack)
+			acknowledged[ack.MessageID] = ack.ActorID
 		case "message.created":
 			var v room.Message
 			json.Unmarshal(data, &v)
@@ -516,6 +572,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			st.Incident = false
 		}
 	}
+	projectAgentStatusDetails(&st, activities, failures)
 	for i := range st.Rooms {
 		st.Rooms[i].CompanyID = st.Company.ID
 	}
@@ -526,6 +583,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		st.Participants[i].CompanyID = st.Company.ID
 	}
 	projectActors(&st)
+	projectHumanAttention(&st, acknowledged)
 	return st, rows.Err()
 }
 func (s *server) state(w http.ResponseWriter, r *http.Request) {
@@ -557,6 +615,14 @@ func (s *server) state(w http.ResponseWriter, r *http.Request) {
 	st.FeatureFlags["humanProfileImages"] = humanProfileImagesEnabled(st)
 	st.AgentRoomStopped = s.agentsBlockedLocked(st, rid)
 	st.AgentsStopped = st.AgentsStopped || s.stopAll
+	if st.AgentRoomStopped && !st.Incident {
+		for i := range st.Participants {
+			if st.Participants[i].RoomID == rid && st.Participants[i].StatusDetails != nil {
+				st.Participants[i].StatusDetails.Reason = "Emergency stop is active."
+				st.Participants[i].StatusDetails.Next = "The owner must explicitly resume execution after investigating."
+			}
+		}
+	}
 	s.mu.Unlock()
 	reply(w, visibleState(st, requestActor(r), rid))
 }
@@ -574,6 +640,11 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			}
 			sql = auditPageSQL
 		}
+		refined, flagErr := s.historyPresentationEnabled(r.Context())
+		if flagErr != nil {
+			http.Error(w, "History settings unavailable", 500)
+			return
+		}
 		rows, err := s.db.Query(r.Context(), sql, args...)
 		if err != nil {
 			http.Error(w, "Unable to load events", 500)
@@ -590,7 +661,11 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Unable to read event", 500)
 				return
 			}
-			result = append(result, map[string]any{"sequence": seq, "kind": kind, "at": at, "hash": hash, "summary": auditSummary(kind, payload)})
+			event := map[string]any{"sequence": seq, "kind": kind, "at": at, "hash": hash, "summary": auditSummary(kind, payload)}
+			if refined {
+				event["presentation"] = describeAuditEvent(kind, payload)
+			}
+			result = append(result, event)
 		}
 		if rows.Err() != nil {
 			http.Error(w, "Unable to read events", 500)
@@ -649,7 +724,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if requestActor(r) != ownerID {
-		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised"
+		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged"
 		a, _ := member(st, requestActor(r))
 		if req.Kind == "workflow.revised" && a.Role == "Developer" {
 			allowed = true
@@ -688,7 +763,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}
@@ -1097,6 +1172,38 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		p = v
+	case "message.attention.acknowledged":
+		actor, ok := member(st, requestActor(r))
+		if !ok || actor.Kind != "human" {
+			http.Error(w, "Human account required", 403)
+			return
+		}
+		if !humanAttentionEnabled(st) {
+			http.Error(w, "Human attention is disabled", 403)
+			return
+		}
+		var reqAck struct {
+			MessageID string `json:"messageId"`
+		}
+		if json.Unmarshal(req.Payload, &reqAck) != nil {
+			http.Error(w, "Invalid acknowledgment", 400)
+			return
+		}
+		found := false
+		for _, message := range st.Messages {
+			if message.ID == reqAck.MessageID && message.RoomID == roomID && message.ActorType == "agent" && message.HumanRequest != "" {
+				found = true
+				if message.AttentionAcknowledgedBy != "" {
+					reply(w, map[string]bool{"committed": true})
+					return
+				}
+			}
+		}
+		if !found {
+			http.Error(w, "Agent request not found in this room", 404)
+			return
+		}
+		p = map[string]string{"messageId": reqAck.MessageID, "roomId": roomID, "actorId": requestActor(r)}
 	case "message.created":
 		var v room.Message
 		if json.Unmarshal(req.Payload, &v) != nil || strings.TrimSpace(v.Text) == "" {
@@ -1107,6 +1214,8 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		v.ID = id()
 		v.ActorID = requestActor(r)
 		v.ActorType = "human"
+		v.HumanRequest = ""
+		v.AttentionAcknowledgedBy = ""
 		actor, _ := member(st, v.ActorID)
 		v.Author = actor.Name
 		v.Created = time.Now().UTC()
@@ -1152,6 +1261,18 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		http.Error(w, "Commit failed", 500)
 		return
+	}
+	if req.Kind == "feature.flag.updated" {
+		var flag struct {
+			Name    string `json:"name"`
+			Enabled bool   `json:"enabled"`
+		}
+		json.Unmarshal(req.Payload, &flag)
+		if flag.Name == "workflowExecution" && !flag.Enabled {
+			for _, cancel := range s.workflowLive {
+				cancel()
+			}
+		}
 	}
 	result := map[string]any{"committed": true}
 	if workflow, ok := p.(room.Workflow); ok {
