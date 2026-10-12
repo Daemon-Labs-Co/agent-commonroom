@@ -276,3 +276,30 @@ main.settings-main{margin:0;align-self:start;justify-self:start}
 .connection-check-list .connection-check-status.passed,.connection-progress .connection-check-status.passed,.connection-log-body .connection-check-status.passed{color:#18743b}
 .connection-check-list .connection-check-status.failed,.connection-progress .connection-check-status.failed,.connection-log-body .connection-check-status.failed{color:#b42318}
 .connection-check-list .connection-check-status.attention,.connection-progress .connection-check-status.attention,.connection-log-body .connection-check-status.attention{color:#8a5700}
+
+/* Room sizing follows the visible window instead of estimated chat heights. */
+@media(min-width:600px){
+ body.room-viewport-fit{height:100dvh;overflow:hidden}
+ .room-viewport-fit .shell{height:calc(100dvh - 62px);min-height:0;overflow:hidden}
+ .room-viewport-fit .shell>main{height:100%;min-height:0;display:flex;flex-direction:column;padding-top:16px;padding-bottom:16px;overflow:hidden}
+ .room-viewport-fit main>.toolbar,.room-viewport-fit main>.filters,.room-viewport-fit main>.banner{flex-shrink:0}
+ .room-viewport-fit main>.toolbar{margin-bottom:16px}
+ .room-viewport-fit main>.grid{flex:1;min-height:0}
+ .room-viewport-fit .grid>section,.room-viewport-fit .grid>aside{min-height:0;display:flex;flex-direction:column}
+ .room-viewport-fit .conversation{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}
+ .room-viewport-fit .conversation>.panel-heading,.room-viewport-fit .compose{flex-shrink:0}
+ .room-viewport-fit .message-list{flex:1;min-height:0;max-height:none;overscroll-behavior:contain}
+ .room-viewport-fit .squad{min-height:0;max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+ .room-viewport-fit .aside-help{flex-shrink:0}
+}
+@media(min-width:600px) and (max-width:760px){.room-viewport-fit .shell{height:calc(100dvh - 55px)}}
+@media(min-width:600px) and (max-height:600px){.room-viewport-fit .aside-help{display:none}}
+.feature-switch-row{display:flex;align-items:center;gap:14px;min-height:48px;padding:9px 0;border-bottom:1px solid var(--border)}
+.feature-switch-label{flex:1;min-width:0;font-size:13px}
+.feature-switch-state{font-size:11px;color:var(--muted);min-width:38px;text-align:right}
+button.feature-switch{width:46px;height:28px;min-height:28px;flex-shrink:0;padding:3px;border:0;border-radius:999px;justify-content:flex-start;background:#c6cbd7;transition:background .18s ease}
+button.feature-switch[aria-checked=true]{background:#2855ed}
+.feature-switch-knob{width:22px;height:22px;border-radius:50%;background:white;box-shadow:0 1px 4px #17203533;transition:transform .18s ease}
+.feature-switch[aria-checked=true] .feature-switch-knob{transform:translateX(18px)}
+.feature-switch:focus-visible{outline:2px solid #2855ed;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){button.feature-switch,.feature-switch-knob{transition:none}}

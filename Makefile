@@ -43,6 +43,10 @@ check: test-race
 	node --check web/room-sections.js
 	node tests/room-sections.test.cjs
 	node tests/room-presentation.test.cjs
+	node --test tests/room-message-order.test.cjs
+	node --check web/room-viewport.js
+	node --check web/feature-switches.js
+	node --test tests/ui-switches-viewport.test.cjs
 	node --check web/workflows.js
 	node --check web/workflow-templates.js
 	node tests/workflow-templates.test.cjs

@@ -23,6 +23,7 @@ func (s *server) roomPresentationScript(root, file, flag string) http.Handler {
 			return
 		}
 		enabled, exists := st.FeatureFlags[flag]
-		optionalScriptHandler(!exists || enabled, root, file).ServeHTTP(w, r)
+		defaultEnabled := flag != "newestMessagesFirst"
+		optionalScriptHandler((!exists && defaultEnabled) || (exists && enabled), root, file).ServeHTTP(w, r)
 	})
 }
