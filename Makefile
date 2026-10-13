@@ -41,6 +41,7 @@ check: test-race
 	node --test tests/agent-status.test.cjs
 	node --check web/app.js
 	node --check web/features.js
+	node --test tests/squad-count.test.cjs
 	node --check web/squad-profiles.js
 	node --check web/agent-invitation.js
 	node --check web/help-icons.js
