@@ -127,10 +127,11 @@ func remoteWorkerIdle(ctx context.Context, endpoint string) (bool, error) {
 		return false, errors.New("worker idle probe failed")
 	}
 	var response struct {
-		Version int   `json:"version"`
-		Idle    *bool `json:"idle"`
+		Version          int   `json:"version"`
+		LifecycleVersion int   `json:"lifecycleVersion"`
+		Idle             *bool `json:"idle"`
 	}
-	if json.Unmarshal(output.Bytes(), &response) != nil || response.Version != 1 || response.Idle == nil {
+	if json.Unmarshal(output.Bytes(), &response) != nil || response.Version != 1 || response.LifecycleVersion != 2 || response.Idle == nil {
 		return false, errors.New("invalid worker idle response")
 	}
 	return *response.Idle, nil

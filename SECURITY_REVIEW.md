@@ -1,5 +1,25 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Free worker lifecycle hardening — 13 October 2026
+
+Implemented on the durable-worker-jobs feature branch: mandatory controller intent
+journal, worker protocol-v2 replay deadlines, persistent job/member file leases,
+worker-level global/room admission, pre-launch cancellation tombstones, verified
+supervisor/container shutdown, explicit owner reconciliation and bounded debug UI.
+Unconfirmed shutdown or intent blocks replacement/resume; startup checks both
+journal and worker. Optional Free `jobDiagnostics` defaults on and cannot disable
+execution safeguards. Tests use mocked database/transport and synthetic temporary
+supervisors; provider interoperability is not implied by those tests. An explicit Debian
+rootless smoke verified synthetic container shutdown in 2.45 seconds. Matching
+worker/controller binaries were installed after verified idle; legacy completed
+records remained readable. No provider model was launched for validation.
+
+This mitigates ordinary managed-turn crash/cancellation and duplicate SSH job
+execution (SEC-06/09/10). It does NOT complete HTTP idempotency, atomic business
+updates or multi-controller workflow ownership (SEC-13/ARCH-01), connection-check
+controller journaling, legacy-job adoption or host-administrator resistance.
+See [contracts, deployment and remaining gaps](docs/worker-jobs.md).
+
 ## Mandatory hardening — 13 October 2026
 
 Implemented (source and mocked tests): explicit migration/runtime database separation,

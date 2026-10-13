@@ -102,11 +102,12 @@ func checkConnectionDraftProgress(ctx context.Context, c room.Connection, alias,
 		return result
 	}
 	var ready struct {
-		Version      int  `json:"version"`
-		Configured   bool `json:"configured"`
-		RuntimeReady bool `json:"runtimeReady"`
+		Version          int  `json:"version"`
+		Configured       bool `json:"configured"`
+		RuntimeReady     bool `json:"runtimeReady"`
+		LifecycleVersion int  `json:"lifecycleVersion"`
 	}
-	if json.Unmarshal(raw, &ready) != nil || ready.Version != 1 || !ready.Configured || !ready.RuntimeReady {
+	if json.Unmarshal(raw, &ready) != nil || ready.Version != 1 || ready.LifecycleVersion != 2 || !ready.Configured || !ready.RuntimeReady {
 		add("Worker runtime", "failed", "Worker returned an invalid or unready runtime response")
 		return result
 	}

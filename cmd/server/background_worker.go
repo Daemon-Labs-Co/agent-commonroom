@@ -13,7 +13,7 @@ func backgroundWorkerStage(raw []byte, job, provider string) string {
 		return "unreachable"
 	}
 	switch record.Status {
-	case "starting", "running", "finished", "failed", "cancelled":
+	case "starting", "running", "finished", "failed", "cancelled", "shutdown_unconfirmed":
 		return record.Status
 	}
 	return "unreachable"

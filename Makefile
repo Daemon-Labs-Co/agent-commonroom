@@ -33,6 +33,8 @@ check: test-race
 	node --test tests/security-incident.test.cjs
 	node --check web/agent-recovery.js
 	node --test tests/agent-recovery.test.cjs
+	node --check web/job-diagnostics.js
+	node --test tests/job-diagnostics.test.cjs
 	node --check web/background-work.js
 	node --test tests/background-work.test.cjs
 	node --check web/agent-status.js

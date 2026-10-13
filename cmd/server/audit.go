@@ -40,6 +40,10 @@ func auditSummary(kind string, payload []byte) string {
 		return "Agent activity started"
 	case "agent.background":
 		return "Agent background work · " + label("stage", "update")
+	case "worker.job.updated":
+		return "Managed worker job · " + label("status", "lifecycle update")
+	case "worker.job.recovery_requested":
+		return "Owner requested worker job recovery · " + label("action", "review")
 	case "agent.recovered":
 		return "Owner recovered an agent session · " + label("action", "recovery")
 	case "workflow.run.updated":

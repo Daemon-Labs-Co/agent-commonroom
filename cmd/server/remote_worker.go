@@ -46,12 +46,14 @@ func remoteWorkerEndpoint(endpoint, configured, enabled string) (string, string,
 }
 
 type workerRunRequest struct {
-	Version    int      `json:"version"`
-	JobID      string   `json:"jobId"`
-	Provider   string   `json:"provider"`
-	Key        string   `json:"key"`
-	Args       []string `json:"args"`
-	Repository string   `json:"repository,omitempty"`
+	Version    int       `json:"version"`
+	IssuedAt   time.Time `json:"issuedAt"`
+	Deadline   time.Time `json:"deadline"`
+	JobID      string    `json:"jobId"`
+	Provider   string    `json:"provider"`
+	Key        string    `json:"key"`
+	Args       []string  `json:"args"`
+	Repository string    `json:"repository,omitempty"`
 }
 
 func encodeWorkerRequest(v workerRunRequest) (string, error) {
@@ -86,8 +88,15 @@ func decodeWorkerRequest(encoded string) (workerRunRequest, error) {
 // development policy bound to an approved snapshot. The worker independently
 // verifies its administrator-owned room registry before any launch.
 func validateWorkerRun(v workerRunRequest) error {
-	if v.Version != 1 || !validWorkerJobID(v.JobID) || strings.TrimSpace(v.Key) == "" || len(v.Key) > 1024 {
+	if v.Version != workerLifecycleVersion || !validWorkerJobID(v.JobID) || strings.TrimSpace(v.Key) == "" || len(v.Key) > 1024 {
 		return errors.New("Invalid worker identity")
+	}
+	now := time.Now().UTC()
+	if v.IssuedAt.IsZero() || !v.Deadline.After(v.IssuedAt) || v.Deadline.Sub(v.IssuedAt) > 3*time.Minute || v.IssuedAt.After(now.Add(5*time.Second)) || !v.Deadline.After(now) {
+		return errors.New("Worker request deadline is expired or invalid")
+	}
+	if _, _, _, _, err := workerMembership(v.Key); err != nil {
+		return err
 	}
 	base := []string{}
 	suffix := []string{}
@@ -149,9 +158,16 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 			return nil, nil, errors.New("Development workspace is not enabled for this room")
 		}
 	}
-	request := workerRunRequest{Version: 1, JobID: id(), Provider: provider, Key: key, Args: args, Repository: repository}
+	registration, ok := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
+	if !ok || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
+		return nil, nil, errors.New("Durable managed job registration is required")
+	}
+	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository}
 	encoded, err := encodeWorkerRequest(request)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err = registration.Register(alias, provider); err != nil {
 		return nil, nil, err
 	}
 	var once sync.Once
@@ -162,29 +178,29 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 	cleanup := func() {
 		once.Do(func() {
 			close(monitorDone)
-			cancelCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			cancelCtx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
 			defer cancel()
-			var result limitedAgentOutput
-			cmd := workerSSHCommand(cancelCtx, alias, "cancel-v1", request.JobID)
-			cmd.Stdout = &result
-			if err := cmd.Run(); err != nil {
+			fence := workerFenceRequest{Version: 2, JobID: request.JobID, Provider: provider, Key: key}
+			err := remoteFenceJob(cancelCtx, alias, fence)
+			if err != nil {
+				_ = registration.Update("shutdown_unconfirmed")
 				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
 				fmt.Fprintln(os.Stderr, "Remote worker cancellation unconfirmed:", request.JobID)
 				return
 			}
-			var ack struct {
-				JobID   string `json:"jobId"`
-				Stopped bool   `json:"stopped"`
-			}
-			if json.Unmarshal(result.Bytes(), &ack) != nil || ack.JobID != request.JobID || !ack.Stopped {
+			if registration.Update("shutdown_confirmed") != nil {
 				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
-				fmt.Fprintln(os.Stderr, "Remote worker cancellation unconfirmed:", request.JobID)
-			} else {
-				emitBackground(ctx, "shutdown_confirmed", request.JobID)
+				return
 			}
+			emitBackground(ctx, "shutdown_confirmed", request.JobID)
+
 		})
 	}
-	cmd := workerSSHCommand(ctx, alias, "run-v1", encoded)
+	if err = registration.Update("submitted"); err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	cmd := workerSSHCommand(ctx, alias, "run-v2", encoded)
 	cmd.WaitDelay = 2 * time.Second
 	return cmd, cleanup, nil
 }
@@ -196,9 +212,19 @@ type workerConfiguration struct {
 	DevelopmentRepositories map[string]developmentRepository `json:"developmentRepositories,omitempty"`
 }
 type workerJobRecord struct {
-	JobID    string `json:"jobId"`
-	Status   string `json:"status"`
-	Provider string `json:"provider"`
+	Version           int       `json:"version,omitempty"`
+	RoomID            string    `json:"roomId,omitempty"`
+	ParticipantID     string    `json:"participantId,omitempty"`
+	ConnectionID      string    `json:"connectionId,omitempty"`
+	Scope             string    `json:"scope,omitempty"`
+	StartedAt         time.Time `json:"startedAt,omitempty"`
+	UpdatedAt         time.Time `json:"updatedAt,omitempty"`
+	Deadline          time.Time `json:"deadline,omitempty"`
+	ShutdownConfirmed bool      `json:"shutdownConfirmed"`
+	DiagnosticCode    string    `json:"diagnosticCode,omitempty"`
+	JobID             string    `json:"jobId"`
+	Status            string    `json:"status"`
+	Provider          string    `json:"provider"`
 }
 
 func workerStateDirectory() (string, error) {
@@ -222,7 +248,10 @@ func writeWorkerRecord(dir string, v workerJobRecord, exclusive bool) error {
 		if _, err = f.Write(raw); err != nil {
 			return err
 		}
-		return f.Sync()
+		if err = f.Sync(); err != nil {
+			return err
+		}
+		return syncWorkerDirectory(dir)
 	}
 	f, err := os.CreateTemp(dir, ".outcome-")
 	if err != nil {
@@ -240,17 +269,34 @@ func writeWorkerRecord(dir string, v workerJobRecord, exclusive bool) error {
 	if err = f.Close(); err != nil {
 		return err
 	}
-	return os.Rename(f.Name(), path)
+	if err = os.Rename(f.Name(), path); err != nil {
+		return err
+	}
+	return syncWorkerDirectory(dir)
 }
 func readWorkerRecord(dir, job string) (workerJobRecord, error) {
 	var v workerJobRecord
-	raw, err := os.ReadFile(filepath.Join(dir, job+".json"))
-	if err != nil || len(raw) > 8192 {
+	path := filepath.Join(dir, job+".json")
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 8192 {
+		return v, errors.New("Unknown or unsafe worker job")
+	}
+	f, err := os.Open(path)
+	if err != nil {
 		return v, errors.New("Unknown worker job")
 	}
-	if json.Unmarshal(raw, &v) != nil || v.JobID != job {
+	defer f.Close()
+	raw, err := io.ReadAll(io.LimitReader(f, 8193))
+	if err != nil || len(raw) > 8192 || json.Unmarshal(raw, &v) != nil || v.JobID != job {
 		return v, errors.New("Invalid worker record")
 	}
+	if v.Version != 0 && v.Version != 2 {
+		return v, errors.New("Unsupported worker record")
+	}
+	if v.Version == 2 && !validV2WorkerRecord(v) {
+		return v, errors.New("Invalid worker binding or lifecycle")
+	}
+
 	return v, nil
 }
 func workerTerminal(status string) bool {
@@ -326,7 +372,33 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		if err != nil {
 			return fail(err)
 		}
-		json.NewEncoder(out).Encode(map[string]any{"version": 1, "idle": idle})
+		json.NewEncoder(out).Encode(map[string]any{"version": 1, "lifecycleVersion": 2, "idle": idle})
+		return 0
+	}
+	if args[0] == "jobs-v2" && len(args) == 1 {
+		if err := configureWorker(); err != nil {
+			return fail(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		if err := workerRuntimeReady(ctx); err != nil {
+			return fail(err)
+		}
+		containers, err := managedWorkerContainers(ctx)
+		if err != nil {
+			return fail(err)
+		}
+		dir, err := workerStateDirectory()
+		if err != nil {
+			return fail(err)
+		}
+		snapshot, err := workerSnapshot(dir, containers)
+		if err != nil {
+			return fail(err)
+		}
+		if json.NewEncoder(out).Encode(snapshot) != nil {
+			return 1
+		}
 		return 0
 	}
 	if args[0] == "ready-v1" && len(args) == 1 {
@@ -350,7 +422,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 			fi, err := os.Lstat(filepath.Join(os.Getenv("COMMONROOM_AGENT_AUTH_DIR"), provider, filename))
 			credentials[provider] = err == nil && fi.Mode().IsRegular() && fi.Mode().Perm()&0077 == 0 && fi.Size() <= 65536
 		}
-		json.NewEncoder(out).Encode(map[string]any{"version": 1, "configured": true, "runtimeReady": true, "credentials": credentials})
+		json.NewEncoder(out).Encode(map[string]any{"version": 1, "lifecycleVersion": 2, "configured": true, "runtimeReady": true, "credentials": credentials})
 		return 0
 	}
 	if len(args) != 2 {
@@ -369,52 +441,32 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		json.NewEncoder(out).Encode(v)
 		return 0
 	}
-	if args[0] == "cancel-v1" {
-		job := args[1]
-		if !validWorkerJobID(job) {
-			return fail(errors.New("Invalid worker job identity"))
+	if args[0] == "cancel-v2" {
+		request, err := decodeFenceRequest(args[1])
+		if err != nil {
+			return fail(err)
+		}
+		if err = configureWorker(); err != nil {
+			return fail(err)
 		}
 		dir, err := workerStateDirectory()
 		if err != nil {
 			return fail(err)
 		}
-		if _, err = readWorkerRecord(dir, job); err != nil {
-			return fail(err)
-		}
-		if err = os.WriteFile(filepath.Join(dir, job+".cancel"), []byte("cancel"), 0600); err != nil {
-			return fail(err)
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 18*time.Second)
 		defer cancel()
-		name := "commonroom-turn-" + job
-		for {
-			v, err := readWorkerRecord(dir, job)
-			if err != nil {
-				return fail(err)
-			}
-			var ids limitedAgentOutput
-			cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "name=^/"+name+"$", "--format", "{{.ID}}")
-			cmd.Stdout = &ids
-			if cmd.Run() != nil {
-				return fail(errors.New("Container cancellation unconfirmed"))
-			}
-			exists := strings.TrimSpace(ids.String()) != ""
-			if exists && exec.CommandContext(ctx, "docker", "rm", "--force", name).Run() != nil {
-				return fail(errors.New("Container cancellation unconfirmed"))
-			}
-			if !exists && workerTerminal(v.Status) {
-				json.NewEncoder(out).Encode(map[string]any{"jobId": job, "stopped": true, "cancellationRequested": true})
-				return 0
-			}
-			select {
-			case <-ctx.Done():
-				return fail(errors.New("Container cancellation unconfirmed"))
-			case <-time.After(100 * time.Millisecond):
-			}
+		if err := workerRuntimeReady(ctx); err != nil {
+			return fail(err)
 		}
+		record, err := fenceWorkerJob(ctx, dir, request, stopWorkerContainer)
+		if err != nil {
+			return fail(err)
+		}
+		json.NewEncoder(out).Encode(map[string]any{"version": 2, "jobId": record.JobID, "stopped": record.ShutdownConfirmed, "scope": record.Scope, "cancellationRequested": true})
+		return 0
 	}
 
-	if args[0] != "run-v1" {
+	if args[0] != "run-v2" {
 		return fail(errors.New("Unsupported worker action"))
 	}
 	request, err := decodeWorkerRequest(args[1])
@@ -428,13 +480,30 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 	if err != nil {
 		return fail(err)
 	}
-	record := workerJobRecord{JobID: request.JobID, Provider: request.Provider, Status: "starting"}
-	if err = writeWorkerRecord(dir, record, true); err != nil {
-		return fail(errors.New("Duplicate or unavailable worker job; do not resubmit"))
+	admissionCtx, admissionCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err = workerRuntimeReady(admissionCtx); err != nil {
+		admissionCancel()
+		return fail(err)
 	}
+	containers, err := managedWorkerContainers(admissionCtx)
+	if err != nil {
+		admissionCancel()
+		return fail(err)
+	}
+	record, leases, err := admitWorkerJob(admissionCtx, dir, request, containers)
+	admissionCancel()
+	if err != nil {
+		return fail(err)
+	}
+	defer leases.Close()
+
 	signalCtx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stopSignals()
-	ctx, cancel := context.WithTimeout(signalCtx, 3*time.Minute)
+	deadline := request.Deadline
+	if ceiling := time.Now().Add(3 * time.Minute); deadline.After(ceiling) {
+		deadline = ceiling
+	}
+	ctx, cancel := context.WithDeadline(signalCtx, deadline)
 	defer cancel()
 	latch := filepath.Join(dir, request.JobID+".cancel")
 	go func() {
@@ -468,22 +537,33 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 
 	if err != nil || len(prompt) > 1024*1024 {
 		record.Status = "failed"
+		record.UpdatedAt = time.Now().UTC()
+		record.DiagnosticCode = "preparation_failed"
+		record.ShutdownConfirmed = true
 		writeWorkerRecord(dir, record, false)
 		return fail(errors.New("Worker prompt exceeded limit"))
 	}
 	cmd, cleanup, err := localIsolatedDevelopmentCommand(ctx, request.Provider, request.Key, request.JobID, request.Repository, request.Args...)
 	if err != nil {
 		record.Status = "failed"
+		record.UpdatedAt = time.Now().UTC()
+		record.DiagnosticCode = "preparation_failed"
+		record.ShutdownConfirmed = true
 		writeWorkerRecord(dir, record, false)
 		return fail(err)
 	}
 	if ctx.Err() != nil {
 		cleanup()
 		record.Status = "cancelled"
+		record.UpdatedAt = time.Now().UTC()
+		record.DiagnosticCode = "cancelled_before_launch"
+		record.ShutdownConfirmed = true
 		writeWorkerRecord(dir, record, false)
 		return fail(errors.New("Worker job cancelled before launch"))
 	}
 	record.Status = "running"
+	record.UpdatedAt = time.Now().UTC()
+	record.DiagnosticCode = "running"
 	if err = writeWorkerRecord(dir, record, false); err != nil {
 		cleanup()
 		return fail(err)
@@ -491,6 +571,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 	cmd.Stdin = strings.NewReader(string(prompt))
 	cmd.Stdout = &workerStreamWriter{writer: out, remaining: 4 * 1024 * 1024, cancel: cancel}
 	cmd.Stderr = &workerStreamWriter{writer: diagnostics, remaining: 4 * 1024 * 1024, cancel: cancel}
+	cmd.WaitDelay = 2 * time.Second
 	err = cmd.Run()
 	cleanup()
 	record.Status = "finished"
@@ -499,6 +580,22 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 	}
 	if ctx.Err() != nil {
 		record.Status = "cancelled"
+	}
+	proofCtx, proofCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	proofErr := stopWorkerContainer(proofCtx, request.JobID)
+	proofCancel()
+	record.UpdatedAt = time.Now().UTC()
+	record.ShutdownConfirmed = proofErr == nil
+	record.DiagnosticCode = "completed"
+	if ctx.Err() != nil {
+		record.DiagnosticCode = "cancelled_or_deadline"
+	} else if err != nil {
+		record.DiagnosticCode = "provider_failed"
+	}
+	if proofErr != nil {
+		record.Status = "shutdown_unconfirmed"
+		record.DiagnosticCode = "container_shutdown_unverified"
+		err = errors.New("Worker shutdown unconfirmed")
 	}
 	if writeWorkerRecord(dir, record, false) != nil {
 		return fail(errors.New("Worker outcome could not be recorded"))

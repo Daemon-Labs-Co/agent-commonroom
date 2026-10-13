@@ -19,16 +19,16 @@ func TestConnectionReadinessStages(t *testing.T) {
 		failedAction                                string
 		calls                                       int
 	}{
-		{"ready", "CLI", "ssh://worker", `{"version":1,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "working", "", 3},
+		{"ready", "CLI", "ssh://worker", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "working", "", 3},
 
-		{"provider denied", "CLI", "ssh://worker", `{"version":1,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "failed", "", 3},
-		{"provider unavailable", "CLI", "ssh://worker", `{"version":1,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "failed", "verify-v1", 3},
-		{"invalid verification", "CLI", "ssh://worker", `{"version":1,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "failed", "", 3},
-		{"signed out", "CLI", "ssh://worker/claude", `{"version":1,"configured":true,"runtimeReady":true}`, `{"credentialPresent":false}`, "needs-sign-in", "", 2},
+		{"provider denied", "CLI", "ssh://worker", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "failed", "", 3},
+		{"provider unavailable", "CLI", "ssh://worker", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "failed", "verify-v1", 3},
+		{"invalid verification", "CLI", "ssh://worker", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, `{"credentialPresent":true}`, "failed", "", 3},
+		{"signed out", "CLI", "ssh://worker/claude", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, `{"credentialPresent":false}`, "needs-sign-in", "", 2},
 		{"unreachable", "CLI", "ssh://worker", "", "", "blocked", "ready-v1", 1},
 		{"invalid runtime", "CLI", "ssh://worker", `{"runtimeReady":true}`, "", "blocked", "", 1},
-		{"invalid auth", "CLI", "ssh://worker", `{"version":1,"configured":true,"runtimeReady":true}`, `{}`, "blocked", "", 2},
-		{"credentials unreachable", "CLI", "ssh://worker", `{"version":1,"configured":true,"runtimeReady":true}`, "", "blocked", "auth-status-v1", 2},
+		{"invalid auth", "CLI", "ssh://worker", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, `{}`, "blocked", "", 2},
+		{"credentials unreachable", "CLI", "ssh://worker", `{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`, "", "blocked", "auth-status-v1", 2},
 		{"unapproved SSH", "CLI", "ssh://elsewhere", "", "", "blocked", "", 0},
 		{"direct host denied", "CLI", "codex", "", "", "blocked", "", 0},
 		{"HTTP registration", "HTTP", "http://127.0.0.1/admin", "", "", "unsupported", "", 0},
@@ -158,7 +158,7 @@ func TestDraftRuntimeNeverReadsCredentials(t *testing.T) {
 		if action != "ready-v1" {
 			t.Fatal("draft read credentials or launched model", action)
 		}
-		return []byte(`{"version":1,"configured":true,"runtimeReady":true}`), nil
+		return []byte(`{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`), nil
 	}, false)
 	if calls != 1 || result.Status != "needs-registration" || result.ProviderResponseTested {
 		t.Fatal(result, calls)
@@ -197,7 +197,7 @@ func TestConnectionProgressRealStageBoundaries(t *testing.T) {
 			}
 			switch action {
 			case "ready-v1":
-				return []byte(`{"version":1,"configured":true,"runtimeReady":true}`), nil
+				return []byte(`{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`), nil
 			case "auth-status-v1":
 				if signedIn {
 					return []byte(`{"credentialPresent":true}`), nil

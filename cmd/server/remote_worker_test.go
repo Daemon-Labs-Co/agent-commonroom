@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func sampleWorkerRequest() workerRunRequest {
-	return workerRunRequest{Version: 1, JobID: strings.Repeat("a", 32), Provider: "codex", Key: "room/agent/connection/worker", Args: []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only", "-c", `approval_policy="never"`, "-"}}
+	return workerRunRequest{Version: 2, IssuedAt: time.Now().UTC(), Deadline: time.Now().Add(179 * time.Second).UTC(), JobID: strings.Repeat("a", 32), Provider: "codex", Key: "room/agent/connection/worker", Args: []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only", "-c", `approval_policy="never"`, "-"}}
 }
 func TestRemoteWorkerRegistrationAndFlag(t *testing.T) {
 	t.Parallel()
@@ -36,7 +37,7 @@ func TestWorkerProtocolRejectsArbitraryExecution(t *testing.T) {
 	if err != nil || decoded.JobID != v.JobID {
 		t.Fatal("protocol roundtrip failed")
 	}
-	for _, mutation := range []func(*workerRunRequest){func(v *workerRunRequest) { v.Version = 2 }, func(v *workerRunRequest) { v.JobID = "../../key" }, func(v *workerRunRequest) { v.Provider = "sh" }, func(v *workerRunRequest) { v.Args = []string{"--privileged"} }, func(v *workerRunRequest) { v.Args[5] = "danger-full-access" }, func(v *workerRunRequest) { v.Key = "" }} {
+	for _, mutation := range []func(*workerRunRequest){func(v *workerRunRequest) { v.Version = 1 }, func(v *workerRunRequest) { v.JobID = "../../key" }, func(v *workerRunRequest) { v.Provider = "sh" }, func(v *workerRunRequest) { v.Args = []string{"--privileged"} }, func(v *workerRunRequest) { v.Args[5] = "danger-full-access" }, func(v *workerRunRequest) { v.Key = "" }} {
 		bad := sampleWorkerRequest()
 		mutation(&bad)
 		if _, err := encodeWorkerRequest(bad); err == nil {
@@ -48,9 +49,9 @@ func TestWorkerProtocolRejectsArbitraryExecution(t *testing.T) {
 			t.Fatal("invalid envelope accepted")
 		}
 	}
-	cmd := workerSSHCommand(context.Background(), "worker", "run-v1", encoded)
+	cmd := workerSSHCommand(context.Background(), "worker", "run-v2", encoded)
 	joined := strings.Join(cmd.Args, " ")
-	if !strings.Contains(joined, "StrictHostKeyChecking=yes") || !strings.Contains(joined, "commonroom-worker run-v1") || strings.Contains(joined, "exec ~/.local/bin/codex") {
+	if !strings.Contains(joined, "StrictHostKeyChecking=yes") || !strings.Contains(joined, "commonroom-worker run-v2") || strings.Contains(joined, "exec ~/.local/bin/codex") {
 		t.Fatal("SSH bypasses worker")
 	}
 }

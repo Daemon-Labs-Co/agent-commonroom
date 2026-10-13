@@ -41,7 +41,7 @@ func workerRecordsIdle(dir string) (bool, error) {
 		if e != nil {
 			return false, e
 		}
-		if !workerTerminal(record.Status) {
+		if !workerJobSettled(record) {
 			return false, nil
 		}
 	}
@@ -71,5 +71,10 @@ func workerIdleProbe(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return workerRecordsIdle(dir)
+	snapshot, err := workerSnapshot(dir, nil)
+	if err != nil {
+		return false, err
+	}
+	return snapshot.Unresolved == 0, nil
+
 }

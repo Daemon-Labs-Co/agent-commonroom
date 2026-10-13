@@ -232,3 +232,10 @@ See [security hardening](security-hardening.md) and [restricted database setup](
 `POST /api/integrity` requires owner authentication, CSRF and `{ "reason": "..." }` (nonempty, at most 500 characters). Recovery verifies the chain and worker idle, appends approval, and returns `{ "recovered": true, "jobsRestarted": false }`. Failures leave execution stopped. `GET /api/integrity` reports `valid`, `records`, `metadataProtectedRecords`, `legacyMetadataRecords` and `executionBlocked`; legacy records are never silently rewritten. Mutation rate limits return 429 with `Retry-After: 1`; oversized assembled chat context returns 413 before dispatch.
 
 `POST /api/agent-safety` resume now requires a freshly valid audit chain, no active controller turns and verified shared-worker idle. A 409/503 leaves the stop unchanged. Startup with active/unverified remote worker state records an application stop rather than admitting new work.
+
+## Free durable job safety
+
+See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+
+- `GET /api/job-diagnostics`: owner-only and flag-gated; current room by default, or `scope=application` for all tracked jobs. Optional `participantId` filters a member. Returns bounded safe job/worker observations and verification status; no raw output or credentials.
+- `POST /api/job-recovery`: owner+CSRF, `{ "action": "cancel|reconcile", "jobId": "...", "reason": "..." }`. Optional `scope=application` addresses an archived-room job. Unknown or mismatched bindings, active replacement turns and unverified shutdown are refused. Successful responses have `stopped:true` and `jobsRestarted:false`. Recovery remains enforced/available independently of the diagnostics flag.
