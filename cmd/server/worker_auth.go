@@ -316,7 +316,28 @@ func workerVerifyConnection(v workerAuthRequest, out, diagnostics io.Writer) int
 	defer stop()
 	ctx, cancel := context.WithTimeout(signalCtx, 20*time.Second)
 	defer cancel()
-	key := "diagnostic/" + id() + "/" + v.Connection + "/" + v.Provider
+	key := "diagnostic/" + v.Connection + "/" + v.Connection + "/" + v.Provider
+	dir, err := workerStateDirectory()
+	if err != nil {
+		fmt.Fprintln(diagnostics, "Diagnostic job storage unavailable")
+		return 1
+	}
+	if err = workerRuntimeReady(ctx); err != nil {
+		fmt.Fprintln(diagnostics, "Diagnostic worker runtime unverified")
+		return 1
+	}
+	containers, err := managedWorkerContainers(ctx)
+	if err != nil {
+		fmt.Fprintln(diagnostics, "Diagnostic container state unverified")
+		return 1
+	}
+	record, leases, err := admitWorkerJob(ctx, dir, workerRunRequest{Version: 2, IssuedAt: time.Now().UTC(), Deadline: time.Now().Add(20 * time.Second).UTC(), JobID: id(), Provider: v.Provider, Key: key}, containers)
+	if err != nil {
+		fmt.Fprintln(diagnostics, "Diagnostic admission refused")
+		return 1
+	}
+	defer leases.Close()
+	ctx = context.WithValue(ctx, workerLocalJobContextKey{}, record.JobID)
 	digest := sha256.Sum256([]byte(key))
 	volume := "commonroom-session-" + hex.EncodeToString(digest[:16])
 	defer func() {
@@ -331,6 +352,22 @@ func workerVerifyConnection(v workerAuthRequest, out, diagnostics io.Writer) int
 		adapter = claudeAdapter{endpoint: v.Provider, executionKey: key}
 	}
 	answer, err := adapter.Run(ctx, "", "Connection check only. Do not use tools. Reply with exactly COMMONROOM_CONNECTION_OK.", func(string) error { return nil })
-	json.NewEncoder(out).Encode(map[string]any{"version": 1, "connection": v.Connection, "provider": v.Provider, "verified": err == nil && strings.TrimSpace(answer) == "COMMONROOM_CONNECTION_OK"})
+	proofCtx, proofCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	proofErr := stopWorkerContainer(proofCtx, record.JobID)
+	proofCancel()
+	record.Status = "finished"
+	record.DiagnosticCode = "completed"
+	record.ShutdownConfirmed = proofErr == nil
+	record.UpdatedAt = time.Now().UTC()
+	if err != nil {
+		record.Status = "failed"
+		record.DiagnosticCode = "provider_failed"
+	}
+	if proofErr != nil {
+		record.Status = "shutdown_unconfirmed"
+		record.DiagnosticCode = "container_shutdown_unverified"
+	}
+	auditErr := writeWorkerRecord(dir, record, false)
+	json.NewEncoder(out).Encode(map[string]any{"version": 1, "connection": v.Connection, "provider": v.Provider, "verified": err == nil && proofErr == nil && auditErr == nil && strings.TrimSpace(answer) == "COMMONROOM_CONNECTION_OK"})
 	return 0
 }

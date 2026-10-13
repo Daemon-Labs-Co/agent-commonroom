@@ -101,6 +101,8 @@ func describeAuditEvent(kind string, raw []byte) auditPresentation {
 	case strings.HasPrefix(kind, "feature."):
 		d.Category = "Settings"
 		d.Subject = label("name")
+	case strings.HasPrefix(kind, "worker.job."):
+		d.Category = "Agents"
 	case strings.HasPrefix(kind, "actor.") || strings.HasPrefix(kind, "company.") || strings.HasPrefix(kind, "human."):
 		d.Category = "People & company"
 	}

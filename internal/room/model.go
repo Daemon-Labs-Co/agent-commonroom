@@ -132,23 +132,43 @@ type Actor struct {
 	Revision    int      `json:"revision"`
 	ChangedBy   string   `json:"changedBy"`
 }
+
+// ManagedJob is a safe, durable execution binding. Model data and arguments
+// never belong here; ShutdownConfirmed comes only from a fenced worker proof.
+type ManagedJob struct {
+	Version           int       `json:"version"`
+	JobID             string    `json:"jobId"`
+	RoomID            string    `json:"roomId"`
+	ParticipantID     string    `json:"participantId"`
+	ConnectionID      string    `json:"connectionId"`
+	Worker            string    `json:"worker"`
+	Provider          string    `json:"provider"`
+	Status            string    `json:"status"`
+	DiagnosticCode    string    `json:"diagnosticCode"`
+	AllocatedAt       time.Time `json:"allocatedAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+	Deadline          time.Time `json:"deadline"`
+	ShutdownConfirmed bool      `json:"shutdownConfirmed"`
+}
+
 type State struct {
-	Organization     OrganizationChart `json:"organization"`
-	FeatureFlags     map[string]bool   `json:"featureFlags"`
-	AgentsStopped    bool              `json:"agentsStopped"`
-	AgentRoomStopped bool              `json:"agentRoomStopped"`
-	AgentStopRooms   []string          `json:"-"`
-	Actors           []Actor           `json:"actors"`
-	CurrentActorID   string            `json:"currentActorId"`
-	Company          Company           `json:"company"`
-	HumanCompanyID   string            `json:"humanCompanyId"`
-	HumanTitle       string            `json:"humanTitle"`
-	HumanName        string            `json:"humanName"`
-	WorkflowRuns     []WorkflowRun     `json:"workflowRuns"`
-	Workflows        []Workflow        `json:"workflows"`
-	Rooms            []Room            `json:"rooms"`
-	Tasks            []Task            `json:"tasks"`
-	Evidence         []Evidence        `json:"evidence"`
+	ManagedJobs      map[string]ManagedJob `json:"-"`
+	Organization     OrganizationChart     `json:"organization"`
+	FeatureFlags     map[string]bool       `json:"featureFlags"`
+	AgentsStopped    bool                  `json:"agentsStopped"`
+	AgentRoomStopped bool                  `json:"agentRoomStopped"`
+	AgentStopRooms   []string              `json:"-"`
+	Actors           []Actor               `json:"actors"`
+	CurrentActorID   string                `json:"currentActorId"`
+	Company          Company               `json:"company"`
+	HumanCompanyID   string                `json:"humanCompanyId"`
+	HumanTitle       string                `json:"humanTitle"`
+	HumanName        string                `json:"humanName"`
+	WorkflowRuns     []WorkflowRun         `json:"workflowRuns"`
+	Workflows        []Workflow            `json:"workflows"`
+	Rooms            []Room                `json:"rooms"`
+	Tasks            []Task                `json:"tasks"`
+	Evidence         []Evidence            `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`

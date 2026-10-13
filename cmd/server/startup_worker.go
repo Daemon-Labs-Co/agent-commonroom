@@ -17,7 +17,16 @@ func (s *server) verifyWorkerAtStartup(parent context.Context, endpoint string) 
 		probe = remoteWorkerIdle
 	}
 	idle, err := probe(ctx, endpoint)
-	if err == nil && idle {
+	s.mu.Lock()
+	st, stateErr := s.load(parent)
+	if stateErr != nil {
+		s.tripIntegrityLocked()
+		s.mu.Unlock()
+		return
+	}
+	unresolved := hasUnconfirmedManagedJobs(st)
+	s.mu.Unlock()
+	if err == nil && idle && !unresolved {
 		return
 	}
 	s.mu.Lock()
@@ -25,7 +34,7 @@ func (s *server) verifyWorkerAtStartup(parent context.Context, endpoint string) 
 	s.stopAll = true
 	auditCtx, auditCancel := context.WithTimeout(parent, 5*time.Second)
 	defer auditCancel()
-	if s.append(auditCtx, "agents.stop", map[string]string{"scope": "application", "reason": "Startup worker state is active or unverified; inspect worker jobs and explicitly resume after confirmed shutdown"}) != nil {
+	if s.append(auditCtx, "agents.stop", map[string]string{"scope": "application", "reason": "Startup worker state or controller job journal is active or unverified; inspect worker jobs and explicitly resume after confirmed shutdown"}) != nil {
 		// Storage failures must survive restart via the integrity stop marker.
 		s.tripIntegrityLocked()
 	}

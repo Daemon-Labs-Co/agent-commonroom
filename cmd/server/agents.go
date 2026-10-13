@@ -435,8 +435,8 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	if req.Action == "send" {
 		label = "@" + targets[0].Name
 	}
-	human,_:=member(allState,requestActor(r))
-	m := room.Message{RoomID: roomID, ID: id(), ActorID:requestActor(r),ActorType:"human",Author:human.Name, Text: label + " " + req.Text, Created: time.Now().UTC()}
+	human, _ := member(allState, requestActor(r))
+	m := room.Message{RoomID: roomID, ID: id(), ActorID: requestActor(r), ActorType: "human", Author: human.Name, Text: label + " " + req.Text, Created: time.Now().UTC()}
 	if err = s.append(r.Context(), "message.created", m); err != nil {
 		http.Error(w, "Commit failed", 500)
 		return
@@ -480,6 +480,10 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 // worker. A source-level host fallback CAN bypass containment, BUT would expose
 // host secrets and invalidate the mandatory execution boundary.
 func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, prompt, endpoint string) (text string, err error) {
+	if !strings.HasPrefix(endpoint, "ssh://") {
+		return "", errors.New("Managed turns require the approved protocol-v2 worker; direct controller-local model launch is unsupported")
+	}
+	ctx = s.managedJobContext(ctx, p)
 	ctx, finish := s.backgroundContext(ctx, p)
 	defer func() { finish(err) }()
 	key := p.RoomID + "/" + p.ID + "/" + p.ConnectionID + "/" + endpoint

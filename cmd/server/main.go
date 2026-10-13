@@ -21,6 +21,9 @@ import (
 )
 
 type server struct {
+	activeJobs        map[string]string
+	jobSnapshot       func(context.Context, string) (workerJobsSnapshot, error)
+	jobFence          func(context.Context, string, workerFenceRequest) error
 	workflowLive      map[string]context.CancelFunc
 	workflowTurn      func(context.Context, room.Participant, string, string) (string, error)
 	workflowReady     func(string) error
@@ -127,6 +130,8 @@ func main() {
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
 	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
+	mux.HandleFunc("/api/job-diagnostics", s.jobDiagnostics)
+	mux.HandleFunc("/api/job-recovery", s.jobRecovery)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
 	mux.HandleFunc("/api/connections/test", s.connectionTest)
 	editorEnabled, err := connectionEditorEnabled()
@@ -153,6 +158,7 @@ func main() {
 	mux.Handle("/squad-menus.js", s.roomPresentationScript("web", "squad-menus.js", "squadMenuLayout"))
 	mux.Handle("/agent-status.js", s.roomPresentationScript("web", "agent-status.js", "agentStatusDetails"))
 	mux.Handle("/agent-recovery.js", s.roomPresentationScript("web", "agent-recovery.js", "agentRecovery"))
+	mux.Handle("/job-diagnostics.js", s.roomPresentationScript("web", "job-diagnostics.js", "jobDiagnostics"))
 	mux.Handle("/background-work.js", s.roomPresentationScript("web", "background-work.js", "agentBackgroundWork"))
 	mux.Handle("/room-viewport.js", s.roomPresentationScript("web", "room-viewport.js", "roomViewportFit"))
 	mux.Handle("/feature-switches.js", s.roomPresentationScript("web", "feature-switches.js", "featureFlagSwitches"))
@@ -308,6 +314,15 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			return st, err
 		}
 		switch kind {
+		case "worker.job.updated":
+			var job room.ManagedJob
+			if json.Unmarshal(data, &job) != nil || !validManagedJob(job) {
+				return st, errors.New("invalid managed job event")
+			}
+			if st.ManagedJobs == nil {
+				st.ManagedJobs = map[string]room.ManagedJob{}
+			}
+			st.ManagedJobs[job.JobID] = job
 		case "actor.help.updated":
 			var v struct {
 				ID   string `json:"id"`
@@ -849,7 +864,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentRecovery" && v.Name != "agentBackgroundWork" && v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "jobDiagnostics" && v.Name != "agentRecovery" && v.Name != "agentBackgroundWork" && v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}

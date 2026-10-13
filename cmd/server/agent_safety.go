@@ -68,6 +68,10 @@ func (s *server) agentSafety(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Room not found", 404)
 		return
 	}
+	if req.Action == "resume" && hasUnconfirmedManagedJobs(st) {
+		http.Error(w, "Unconfirmed managed jobs remain; inspect worker job diagnostics and reconcile them before resuming", 409)
+		return
+	}
 	if req.Action == "resume" && (st.Incident || s.integrityFault || (req.Scope == "room" && (st.AgentsStopped || s.stopAll))) {
 		http.Error(w, "Resolve the integrity incident or application stop first", 409)
 		return

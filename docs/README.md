@@ -42,3 +42,7 @@ See [isolated connection sign-in](connection-sign-in.md) for remote Codex/Claude
 
 - [Security hardening and remaining limits](security-hardening.md)
 - [Restricted audit database setup and recovery](database-security.md)
+
+## Free durable job safety
+
+See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.

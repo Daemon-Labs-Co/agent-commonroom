@@ -358,3 +358,5 @@ nav .attention-room-button { min-width:0; max-width:100%; }
 .background-timeline{list-style:none;padding:0;display:grid;gap:12px}
 .background-timeline li{border-left:2px solid #d9ddf5;padding:4px 12px;display:grid;gap:3px}
 .background-timeline time,.background-timeline small{font-size:11px;color:#77758d}
+/* Free job diagnostics: only the bounded inner timeline scrolls. */
+#modal:has(#job-diagnostics-content){width:min(900px,calc(100vw - 32px));max-height:calc(100dvh - 32px);display:flex;flex-direction:column}#modal:not([open]):has(#job-diagnostics-content){display:none}#job-diagnostics-content{min-height:0;overflow-y:auto;max-height:calc(100dvh - 200px);padding-right:8px}.job-diagnostic-card{padding:16px 0;border-top:1px solid var(--border)}.job-diagnostic-card code{overflow-wrap:anywhere}.job-diagnostic-card .actions{gap:12px}

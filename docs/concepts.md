@@ -534,3 +534,7 @@ and worker checks remain enforced. Turning off `squadMenuLayout` restores native
 menu positioning but keeps these actions within the menu. Repeated rendering
 does not duplicate items. Automated UI regressions cover placement, dismissal,
 permissions, both feature states, active agents and the native-menu fallback.
+
+## Free durable job safety
+
+See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.

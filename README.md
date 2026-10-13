@@ -273,3 +273,7 @@ The visual organization chart, automatic tasks from discussions and automatic/hu
 The owner can manage a visual company organization chart under Settings → Company. Double-click an agent to edit its connection, or a human to edit their profile; an equivalent Edit button is available in the properties panel. Reporting relationships replace numbered decision seniority while the `companyOrgChart` feature is enabled. See [organization and authority](docs/concepts.md#company-organization-and-decision-authority) for usage, permissions, compatibility and current arbitration limitations.
 
 For agents that need to edit code and run tests, configure [ready-to-work development workspaces](docs/development-workspaces.md). Chat/provider connectivity alone does not establish a writable repository or a functioning command sandbox.
+
+## Free durable job safety
+
+See [worker lifecycle, shutdown verification and diagnostics](docs/worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.

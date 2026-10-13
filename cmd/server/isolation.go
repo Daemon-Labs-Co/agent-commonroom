@@ -91,7 +91,11 @@ func isolatedAgentCommand(ctx context.Context, endpoint, key string, args ...str
 	if strings.HasPrefix(endpoint, "ssh://") {
 		return remoteAgentCommand(ctx, endpoint, key, args)
 	}
-	return localIsolatedAgentCommand(ctx, endpoint, key, "", args...)
+	job, ok := ctx.Value(workerLocalJobContextKey{}).(string)
+	if !ok || !validWorkerJobID(job) {
+		return nil, nil, errors.New("Fenced worker context is required; controller-local model turns are unsupported")
+	}
+	return localIsolatedAgentCommand(ctx, endpoint, key, job, args...)
 }
 func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string, args ...string) (*exec.Cmd, func(), error) {
 	return localIsolatedDevelopmentCommand(ctx, endpoint, key, jobID, "", args...)
