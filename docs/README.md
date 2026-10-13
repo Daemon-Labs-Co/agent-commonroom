@@ -46,3 +46,10 @@ See [isolated connection sign-in](connection-sign-in.md) for remote Codex/Claude
 ## Free durable job safety
 
 See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+
+- [Context disclosure controls](context-disclosure.md)
+- [Atomic operations and safe retries](atomic-operations.md)
+
+- [Server structure and responsibilities](server-structure.md)
+
+- [Measured security and refactoring benchmarks](development-benchmarks.md)

@@ -11,17 +11,17 @@ func TestChatContextBoundsEverySourceAndKeepsReferenceLabels(t *testing.T) {
 	for _, source := range []string{"profile", "memory", "message", "request"} {
 		t.Run(source, func(t *testing.T) {
 			t.Parallel()
-			st := room.State{}
-			p := room.Participant{ID: "p", RoomID: "engineering"}
+			st := disclosureFixture()
+			p := room.Participant{ID: "p", RoomID: "engineering", ConnectionID: "c"}
 			text := "Synthetic request"
 			large := strings.Repeat("x", maxChatContextBytes+1)
 			switch source {
 			case "profile":
 				p.AdditionalContext = large
 			case "memory":
-				st.Memories = []room.Memory{{Body: large}}
+				st.Memories = []room.Memory{{Body: large, RoomID: "engineering"}}
 			case "message":
-				st.Messages = []room.Message{{Text: large}}
+				st.Messages = []room.Message{{Text: large, RoomID: "engineering"}}
 			case "request":
 				text = large
 			}
@@ -30,7 +30,9 @@ func TestChatContextBoundsEverySourceAndKeepsReferenceLabels(t *testing.T) {
 			}
 		})
 	}
-	prompt, err := chatPrompt(room.State{Memories: []room.Memory{{Title: "Synthetic", Body: "Reference"}}}, room.Participant{RoomID: "engineering"}, "Question")
+	st := disclosureFixture()
+	st.Memories = []room.Memory{{Title: "Synthetic", Body: "Reference", RoomID: "engineering"}}
+	prompt, err := chatPrompt(st, room.Participant{RoomID: "engineering", ConnectionID: "c"}, "Question")
 	if err != nil || !strings.Contains(prompt, "untrusted reference material") || len(prompt) > maxChatContextBytes {
 		t.Fatal(prompt, err)
 	}

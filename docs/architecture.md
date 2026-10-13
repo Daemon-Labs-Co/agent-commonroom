@@ -107,7 +107,7 @@ Jobs do not survive application restart as durable work items. Process-group cle
 
 | Area | Responsibility |
 | --- | --- |
-| cmd/server/main.go | Startup, HTTP registration, events, replay, state, and integrity handlers. |
+| cmd/server/main.go | Startup configuration, dependency wiring and HTTP registration. See [server structure](server-structure.md) for storage, replay, handlers and mutation validators. |
 | cmd/server/auth.go and owner_rsa.go | Sessions, request checks, first-owner setup, challenges, signatures, and key download. |
 | cmd/server/members.go | Human invitations, actor projection, permissions, personal rooms, and visibility. |
 | cmd/server/agents.go and history.go | CLI turns, SSH commands, session continuation, and saved-history RPC. |
@@ -165,3 +165,5 @@ See [security hardening](security-hardening.md) and [restricted database setup](
 ## Free durable job safety
 
 See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+
+The [server structure reference](server-structure.md) documents the focused controller files and Go interface boundaries.

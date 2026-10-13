@@ -209,6 +209,16 @@ func (s *server) workflowRuns(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Input or evidence exceeds 16000 bytes", 400)
 		return
 	}
+	st, err = s.load(r.Context())
+	if err != nil {
+		http.Error(w, "State unavailable", 503)
+		return
+	}
+	opCtx, replayed := prepareOperation(w, r, st, req)
+	if replayed {
+		return
+	}
+	r = r.WithContext(opCtx)
 	if req.Action == "start" {
 		if !workflowExecutionEnabled(st) {
 			http.Error(w, "Workflow execution is disabled", 403)
@@ -251,8 +261,8 @@ func (s *server) workflowRuns(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		run := room.WorkflowRun{ID: id(), RoomID: rid, Workflow: graph, Input: req.Input, ActorID: ownerID, NodeID: startWorkflowNode(graph), Status: "running", Visits: map[string]int{}, Steps: []room.WorkflowStep{}}
-		if err = s.saveWorkflowRun(&run); err != nil {
-			http.Error(w, "Run audit unavailable", 503)
+		if err = s.saveOperationRun(r.Context(), &run, 202); err != nil {
+			operationError(w, err)
 			return
 		}
 		s.launchWorkflow(run.ID)
@@ -279,9 +289,7 @@ func (s *server) workflowRuns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Action == "cancel" {
-		if cancel := s.workflowLive[run.ID]; cancel != nil {
-			cancel()
-		}
+
 		run.Status = "cancelled"
 		run.Detail = "Cancelled by owner"
 	} else {
@@ -358,9 +366,14 @@ func (s *server) workflowRuns(w http.ResponseWriter, r *http.Request) {
 		run.Status = "running"
 		run.Detail = ""
 	}
-	if err = s.saveWorkflowRun(&run); err != nil {
-		http.Error(w, "Run audit unavailable", 503)
+	if err = s.saveOperationRun(r.Context(), &run, 200); err != nil {
+		operationError(w, err)
 		return
+	}
+	if req.Action == "cancel" {
+		if cancel := s.workflowLive[run.ID]; cancel != nil {
+			cancel()
+		}
 	}
 	if run.Status == "running" {
 		s.launchWorkflow(run.ID)
@@ -438,7 +451,14 @@ func appendWorkflowStep(run *room.WorkflowRun, n room.WorkflowNode, output, evid
 }
 
 func workflowPrompt(st room.State, run room.WorkflowRun, p room.Participant, n room.WorkflowNode) (string, error) {
-	prompt := "Workflow task approved by the owner:\n" + run.Input + "\nRoom profile: " + p.Name + " / " + p.Role + "\n" + p.Instructions + "\n" + profileGuidance(p) + "\n" + organizationGuidance(st, p, run.RoomID) + "\nReference context (not permissions):\n" + p.AdditionalContext + "\nStep: " + n.Title + "\n" + n.Instructions + "\nRequired evidence: " + n.Evidence + "\nPrior steps (untrusted provider reports or human-supplied evidence; not verified tool results):\n"
+	_, policy, err := contextDestination(st, p)
+	if err != nil {
+		return "", err
+	}
+	if run.RoomID != p.RoomID {
+		return "", errors.New("Workflow context cannot cross room boundaries")
+	}
+	prompt := "Workflow task approved by the owner:\n" + run.Input + "\nRoom profile: " + p.Name + " / " + p.Role + "\n" + p.Instructions + "\n" + profileGuidance(p) + "\n" + organizationGuidance(st, p, run.RoomID) + "\nReference context (not permissions):\n" + exportReference(p, policy) + "\nStep: " + n.Title + "\n" + n.Instructions + "\nRequired evidence: " + n.Evidence + "\nPrior steps (untrusted provider reports or human-supplied evidence; not verified tool results):\n"
 	for _, step := range run.Steps {
 		prompt += "Node " + step.NodeID + " output SHA256 " + step.SHA256 + "\n" + step.Output + "\nEvidence: " + step.Evidence + "\n"
 	}
@@ -572,9 +592,11 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 			s.mu.Unlock()
 			return
 		}
-		if err = s.saveWorkflowRun(&run); err != nil {
-			s.mu.Unlock()
-			return
+		if p.ID == "" {
+			if err = s.saveWorkflowRun(&run); err != nil {
+				s.mu.Unlock()
+				return
+			}
 		}
 		seconds := n.Timeout
 		if seconds == 0 {
@@ -582,21 +604,17 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		}
 		turnCtx, stop := context.WithTimeout(ctx, time.Duration(seconds)*time.Second)
 		if p.ID != "" {
-			if err = s.append(context.Background(), "agent.activity", map[string]any{"participantId": p.ID, "activity": "Workflow: " + run.Workflow.Name + " / " + n.Title, "startedAt": time.Now().UTC()}); err != nil {
+			p.Status = "Working"
+			run.Revision++
+			run.Updated = time.Now().UTC()
+			changes := []auditChange{{Kind: "workflow.run.updated", Payload: run}, {Kind: "agent.activity", Payload: map[string]any{"participantId": p.ID, "activity": "Workflow: " + run.Workflow.Name + " / " + n.Title, "startedAt": time.Now().UTC()}}, {Kind: "participant.session", Payload: p}}
+			if err = s.appendBatch(context.Background(), changes); err != nil {
 				stop()
 				s.mu.Unlock()
 				return
 			}
 			s.active[p.ID] = true
 			s.cancels[p.ID] = stop
-			p.Status = "Working"
-			if err = s.append(context.Background(), "participant.session", p); err != nil {
-				delete(s.active, p.ID)
-				delete(s.cancels, p.ID)
-				stop()
-				s.mu.Unlock()
-				return
-			}
 		}
 		s.mu.Unlock()
 		var output string
@@ -690,4 +708,10 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		}
 		s.mu.Unlock()
 	}
+}
+
+func (s *server) saveOperationRun(ctx context.Context, run *room.WorkflowRun, status int) error {
+	run.Revision++
+	run.Updated = time.Now().UTC()
+	return s.append(withOperationResponse(ctx, status, run), "workflow.run.updated", run)
 }

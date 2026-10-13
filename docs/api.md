@@ -239,3 +239,7 @@ See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) fo
 
 - `GET /api/job-diagnostics`: owner-only and flag-gated; current room by default, or `scope=application` for all tracked jobs. Optional `participantId` filters a member. Returns bounded safe job/worker observations and verification status; no raw output or credentials.
 - `POST /api/job-recovery`: owner+CSRF, `{ "action": "cancel|reconcile", "jobId": "...", "reason": "..." }`. Optional `scope=application` addresses an archived-room job. Unknown or mismatched bindings, active replacement turns and unverified shutdown are refused. Successful responses have `stopped:true` and `jobsRestarted:false`. Recovery remains enforced/available independently of the diagnostics flag.
+
+## Disclosure and operation safety
+
+See [context disclosure contracts](context-disclosure.md) for room/provider and memory export controls, and [atomic operations](atomic-operations.md) for required edit revisions, `Idempotency-Key`, response replay and single-controller limits.

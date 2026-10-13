@@ -1,5 +1,23 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Disclosure and atomic business operations — 13 October 2026
+
+Server-side prompt assembly checks room/provider disclosure policies; foreign-room
+messages, unsupported cross-room Project memory, human-only notes and unapproved
+Application exports are excluded. Owner-managed source/provider grants and native
+session resets preserve application history. The editor flag cannot bypass checks.
+Reference source IDs and trust labels are included; prompt injection prevention,
+provider-side deletion, automatic secret classification and repository-content
+redaction are not claimed. See [disclosure controls](docs/context-disclosure.md).
+
+Compound agent/workflow intent and result writes use one checksummed transaction.
+User event and workflow mutations support durable, actor/room-bound retry receipts
+and transactional stale-state checks. Company, room, connection and participant
+edits now require revisions. Single-controller support remains explicit; distributed
+workflow ownership and transactional external provider effects remain unfinished.
+See [atomic operations](docs/atomic-operations.md). Verification is mocked; no live
+provider or PostgreSQL data is used to validate these changes.
+
 ## Free worker lifecycle hardening — 13 October 2026
 
 Implemented on the durable-worker-jobs feature branch: mandatory controller intent

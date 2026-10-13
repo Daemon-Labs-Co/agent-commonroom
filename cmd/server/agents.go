@@ -152,6 +152,13 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Room not found", 404)
 		return
 	}
+	if req.Action == "send" || req.Action == "broadcast" || req.Action == "create" || req.Action == "attach" {
+		ctx, replayed := prepareOperation(w, r, st, req)
+		if replayed {
+			return
+		}
+		r = r.WithContext(ctx)
+	}
 	allState := st
 	st = scoped(st, roomID)
 	if (req.Action == "list-conversations" || req.Action == "read-context") && (st.Incident || s.agentsBlockedLocked(st, roomID)) {
@@ -330,21 +337,14 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			thread = source.Thread.ID
 		}
 		c := room.Connection{ID: id(), Provider: "openai", Name: "ChatGPT via Codex", Protocol: "CLI", Endpoint: "codex"}
-		if e = s.append(r.Context(), "connection.created", c); e != nil {
-			http.Error(w, "Commit failed", 500)
-			return
-		}
 		name := strings.TrimSpace(req.Name)
 		if name == "" {
 			name = personalName(st)
 		}
 		p := room.Participant{RoomID: roomID, ID: id(), ConnectionID: c.ID, Name: name, Role: "Room assistant", Instructions: "Participate conversationally. Do not use tools or access files during this chat-only trial.", Rank: 1, ThreadID: thread, Status: "Idle", AdditionalContext: req.AdditionalContext, ContextSource: req.ContextSource}
-		if e = s.append(r.Context(), "participant.created", p); e != nil {
-			http.Error(w, "Commit failed", 500)
-			return
-		}
-		if e = s.append(r.Context(), "participant.history_attached", map[string]string{"participantId": p.ID, "sourceThreadId": req.ThreadID, "threadId": thread, "mode": req.Mode}); e != nil {
-			http.Error(w, "Attachment audit failed", 500)
+		ctx := withOperationResponse(r.Context(), 200, p)
+		if e = s.appendBatch(ctx, []auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}, {Kind: "participant.history_attached", Payload: map[string]string{"participantId": p.ID, "sourceThreadId": req.ThreadID, "threadId": thread, "mode": req.Mode}}}); e != nil {
+			operationError(w, e)
 			return
 		}
 		reply(w, p)
@@ -363,13 +363,9 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		c := room.Connection{ID: id(), Provider: "openai", Name: "ChatGPT via Codex", Protocol: "CLI", Endpoint: "codex"}
-		if err = s.append(r.Context(), "connection.created", c); err != nil {
-			http.Error(w, "Commit failed", 500)
-			return
-		}
 		p := room.Participant{RoomID: roomID, ID: id(), ConnectionID: c.ID, Name: personalName(st), Role: "Room assistant", Instructions: "Participate in this room. Answer conversationally. Do not use tools or access files; this is a chat-only integration test.", Rank: 1, Status: "Idle"}
-		if err = s.append(r.Context(), "participant.created", p); err != nil {
-			http.Error(w, "Commit failed", 500)
+		if err = s.appendBatch(withOperationResponse(r.Context(), 200, p), []auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}}); err != nil {
+			operationError(w, err)
 			return
 		}
 		reply(w, p)
@@ -437,20 +433,18 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	}
 	human, _ := member(allState, requestActor(r))
 	m := room.Message{RoomID: roomID, ID: id(), ActorID: requestActor(r), ActorType: "human", Author: human.Name, Text: label + " " + req.Text, Created: time.Now().UTC()}
-	if err = s.append(r.Context(), "message.created", m); err != nil {
-		http.Error(w, "Commit failed", 500)
+	changes := []auditChange{{Kind: "message.created", Payload: m}}
+	for i := range targets {
+		targets[i].Status = "Working"
+		p := targets[i]
+		changes = append(changes, auditChange{Kind: "agent.activity", Payload: map[string]any{"participantId": p.ID, "activity": "Replying to a room message", "startedAt": time.Now().UTC()}}, auditChange{Kind: "participant.session", Payload: p})
+	}
+	response := map[string]any{"queued": len(targets), "skipped": skipped}
+	if err = s.appendBatch(withOperationResponse(r.Context(), 202, response), changes); err != nil {
+		operationError(w, err)
 		return
 	}
 	for _, p := range targets {
-		if err = s.append(r.Context(), "agent.activity", map[string]any{"participantId": p.ID, "activity": "Replying to a room message", "startedAt": time.Now().UTC()}); err != nil {
-			http.Error(w, "Activity audit failed", 500)
-			return
-		}
-		p.Status = "Working"
-		if err = s.append(r.Context(), "participant.session", p); err != nil {
-			http.Error(w, "Commit failed", 500)
-			return
-		}
 		s.active[p.ID] = true
 		prompt := prompts[p.ID]
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -504,7 +498,7 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 	if endpoint == "claude" || strings.HasSuffix(endpoint, "/claude") {
 		adapter = claudeAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
 	}
-	text, err = adapter.Run(ctx, p.ThreadID, prompt, func(thread string) error {
+	text, err = adapter.Run(ctx, nativeContextThread(p), prompt, func(thread string) error {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		st, e := s.load(ctx)
@@ -524,6 +518,7 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 		if !found {
 			return errors.New("participant removed")
 		}
+		p.DisclosureVersion = 1
 		p.ExecutionMode = mode
 		p.ThreadID = thread
 		return s.append(ctx, "participant.session", p)
@@ -552,10 +547,11 @@ func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, 
 		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "name": p.Name, "reason": "removed from room"})
 		return
 	}
+	changes := []auditChange{}
 	p.Status = "Idle"
 	if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) {
 		p.Status = "Stopped"
-		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"})
+		changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"}})
 	} else if err != nil || ctx.Err() != nil {
 		// CommandContext commonly reports signal: killed on deadline. Preserve
 		// the causal context error rather than masking it with the process exit.
@@ -563,11 +559,14 @@ func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, 
 			err = ctx.Err()
 		}
 		p.Status = "Blocked"
-		s.append(context.Background(), "agent.error", map[string]string{"participantId": p.ID, "name": p.Name, "error": err.Error()})
+		changes = append(changes, auditChange{Kind: "agent.error", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "error": err.Error()}})
 	} else if !st.Incident {
-		s.append(context.Background(), "message.created", room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()})
+		changes = append(changes, auditChange{Kind: "message.created", Payload: room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()}})
 	}
-	s.append(context.Background(), "participant.session", p)
+	changes = append(changes, auditChange{Kind: "participant.session", Payload: p})
+	if e := s.appendBatch(context.Background(), changes); e != nil {
+		s.tripIntegrityLocked()
+	}
 }
 
 // sessionAdapter abstracts model turns, not a security boundary. Implementations
