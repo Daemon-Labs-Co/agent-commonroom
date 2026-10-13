@@ -20,7 +20,8 @@ function drawSessionRecovery(){
  if(view!=='Room'||state?.currentActorId!=='local-owner'||state.featureFlags?.agentRecovery===false)return;
  for(const label of document.querySelectorAll('[data-agent-status]')){
   const p=state.participants.find(p=>p.id===label.dataset.agentStatus);if(!p||p.status==='Working')continue;
-  const button=document.createElement('button');button.type='button';button.className='background-work-link';button.textContent='Recover session';button.setAttribute('aria-label','Recover session for '+p.name);button.onclick=()=>openSessionRecovery(p.id);label.after(button);
+  const panel=label.closest('.participant')?.querySelector('.menu-panel');if(!panel||panel.querySelector('[data-session-recovery]'))continue;
+  const button=document.createElement('button');button.type='button';button.textContent='Recover session';button.setAttribute('data-session-recovery',p.id);button.setAttribute('aria-label','Recover session for '+p.name);button.onclick=()=>{if(typeof closeSquadMenu==='function')closeSquadMenu();panel.closest('details')?.removeAttribute('open');openSessionRecovery(p.id)};panel.insertBefore(button,panel.querySelector('[data-remove]'));
  }
 }
 const recoveryRender=render;render=function(){recoveryRender();drawSessionRecovery()};

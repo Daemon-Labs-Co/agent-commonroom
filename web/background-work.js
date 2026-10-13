@@ -17,7 +17,8 @@ function drawBackgroundWork(){
  if(state?.featureFlags?.agentBackgroundWork===false){if(backgroundParticipant){backgroundParticipant=null;$('#modal').close()}return}
  if(view==='Room')for(const label of document.querySelectorAll('[data-agent-status]')){
   const p=state.participants.find(p=>p.id===label.dataset.agentStatus);if(!p)continue;
-  const button=document.createElement('button');button.type='button';button.className='background-work-link';button.textContent='Background work';button.setAttribute('aria-label','Background work for '+p.name);button.onclick=()=>openBackgroundWork(p.id);label.after(button);
+  const panel=label.closest('.participant')?.querySelector('.menu-panel');if(!panel||panel.querySelector('[data-background-work]'))continue;
+  const button=document.createElement('button');button.type='button';button.textContent='Background work';button.setAttribute('data-background-work',p.id);button.setAttribute('aria-label','Background work for '+p.name);button.onclick=()=>{if(typeof closeSquadMenu==='function')closeSquadMenu();panel.closest('details')?.removeAttribute('open');openBackgroundWork(p.id)};panel.insertBefore(button,panel.querySelector('[data-session-recovery]')||panel.querySelector('[data-remove]'));
  }
  if(backgroundParticipant){const target=$('#background-work-content');const p=state.participants.find(p=>p.id===backgroundParticipant);if(!target){backgroundParticipant=null;return}if(!p||view!=='Room'){backgroundParticipant=null;$('#modal').close();return}
   const nearEnd=target.scrollHeight-target.clientHeight-target.scrollTop<24,previous=target.scrollTop;
