@@ -282,7 +282,7 @@ Technical modules: `room-viewport.js` applies/removes the scoped body class only
 
 ### Safe session recovery
 
-The owner can click **Recover session** under an agent's squad status, then use:
+The owner opens an agent's **three-dot actions menu** and chooses **Recover session**, then uses:
 
 - **Check worker**: read-only verification of the approved worker. It must report
   no managed containers and no starting/running/unknown job records. A busy shared
@@ -317,7 +317,7 @@ credential migration is required for this protocol change.
 
 ### Background work
 
-Click **Background work** beneath an agent's squad status for its expandable
+Open an agent's **three-dot actions menu** and choose **Background work** for its expandable
 operational timeline. Remote workers are polled through the approved SSH transport
 every five seconds; unchanged states are recorded at most every fifteen seconds.
 The view shows worker startup/running/terminal observations, controller completion
@@ -522,3 +522,15 @@ are reading, filtering or opening technical details; use this explicit refresh t
 see new records. The manual synthetic fixture is
 `COMMONROOM_BROWSER_HISTORY_TEST=1 go test ./cmd/server -run
 '^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v` (60 seconds, in-memory only).
+
+### Squad action placement
+
+Background work and Recover session live in each agent's three-dot menu, before
+the destructive Remove action. They do not add rows beneath the agent's status.
+Opening an action closes the menu before showing its overlay. Background work
+uses the existing `agentBackgroundWork` flag; recovery uses `agentRecovery`, is
+owner-only and is omitted while the agent is Working. Server flags/permissions
+and worker checks remain enforced. Turning off `squadMenuLayout` restores native
+menu positioning but keeps these actions within the menu. Repeated rendering
+does not duplicate items. Automated UI regressions cover placement, dismissal,
+permissions, both feature states, active agents and the native-menu fallback.
