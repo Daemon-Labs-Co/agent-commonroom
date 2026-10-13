@@ -155,14 +155,20 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 		return nil, nil, err
 	}
 	var once sync.Once
+	monitorDone := make(chan struct{})
+	if _, ok := ctx.Value(backgroundCallbackKey{}).(backgroundCallback); ok {
+		go monitorRemoteBackground(ctx, monitorDone, alias, request.JobID, provider)
+	}
 	cleanup := func() {
 		once.Do(func() {
+			close(monitorDone)
 			cancelCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 			var result limitedAgentOutput
 			cmd := workerSSHCommand(cancelCtx, alias, "cancel-v1", request.JobID)
 			cmd.Stdout = &result
 			if err := cmd.Run(); err != nil {
+				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
 				fmt.Fprintln(os.Stderr, "Remote worker cancellation unconfirmed:", request.JobID)
 				return
 			}
@@ -171,7 +177,10 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 				Stopped bool   `json:"stopped"`
 			}
 			if json.Unmarshal(result.Bytes(), &ack) != nil || ack.JobID != request.JobID || !ack.Stopped {
+				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
 				fmt.Fprintln(os.Stderr, "Remote worker cancellation unconfirmed:", request.JobID)
+			} else {
+				emitBackground(ctx, "shutdown_confirmed", request.JobID)
 			}
 		})
 	}
@@ -309,6 +318,16 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 	}
 	if args[0] == "auth-login-v1" || args[0] == "auth-status-v1" || args[0] == "auth-logout-v1" || args[0] == "verify-v1" {
 		return workerProviderAuth(args, in, out, diagnostics)
+	}
+	if args[0] == "idle-v1" && len(args) == 1 {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		idle, err := workerIdleProbe(ctx)
+		if err != nil {
+			return fail(err)
+		}
+		json.NewEncoder(out).Encode(map[string]any{"version": 1, "idle": idle})
+		return 0
 	}
 	if args[0] == "ready-v1" && len(args) == 1 {
 		if err := configureWorker(); err != nil {

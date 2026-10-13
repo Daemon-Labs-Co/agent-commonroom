@@ -31,7 +31,7 @@ const photoRender=render;render=function(){
  photoRender();const enabled=state.featureFlags?.humanProfileImages!==false;
  const apply=(element,actor)=>{const photo=humanPhoto(actor,enabled);if(!element||!photo)return;const img=document.createElement('img');img.src=photo;img.alt=actor.name+' profile photo';img.className='human-photo';element.replaceChildren(img)};
  document.querySelectorAll('[data-human-id]').forEach(row=>apply(row.querySelector('.avatar'),state.actors.find(a=>a.id===row.dataset.humanId)));
- document.querySelectorAll('.message').forEach((row,i)=>{const m=state.messages[i];if(m?.actorType==='human'||m?.author==='You'){const id=m.actorId|| (m.author==='You'?'local-owner':'');apply(row.querySelector('.avatar'),state.actors.find(a=>a.id===id))}});
+ document.querySelectorAll('.message').forEach((row,i)=>{const m=state.messages[i];if(m?.actorType==='human'||(!m?.actorType&&m?.author==='You')){const id=m.actorId|| (m.author==='You'?'local-owner':'');apply(row.querySelector('.avatar'),state.actors.find(a=>a.id===id))}});
  if(view==='Settings'&&state.currentActorId==='local-owner'){
  $('#edit-safety-flag')?.insertAdjacentHTML('afterend','<h3>Cosmetic</h3><p>Human profile photos · '+(enabled?'Enabled':'Hidden')+'</p><button id="edit-photo-flag">Configure profile photos</button>');
  $('#edit-photo-flag')?.insertAdjacentHTML('afterend','<h3>Connections</h3><p>Guided connection editor</p><p class="muted">Configured with COMMONROOM_CONNECTION_EDITOR; requires a server restart.</p><h3>Workflows</h3><p>Workflow templates</p><p class="muted">Configured with COMMONROOM_WORKFLOW_TEMPLATES; requires a server restart.</p>');

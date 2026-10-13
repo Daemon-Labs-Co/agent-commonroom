@@ -2,6 +2,44 @@
 
 The org chart is implemented on its own feature branch; the other entries remain requested features, not shipped capabilities. Implement each on its own feature branch with tests, user/technical documentation and an owner-controlled server-enforced flag. Do not mix them into the current UI refinement branch or commit/push on behalf of the owner.
 
+## Worker process monitoring and callbacks
+
+Implemented slices: bounded active-turn admission, elapsed dispatch age warnings,
+timeout cause preservation, internal adapter callbacks and approved SSH worker
+status polling with an expandable background timeline. Durable reconciliation,
+exhaustive provider activity and development-specific execution budgets below
+remain unimplemented. See [Background work](concepts.md#background-work).
+
+- Add authenticated, job-scoped lifecycle events: starting, running, progress,
+  completed, failed, and cancellation confirmed. Reject duplicate, out-of-order,
+  foreign-job and post-completion updates.
+- Show last confirmed activity and elapsed time in squad status and job details.
+  Distinguish worker liveness from useful model progress; silence is not proof of
+  a hung process.
+- Bound and sanitize provider progress. Never publish raw credentials, full
+  command output or private paths as status text. Preserve room permissions,
+  audit integrity, mandatory isolation and human-controlled recovery.
+- Keep a hard maximum execution budget. Design development-specific budgets and
+  stalled-job handling instead of silently extending a turn on every heartbeat.
+- Ship on a separate feature branch with an owner-controlled server-enforced
+  flag, mocked transport/database tests and user/technical documentation.
+
+## Jev decision-service integration
+
+Requested provider: [TypeSafe AI Jev](https://docs.typesafe.ai/introduction).
+Use an optional external decision adapter for narrowly scoped task classification,
+workflow routing or assessment rubrics. Typed Choice/Score answers and confidence
+must be schema-validated and evaluated against synthetic labelled examples before
+enabling automatic routing. Low confidence, unavailable service or invalid output
+must defer to existing human/agent review. Confidence is not proof of correctness.
+
+Deliver on its own feature branch behind a default-off, owner-controlled,
+server-enforced flag. Keep API credentials server-side; explicitly configure what
+room context may leave the application, with bounded requests, timeouts and rate
+limits. Never give this service authority over permissions, isolation, audit
+integrity, final human acceptance or security-policy overrides. No external Jev
+calls or application integration are implemented yet.
+
 ## Visual company organization chart
 
 Suggested branch: `feature/company-org-chart`.

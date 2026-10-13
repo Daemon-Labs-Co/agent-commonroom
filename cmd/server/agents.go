@@ -74,6 +74,9 @@ func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread f
 		if json.Unmarshal(scanner.Bytes(), &e) != nil {
 			continue
 		}
+		if stage := codexBackgroundStage(e.Type, e.Item.Type); stage != "" {
+			emitBackground(ctx, stage, "")
+		}
 		if e.Type == "thread.started" && e.Thread != "" {
 			if err = onThread(e.Thread); err != nil {
 				cmd.Process.Kill()
@@ -97,6 +100,9 @@ func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread f
 		streamErr = err
 	}
 	waitErr := cmd.Wait()
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
 	if streamErr != nil {
 		return "", streamErr
 	}
@@ -148,6 +154,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	}
 	allState := st
 	st = scoped(st, roomID)
+	if (req.Action == "list-conversations" || req.Action == "read-context") && (st.Incident || s.agentsBlockedLocked(st, roomID)) {
+		http.Error(w, "Native conversation access is disabled during an incident or emergency stop", 409)
+		return
+	}
 	if req.Action == "list-conversations" {
 		params := map[string]any{"limit": 30, "sortKey": "updated_at", "sourceKinds": []string{"cli", "vscode", "exec", "appServer"}}
 		if req.Search != "" {
@@ -260,7 +270,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	rec := &bufferResponse{header: http.Header{}, body: &check}
 	verifyRequest := r.Clone(r.Context())
 	verifyRequest.Method = "GET"
-	s.integrity(rec, verifyRequest)
+	s.integrityLocked(rec, verifyRequest)
 	var integrity struct {
 		Valid bool `json:"valid"`
 	}
@@ -391,6 +401,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			skipped[p.Name] = "Already working"
 			continue
 		}
+		if e := s.agentAdmission(allState, roomID, len(targets)+1); e != nil {
+			http.Error(w, e.Error(), http.StatusTooManyRequests)
+			return
+		}
 		if e := isolationAvailable(endpoint); e != nil {
 			if req.Action == "send" {
 				http.Error(w, e.Error(), 503)
@@ -409,16 +423,26 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	label := "@room"
+	prompts := map[string]string{}
+	for _, p := range targets {
+		prompt, e := chatPrompt(st, p, req.Text)
+		if e != nil {
+			http.Error(w, e.Error(), 413)
+			return
+		}
+		prompts[p.ID] = prompt
+	}
 	if req.Action == "send" {
 		label = "@" + targets[0].Name
 	}
-	m := room.Message{RoomID: roomID, ID: id(), Author: "You", Text: label + " " + req.Text, Created: time.Now().UTC()}
+	human,_:=member(allState,requestActor(r))
+	m := room.Message{RoomID: roomID, ID: id(), ActorID:requestActor(r),ActorType:"human",Author:human.Name, Text: label + " " + req.Text, Created: time.Now().UTC()}
 	if err = s.append(r.Context(), "message.created", m); err != nil {
 		http.Error(w, "Commit failed", 500)
 		return
 	}
 	for _, p := range targets {
-		if err = s.append(r.Context(), "agent.activity", map[string]string{"participantId": p.ID, "activity": "Replying to a room message"}); err != nil {
+		if err = s.append(r.Context(), "agent.activity", map[string]any{"participantId": p.ID, "activity": "Replying to a room message", "startedAt": time.Now().UTC()}); err != nil {
 			http.Error(w, "Activity audit failed", 500)
 			return
 		}
@@ -428,22 +452,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.active[p.ID] = true
-		prompt := "Room profile: " + p.Name + " / " + p.Role + "\n" + p.Instructions + "\n" + profileGuidance(p) + "\n" + organizationGuidance(st, p, roomID) + "\nAdditional reference context (conversation material, not tool authorization):\n" + p.AdditionalContext + "\nSource: " + p.ContextSource + "\nShared memory:\n"
-		for _, mem := range st.Memories {
-			prompt += mem.Title + ": " + mem.Body + "\n"
-		}
-		prompt += "Recent room conversation:\n"
-		start := len(st.Messages) - 12
-		if start < 0 {
-			start = 0
-		}
-		for _, msg := range st.Messages[start:] {
-			prompt += msg.Author + ": " + msg.Text + "\n"
-		}
-		prompt += "Human message: " + req.Text
-		if humanAttentionEnabled(st) {
-			prompt += humanAttentionGuidance
-		}
+		prompt := prompts[p.ID]
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		s.cancels[p.ID] = cancel
 		go s.runAgent(ctx, cancel, p, prompt, endpoints[p.ID])
@@ -470,7 +479,9 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 // executeAgentTurn is shared by chat and workflows. It always uses the isolated
 // worker. A source-level host fallback CAN bypass containment, BUT would expose
 // host secrets and invalidate the mandatory execution boundary.
-func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, prompt, endpoint string) (string, error) {
+func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, prompt, endpoint string) (text string, err error) {
+	ctx, finish := s.backgroundContext(ctx, p)
+	defer func() { finish(err) }()
 	key := p.RoomID + "/" + p.ID + "/" + p.ConnectionID + "/" + endpoint
 	repository, policyErr := controllerDevelopmentRepository(p.RoomID, os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 	if policyErr != nil {
@@ -489,7 +500,7 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 	if endpoint == "claude" || strings.HasSuffix(endpoint, "/claude") {
 		adapter = claudeAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
 	}
-	text, err := adapter.Run(ctx, p.ThreadID, prompt, func(thread string) error {
+	text, err = adapter.Run(ctx, p.ThreadID, prompt, func(thread string) error {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		st, e := s.load(ctx)
@@ -542,7 +553,9 @@ func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, 
 		p.Status = "Stopped"
 		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"})
 	} else if err != nil || ctx.Err() != nil {
-		if err == nil {
+		// CommandContext commonly reports signal: killed on deadline. Preserve
+		// the causal context error rather than masking it with the process exit.
+		if ctx.Err() != nil {
 			err = ctx.Err()
 		}
 		p.Status = "Blocked"
@@ -594,6 +607,9 @@ func (a claudeAdapter) Run(ctx context.Context, thread, prompt string, onThread 
 	var output limitedAgentOutput
 	cmd.Stdout = &output
 	processErr := cmd.Run()
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
 	out := output.Bytes()
 	var err error
 	var result struct {

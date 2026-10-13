@@ -1,5 +1,42 @@
 # HTTP API overview
 
+### Agent session recovery
+
+Owner-only, authenticated, CSRF-protected `POST /api/agent-recovery?room=ROOM`
+accepts `{"action":"check|resume|fresh","participantId":"ID"}`. Default-on
+`agentRecovery` is enforced server-side. The participant must belong to the room.
+Check returns `{idle,recovered:false,detail}` and changes no history. Mutations
+recheck shared-worker quiescence at action time, then atomically append one
+`agent.recovered` event containing the resulting participant snapshot, action and
+authenticated actor. Replay applies the Idle state and optional session reset.
+There is no model launch, task replay or audit rewrite. Busy worker returns
+`idle:false`; active controller work/stops/incidents/invalid resume return 409;
+unknown worker state returns 503; disabled flag/non-owner/invalid CSRF return 403.
+
+### Background work telemetry
+
+With `agentBackgroundWork` on (default), room-authorized participant state includes
+up to 64 `background` observations: `turnId`, optional `jobId`, trusted stage/label,
+room/participant IDs and `observedAt`. These are controller observation times, not
+worker heartbeats or exact command timestamps. Flag off omits the property and
+blocks telemetry collection; existing audit history remains. Only the owner may
+toggle the flag. The internal `agent.background` event cannot be submitted through
+public event ingestion. Stop all reuses authenticated owner-only, CSRF-protected
+`POST /api/agent-safety`, independent of cosmetic safety button visibility.
+
+### Execution capacity and long-running status
+
+Agent chat dispatch returns HTTP 429 when its entire eligible target batch would
+exceed eight active model turns overall or four in the requested room. That
+rejection launches none of the batch and appends no chat message. Workflows use
+the same admission check; overload becomes an explicit failed run for owner
+inspection/resume. Limits are single-controller safeguards, not durable queues.
+
+When default-on `agentStatusDetails` is enabled, Working participants may include
+`statusDetails.elapsedSeconds` and `statusDetails.longRunning` (true at 120
+seconds). Values derive from recorded dispatch time, not worker telemetry.
+Disabled delivery omits the entire details object; room access protections apply.
+
 [Documentation index](README.md)
 
 This describes the current internal browser API, not a versioned public SDK contract. Route implementations and tests remain authoritative. There is no API-key or bot service-account authentication yet.
@@ -187,3 +224,11 @@ filters and loaded-count statistics; `web/history.js` retains async paging, stal
 response protection and per-visit filter state. Tests use mock queries and synthetic
 UI events for both flag states, permissions, privacy, filtering, day grouping,
 noise visibility and pagination compatibility.
+
+## Mandatory security controls
+
+See [security hardening](security-hardening.md) and [restricted database setup](database-security.md) for required migration/runtime role separation, integrity shutdown/recovery, identity and request/context budgets. These boundaries have no off switch.
+
+`POST /api/integrity` requires owner authentication, CSRF and `{ "reason": "..." }` (nonempty, at most 500 characters). Recovery verifies the chain and worker idle, appends approval, and returns `{ "recovered": true, "jobsRestarted": false }`. Failures leave execution stopped. `GET /api/integrity` reports `valid`, `records`, `metadataProtectedRecords`, `legacyMetadataRecords` and `executionBlocked`; legacy records are never silently rewritten. Mutation rate limits return 429 with `Retry-After: 1`; oversized assembled chat context returns 413 before dispatch.
+
+`POST /api/agent-safety` resume now requires a freshly valid audit chain, no active controller turns and verified shared-worker idle. A 409/503 leaves the stop unchanged. Startup with active/unverified remote worker state records an application stop rather than admitting new work.

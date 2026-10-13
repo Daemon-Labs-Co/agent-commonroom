@@ -27,6 +27,14 @@ check: test-race
 	node --test tests/human-attention.test.cjs
 	node --check web/squad-menus.js
 	node --test tests/squad-menus.test.cjs
+	node --check web/message-identity.js
+	node --test tests/message-identity.test.cjs
+	node --check web/security-incident.js
+	node --test tests/security-incident.test.cjs
+	node --check web/agent-recovery.js
+	node --test tests/agent-recovery.test.cjs
+	node --check web/background-work.js
+	node --test tests/background-work.test.cjs
 	node --check web/agent-status.js
 	node --test tests/agent-status.test.cjs
 	node --check web/app.js

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,18 +21,22 @@ import (
 )
 
 type server struct {
-	workflowLive     map[string]context.CancelFunc
-	workflowTurn     func(context.Context, room.Participant, string, string) (string, error)
-	workflowReady    func(string) error
-	safetyUIDefault  bool
-	stopAll          bool
-	stopRooms        map[string]bool
-	templatesEnabled bool
-	db               eventDatabase
-	auth             *ownerAuth
-	mu               sync.Mutex
-	active           map[string]bool
-	cancels          map[string]context.CancelFunc
+	workflowLive      map[string]context.CancelFunc
+	workflowTurn      func(context.Context, room.Participant, string, string) (string, error)
+	workflowReady     func(string) error
+	recoveryIdle      func(context.Context, string) (bool, error)
+	safetyUIDefault   bool
+	stopAll           bool
+	integrityFault    bool
+	integrityStopPath string
+	requestBudgets    map[string]actorRequestBudget
+	stopRooms         map[string]bool
+	templatesEnabled  bool
+	db                eventDatabase
+	auth              *ownerAuth
+	mu                sync.Mutex
+	active            map[string]bool
+	cancels           map[string]context.CancelFunc
 }
 
 func id() string {
@@ -48,6 +53,13 @@ func checksum(previous, kind, payload string) string {
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "--agent-worker" {
 		os.Exit(agentWorkerMain(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
+	}
+	if len(os.Args) > 1 && os.Args[1] == "--migrate" {
+		if err := runDatabaseMigration(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("Audit schema migration completed")
+		return
 	}
 	developmentEnabled, developmentRegistry, developmentErr := loadControllerDevelopmentConfiguration(".data/development-workspaces.json", os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 	if developmentErr != nil {
@@ -84,7 +96,11 @@ func main() {
 	if url == "" {
 		url = "postgres://localhost:5432/agentroom?sslmode=disable"
 	}
-	db, err := pgxpool.New(ctx, url)
+	config, err := runtimeDatabaseConfig(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	db, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,11 +108,7 @@ func main() {
 	if err = db.Ping(ctx); err != nil {
 		log.Fatal("PostgreSQL unavailable: ", err)
 	}
-	migration, err := os.ReadFile("migrations/001.sql")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err = db.Exec(ctx, string(migration)); err != nil {
+	if err = validateRuntimeDatabase(ctx, db); err != nil {
 		log.Fatal(err)
 	}
 	s := &server{db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
@@ -114,6 +126,7 @@ func main() {
 	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
+	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
 	mux.HandleFunc("/api/connections/test", s.connectionTest)
 	editorEnabled, err := connectionEditorEnabled()
@@ -139,6 +152,8 @@ func main() {
 	mux.Handle("/human-attention.js", s.roomPresentationScript("web", "human-attention.js", "humanAttention"))
 	mux.Handle("/squad-menus.js", s.roomPresentationScript("web", "squad-menus.js", "squadMenuLayout"))
 	mux.Handle("/agent-status.js", s.roomPresentationScript("web", "agent-status.js", "agentStatusDetails"))
+	mux.Handle("/agent-recovery.js", s.roomPresentationScript("web", "agent-recovery.js", "agentRecovery"))
+	mux.Handle("/background-work.js", s.roomPresentationScript("web", "background-work.js", "agentBackgroundWork"))
 	mux.Handle("/room-viewport.js", s.roomPresentationScript("web", "room-viewport.js", "roomViewportFit"))
 	mux.Handle("/feature-switches.js", s.roomPresentationScript("web", "feature-switches.js", "featureFlagSwitches"))
 	mux.Handle("/room-message-order.js", s.roomPresentationScript("web", "room-message-order.js", "newestMessagesFirst"))
@@ -160,6 +175,8 @@ func main() {
 	if keyPath == "" {
 		keyPath = ".data/owner-key"
 	}
+	s.integrityStopPath = filepath.Join(filepath.Dir(keyPath), "integrity-stop")
+	s.restoreIntegrityStop()
 	key, err := loadOwnerKey(keyPath)
 	if err != nil {
 		log.Fatal(err)
@@ -180,6 +197,11 @@ func main() {
 	}
 	log.Printf("Owner setup code file: %s (keep private)", keyPath)
 	log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", addr)
+	s.checkIntegrityNow()
+	if os.Getenv("COMMONROOM_REMOTE_WORKER") == "true" {
+		s.verifyWorkerAtStartup(context.Background(), "ssh://"+os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"))
+	}
+	go s.watchIntegrity(context.Background(), 30*time.Second)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
@@ -213,6 +235,12 @@ func (s *server) session(w http.ResponseWriter, r *http.Request) {
 	reply(w, map[string]any{"csrf": session.CSRF, "actorId": requestActor(r), "actorType": "human", "keySetupPending": pending && requestActor(r) == ownerID})
 }
 func (s *server) append(ctx context.Context, kind string, payload any) error {
+	// Background work is a projection of separate telemetry events, not part of
+	// a mutable profile/session snapshot. Do not duplicate it into those records.
+	if participant, ok := payload.(room.Participant); ok {
+		participant.Background = nil
+		payload = participant
+	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -231,11 +259,31 @@ func (s *server) append(ctx context.Context, kind string, payload any) error {
 	if err != nil {
 		return err
 	}
+	if actor, ok := ctx.Value(actorContextKey{}).(string); ok && actor != "" {
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(raw, &fields) != nil || fields == nil {
+			return errors.New("audit payload must be an object")
+		}
+		fields["performedBy"], _ = json.Marshal(actor)
+		raw, err = json.Marshal(fields)
+		if err != nil {
+			return err
+		}
+	}
 	var canonical string
+	var sequence int64
+	if err = tx.QueryRow(ctx, "SELECT nextval('public.events_sequence_seq')").Scan(&sequence); err != nil {
+		return err
+	}
+	meta := auditRecordMetadata{Version: 1, ID: id(), Sequence: sequence, CommittedAt: time.Now().UTC().Truncate(time.Microsecond)}
+	raw, err = protectAuditMetadata(raw, meta)
+	if err != nil {
+		return err
+	}
 	if err = tx.QueryRow(ctx, "SELECT $1::jsonb::text", string(raw)).Scan(&canonical); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, "INSERT INTO events(id,kind,payload,previous_hash,hash) VALUES($1,$2,$3::jsonb,$4,$5)", id(), kind, canonical, previous, checksum(previous, kind, canonical))
+	_, err = tx.Exec(ctx, "INSERT INTO events(sequence,id,kind,payload,committed_at,previous_hash,hash) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7)", meta.Sequence, meta.ID, kind, canonical, meta.CommittedAt, previous, checksum(previous, kind, canonical))
 	if err != nil {
 		return err
 	}
@@ -243,6 +291,8 @@ func (s *server) append(ctx context.Context, kind string, payload any) error {
 }
 func (s *server) load(ctx context.Context) (room.State, error) {
 	activities := map[string]string{}
+	background := map[string][]room.BackgroundActivity{}
+	activityStarts := map[string]time.Time{}
 	failures := map[string]string{}
 	acknowledged := map[string]string{}
 	st := room.State{Company: room.Company{ID: "company", Name: "My company"}, HumanCompanyID: "company", Workflows: []room.Workflow{}, Rooms: []room.Room{{ID: "engineering", Name: "Engineering room"}}, Tasks: []room.Task{}, Evidence: []room.Evidence{}, Connections: []room.Connection{}, Participants: []room.Participant{}, Memories: []room.Memory{}, Messages: []room.Message{}}
@@ -446,11 +496,22 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			st.Participants = append(st.Participants, v)
 		case "agent.activity":
 			var activity struct {
-				ParticipantID string `json:"participantId"`
-				Activity      string `json:"activity"`
+				ParticipantID string    `json:"participantId"`
+				Activity      string    `json:"activity"`
+				StartedAt     time.Time `json:"startedAt"`
 			}
 			json.Unmarshal(data, &activity)
 			activities[activity.ParticipantID] = activity.Activity
+			activityStarts[activity.ParticipantID] = activity.StartedAt
+		case "agent.background":
+			var event room.BackgroundActivity
+			if json.Unmarshal(data, &event) == nil && backgroundLabels[event.Stage] != "" {
+				event.Label = backgroundLabels[event.Stage]
+				background[event.ParticipantID] = append(background[event.ParticipantID], event)
+				if len(background[event.ParticipantID]) > 64 {
+					background[event.ParticipantID] = background[event.ParticipantID][1:]
+				}
+			}
 		case "agent.error":
 			var failure struct {
 				ParticipantID string `json:"participantId"`
@@ -458,6 +519,18 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			json.Unmarshal(data, &failure)
 			failures[failure.ParticipantID] = failure.Error
+		case "agent.recovered":
+			var recovered struct {
+				Participant room.Participant `json:"participant"`
+			}
+			if json.Unmarshal(data, &recovered) == nil {
+				for i, p := range st.Participants {
+					if p.ID == recovered.Participant.ID && p.RoomID == recovered.Participant.RoomID {
+						st.Participants[i] = recovered.Participant
+						delete(failures, p.ID)
+					}
+				}
+			}
 		case "participant.updated", "participant.session":
 			var v room.Participant
 			json.Unmarshal(data, &v)
@@ -473,6 +546,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					if v.ConnectionID != p.ConnectionID {
 						delete(failures, v.ID)
 						delete(activities, v.ID)
+						delete(activityStarts, v.ID)
 					}
 				}
 			}
@@ -573,6 +647,8 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 	}
 	projectAgentStatusDetails(&st, activities, failures)
+	projectAgentElapsed(&st, activityStarts, time.Now().UTC())
+	projectBackground(&st, background)
 	for i := range st.Rooms {
 		st.Rooms[i].CompanyID = st.Company.ID
 	}
@@ -615,6 +691,16 @@ func (s *server) state(w http.ResponseWriter, r *http.Request) {
 	st.FeatureFlags["humanProfileImages"] = humanProfileImagesEnabled(st)
 	st.AgentRoomStopped = s.agentsBlockedLocked(st, rid)
 	st.AgentsStopped = st.AgentsStopped || s.stopAll
+	st.Incident = st.Incident || s.integrityFault
+	if st.Incident {
+		for i := range st.Participants {
+			if d := st.Participants[i].StatusDetails; d != nil {
+				d.LongRunning = false
+				d.Reason = "Audit integrity is failed or unverified."
+				d.Next = "The owner must inspect History and explicitly authorize verified recovery."
+			}
+		}
+	}
 	if st.AgentRoomStopped && !st.Incident {
 		for i := range st.Participants {
 			if st.Participants[i].RoomID == rid && st.Participants[i].StatusDetails != nil {
@@ -763,7 +849,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentRecovery" && v.Name != "agentBackgroundWork" && v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
 			return
 		}
@@ -1281,26 +1367,51 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	reply(w, result)
 }
 func (s *server) integrity(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if r.Method == "POST" {
+		s.recoverIntegrityLocked(w, r)
+		return
+	}
+	s.integrityLocked(w, r)
+}
+
+// integrityLocked requires s.mu; every verification failure stops execution,
+// including failures that prevent the incident from being committed.
+func (s *server) integrityLocked(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	rows, err := s.db.Query(r.Context(), "SELECT kind,payload::text,previous_hash,hash FROM events ORDER BY sequence")
+	rows, err := s.db.Query(r.Context(), "SELECT id,sequence,committed_at,kind,payload::text,previous_hash,hash FROM events ORDER BY sequence")
 	if err != nil {
+		s.tripIntegrityLocked()
 		http.Error(w, "Integrity unverified", 503)
 		return
 	}
 	previous := ""
 	count := 0
 	valid := true
+	protectedCount := 0
 	for rows.Next() {
 		var kind, payload, prev, hash string
-		if err = rows.Scan(&kind, &payload, &prev, &hash); err != nil {
+		var eventID string
+		var sequence int64
+		var committedAt time.Time
+		if err = rows.Scan(&eventID, &sequence, &committedAt, &kind, &payload, &prev, &hash); err != nil {
 			rows.Close()
+			s.tripIntegrityLocked()
 			http.Error(w, "Integrity unverified", 503)
 			return
 		}
 		if prev != previous || hash != checksum(prev, kind, payload) {
+			valid = false
+		}
+		protected, metadataValid := verifyAuditMetadata(payload, eventID, sequence, committedAt)
+		if protected {
+			protectedCount++
+		}
+		if !metadataValid {
 			valid = false
 		}
 		previous = hash
@@ -1309,14 +1420,27 @@ func (s *server) integrity(w http.ResponseWriter, r *http.Request) {
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
+		s.tripIntegrityLocked()
 		http.Error(w, "Integrity unverified", 503)
 		return
 	}
 	if !valid {
-		st, e := s.load(r.Context())
-		if e == nil && !st.Incident {
-			s.append(r.Context(), "incident.opened", map[string]string{"reason": "checksum or predecessor mismatch"})
+		s.tripIntegrityLocked()
+	}
+	st, e := s.load(r.Context())
+	if e != nil {
+		s.tripIntegrityLocked()
+		http.Error(w, "Integrity state unverified", 503)
+		return
+	}
+	if st.Incident {
+		s.tripIntegrityLocked()
+	}
+	if s.integrityFault && !st.Incident {
+		if s.append(r.Context(), "incident.opened", map[string]string{"reason": "audit verification failed or was unavailable; owner review required"}) != nil {
+			http.Error(w, "Incident audit unavailable; execution remains stopped", 503)
+			return
 		}
 	}
-	reply(w, map[string]any{"valid": valid, "records": count, "protection": "Local chain only; external immutable archive and authenticated agents not yet implemented"})
+	reply(w, map[string]any{"valid": valid, "records": count, "metadataProtectedRecords": protectedCount, "legacyMetadataRecords": count - protectedCount, "executionBlocked": s.integrityFault, "protection": "Local chain only; independent immutable archive and rollback anchor still required"})
 }

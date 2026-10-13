@@ -17,13 +17,19 @@ import (
 
 // This mock accepts only the application's event-store operations. Fixtures and
 // transaction writes exist solely in memory. Unexpected SQL fails the test.
-type mockEvent struct{ kind, payload, previous, hash string }
+type mockEvent struct {
+	kind, payload, previous, hash string
+	id                            string
+	sequence                      int64
+	at                            time.Time
+}
 type mockDB struct {
-	t         *testing.T
-	mu        sync.Mutex
-	events    []mockEvent
-	failAt    string
-	streamErr error
+	t                 *testing.T
+	mu                sync.Mutex
+	events            []mockEvent
+	failAt            string
+	streamErr         error
+	runtimePrivileges []any
 }
 
 func newMockDB(t *testing.T) *mockDB { return &mockDB{t: t} }
@@ -43,7 +49,7 @@ func (d *mockDB) seed(kind string, value any) {
 	if len(d.events) > 0 {
 		previous = d.events[len(d.events)-1].hash
 	}
-	d.events = append(d.events, mockEvent{kind, string(raw), previous, checksum(previous, kind, string(raw))})
+	d.events = append(d.events, mockEvent{kind: kind, payload: string(raw), previous: previous, hash: checksum(previous, kind, string(raw)), id: fmt.Sprintf("seed-%d", len(d.events)+1), sequence: int64(len(d.events) + 1), at: time.Unix(int64(len(d.events)), 0).UTC()})
 }
 func (d *mockDB) Begin(ctx context.Context) (pgx.Tx, error) {
 	if err := ctx.Err(); err != nil {
@@ -65,6 +71,12 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 	events := d.snapshot()
 	values := [][]any{}
 	switch sql {
+	case runtimePrivilegeSQL:
+		row := d.runtimePrivileges
+		if row == nil {
+			row = []any{false, true, true, true, false, false}
+		}
+		values = append(values, row)
 	case historyFlagSQL:
 		for i := len(events) - 1; i >= 0; i-- {
 			if events[i].kind != "feature.flag.updated" {
@@ -83,18 +95,18 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 		for _, e := range events {
 			values = append(values, []any{e.kind, []byte(e.payload)})
 		}
-	case "SELECT kind,payload::text,previous_hash,hash FROM events ORDER BY sequence":
+	case "SELECT id,sequence,committed_at,kind,payload::text,previous_hash,hash FROM events ORDER BY sequence":
 		for _, e := range events {
-			values = append(values, []any{e.kind, e.payload, e.previous, e.hash})
+			values = append(values, []any{e.id, e.sequence, e.at, e.kind, e.payload, e.previous, e.hash})
 		}
 	case "SELECT sequence,kind,committed_at,hash,payload FROM events ORDER BY sequence DESC LIMIT 200":
 		for i := len(events) - 1; i >= 0 && len(values) < 200; i-- {
 			e := events[i]
-			values = append(values, []any{int64(i + 1), e.kind, time.Unix(int64(i), 0).UTC(), e.hash, []byte(e.payload)})
+			values = append(values, []any{e.sequence, e.kind, e.at, e.hash, []byte(e.payload)})
 		}
 	case auditPageSQL:
 		for i := len(events) - 1; i >= 0 && len(values) < 101; i-- {
-			at := time.Unix(int64(i), 0).UTC()
+			at := events[i].at
 			if args[0] != nil && int64(i+1) >= args[0].(int64) {
 				continue
 			}
@@ -130,14 +142,14 @@ func (tx *mockTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.Com
 		if tx.db.failAt == "lock" {
 			return pgconn.CommandTag{}, errors.New("mock lock failure")
 		}
-	case "INSERT INTO events(id,kind,payload,previous_hash,hash) VALUES($1,$2,$3::jsonb,$4,$5)":
+	case "INSERT INTO events(sequence,id,kind,payload,committed_at,previous_hash,hash) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7)":
 		if tx.db.failAt == "insert" {
 			return pgconn.CommandTag{}, errors.New("mock insert failure")
 		}
-		if len(args) != 5 {
+		if len(args) != 7 {
 			return pgconn.CommandTag{}, errors.New("wrong insert arguments")
 		}
-		e := mockEvent{args[1].(string), args[2].(string), args[3].(string), args[4].(string)}
+		e := mockEvent{kind: args[2].(string), payload: args[3].(string), previous: args[5].(string), hash: args[6].(string), id: args[1].(string), sequence: args[0].(int64), at: args[4].(time.Time)}
 		previous := ""
 		if len(tx.db.events) > 0 {
 			previous = tx.db.events[len(tx.db.events)-1].hash
@@ -154,6 +166,8 @@ func (tx *mockTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.Com
 }
 func (tx *mockTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	switch sql {
+	case "SELECT nextval('public.events_sequence_seq')":
+		return mockRow{values: []any{int64(len(tx.db.events) + 1)}}
 	case "SELECT hash FROM events ORDER BY sequence DESC LIMIT 1":
 		if tx.db.failAt == "previous" {
 			return mockRow{err: errors.New("mock previous failure")}

@@ -1,5 +1,66 @@
 # Architecture
 
+## Session recovery safety contract
+
+`agentRecovery` validates owner identity, CSRF, room membership, the default-on
+`agentRecovery` flag and audit/emergency controls. It requires no active controller
+turns, then calls approved SSH `idle-v1`; the worker validates rootless Docker,
+checks managed containers including stopped leftovers, and scans at most 4096
+job-record directory entries. Nonterminal, malformed or unreadable records fail
+closed. No cleanup or record deletion occurs. The controller mutex serializes
+local dispatch/mutations throughout the bounded ten-second check; this can delay
+other requests and is not a multi-controller lease.
+
+Resume validates execution mode/workspace compatibility. Fresh resets only the
+provider binding. A single append-only `agent.recovered` snapshot makes audit and
+state transition atomic; presentation metadata is omitted from that snapshot.
+Checks are never cached as permission for a later action. This conservative
+whole-worker contract supports legacy failures without pretending their job IDs
+were recorded. It does not reconcile orphaned jobs or resume workflow graphs.
+
+## Background operational telemetry
+
+`backgroundContext` attaches an internal context callback to managed chat/workflow
+turns. The callback allows only fixed stage labels, binds membership/room/connection,
+uses a controller turn ID, caps recording at 64 events and rejects post-completion
+callbacks. Worker observations must match the controller-allocated job and provider;
+polling uses the approved alias and existing `status-v1` protocol with a three-second
+query deadline. No new inbound callback port or public agent credential is exposed.
+Codex structured events produce only allowlisted command/tool start/end labels.
+
+`agent.background` is internal append-only audit data. Replay substitutes trusted
+labels, bounds room-scoped participant delivery, and omits telemetry with the
+default-on `agentBackgroundWork` flag off. Public event ingestion cannot forge it.
+Polling failures are observations of unknown liveness, never automatic cancellation,
+retry or permission. Cleanup acknowledgements report confirmed/unconfirmed shutdown.
+This does not implement durable leases, restart reconciliation, exhaustive tool
+tracing, per-process resource statistics or progress-based timeout extensions.
+
+## Model turn admission and age diagnostics
+
+`openAgentDiagnosis` renders only the safe room-scoped status projection. Opening
+it makes no network or model request. Owner-only status/test actions reuse
+`provider-auth` and connection-testing authorization and flags; neither clears an
+agent failure. Preparing a message performs no mutation or dispatch and preserves
+the draft. The browser does not infer an expired credential from a killed process.
+
+`server.agentAdmission` runs under the controller mutex against complete company
+state before either chat or workflow reservation. It counts all active entries,
+including removed participants awaiting cleanup, against an eight-turn global
+bound, and known room memberships against a four-turn room bound. Broadcasts
+preflight the full eligible batch before appending a message or starting turns.
+Workflow overload records an explicit failed run and requires owner resume.
+There is no durable queue, multi-controller coordination or spend accounting.
+Mandatory limits cannot be disabled through product flags.
+
+New `agent.activity` events include server-generated `startedAt`. Replay derives
+elapsed seconds only for Working participants with a known timestamp. The
+existing default-on `agentStatusDetails` flag gates both elapsed metadata and
+warnings. `projectAgentElapsed` preserves integrity/emergency-stop explanations;
+it makes no claim about worker heartbeat or meaningful progress. Context deadline
+errors take precedence over killed-process exits in both adapters and completion
+recording. Historical audit events are never rewritten.
+
 [Documentation index](README.md)
 
 ## Runtime shape
@@ -96,3 +157,7 @@ See the [remote worker requirements](container-isolation.md#remote-worker-requir
 The driver reserves the same participant active/cancel slot as chat dispatch, records intent before execution, releases the server mutex during provider work/waits, and rechecks flag, membership, cancellation, emergency stop and audit integrity before committing results. Failures are never automatically retried. An owner-approved resume may repeat partial side effects and is bounded by per-node visit counts. Graph edits do not alter active snapshots. Controller restart reconciles missing drivers to interrupted on the owner run-list API; it does not resurrect containers or execute work automatically. This is not a distributed durable queue or an exactly-once side-effect guarantee.
 
 Output SHA256 identifies provider-reported text. It does not attest repository content, command success, an independent test run or reviewer filesystem access. Reviewer output must be explicit JSON, and code in another private workspace remains unavailable without a separate artifact-transfer mechanism. Gate rationale is human-supplied. Automatic patch export and trusted evidence collection remain required for fully automated development delivery. See [technical execution contract](workflow-execution.md#technical-contract).
+
+## Required audit database boundary
+
+See [security hardening](security-hardening.md) and [restricted database setup](database-security.md) for required migration/runtime role separation, integrity shutdown/recovery, identity and request/context budgets. These boundaries have no off switch.

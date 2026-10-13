@@ -26,6 +26,7 @@ func TestWorkflowBrowserHarness(t *testing.T) {
 		t.Skip("manual synthetic browser fixture")
 	}
 	s, db, _ := executionServer(t)
+	s.recoveryIdle = func(context.Context, string) (bool, error) { return true, nil }
 	s.auth.port = "8794"
 	db.seed("human.profile.updated", map[string]string{"name": "Demo owner", "title": "Synthetic verification"})
 	db.seed("room.updated", room.Room{ID: "engineering", Name: "Workflow verification"})
@@ -37,7 +38,10 @@ func TestWorkflowBrowserHarness(t *testing.T) {
 			}
 			db.seed("agent.activity", map[string]string{"participantId": pid, "activity": "Workflow: Example feature / Review changes"})
 			db.seed("agent.error", map[string]string{"participantId": pid, "error": reason})
-			db.seed("participant.session", room.Participant{ID: pid, RoomID: "engineering", ConnectionID: pid, Name: pid, Status: "Blocked"})
+			db.seed("participant.session", room.Participant{ID: pid, RoomID: "engineering", ConnectionID: pid, Name: pid, Status: "Blocked", ThreadID: "synthetic-session", ExecutionMode: "container-v1"})
+			for _, stage := range []string{"preparing", "running", "command_started", "command_finished", "timed_out", "shutdown_confirmed"} {
+				db.seed("agent.background", room.BackgroundActivity{ParticipantID: pid, RoomID: "engineering", TurnID: "synthetic-turn", Stage: stage, Label: backgroundLabels[stage], ObservedAt: time.Now().UTC()})
+			}
 		}
 	}
 	if scrollFixture {
@@ -100,6 +104,7 @@ func TestWorkflowBrowserHarness(t *testing.T) {
 	mux.HandleFunc("/api/session", s.session)
 	mux.HandleFunc("/api/login", s.login)
 	mux.HandleFunc("/api/events", s.events)
+	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
 	mux.Handle("/help/", documentationHandler("../.."))
 	mux.Handle("/", http.FileServer(http.Dir("../../web")))
 	host := &http.Server{Addr: "127.0.0.1:8794", Handler: s.auth.protect(s.actorGuard(mux)), ReadHeaderTimeout: 5 * time.Second}

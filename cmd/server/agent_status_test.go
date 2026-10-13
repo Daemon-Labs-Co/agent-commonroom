@@ -3,9 +3,72 @@ package main
 import (
 	"agentroom/internal/room"
 	"context"
+	"errors"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestDeadlineFailurePreservesCauseInsteadOfKilledProcess(t *testing.T) {
+	t.Parallel()
+	s, db, _ := mockServer(t)
+	p := room.Participant{ID: "synthetic-agent", RoomID: "engineering", Status: "Working"}
+	db.seed("participant.created", p)
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+	s.finishAgentTurn(ctx, p, "discarded partial result", "codex", errors.New("Codex process failed: signal: killed"))
+	st, err := s.load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Messages) != 0 || st.Participants[0].Status != "Blocked" || !strings.Contains(st.Participants[0].StatusDetails.Reason, "time limit") {
+		t.Fatal("deadline masked or partial result published", st.Participants)
+	}
+}
+
+func TestHistoricalKilledProcessDoesNotInventTimeout(t *testing.T) {
+	t.Parallel()
+	reason, next := safeAgentFailure("Claude process failed: signal: killed")
+	if !strings.Contains(reason, "does not identify") || !strings.Contains(next, "resource limits") || strings.Contains(reason, "time limit") {
+		t.Fatal(reason, next)
+	}
+}
+
+func TestLongRunningAgeIsNotAClaimOfWorkerHealth(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	for _, c := range []struct {
+		status   string
+		age      int
+		disabled bool
+		long     bool
+	}{
+		{"Working", 119, false, false}, {"Working", 120, false, true}, {"Working", 180, false, true}, {"Idle", 180, false, false}, {"Working", 180, true, false},
+	} {
+		st := room.State{FeatureFlags: map[string]bool{"agentStatusDetails": !c.disabled}, Participants: []room.Participant{{ID: "p", Status: c.status}}}
+		projectAgentStatusDetails(&st, nil, nil)
+		projectAgentElapsed(&st, map[string]time.Time{"p": now.Add(-time.Duration(c.age) * time.Second)}, now)
+		d := st.Participants[0].StatusDetails
+		if c.disabled {
+			if d != nil {
+				t.Fatal("flag off leaked elapsed time")
+			}
+			continue
+		}
+		if d.LongRunning != c.long {
+			t.Fatal(c, d)
+		}
+		if c.long && !strings.Contains(d.Reason, "not confirmed") {
+			t.Fatal("invented progress", d)
+		}
+	}
+	st := room.State{Incident: true, Participants: []room.Participant{{ID: "p", Status: "Working"}}}
+	projectAgentStatusDetails(&st, nil, nil)
+	projectAgentElapsed(&st, map[string]time.Time{"p": now.Add(-3 * time.Minute)}, now)
+	if st.Participants[0].StatusDetails.LongRunning || !strings.Contains(st.Participants[0].StatusDetails.Reason, "integrity") {
+		t.Fatal("age overwrote safety incident")
+	}
+}
 
 func TestBlockedStatusUsesSafeFailureAndRecordedActivity(t *testing.T) {
 	t.Parallel()

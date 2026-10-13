@@ -2,7 +2,9 @@
 
 A local workspace where humans and AI agents collaborate in rooms, with individual profiles, persistent conversations, shared memory, tasks, evidence, and a visual workflow editor.
 
-Agent CommonRoom is an early development prototype built with Go, PostgreSQL, and browser JavaScript. It runs on your computer and currently supports conversational Codex and Claude CLI agents, locally or over SSH. The workflow editor saves and validates graphs; workflow execution is not implemented yet.
+Agent CommonRoom is an early development prototype built with Go, PostgreSQL, and browser JavaScript. It supports Codex and Claude CLI agents through a mandatory rootless Docker worker on Linux, reachable over approved SSH. The workflow editor saves and validates graphs; sequential execution is available behind the default-off `workflowExecution` flag. See the guides for supported nodes and remaining limits.
+
+For a blocked or stale agent, the owner can select **Recover session**, **Check worker**, then **Resume session** or **Start fresh session**. Recovery requires the shared worker to be idle, preserves room history, and never automatically replays a task. The default-on Security flag `agentRecovery` controls this feature. Install the current worker binary for its read-only `idle-v1` protocol. See [safe session recovery](docs/concepts.md#safe-session-recovery) for usage, permissions and limitations.
 
 ## Documentation
 
@@ -42,7 +44,7 @@ Edit, validate and save workflows. Enable the optional sequential runner to disp
 
 ## Requirements
 
-- Go 1.23 or later, as specified in `go.mod`.
+- Go 1.26 or later, as specified in `go.mod`.
 - A running PostgreSQL server; local development has been exercised with PostgreSQL 17.
 - A current browser supporting Web Crypto, with JavaScript enabled.
 - Optional: authenticated `codex` and/or `claude` executables on the Agent CommonRoom server's `PATH`.
@@ -94,12 +96,16 @@ Create a dedicated local database using an account allowed to create databases:
 
 ```sh
 createdb commonroom
-export DATABASE_URL='postgres://localhost:5432/commonroom?sslmode=disable'
 go mod download
+export MIGRATION_DATABASE_URL='postgres://localhost:5432/commonroom?sslmode=disable'
+go run ./cmd/server --migrate
+unset MIGRATION_DATABASE_URL
+# Complete the restricted runtime-role setup linked below before serving.
+export DATABASE_URL='postgres://commonroom_runtime@localhost:5432/commonroom?sslmode=disable'
 go run ./cmd/server
 ```
 
-The example assumes PostgreSQL accepts your local account. Adjust the connection string for your database installation; never commit credentials. `sslmode=disable` here is for a local development database. Startup automatically applies `migrations/001.sql`; the database user needs permission to create the schema objects and triggers.
+The example assumes PostgreSQL accepts your local account. Adjust the connection string for your database installation; never commit credentials. `sslmode=disable` here is for a local development database. Run migrations explicitly with administrator credentials, then serve with a separate restricted runtime login. Follow the [database security setup](docs/database-security.md) to create that login and configure authentication. Startup refuses database owners, role memberships, DDL privileges, or permissions to alter audit rows.
 
 Open [Agent CommonRoom](http://127.0.0.1:8787). The server listens on numeric loopback addresses only. Use remote access only through the documented private SSH tunnel or private nginx setup; public hosting is unsupported.
 
@@ -183,7 +189,7 @@ Run that executable from the repository root. Stop the server with Ctrl+C.
 ## Installation troubleshooting
 
 - **PostgreSQL unavailable / connection refused:** check the service is running and that `DATABASE_URL` uses its actual host and port. Run `pg_isready` before starting the app.
-- **Role does not exist / permission denied:** use a database login configured for your PostgreSQL installation. Database creation and startup migrations require appropriate permissions; ask the database administrator if using a managed installation.
+- **Role does not exist / permission denied:** use a database login configured for your PostgreSQL installation. Database creation and explicit migrations require administrator permissions; ask the database administrator if using a managed installation.
 - **Database already exists:** omit `createdb` and reuse the intended database. Do not drop a live database as a setup shortcut.
 - **Missing web assets or migration:** start the server from the repository root, including when using the built executable.
 - **Address already in use:** stop the older Agent CommonRoom process or choose another loopback port, for example `export LISTEN_ADDR='127.0.0.1:8788'`, then use that port in your browser.

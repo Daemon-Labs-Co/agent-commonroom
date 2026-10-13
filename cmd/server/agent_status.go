@@ -2,7 +2,9 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"fmt"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -13,6 +15,10 @@ func safeAgentFailure(raw string) (reason, next string) {
 	switch {
 	case strings.Contains(text, "deadline exceeded"), strings.Contains(text, "timed out"):
 		return "The agent did not finish before its time limit.", "Inspect partial work, then retry or split the task into smaller steps."
+	case strings.Contains(text, "signal: killed"):
+		return "The agent process was killed; the recorded error does not identify the cause.", "Check the turn duration and worker resource limits. Older records may omit a timeout cause; inspect partial work before retrying."
+	case strings.Contains(text, "concurrency limit"):
+		return "Execution capacity is currently full.", "Wait for active turns to finish, then explicitly retry the message or resume the workflow."
 	case strings.Contains(text, "bwrap"), strings.Contains(text, "new namespace"):
 		return "The execution sandbox could not create its required namespace.", "Ask the administrator to verify the isolated development worker; keep isolation enabled."
 	case strings.Contains(text, "read-only"), strings.Contains(text, "read only"):
@@ -35,6 +41,25 @@ func safeAgentFailure(raw string) (reason, next string) {
 		return "Audit integrity could not be verified.", "The owner must investigate history integrity before allowing further execution."
 	default:
 		return "The last agent turn failed; a specific cause was not recognized.", "Ask the owner to inspect the corresponding agent error in History and test the connection."
+	}
+}
+
+// projectAgentElapsed reports controller dispatch age, not process health or
+// useful progress. No heartbeat may extend the hard execution budget.
+func projectAgentElapsed(st *room.State, starts map[string]time.Time, now time.Time) {
+	for i := range st.Participants {
+		p := &st.Participants[i]
+		start := starts[p.ID]
+		if p.Status != "Working" || p.StatusDetails == nil || start.IsZero() || start.After(now) {
+			continue
+		}
+		elapsed := int(now.Sub(start).Seconds())
+		p.StatusDetails.ElapsedSeconds = elapsed
+		if elapsed >= 120 && !st.Incident && !st.AgentsStopped && !containsRoom(st.AgentStopRooms, p.RoomID) {
+			p.StatusDetails.LongRunning = true
+			p.StatusDetails.Reason = fmt.Sprintf("This turn has been running for %d seconds since dispatch; process liveness and progress are not confirmed.", elapsed)
+			p.StatusDetails.Next = "Check partial work and the worker. The hard time limit still applies; use emergency stop if necessary."
+		}
 	}
 }
 
