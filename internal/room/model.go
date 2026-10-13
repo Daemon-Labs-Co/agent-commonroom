@@ -132,23 +132,40 @@ type Actor struct {
 	Revision    int      `json:"revision"`
 	ChangedBy   string   `json:"changedBy"`
 }
+
+// PremiumFeature projects verified commercial access separately from a saved
+// owner preference. Available is false for integrations not yet implemented.
+type PremiumFeature struct {
+	IncludedMonthlyRecords    int64      `json:"includedMonthlyRecords,omitempty"`
+	AdditionalBlockRecords    int64      `json:"additionalBlockRecords,omitempty"`
+	PurchasedAdditionalBlocks int        `json:"purchasedAdditionalBlocks,omitempty"`
+	MonthlyRecordAllowance    int64      `json:"monthlyRecordAllowance,omitempty"`
+	Entitled                  bool       `json:"entitled"`
+	Requested                 bool       `json:"requested"`
+	Enabled                   bool       `json:"enabled"`
+	Available                 bool       `json:"available"`
+	Status                    string     `json:"status"`
+	ExpiresAt                 *time.Time `json:"expiresAt,omitempty"`
+}
+
 type State struct {
-	Organization     OrganizationChart `json:"organization"`
-	FeatureFlags     map[string]bool   `json:"featureFlags"`
-	AgentsStopped    bool              `json:"agentsStopped"`
-	AgentRoomStopped bool              `json:"agentRoomStopped"`
-	AgentStopRooms   []string          `json:"-"`
-	Actors           []Actor           `json:"actors"`
-	CurrentActorID   string            `json:"currentActorId"`
-	Company          Company           `json:"company"`
-	HumanCompanyID   string            `json:"humanCompanyId"`
-	HumanTitle       string            `json:"humanTitle"`
-	HumanName        string            `json:"humanName"`
-	WorkflowRuns     []WorkflowRun     `json:"workflowRuns"`
-	Workflows        []Workflow        `json:"workflows"`
-	Rooms            []Room            `json:"rooms"`
-	Tasks            []Task            `json:"tasks"`
-	Evidence         []Evidence        `json:"evidence"`
+	PremiumFeatures  map[string]PremiumFeature `json:"premiumFeatures,omitempty"`
+	Organization     OrganizationChart         `json:"organization"`
+	FeatureFlags     map[string]bool           `json:"featureFlags"`
+	AgentsStopped    bool                      `json:"agentsStopped"`
+	AgentRoomStopped bool                      `json:"agentRoomStopped"`
+	AgentStopRooms   []string                  `json:"-"`
+	Actors           []Actor                   `json:"actors"`
+	CurrentActorID   string                    `json:"currentActorId"`
+	Company          Company                   `json:"company"`
+	HumanCompanyID   string                    `json:"humanCompanyId"`
+	HumanTitle       string                    `json:"humanTitle"`
+	HumanName        string                    `json:"humanName"`
+	WorkflowRuns     []WorkflowRun             `json:"workflowRuns"`
+	Workflows        []Workflow                `json:"workflows"`
+	Rooms            []Room                    `json:"rooms"`
+	Tasks            []Task                    `json:"tasks"`
+	Evidence         []Evidence                `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`

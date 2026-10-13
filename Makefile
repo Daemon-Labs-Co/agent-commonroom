@@ -29,6 +29,8 @@ check: test-race
 	node --test tests/squad-menus.test.cjs
 	node --check web/message-identity.js
 	node --test tests/message-identity.test.cjs
+	node --check web/premium-features.js
+	node --test tests/premium-features.test.cjs
 	node --check web/security-incident.js
 	node --test tests/security-incident.test.cjs
 	node --check web/agent-recovery.js

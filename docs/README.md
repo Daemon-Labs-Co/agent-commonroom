@@ -42,3 +42,7 @@ See [isolated connection sign-in](connection-sign-in.md) for remote Codex/Claude
 
 - [Security hardening and remaining limits](security-hardening.md)
 - [Restricted audit database setup and recovery](database-security.md)
+
+## Premium feature access
+
+See [paid feature access and licensing](premium-features.md) for default-off archive/orchestration entitlements, commercial allowances and current limits. Paid-access checks are implemented; checkout, pricing, archive exports, usage metering and managed orchestration remain unimplemented.

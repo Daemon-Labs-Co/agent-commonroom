@@ -232,3 +232,7 @@ See [security hardening](security-hardening.md) and [restricted database setup](
 `POST /api/integrity` requires owner authentication, CSRF and `{ "reason": "..." }` (nonempty, at most 500 characters). Recovery verifies the chain and worker idle, appends approval, and returns `{ "recovered": true, "jobsRestarted": false }`. Failures leave execution stopped. `GET /api/integrity` reports `valid`, `records`, `metadataProtectedRecords`, `legacyMetadataRecords` and `executionBlocked`; legacy records are never silently rewritten. Mutation rate limits return 429 with `Retry-After: 1`; oversized assembled chat context returns 413 before dispatch.
 
 `POST /api/agent-safety` resume now requires a freshly valid audit chain, no active controller turns and verified shared-worker idle. A 409/503 leaves the stop unchanged. Startup with active/unverified remote worker state records an application stop rather than admitting new work.
+
+## Premium feature access
+
+See [paid feature access and licensing](premium-features.md) for default-off archive/orchestration entitlements, commercial allowances and current limits. Paid-access checks are implemented; checkout, pricing, archive exports, usage metering and managed orchestration remain unimplemented.

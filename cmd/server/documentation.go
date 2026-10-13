@@ -31,6 +31,7 @@ var documentationCatalog = []documentationEntry{
 	{"operations", "Operations and backups", "docs/operations.md"},
 	{"database-security", "Restricted database and audit recovery", "docs/database-security.md"},
 	{"security-hardening", "Security hardening and limits", "docs/security-hardening.md"},
+	{"premium-features", "Paid feature access and licensing", "docs/premium-features.md"},
 	{"debian", "Debian remote installation", "docs/deployment/debian.md"},
 	{"nginx", "nginx and existing PostgreSQL", "docs/deployment/nginx-postgresql.md"},
 	{"security", "Security policy", "SECURITY.md"},

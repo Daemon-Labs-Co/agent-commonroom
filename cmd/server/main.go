@@ -21,6 +21,7 @@ import (
 )
 
 type server struct {
+	premium           *premiumEntitlements
 	workflowLive      map[string]context.CancelFunc
 	workflowTurn      func(context.Context, room.Participant, string, string) (string, error)
 	workflowReady     func(string) error
@@ -127,6 +128,9 @@ func main() {
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
 	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
+	mux.HandleFunc("/api/premium-features", s.premiumFeatures)
+	mux.HandleFunc("/api/protected-audit-archive", s.protectedArchiveStatus)
+	mux.HandleFunc("/api/managed-orchestration", s.managedOrchestrationStatus)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
 	mux.HandleFunc("/api/connections/test", s.connectionTest)
 	editorEnabled, err := connectionEditorEnabled()
@@ -186,6 +190,10 @@ func main() {
 		log.Fatal(err)
 	}
 	if err = s.auth.prepareRSA(keyPath); err != nil {
+		log.Fatal(err)
+	}
+	s.premium, err = configurePremiumEntitlements(os.Getenv("COMMONROOM_PREMIUM_ISSUER_KEY"), os.Getenv("COMMONROOM_PREMIUM_LICENSE_FILE"), filepath.Dir(keyPath))
+	if err != nil {
 		log.Fatal(err)
 	}
 	persistentSessions, err := persistentHumanSessionsEnabled()
@@ -689,6 +697,16 @@ func (s *server) state(w http.ResponseWriter, r *http.Request) {
 	}
 	st.FeatureFlags["agentSafetyControls"] = s.agentSafetyControlsEnabled(st)
 	st.FeatureFlags["humanProfileImages"] = humanProfileImagesEnabled(st)
+	for _, feature := range premiumFeatures {
+		info := s.premiumFeatureInfo(st, feature, time.Now())
+		st.FeatureFlags[feature] = info.Enabled
+		if requestActor(r) == ownerID {
+			if st.PremiumFeatures == nil {
+				st.PremiumFeatures = map[string]room.PremiumFeature{}
+			}
+			st.PremiumFeatures[feature] = info
+		}
+	}
 	st.AgentRoomStopped = s.agentsBlockedLocked(st, rid)
 	st.AgentsStopped = st.AgentsStopped || s.stopAll
 	st.Incident = st.Incident || s.integrityFault
@@ -849,8 +867,12 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Name    string `json:"name"`
 			Enabled *bool  `json:"enabled"`
 		}
-		if json.Unmarshal(req.Payload, &v) != nil || (v.Name != "agentRecovery" && v.Name != "agentBackgroundWork" && v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
+		if json.Unmarshal(req.Payload, &v) != nil || (!knownPremiumFeature(v.Name) && v.Name != "agentRecovery" && v.Name != "agentBackgroundWork" && v.Name != "agentSafetyControls" && v.Name != "humanProfileImages" && v.Name != "connectionSignIn" && v.Name != "connectionTesting" && v.Name != "helpWindowChoice" && v.Name != "squadProfileActions" && v.Name != "agentInvitationLayout" && v.Name != "standardHelpIcons" && v.Name != "featureFlagTabs" && v.Name != "historyDateGroups" && v.Name != "settingsTabs" && v.Name != "roomSections" && v.Name != "humanProfileDetails" && v.Name != "topAlignedViews" && v.Name != "compactProfileOverlays" && v.Name != "companyOrgChart" && v.Name != "newestMessagesFirst" && v.Name != "roomViewportFit" && v.Name != "featureFlagSwitches" && v.Name != "workflowExecution" && v.Name != "agentStatusDetails" && v.Name != "squadMenuLayout" && v.Name != "humanAttention" && v.Name != "historyRefinement") || v.Enabled == nil {
 			http.Error(w, "Choose a supported feature flag and an enabled value", 400)
+			return
+		}
+		if knownPremiumFeature(v.Name) && *v.Enabled && !s.premiumFeatureInfo(st, v.Name, time.Now()).Entitled {
+			http.Error(w, "Purchase and a valid signed entitlement are required before enabling this feature", 402)
 			return
 		}
 		p = v

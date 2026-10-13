@@ -117,3 +117,7 @@ implemented by this feature.
 
 Source: [Organized History](concepts.md#organized-history). These remain repository
 backlog entries, not automatically created application tasks.
+
+## Premium feature access
+
+See [paid feature access and licensing](premium-features.md) for default-off archive/orchestration entitlements, commercial allowances and current limits. Paid-access checks are implemented; checkout, pricing, archive exports, usage metering and managed orchestration remain unimplemented.
