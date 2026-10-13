@@ -538,3 +538,9 @@ permissions, both feature states, active agents and the native-menu fallback.
 ## Free durable job safety
 
 See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+
+### Squad membership count
+
+The badge beside **Squad** counts the humans and agents currently displayed in that room. Inviting or removing an agent, joining or leaving as a human, and switching rooms update it with the rendered membership. Background status and profile changes do not affect the total. Membership changes made elsewhere become visible when room state next refreshes; this fix does not introduce idle-room polling.
+
+Technical contract: `trackSquadCount` in `web/features.js` counts direct `.participant` children of `.squad-members`, updates an accessible member-count label, and observes direct membership changes. Each render disconnects the previous observer, including when leaving the room view. It does not count nested menus or conversation authors. This is a correction to existing membership presentation, always active with no new feature flag or permission changes. Regression tests in `tests/squad-count.test.cjs` use synthetic DOM membership only.

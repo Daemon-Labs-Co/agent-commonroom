@@ -1,3 +1,20 @@
+// Keep the badge tied to visible room membership, including human presence.
+let squadCountObserver=null;
+function trackSquadCount(squad){
+ squadCountObserver?.disconnect();squadCountObserver=null;
+ if(!squad)return;
+ const count=squad.querySelector('.panel-heading .count');
+ const members=squad.querySelector('.squad-members');
+ if(!count||!members)return;
+ const update=()=>{
+  const total=members.querySelectorAll(':scope > .participant').length;
+  count.textContent=String(total);
+  count.setAttribute('aria-label',total+' squad member'+(total===1?'':'s'));
+ };
+ update();
+ squadCountObserver=new MutationObserver(update);
+ squadCountObserver.observe(members,{childList:true});
+}
 let roomId=localStorage.getItem('commonroom-room')||'engineering';
 const names=['Alex','Amelia','Arjun','Ava','Benjamin','Chloe','Daniel','Elena','Ethan','Freya','Gabriel','Grace','Hannah','Isaac','Isla','James','Leila','Liam','Maya','Noah','Oliver','Priya','Samuel','Sofia','Theo','Zoe','Codex'];
 function randomName(){const used=new Set(state.participants.map(p=>p.name));const pool=names.filter(n=>!used.has(n));return (pool.length?pool:names)[Math.floor(Math.random()*(pool.length||names.length))]}
@@ -5,6 +22,7 @@ const baseApi=api;
 api=async function(path,body){return baseApi(path+(path.includes('?')?'&':'?')+'room='+encodeURIComponent(roomId),body)};
 const baseRender=render;
 render=function(){
+ trackSquadCount(null);
  if(state?.currentActorId==='local-owner'&&(typeof activeSettingsCategory!=='undefined'||state.featureFlags?.settingsTabs===false)){
   try{const category=sessionStorage.getItem('commonroom-feature-panel');if(category){sessionStorage.removeItem('commonroom-feature-panel');view='Settings';if(typeof activeSettingsCategory!=='undefined')activeSettingsCategory='Features';if(typeof activeFeatureCategory!=='undefined')activeFeatureCategory=['Security','Cosmetic','Connections','Workflows'].includes(category)?category:'Security'}}catch{}
  }
@@ -44,12 +62,12 @@ render=function(){
   document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{view=b.dataset.tab;render()});
   if(view==='Room'){
    document.querySelectorAll('.participant').forEach((row,i)=>{row.querySelector('.participant-info>span').textContent=profileTitle(state.participants[i]);row.querySelector('.participant-info>span').title=profileTitle(state.participants[i])});
-   const human=state.rooms.find(r=>r.id===roomId);const squad=$('.squad');const people=state.actors.filter(a=>a.kind==='human'&&a.enabled&&(human.personalActorId?a.id===human.personalActorId:a.id==='local-owner'?human.humanPresent!==false:(a.roomIds||[]).includes(roomId)));squad.querySelector('.count').textContent=state.participants.length+people.length;
+   const human=state.rooms.find(r=>r.id===roomId);const squad=$('.squad');const people=state.actors.filter(a=>a.kind==='human'&&a.enabled&&(human.personalActorId?a.id===human.personalActorId:a.id==='local-owner'?human.humanPresent!==false:(a.roomIds||[]).includes(roomId)));
    for(const person of people){const self=person.id===state.currentActorId;const name=person.id==='local-owner'?(human.humanName&&human.humanName!=='You'?human.humanName:person.name):person.name;const title=person.title||person.role;const rank=person.id==='local-owner'?(human.humanRank??11):11;squad.querySelector('.panel-heading').insertAdjacentHTML('afterend','<div class="participant" data-human-id="'+esc(person.id)+'"><span class="avatar human">'+esc(name.slice(0,1))+'</span><div class="participant-info"><strong>'+esc(name)+'</strong><span>'+esc(title)+' · Human · Seniority '+rank+'</span></div>'+ (self?'<button data-human-edit="'+person.id+'" aria-label="Edit your human profile">Edit</button>':'')+(self&&person.id==='local-owner'&&!human.personalActorId?'<button id="leave-room" class="danger">Leave</button>':'')+'</div>');}
    document.querySelectorAll('[data-human-edit]').forEach(b=>b.onclick=()=>{const person=state.actors.find(a=>a.id===b.dataset.humanEdit);if(person.id!=='local-owner'){form('Your profile',field('Name','name',person.name)+'<p class="muted">Your role and room access are assigned by the owner.</p>',d=>commit('actor.name.updated',{name:d.get('name')}));return}form('Your room profile',field('Personal name','humanName',human.humanName||person.name)+'<label class="field"><span>Decision seniority <button type="button" class="seniority-help" aria-label="Help with decision seniority">?</button></span><input name="humanRank" type="number" min="1" max="11" value="'+(human.humanRank??11)+'" required></label>',d=>commit('room.updated',{...human,humanName:d.get('humanName'),humanRank:Number(d.get('humanRank'))}));});
    if($('#leave-room'))$('#leave-room').onclick=()=>commit('room.updated',{...human,humanPresent:false});
    if(state.currentActorId==='local-owner'&&!human.personalActorId&&human.humanPresent===false){$('.toolbar .actions').insertAdjacentHTML('beforeend','<button id="join-room">Join room</button>');$('#join-room').onclick=()=>commit('room.updated',{...human,humanPresent:true});}
-   const members=document.createElement('div');members.className='squad-members';squad.querySelector('.panel-heading').after(members);squad.querySelectorAll('.participant').forEach(row=>members.append(row));
+   const members=document.createElement('div');members.className='squad-members';squad.querySelector('.panel-heading').after(members);squad.querySelectorAll('.participant').forEach(row=>members.append(row));trackSquadCount(squad);
    const list=$('.message-list');state.tasks.filter(t=>['Submitted','Reviewing','Changes requested','Accepted'].includes(t.status)).forEach(t=>list.insertAdjacentHTML('beforeend',taskCard(t)));
   }
   wireTasks();
