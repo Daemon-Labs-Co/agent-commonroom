@@ -1,0 +1,2 @@
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+test('agent named You remains visibly an agent and unknown legacy identity is explicit',()=>{const ctx={render(){},view:'Settings'};vm.createContext(ctx);vm.runInContext(fs.readFileSync('web/message-identity.js','utf8'),ctx);assert.equal(ctx.messageIdentityLabel({author:'You',actorType:'agent'}),'Agent');assert.equal(ctx.messageIdentityLabel({author:'Agent',actorType:'human'}),'Human');assert.match(ctx.messageIdentityLabel({author:'You'}),/Legacy/);});

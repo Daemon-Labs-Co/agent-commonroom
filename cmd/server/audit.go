@@ -38,6 +38,10 @@ func auditSummary(kind string, payload []byte) string {
 		return "Human acknowledged an agent attention request"
 	case "agent.activity":
 		return "Agent activity started"
+	case "agent.background":
+		return "Agent background work · " + label("stage", "update")
+	case "agent.recovered":
+		return "Owner recovered an agent session · " + label("action", "recovery")
 	case "workflow.run.updated":
 		return "Workflow execution · " + label("status", "updated")
 	case "room.created":

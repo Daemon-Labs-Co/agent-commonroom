@@ -16,27 +16,38 @@ type Connection struct {
 	Endpoint  string `json:"endpoint"`
 }
 type Participant struct {
-	StatusDetails     *AgentStatusDetails `json:"statusDetails,omitempty"`
-	ActorID           string              `json:"actorId"`
-	ExecutionMode     string              `json:"executionMode,omitempty"`
-	CompanyID         string              `json:"companyId"`
-	Discipline        string              `json:"discipline"`
-	Level             string              `json:"level"`
-	Speciality        string              `json:"speciality"`
-	Assignment        string              `json:"assignment"`
-	Challenge         *int                `json:"challenge"`
-	RoomID            string              `json:"roomId"`
-	ID                string              `json:"id"`
-	ConnectionID      string              `json:"connectionId"`
-	Name              string              `json:"name"`
-	Role              string              `json:"role"`
-	Instructions      string              `json:"instructions"`
-	Rank              int                 `json:"rank"`
-	Accept            bool                `json:"accept"`
-	AdditionalContext string              `json:"additionalContext"`
-	ContextSource     string              `json:"contextSource"`
-	ThreadID          string              `json:"threadId"`
-	Status            string              `json:"status"`
+	Background        []BackgroundActivity `json:"background,omitempty"`
+	StatusDetails     *AgentStatusDetails  `json:"statusDetails,omitempty"`
+	ActorID           string               `json:"actorId"`
+	ExecutionMode     string               `json:"executionMode,omitempty"`
+	CompanyID         string               `json:"companyId"`
+	Discipline        string               `json:"discipline"`
+	Level             string               `json:"level"`
+	Speciality        string               `json:"speciality"`
+	Assignment        string               `json:"assignment"`
+	Challenge         *int                 `json:"challenge"`
+	RoomID            string               `json:"roomId"`
+	ID                string               `json:"id"`
+	ConnectionID      string               `json:"connectionId"`
+	Name              string               `json:"name"`
+	Role              string               `json:"role"`
+	Instructions      string               `json:"instructions"`
+	Rank              int                  `json:"rank"`
+	Accept            bool                 `json:"accept"`
+	AdditionalContext string               `json:"additionalContext"`
+	ContextSource     string               `json:"contextSource"`
+	ThreadID          string               `json:"threadId"`
+	Status            string               `json:"status"`
+}
+
+type BackgroundActivity struct {
+	ParticipantID string    `json:"participantId"`
+	RoomID        string    `json:"roomId"`
+	TurnID        string    `json:"turnId"`
+	JobID         string    `json:"jobId,omitempty"`
+	Stage         string    `json:"stage"`
+	Label         string    `json:"label"`
+	ObservedAt    time.Time `json:"observedAt"`
 }
 type Memory struct {
 	RoomID   string `json:"roomId"`
@@ -219,7 +230,9 @@ type WorkflowStep struct {
 
 // AgentStatusDetails is a safe display projection, never raw provider output.
 type AgentStatusDetails struct {
-	Activity string `json:"activity"`
-	Reason   string `json:"reason"`
-	Next     string `json:"next"`
+	Activity       string `json:"activity"`
+	Reason         string `json:"reason"`
+	Next           string `json:"next"`
+	ElapsedSeconds int    `json:"elapsedSeconds,omitempty"`
+	LongRunning    bool   `json:"longRunning,omitempty"`
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 // agentsBlockedLocked requires s.mu. Persisted stops survive restart; volatile
 // latches stop dispatch locally even when recording the stop fails.
 func (s *server) agentsBlockedLocked(st room.State, rid string) bool {
-	if st.AgentsStopped || s.stopAll || s.stopRooms[rid] {
+	if s.integrityFault || st.AgentsStopped || s.stopAll || s.stopRooms[rid] {
 		return true
 	}
 	for _, id := range st.AgentStopRooms {
@@ -67,9 +68,35 @@ func (s *server) agentSafety(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Room not found", 404)
 		return
 	}
-	if req.Action == "resume" && (st.Incident || (req.Scope == "room" && (st.AgentsStopped || s.stopAll))) {
+	if req.Action == "resume" && (st.Incident || s.integrityFault || (req.Scope == "room" && (st.AgentsStopped || s.stopAll))) {
 		http.Error(w, "Resolve the integrity incident or application stop first", 409)
 		return
+	}
+	if req.Action == "resume" {
+		rec := &bufferResponse{header: http.Header{}, body: &bytes.Buffer{}}
+		s.integrityLocked(rec, (&http.Request{Method: "GET"}).WithContext(ctx))
+		var integrity struct {
+			Valid bool `json:"valid"`
+		}
+		if rec.status >= 400 || json.Unmarshal(rec.body.Bytes(), &integrity) != nil || !integrity.Valid || s.integrityFault {
+			http.Error(w, "A freshly verified audit chain is required before resuming", 409)
+			return
+		}
+		for _, active := range s.active {
+			if active {
+				http.Error(w, "Wait for active controller turns to finish cancellation", 409)
+				return
+			}
+		}
+		probe := s.recoveryIdle
+		if probe == nil {
+			probe = remoteWorkerIdle
+		}
+		idle, err := probe(ctx, "ssh://"+os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"))
+		if err != nil || !idle {
+			http.Error(w, "Worker shutdown is unverified; execution remains stopped", 503)
+			return
+		}
 	}
 	if req.Action == "stop" {
 		if s.stopRooms == nil {
@@ -78,6 +105,9 @@ func (s *server) agentSafety(w http.ResponseWriter, r *http.Request) {
 		if req.Scope == "application" {
 			s.stopAll = true
 			for _, cancel := range s.cancels {
+				cancel()
+			}
+			for _, cancel := range s.workflowLive {
 				cancel()
 			}
 		} else {

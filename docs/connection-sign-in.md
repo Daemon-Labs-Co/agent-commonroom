@@ -27,6 +27,13 @@ GOOS=linux GOARCH=amd64 go build -o /tmp/commonroom-worker-linux ./cmd/server
 
 Install it as `~/.local/bin/commonroom-worker-bin` under the dedicated worker account. The `~/.local/bin/commonroom-worker` wrapper must set the rootless Docker PATH and `XDG_RUNTIME_DIR=/run/user/$(id -u)`, unset Docker environment overrides, and invoke the binary with `--agent-worker`.
 
+The session recovery feature also requires the current worker binary. Check its
+read-only protocol with `ssh commonroom-worker '~/.local/bin/commonroom-worker idle-v1'`.
+It returns `{"version":1,"idle":true}` only when the managed worker is quiescent.
+False means managed containers or nonterminal records remain; an error means state
+cannot be confirmed. Do not delete job records to force a positive result. Updating
+this protocol requires no image rebuild or provider credential replacement.
+
 Create a regular owner-only `~/.config/commonroom-worker/config.json`:
 
 ```json

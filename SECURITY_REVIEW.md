@@ -1,8 +1,78 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Mandatory hardening — 13 October 2026
+
+Implemented (source and mocked tests): explicit migration/runtime database separation,
+startup effective-privilege rejection, pinned search path, startup/30-second audit
+verification, cancellation on verification/storage failure, persistent stop marker,
+owner-only verified recovery, startup worker quiescence checks and verified emergency resume, checksummed new-record ID/sequence/time metadata,
+authenticated audit attribution, human-only API identity, unambiguous message
+styling, per-actor mutation budgets and pre-dispatch chat context limits.
+pgx/text dependencies were updated; govulncheck reported no remaining reachable
+Go advisories with Go 1.27.2. A redacted source-only Gitleaks scan found no secrets.
+Neither scan covers all provider image/OS dependencies or proves absence of secrets.
+
+The local controller and Debian worker were updated after verified worker idle.
+Local PostgreSQL runtime grants and CommonRoom-only SCRAM/peer rules were applied;
+passwordless runtime access was rejected, and the new controller started with the
+restricted account. No audit records were modified for verification and no
+provider model was launched. Other installations using owner credentials must follow [restricted database setup](docs/database-security.md)
+before the new controller can start. Role/HBA verification is deployment-specific; live provider execution under
+this update and fresh-server installation remain unverified. Read [operational limits](docs/security-hardening.md).
+
+Still open: independent audit anchoring/rollback protection (SEC-05), legacy
+metadata protection, durable job reconciliation and confirmed cancellation under
+transport failure (SEC-06/09), transactional/multi-controller coordination,
+spend/storage limits and disclosure controls (SEC-10/11/12/13). Do not mark these
+closed on the basis of checksums, in-memory budgets or successful mocked tests.
+
+## Incremental execution hardening — 12 October 2026
+
+Session recovery follow-up: owner-only check/resume/fresh controls require approved
+worker quiescence, block active controller work/stops/incidents, and atomically
+audit the resulting session snapshot. Unknown worker state and nonterminal job
+records fail closed. This protects the new recovery path; ordinary dispatch,
+connection reassignment and workflow resume still need durable per-job reconciliation
+to establish universal restart safety. The whole-worker idle check assumes one
+controller and may block on stale records; no automatic force override is offered.
+
+Worker telemetry follow-up: background operational observations are now bounded,
+job/provider-validated over approved SSH, and protected by an owner-controlled
+server flag. Raw commands/outputs are excluded. The expandable view can invoke
+the existing mandatory owner emergency stop independently of cosmetic safety
+button visibility. This improves SEC-09 observability; it does not resolve orphan
+reconciliation, durable cancellation enforcement or malicious-worker trust.
+
+The original findings below are historical evidence, not a fresh finding that
+every cited behavior still exists. Authentication, authorization, isolation and
+bounded-output work are described in later remediation notes.
+
+SEC-10 now additionally has mandatory single-controller admission limits shared
+by chat and workflows: eight active model turns overall and four per room. Chat
+rejects an over-capacity batch before any member is dispatched. Workflow overload
+fails explicitly for owner recovery. Mocked tests cover global/room bounds,
+removed active jobs, chat rejection without writes and workflow rejection without
+provider calls. This does **not** close SEC-10: spend/rate/context quotas, durable
+leases, multi-controller bounds and global-lock latency still require work.
+
+Status diagnostics preserve deadline causes and report elapsed dispatch age;
+they do not verify worker health, progress or cancellation. No live provider
+long-running scenario has been replayed for this change.
+
+Next security priorities:
+
+1. Durable job identity/reconciliation and authenticated worker lifecycle events,
+   including confirmed cancellation and fail-closed handling of orphaned jobs
+   (SEC-06/09, ARCH-01). Never extend deadlines solely on heartbeats.
+2. Independently controlled audit anchoring, rollback detection and least-privilege
+   database migration/runtime roles (SEC-05). Checksums alone are insufficient.
+3. Remaining multi-actor capability/attribution, context-disclosure and transactional
+   command protections (SEC-01/03/11/12/13). Re-test each finding against current
+   code rather than treating the historical list as an up-to-date verdict.
+
 Scope: current Go/Postgres/JavaScript implementation, source inspection and non-destructive local HTTP probes. No agent launches, private payload disclosure, live database tampering, or production exploitation. This is a prioritized developer backlog, not a guarantee that all vulnerabilities have been found.
 
-Threat model: multiple cooperative and malicious humans, compromised agents, malicious model output and shared context, compromised SSH destinations, hostile browser sites, other local processes, and administrators able to alter storage. The present application supports a single trusted local owner; that trust assumption does not satisfy this threat model. Priority denotes repair order, not a formal CVSS score. No dependency CVE audit was performed.
+Threat model: multiple cooperative and malicious humans, compromised agents, malicious model output and shared context, compromised SSH destinations, hostile browser sites, other local processes, and administrators able to alter storage. The present application supports a single trusted local owner; that trust assumption does not satisfy this threat model. Priority denotes repair order, not a formal CVSS score. The original review did not perform a dependency audit; the 13 October update below records the later Go scan.
 
 ## P0 — required before admitting untrusted actors or remote users
 

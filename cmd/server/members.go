@@ -78,7 +78,16 @@ func (s *server) actorGuard(next http.Handler) http.Handler {
 			http.Error(w, "Account disabled", 403)
 			return
 		}
+		if a.Kind != "human" {
+			http.Error(w, "Human login required; agent API credentials are unsupported", 403)
+			return
+		}
 		r = r.WithContext(context.WithValue(r.Context(), actorContextKey{}, actor))
+		if r.Method != "GET" && r.Method != "HEAD" && !s.admitActorMutation(actor, time.Now()) {
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "Too many state-changing requests; wait before retrying", 429)
+			return
+		}
 		path := r.URL.Path
 		if actor != ownerID {
 			if path == "/api/members" || path == "/api/owner-key/download" || path == "/api/integrity" || path == "/api/events" && r.Method == "GET" {

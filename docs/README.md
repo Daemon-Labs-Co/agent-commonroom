@@ -39,3 +39,6 @@ See [isolated connection sign-in](connection-sign-in.md) for remote Codex/Claude
 [Testing connections](connection-testing.md): per-connection readiness checks and troubleshooting from the Connections screen.
 
 [Help window preference](help-display.md): choose same-window or separate-window documentation per human profile.
+
+- [Security hardening and remaining limits](security-hardening.md)
+- [Restricted audit database setup and recovery](database-security.md)

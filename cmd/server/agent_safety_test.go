@@ -15,10 +15,49 @@ import (
 
 func safetyHarness(t *testing.T) (*server, *mockDB, http.Handler) {
 	s, db, _ := mockServer(t)
+	s.recoveryIdle = func(context.Context, string) (bool, error) { return true, nil }
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
 	return s, db, s.auth.protect(s.actorGuard(mux))
+}
+
+func TestSafetyResumeRefusesUnknownWorkerOrIntegrityStop(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"busy", "unknown", "active", "integrity"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			s, db, h := safetyHarness(t)
+			s.stopAll = true
+			s.recoveryIdle = func(context.Context, string) (bool, error) { return false, nil }
+			if mode == "unknown" {
+				s.recoveryIdle = func(context.Context, string) (bool, error) { return false, context.DeadlineExceeded }
+			}
+			if mode == "active" {
+				s.active["synthetic"] = true
+			}
+			if mode == "integrity" {
+				s.integrityFault = true
+			}
+			w := mockRequest(h, "POST", "/api/agent-safety", `{"action":"resume","scope":"application"}`)
+			if w.Code < 400 || !s.stopAll || len(db.snapshot()) != 0 {
+				t.Fatal("unverified resume accepted", mode, w.Code)
+			}
+		})
+	}
+}
+
+func TestApplicationStopCancelsWorkflowEvenWhenDatabaseReadFails(t *testing.T) {
+	t.Parallel()
+	s, db, h := safetyHarness(t)
+	db.failAt = "query"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s.workflowLive = map[string]context.CancelFunc{"synthetic": cancel}
+	w := mockRequest(h, "POST", "/api/agent-safety", `{"action":"stop","scope":"application"}`)
+	if w.Code != 200 || ctx.Err() == nil {
+		t.Fatal("application stop missed workflow", w.Code)
+	}
 }
 func TestEmergencyStopAndExplicitResume(t *testing.T) {
 	t.Parallel()
@@ -159,5 +198,21 @@ func TestEmergencyUIFlagDoesNotDisableBackend(t *testing.T) {
 		if w.Code != 200 || !s.stopAll {
 			t.Fatal("UI flag disabled backend safety")
 		}
+	}
+}
+
+func TestSafetyResumeVerifiesChainBeforeWorkerOrApproval(t *testing.T) {
+	t.Parallel()
+	s, db, h := safetyHarness(t)
+	db.seed("message.created", room.Message{Text: "Synthetic original"})
+	db.events[0].payload = `{"text":"Synthetic altered"}`
+	s.stopAll = true
+	s.recoveryIdle = func(context.Context, string) (bool, error) {
+		t.Error("worker probed before audit verification")
+		return true, nil
+	}
+	w := mockRequest(h, "POST", "/api/agent-safety", `{"action":"resume","scope":"application"}`)
+	if w.Code != 409 || !s.stopAll || !s.integrityFault {
+		t.Fatal("tampered chain resumed", w.Code)
 	}
 }

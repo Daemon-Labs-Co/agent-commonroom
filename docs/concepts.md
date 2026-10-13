@@ -280,7 +280,90 @@ Feature flags appear as rounded on/off switches in Settings → Features, with l
 
 Technical modules: `room-viewport.js` applies/removes the scoped body class only for an active room conversation; CSS uses flex/grid with `min-height:0` and preserves a nonshrinking composer. `feature-switches.js` replaces identified flag controls after settings/category layout, manages per-flag pending saves, and preserves the category through a short-lived session-storage UI preference consumed by `features.js`. Labels use text nodes. Reduced-motion preferences disable knob animation. Tests cover both feature flags and server delivery/permissions with mocked database interactions; synthetic UI tests cover defaults, accessible attributes, duplicate-click prevention, save rollback, unauthorized callers, view transitions and disabled fallbacks.
 
+### Safe session recovery
+
+The owner can click **Recover session** under an agent's squad status, then use:
+
+- **Check worker**: read-only verification of the approved worker. It must report
+  no managed containers and no starting/running/unknown job records. A busy shared
+  worker does not prove this particular agent is running; wait or inspect Background
+  work. An unavailable worker never counts as stopped.
+- **Resume session**: after another check at action time, return the agent to Idle
+  while preserving its saved isolated provider session. A missing, legacy or
+  workspace-mismatched session must use Start fresh instead.
+- **Start fresh session**: return to Idle and clear the provider session binding.
+  Room history, profile, credentials and private workspace files remain. This does
+  not undo partial changes or erase conversation records.
+
+No option automatically invokes the model or replays an old task. After recovery,
+the composer selects the agent and preserves your unsent draft; inspect partial
+work and explicitly send the next request. Workflow runs remain separate and
+require their own explicit recovery. Integrity incidents, emergency stops and any
+controller-active model turn block session recovery.
+
+The owner-controlled Security flag **Agent session recovery** (`agentRecovery`)
+defaults **on**. Off rejects recovery server-side and hides controls/gates the
+script. Stored sessions and history remain. Reload when enabling optional scripts;
+no controller restart is needed for flag changes. Recovery is single-controller,
+remote-worker-only, and deliberately requires the entire shared worker to be idle.
+Unknown/stale nonterminal records require administrator reconciliation; there is no
+force override. Other controllers must not share this worker concurrently.
+
+Install the updated `commonroom-worker-bin` before using recovery. Its new
+`idle-v1` protocol is a bounded read-only probe; older workers reject it, and the
+app reports that verification is unavailable. Follow the existing worker binary
+installation in [connection sign-in](connection-sign-in.md). No image rebuild or
+credential migration is required for this protocol change.
+
+### Background work
+
+Click **Background work** beneath an agent's squad status for its expandable
+operational timeline. Remote workers are polled through the approved SSH transport
+every five seconds; unchanged states are recorded at most every fifteen seconds.
+The view shows worker startup/running/terminal observations, controller completion
+and timeout, and Codex-reported command/tool start and finish. Claude currently
+provides worker lifecycle only, because its adapter returns a final JSON result.
+This is not a complete OS process trace or the model's private reasoning. Command
+contents, outputs, credentials and arbitrary provider text are intentionally omitted.
+
+The timeline updates while it is open; older reading positions are preserved.
+Its independently scrollable feed shows the latest 64 observations; earlier audit
+records remain in History. Each turn records at most 64 observations, reserving
+space for shutdown and completion. A heartbeat or running job does not prove useful
+progress and never extends the existing three-minute hard turn maximum.
+
+The owner can select **Stop all agents** inside the view. This immediately requests
+the existing application-wide emergency stop without relying on the cosmetic safety
+button flag. “Cancellation requested” does not mean “shutdown confirmed”: confirmed
+shutdown appears only after the remote worker acknowledges the matching job's
+container is absent and its record terminal. Failed confirmation is displayed.
+Agents cannot stop/resume the application. Resuming permits new requests and does
+not replay cancelled work. No monitor automatically changes permissions or retries.
+
+Settings → Features → Cosmetic includes **Agent background work** (`agentBackgroundWork`),
+default **on**, owner-controlled. Off blocks new telemetry collection and omits
+timelines server-side, gates the script, and preserves existing audit history.
+Existing monitoring loops may finish their bounded polling until their current turn
+ends. No restart is required for the flag; reload to fetch optional scripts when
+enabling it. Monitoring is single-controller and does not reconcile jobs after restart.
+
 ### Agent status explanations
+
+**Click a squad status** (or press Enter/Space when focused) to open an agent
+diagnosis panel. It shows the last activity, a safe explanation and the next step.
+The owner can check whether credentials are saved, explicitly test a fixed provider
+reply, or open History. Saved credentials do not prove an OAuth session is valid.
+Connection tests may consume provider quota and send no room history. If sign-in
+is required, use Connections to complete official provider authentication.
+
+**Compose smaller request** selects that agent and focuses the message box while
+preserving an existing unsent draft. It sends nothing. Inspect partial file changes
+before sending; retries can repeat side effects. Emergency stops and integrity
+incidents disable this action until owner recovery. There is no one-click reset
+that erases the failure or automatically replays a failed workflow. Workflow recovery
+uses its existing explicit Resume control. Close X and the help icon appear at the
+top right. These actions reuse existing server-authorized APIs and their respective
+flags; `agentStatusDetails` off removes this panel as well as the status explanations.
 
 Hover over an agent's squad status, focus it with Tab, or tap it to see **Doing**,
 **Why** and **Next**. Escape, pointer exit, loss of focus, scrolling or navigation
@@ -290,6 +373,31 @@ records explicitly show that information as unavailable. Recognized failures hav
 safe explanations for time limits, sandbox namespaces, read-only workspaces,
 worker/provider connectivity, sign-in, review format and workflow limits. Unknown
 failures direct the owner to History rather than exposing raw stderr.
+
+Chat turns currently have a three-minute hard limit, including worker startup;
+workflow steps have an explicit limit of at most 180 seconds. A deadline is
+reported as a time-limit failure even when stopping the process produces
+`signal: killed`. Older killed-process records remain unchanged: they do not
+prove a timeout, because resource exhaustion or another termination can also
+kill a process. Inspect partial work before retrying, and split long tasks into
+smaller steps. Expired provider sessions require connection sign-in and a
+connection test. Process progress monitoring is not yet implemented.
+
+New turns record a controller dispatch timestamp. With `agentStatusDetails` on,
+Working turns at least 120 seconds old display **Working · taking longer** and
+elapsed seconds in their status help. This is an age warning, not a heartbeat,
+proof of model progress, or automatic timeout extension. Legacy events without a
+timestamp do not invent elapsed time. Disabling the flag omits these fields and
+warnings server-side; it never changes execution budgets or containment.
+
+Managed chat and workflow turns share mandatory single-controller concurrency
+limits: **eight active model turns overall, four per room**. An oversized chat
+broadcast returns HTTP 429 before recording its message or launching any member
+of that broadcast. Workflow capacity failures preserve the failed run for
+explicit resume; there is no automatic queue or retry. Wait for current turns to
+finish or request a smaller group. These resource safeguards have no off switch;
+presentation flags do not bypass them. Multi-controller quotas, spend budgets,
+durable leases and confirmed process callbacks remain planned.
 
 The owner-controlled Cosmetic flag `agentStatusDetails` defaults **on** under
 Settings → Features. It changes immediately after save/reload without restart.

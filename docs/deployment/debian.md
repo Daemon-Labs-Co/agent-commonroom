@@ -13,7 +13,7 @@ The guide has been checked against the current application configuration and off
 - Source, executable, migrations, and web files: `/opt/agent-commonroom`.
 - Private setup/key files: `/opt/agent-commonroom/.data`.
 - Service account home and optional CLI credentials: `/var/lib/commonroom`.
-- Local PostgreSQL database and owner role: `commonroom`.
+- Local PostgreSQL database: `commonroom`; migration owner: `commonroom_migrator`; runtime login: `commonroom`.
 - Application listener: `127.0.0.1:8787` on the Debian server.
 - Browser access: `http://127.0.0.1:8787` on your computer, forwarded through SSH.
 
@@ -37,7 +37,7 @@ go version
 psql --version
 ```
 
-Check the Go version meets `go.mod` (currently at least 1.23). Debian's Go package version varies by release. If it is too old, follow the [official Go Linux installation instructions](https://go.dev/doc/install), choose the archive matching your server architecture, and verify its published checksum. If using the official `/usr/local/go` installation, add it to this terminal's PATH before building:
+Check the Go version meets `go.mod` (currently at least 1.26). Debian's Go package version varies by release. If it is too old, follow the [official Go Linux installation instructions](https://go.dev/doc/install), choose the archive matching your server architecture, and verify its published checksum. If using the official `/usr/local/go` installation, add it to this terminal's PATH before building:
 
 ```sh
 export PATH="/usr/local/go/bin:$PATH"
@@ -53,14 +53,14 @@ On a fresh server where this account and database do not already exist:
 ```sh
 sudo useradd --system --user-group --create-home --home-dir /var/lib/commonroom --shell /usr/sbin/nologin commonroom
 sudo install -d -o commonroom -g commonroom -m 0750 /opt/agent-commonroom
+sudo -u postgres createuser commonroom_migrator
 sudo -u postgres createuser commonroom
-sudo -u postgres createdb --owner=commonroom commonroom
-sudo -H -u commonroom psql -d commonroom -c 'SELECT current_user;'
+sudo -u postgres createdb --owner=commonroom_migrator commonroom
 ```
 
 The PostgreSQL role owns only its dedicated database; it is not a PostgreSQL superuser. This guide uses local Unix-socket peer authentication, matching the Linux account to the PostgreSQL role, so there is no database password to put into Git or an environment file. It assumes Debian's local peer-authentication configuration. If the check fails, inspect PostgreSQL's `pg_hba.conf` with your administrator rather than enabling `trust` authentication.
 
-Startup applies the application's migration and creates event protections, so this database owner has DDL permissions. A separate migration owner and more restricted runtime role are still on the security backlog. Do not grant access to unrelated databases.
+The service login must not own the database. After building, follow [database security setup](../database-security.md): run `--migrate` under the migration owner and grant the runtime login only the listed permissions. For Unix-socket administration use a dedicated peer-authenticated migration OS account or DBA-approved credential file; do not weaken peer authentication or run migrations from the service account.
 
 ## 3. Download the source and build
 
@@ -187,7 +187,7 @@ sudo systemctl restart agent-commonroom
 sudo systemctl stop agent-commonroom
 ```
 
-Do not share raw logs without reviewing them for private data. For an update, finish/cancel active agent work, stop the service, back up the database and key/state files, deploy a reviewed commit/release, build again, and restart. Startup migration changes need review before deployment. A stopped web service is not currently a guarantee that every remote agent process has terminated; inspect active remote jobs separately.
+Do not share raw logs without reviewing them for private data. For an update, finish/cancel active agent work, stop the service, back up the database and key/state files, deploy a reviewed commit/release, build again, and restart. Run reviewed migrations explicitly with the migration account before restarting; do not put migration credentials in the service environment. A stopped web service is not currently a guarantee that every remote agent process has terminated; inspect active remote jobs separately.
 
 For a new backup, create a uniquely named private directory outside the repository and store a database dump there:
 

@@ -12,7 +12,7 @@ The examples have been checked against application request rules and upstream do
 
 Ask the database administrator to identify the intended cluster, port, socket directory, version, and authentication method. Check the server version through that connection rather than relying only on the client version. Local development has used PostgreSQL 17; validate any other existing version with a separate test database before deployment.
 
-Use a dedicated `commonroom` Linux service account, database login, and database. Follow steps 2–4 of the [Debian guide](debian.md) for the account, source/build, and service, adapting its database commands to your existing cluster. Create the login/database only if they do not already exist. Never point CommonRoom at an unrelated application's database: startup applies schema DDL.
+Use a dedicated `commonroom` Linux service account, database login, and database. Follow steps 2–4 of the [Debian guide](debian.md) for the account, source/build, and service, adapting its database commands to your existing cluster. Create the login/database only if they do not already exist. Never point CommonRoom at an unrelated application's database: explicit migrations apply schema DDL.
 
 For a same-host cluster using local peer authentication and the matching `commonroom` account, the example connection is:
 
@@ -30,7 +30,7 @@ DATABASE_URL="postgres://commonroom@db.internal.example:5432/commonroom?sslmode=
 
 The domain is a placeholder. Supply credentials separately through a private service-account PostgreSQL password file or approved credential management. pgx supports PostgreSQL password files; keep the file readable only by the service account. Do not commit actual passwords or put them in connection endpoints. Match the password-file host/port/database/user to the URL, and ensure the runtime account can read the CA file. Coordinate restricted network access and `pg_hba.conf` with the DBA.
 
-The application currently applies migrations as the database owner. It does not need cluster superuser access; separation of migration and runtime roles remains planned.
+Follow [database security setup](../database-security.md) before starting the service. Migrations run explicitly with a separate owner; the serving process rejects owner/DDL credentials and needs only SELECT/INSERT plus sequence USAGE. Do not grant cluster superuser access.
 
 ## 2. pg_vector prerequisite
 

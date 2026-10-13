@@ -104,7 +104,20 @@ func describeAuditEvent(kind string, raw []byte) auditPresentation {
 	case strings.HasPrefix(kind, "actor.") || strings.HasPrefix(kind, "company.") || strings.HasPrefix(kind, "human."):
 		d.Category = "People & company"
 	}
-	d.Routine = kind == "participant.session" || kind == "agent.activity"
+	d.Routine = kind == "participant.session" || kind == "agent.activity" || kind == "agent.background"
+	if kind == "agent.background" {
+		switch label("stage") {
+		case "failed", "turn_failed", "timed_out":
+			d.Outcome = "failed"
+		case "unreachable", "shutdown_unconfirmed", "stop_requested", "cancelled":
+			d.Outcome = "stopped"
+		case "finished", "completed":
+			d.Outcome = "completed"
+		}
+		if d.Outcome != "" {
+			d.Routine = false
+		}
+	}
 	if kind == "workflow.run.updated" {
 		var workflow struct {
 			Name string `json:"name"`

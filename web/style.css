@@ -347,3 +347,14 @@ nav .attention-room-button { min-width:0; max-width:100%; }
 .audit-tone-success { border-left-color:#42835d; }.audit-tone-success .audit-outcome { color:#316446; background:#eef8f1; }
 .audit-context { margin:4px 0; color:var(--muted); font-size:12px; }.audit-explanation,.audit-next { font-size:13px; margin:6px 0; }
 .audit-technical { margin-top:10px; }.audit-technical code { overflow-wrap:anywhere; }.audit-technical dl { font-size:12px; }
+/* Recovery summaries stay compact; actions remain clearly separated. */
+.agent-diagnosis{display:grid;grid-template-columns:9rem minmax(0,1fr);gap:12px 20px}
+.agent-diagnosis dt{font-weight:600}.agent-diagnosis dd{margin:0;overflow-wrap:anywhere}
+.agent-recovery-actions{display:flex;flex-wrap:wrap;gap:12px}
+@media(max-width:600px){.agent-diagnosis{grid-template-columns:1fr;gap:8px}.agent-diagnosis dd{margin-bottom:12px}}
+/* Long activity feeds scroll independently inside the expandable work view. */
+.background-work-link{padding:2px 0;min-height:24px;border:0;background:transparent;justify-content:flex-start;font-size:11px;color:#3154d6}
+#background-work-content{max-height:45dvh;overflow:auto;overflow-anchor:none}
+.background-timeline{list-style:none;padding:0;display:grid;gap:12px}
+.background-timeline li{border-left:2px solid #d9ddf5;padding:4px 12px;display:grid;gap:3px}
+.background-timeline time,.background-timeline small{font-size:11px;color:#77758d}

@@ -376,7 +376,7 @@ func (s *server) workflowSafety(ctx context.Context, st room.State, rid string) 
 	}
 	var body bytes.Buffer
 	rec := &bufferResponse{header: http.Header{}, body: &body}
-	s.integrity(rec, (&http.Request{Method: "GET"}).WithContext(ctx))
+	s.integrityLocked(rec, (&http.Request{Method: "GET"}).WithContext(ctx))
 	var result struct {
 		Valid bool `json:"valid"`
 	}
@@ -549,6 +549,9 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 			if err == nil && s.active[p.ID] {
 				err = errors.New("Assigned agent is already working")
 			}
+			if err == nil {
+				err = s.agentAdmission(st, run.RoomID, 1)
+			}
 			ready := isolationAvailable
 			if s.workflowReady != nil {
 				ready = s.workflowReady
@@ -579,7 +582,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		}
 		turnCtx, stop := context.WithTimeout(ctx, time.Duration(seconds)*time.Second)
 		if p.ID != "" {
-			if err = s.append(context.Background(), "agent.activity", map[string]string{"participantId": p.ID, "activity": "Workflow: " + run.Workflow.Name + " / " + n.Title}); err != nil {
+			if err = s.append(context.Background(), "agent.activity", map[string]any{"participantId": p.ID, "activity": "Workflow: " + run.Workflow.Name + " / " + n.Title, "startedAt": time.Now().UTC()}); err != nil {
 				stop()
 				s.mu.Unlock()
 				return
