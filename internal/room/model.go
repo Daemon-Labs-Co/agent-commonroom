@@ -1,12 +1,14 @@
 package room
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 	"time"
 )
 
 type Connection struct {
+	Revision  int    `json:"revision"`
 	Location  string `json:"location"`
 	CompanyID string `json:"companyId"`
 	Provider  string `json:"provider"`
@@ -16,6 +18,8 @@ type Connection struct {
 	Endpoint  string `json:"endpoint"`
 }
 type Participant struct {
+	DisclosureVersion int                  `json:"disclosureVersion,omitempty"`
+	Revision          int                  `json:"revision"`
 	Background        []BackgroundActivity `json:"background,omitempty"`
 	StatusDetails     *AgentStatusDetails  `json:"statusDetails,omitempty"`
 	ActorID           string               `json:"actorId"`
@@ -50,12 +54,15 @@ type BackgroundActivity struct {
 	ObservedAt    time.Time `json:"observedAt"`
 }
 type Memory struct {
-	RoomID   string `json:"roomId"`
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Body     string `json:"body"`
-	Scope    string `json:"scope"`
-	Revision int    `json:"revision"`
+	AgentExport     *bool    `json:"agentExport,omitempty"`
+	ExportProviders []string `json:"exportProviders,omitempty"`
+	SourceActorID   string   `json:"sourceActorId,omitempty"`
+	RoomID          string   `json:"roomId"`
+	ID              string   `json:"id"`
+	Title           string   `json:"title"`
+	Body            string   `json:"body"`
+	Scope           string   `json:"scope"`
+	Revision        int      `json:"revision"`
 }
 type Message struct {
 	HumanRequest            string    `json:"humanRequest,omitempty"`
@@ -69,16 +76,26 @@ type Message struct {
 	Text                    string    `json:"text"`
 	Created                 time.Time `json:"created"`
 }
+
+// ContextExportPolicy is owner-managed disclosure authorization, never model instructions.
+type ContextExportPolicy struct {
+	Providers         []string `json:"providers"`
+	ExcludeMessages   bool     `json:"excludeMessages"`
+	ExcludeMemory     bool     `json:"excludeMemory"`
+	ExcludeReferences bool     `json:"excludeReferences"`
+}
 type Room struct {
-	PendingHumanRequests int    `json:"pendingHumanRequests,omitempty"`
-	PersonalActorID      string `json:"personalActorId"`
-	CompanyID            string `json:"companyId"`
-	HumanPresent         *bool  `json:"humanPresent"`
-	HumanRank            *int   `json:"humanRank"`
-	HumanName            string `json:"humanName"`
-	ID                   string `json:"id"`
-	Name                 string `json:"name"`
-	Description          string `json:"description"`
+	Revision             int                  `json:"revision"`
+	ContextExport        *ContextExportPolicy `json:"contextExport,omitempty"`
+	PendingHumanRequests int                  `json:"pendingHumanRequests,omitempty"`
+	PersonalActorID      string               `json:"personalActorId"`
+	CompanyID            string               `json:"companyId"`
+	HumanPresent         *bool                `json:"humanPresent"`
+	HumanRank            *int                 `json:"humanRank"`
+	HumanName            string               `json:"humanName"`
+	ID                   string               `json:"id"`
+	Name                 string               `json:"name"`
+	Description          string               `json:"description"`
 }
 type Task struct {
 	ID       string `json:"id"`
@@ -101,6 +118,7 @@ type Evidence struct {
 	Created time.Time `json:"created"`
 }
 type Company struct {
+	Revision    int    `json:"revision"`
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -151,24 +169,33 @@ type ManagedJob struct {
 	ShutdownConfirmed bool      `json:"shutdownConfirmed"`
 }
 
+type OperationReceipt struct {
+	Key         string          `json:"key"`
+	Fingerprint string          `json:"fingerprint"`
+	Status      int             `json:"status"`
+	Response    json.RawMessage `json:"response"`
+}
 type State struct {
-	ManagedJobs      map[string]ManagedJob `json:"-"`
-	Organization     OrganizationChart     `json:"organization"`
-	FeatureFlags     map[string]bool       `json:"featureFlags"`
-	AgentsStopped    bool                  `json:"agentsStopped"`
-	AgentRoomStopped bool                  `json:"agentRoomStopped"`
-	AgentStopRooms   []string              `json:"-"`
-	Actors           []Actor               `json:"actors"`
-	CurrentActorID   string                `json:"currentActorId"`
-	Company          Company               `json:"company"`
-	HumanCompanyID   string                `json:"humanCompanyId"`
-	HumanTitle       string                `json:"humanTitle"`
-	HumanName        string                `json:"humanName"`
-	WorkflowRuns     []WorkflowRun         `json:"workflowRuns"`
-	Workflows        []Workflow            `json:"workflows"`
-	Rooms            []Room                `json:"rooms"`
-	Tasks            []Task                `json:"tasks"`
-	Evidence         []Evidence            `json:"evidence"`
+	HumanRevision     int                         `json:"humanRevision"`
+	EventCount        int64                       `json:"-"`
+	OperationReceipts map[string]OperationReceipt `json:"-"`
+	ManagedJobs       map[string]ManagedJob       `json:"-"`
+	Organization      OrganizationChart           `json:"organization"`
+	FeatureFlags      map[string]bool             `json:"featureFlags"`
+	AgentsStopped     bool                        `json:"agentsStopped"`
+	AgentRoomStopped  bool                        `json:"agentRoomStopped"`
+	AgentStopRooms    []string                    `json:"-"`
+	Actors            []Actor                     `json:"actors"`
+	CurrentActorID    string                      `json:"currentActorId"`
+	Company           Company                     `json:"company"`
+	HumanCompanyID    string                      `json:"humanCompanyId"`
+	HumanTitle        string                      `json:"humanTitle"`
+	HumanName         string                      `json:"humanName"`
+	WorkflowRuns      []WorkflowRun               `json:"workflowRuns"`
+	Workflows         []Workflow                  `json:"workflows"`
+	Rooms             []Room                      `json:"rooms"`
+	Tasks             []Task                      `json:"tasks"`
+	Evidence          []Evidence                  `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`

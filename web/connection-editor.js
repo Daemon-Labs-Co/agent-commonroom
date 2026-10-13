@@ -56,7 +56,7 @@ function wireConnectionEditorTesting(modal,editor,endpoint,c){
 }
 const previousConnectionEditor=connection;
 connection=function(c){
- form(c?'Edit connection':'New connection',connectionEditorFields(c),d=>commit(c?'connection.updated':'connection.created',{...Object.fromEntries(d),...(c?{id:c.id}:{})}));
+ form(c?'Edit connection':'New connection',connectionEditorFields(c),d=>commit(c?'connection.updated':'connection.created',{...Object.fromEntries(d),...(c?{id:c.id,revision:c.revision||0}:{})}));
  const modal=document.querySelector('#modal');modal.classList.add('connection-editor');
  // The legacy provider wrapper prepends an icon field for Edit connection.
  const selects=modal.querySelectorAll('select[name="provider"]');if(selects.length>1)selects[0].closest('label').remove();

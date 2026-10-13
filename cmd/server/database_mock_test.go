@@ -28,6 +28,7 @@ type mockDB struct {
 	mu                sync.Mutex
 	events            []mockEvent
 	failAt            string
+	failInsertAt      int
 	streamErr         error
 	runtimePrivileges []any
 }
@@ -129,7 +130,7 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 type mockTx struct {
 	pgx.Tx
 	db      *mockDB
-	pending *mockEvent
+	pending []mockEvent
 	done    bool
 }
 
@@ -143,7 +144,7 @@ func (tx *mockTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.Com
 			return pgconn.CommandTag{}, errors.New("mock lock failure")
 		}
 	case "INSERT INTO events(sequence,id,kind,payload,committed_at,previous_hash,hash) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7)":
-		if tx.db.failAt == "insert" {
+		if tx.db.failAt == "insert" || (tx.db.failInsertAt > 0 && len(tx.pending)+1 == tx.db.failInsertAt) {
 			return pgconn.CommandTag{}, errors.New("mock insert failure")
 		}
 		if len(args) != 7 {
@@ -154,10 +155,13 @@ func (tx *mockTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.Com
 		if len(tx.db.events) > 0 {
 			previous = tx.db.events[len(tx.db.events)-1].hash
 		}
+		if len(tx.pending) > 0 {
+			previous = tx.pending[len(tx.pending)-1].hash
+		}
 		if e.previous != previous || e.hash != checksum(previous, e.kind, e.payload) {
 			return pgconn.CommandTag{}, errors.New("invalid inserted chain")
 		}
-		tx.pending = &e
+		tx.pending = append(tx.pending, e)
 	default:
 		tx.db.t.Errorf("unexpected mock exec: %s", sql)
 		return pgconn.CommandTag{}, errors.New("unexpected SQL")
@@ -166,8 +170,10 @@ func (tx *mockTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.Com
 }
 func (tx *mockTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	switch sql {
+	case "SELECT count(*) FROM events":
+		return mockRow{values: []any{int64(len(tx.db.events))}}
 	case "SELECT nextval('public.events_sequence_seq')":
-		return mockRow{values: []any{int64(len(tx.db.events) + 1)}}
+		return mockRow{values: []any{int64(len(tx.db.events) + len(tx.pending) + 1)}}
 	case "SELECT hash FROM events ORDER BY sequence DESC LIMIT 1":
 		if tx.db.failAt == "previous" {
 			return mockRow{err: errors.New("mock previous failure")}
@@ -206,7 +212,7 @@ func (tx *mockTx) Commit(ctx context.Context) error {
 		return err
 	}
 	if tx.pending != nil {
-		tx.db.events = append(tx.db.events, *tx.pending)
+		tx.db.events = append(tx.db.events, tx.pending...)
 	}
 	return nil
 }

@@ -63,7 +63,13 @@ func scoped(st room.State, rid string) room.State {
 	st.Messages = ms
 	mem := []room.Memory{}
 	for _, m := range st.Memories {
-		if m.RoomID == rid || m.Scope == "Project" || m.Scope == "Application" {
+		privateOrigin := false
+		for _, r := range st.Rooms {
+			if r.ID == m.RoomID && r.PersonalActorID != "" && m.RoomID != rid {
+				privateOrigin = true
+			}
+		}
+		if !privateOrigin && (m.RoomID == rid || m.Scope == "Application") {
 			mem = append(mem, m)
 		}
 	}
