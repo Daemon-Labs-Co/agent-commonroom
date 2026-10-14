@@ -48,6 +48,21 @@ func (s *server) managedJobContext(ctx context.Context, p room.Participant) cont
 				found = true
 			}
 		}
+		if binding, ok := ctx.Value(verificationBindingKey{}).(verificationBinding); ok && binding.Participant.ID == p.ID && binding.Participant.RoomID == p.RoomID && binding.Participant.ConnectionID == p.ConnectionID {
+			found = false
+			for _, connection := range latest.Connections {
+				if connection.ID == binding.Connection.ID && connection.Endpoint == binding.Connection.Endpoint && connection.Protocol == "CLI" && connection.Provider == binding.Connection.Provider && connection.Revision == binding.Connection.Revision {
+					found = true
+				}
+			}
+			boundAlias, boundProvider, bindingErr := remoteWorkerEndpoint(binding.Connection.Endpoint, alias, "true")
+			if bindingErr != nil || boundAlias != alias || boundProvider != provider {
+				found = false
+			}
+			if !connectionTestingEnabled(latest.FeatureFlags) {
+				found = false
+			}
+		}
 		if !found {
 			return errors.New("managed membership changed before dispatch")
 		}

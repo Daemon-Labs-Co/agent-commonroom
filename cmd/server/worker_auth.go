@@ -308,66 +308,9 @@ func persistWorkerCredential(root, provider, source string) error {
 	return nil
 }
 
-// workerVerifyConnection runs only a fixed, tool-disabled conversation through
-// the mandatory container path. No room history or user task is forwarded.
-// Diagnostic volumes are disposable; credentials stay connection-scoped.
+// workerVerifyConnection rejects the legacy unjournalled verification launcher.
+// Controllers must use registered run-v2 jobs with verified cancellation instead.
 func workerVerifyConnection(v workerAuthRequest, out, diagnostics io.Writer) int {
-	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	defer stop()
-	ctx, cancel := context.WithTimeout(signalCtx, 20*time.Second)
-	defer cancel()
-	key := "diagnostic/" + v.Connection + "/" + v.Connection + "/" + v.Provider
-	dir, err := workerStateDirectory()
-	if err != nil {
-		fmt.Fprintln(diagnostics, "Diagnostic job storage unavailable")
-		return 1
-	}
-	if err = workerRuntimeReady(ctx); err != nil {
-		fmt.Fprintln(diagnostics, "Diagnostic worker runtime unverified")
-		return 1
-	}
-	containers, err := managedWorkerContainers(ctx)
-	if err != nil {
-		fmt.Fprintln(diagnostics, "Diagnostic container state unverified")
-		return 1
-	}
-	record, leases, err := admitWorkerJob(ctx, dir, workerRunRequest{Version: 2, IssuedAt: time.Now().UTC(), Deadline: time.Now().Add(20 * time.Second).UTC(), JobID: id(), Provider: v.Provider, Key: key}, containers)
-	if err != nil {
-		fmt.Fprintln(diagnostics, "Diagnostic admission refused")
-		return 1
-	}
-	defer leases.Close()
-	ctx = context.WithValue(ctx, workerLocalJobContextKey{}, record.JobID)
-	digest := sha256.Sum256([]byte(key))
-	volume := "commonroom-session-" + hex.EncodeToString(digest[:16])
-	defer func() {
-		cleanup, done := context.WithTimeout(context.Background(), 5*time.Second)
-		defer done()
-		if exec.CommandContext(cleanup, "docker", "volume", "rm", volume, volume+"-work").Run() != nil {
-			fmt.Fprintln(diagnostics, "Diagnostic volume cleanup could not be confirmed")
-		}
-	}()
-	var adapter sessionAdapter = codexAdapter{endpoint: v.Provider, executionKey: key}
-	if v.Provider == "claude" {
-		adapter = claudeAdapter{endpoint: v.Provider, executionKey: key}
-	}
-	answer, err := adapter.Run(ctx, "", "Connection check only. Do not use tools. Reply with exactly COMMONROOM_CONNECTION_OK.", func(string) error { return nil })
-	proofCtx, proofCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	proofErr := stopWorkerContainer(proofCtx, record.JobID)
-	proofCancel()
-	record.Status = "finished"
-	record.DiagnosticCode = "completed"
-	record.ShutdownConfirmed = proofErr == nil
-	record.UpdatedAt = time.Now().UTC()
-	if err != nil {
-		record.Status = "failed"
-		record.DiagnosticCode = "provider_failed"
-	}
-	if proofErr != nil {
-		record.Status = "shutdown_unconfirmed"
-		record.DiagnosticCode = "container_shutdown_unverified"
-	}
-	auditErr := writeWorkerRecord(dir, record, false)
-	json.NewEncoder(out).Encode(map[string]any{"version": 1, "connection": v.Connection, "provider": v.Provider, "verified": err == nil && proofErr == nil && auditErr == nil && strings.TrimSpace(answer) == "COMMONROOM_CONNECTION_OK"})
-	return 0
+	fmt.Fprintln(diagnostics, "Legacy verification is disabled; use controller-managed protocol-v2 verification")
+	return 1
 }

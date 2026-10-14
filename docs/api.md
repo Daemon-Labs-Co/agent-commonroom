@@ -250,3 +250,6 @@ See [Task dispatch](task-dispatch.md#api-and-technical-contract) for the owner-o
 `POST /api/task-dispatch` work/review/reconcile contract, retry receipts, permission
 checks and default-on `taskDispatch` flag. The browser no longer sends an agent
 message and task-status mutation as separate operations.
+
+Connection-test provider turns use controller-journalled run-v2 and require durable
+shutdown proof before reporting Working. See [verification lifecycle](connection-testing.md#controller-owned-verification-lifecycle).

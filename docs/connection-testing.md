@@ -32,7 +32,7 @@ For an approved remote CLI connection, the checklist verifies:
 
 `POST /api/connections/test` accepts `{"connectionId":"REGISTERED_ID"}` for a saved connection, or an optional `draft` object with `name`, `protocol`, `endpoint`, `provider`, and `location` from the editor with an authenticated owner session and CSRF token. Draft endpoints are tested only through the same approved-worker allowlist. New drafts and changed execution configurations receive setup-only checks; they cannot access credentials or send provider prompts. A registered connection ID is always resolved against stored state before allowing full verification. Unknown fields and trailing JSON are rejected; the body is limited to 4 KB. Missing connections return 404; disabled capability or insufficient permission returns 403; an integrity incident or agent stop returns 409.
 
-Results contain `status`, `checks` (name, status, detail), `checkedAt`, and `providerResponseTested` (true only when a valid correlated verification outcome was received). A diagnostic failure is a successful diagnostic response with blocked/unsupported status, not a transport exception. Worker operations use `ready-v1` followed by connection-scoped `auth-status-v1` and `verify-v1`, sharing a forty-second controller deadline. The worker test turn has a twenty-second execution deadline, plus bounded container cleanup. SSH startup and output are bounded. Only the fixed diagnostic prompt is sent; no room history, arbitrary model command, credential contents or remote stderr are returned to the client. Failure messages are mapped to safe instructions.
+Results contain `status`, `checks` (name, status, detail), `checkedAt`, and `providerResponseTested` (true only when a valid correlated verification outcome was received). A diagnostic failure is a successful diagnostic response with blocked/unsupported status, not a transport exception. Read-only probes use `ready-v1` and connection-scoped `auth-status-v1`; the provider reply uses controller-journalled `run-v2` with verified shutdown, sharing a forty-second diagnostic budget. The provider test turn has a twenty-second execution deadline, plus bounded container cleanup. SSH startup and output are bounded. Only the fixed diagnostic prompt is sent; no room history, arbitrary model command, credential contents or remote stderr are returned to the client. Failure messages are mapped to safe instructions.
 
 `connection_diagnostics.go` owns the handler, flag policy, staged diagnostic model and bounded worker probe. `web/connection-testing.js` owns the per-row button, dialog, escaped checklist and Settings toggle. Results appear in the current dialog rather than a persisted status badge: they are a snapshot, not ongoing monitoring. Audit event `connection.tested` records actor ID, connection ID and overall status, without credential contents or worker output.
 
@@ -67,3 +67,49 @@ Progress reflects real server boundaries, not timed animation. SSH transport, Do
 The same default-on, server-enforced `connectionTesting` flag and owner/CSRF/incident checks apply before streaming begins. No new flag or permission is introduced. The server emits sanitized `stage`, `result`, or `error` messages when the client requests `Accept: application/x-ndjson`; existing JSON clients remain supported. A `result` is emitted only after audit recording succeeds. Reverse proxies must allow streaming; the endpoint sends `Cache-Control: no-store` and `X-Accel-Buffering: no`. Provider secrets, raw stderr and room history are never progress content. Mocked tests cover real stage order, early stops, streaming permissions, chunk boundaries, errors and interrupted streams. Live remote timing still requires an authenticated integration check.
 
 Check statuses use green for **passed**, red for **failed** or **blocked**, and amber for **required** or **unsupported**. Text labels remain visible so color is not the only status indicator. These colors apply to live progress, final checks and the log overlay under the existing connection-testing feature flag.
+
+## Controller-owned verification lifecycle
+
+Registered connection provider checks now use the same **journalled protocol-v2
+worker lifecycle** as room jobs. Readiness and credential-presence checks remain
+bounded, read-only administrative probes. The diagnostic stage name `verify-v1`
+is retained internally for staged UI compatibility, but the controller does not
+send that SSH command. The legacy worker launcher rejects it without running a
+model. Upgrade the controller and worker together to remove the old launch path.
+
+Before a provider turn, the controller verifies current integrity/stop state,
+the `connectionTesting` flag, connection identity and revision, and execution
+capacity. A private synthetic verification participant reserves the connection;
+it is not a real squad member or a human identity. Its room, connection, worker,
+job ID, deadline and lifecycle are persisted before dispatch. Connection edits,
+deletes and sign-out are denied while verification is active. A verification
+reservation counts toward global and room concurrency limits.
+
+The diagnostic turn starts a fresh conversation with the fixed connection prompt.
+It receives no room history, profile context, memory, task evidence or development
+repository. It uses connection-scoped credentials and mandatory container isolation.
+Its session is never attached to a room participant. Verification storage uses
+its own membership volume; disposable-volume cleanup is not claimed by this path.
+
+A check reports Working only after both the expected reply and a durable confirmed
+shutdown. A dropped browser connection or emergency stop cancels the managed turn;
+the existing bounded worker-fencing cleanup still runs. Shutdown uncertainty
+latches the application stop and remains in worker job diagnostics for explicit
+owner reconciliation. Restart checks include verification jobs. No failed check
+is automatically replayed. Raw provider output and credentials are not returned
+or stored in the connection test event.
+
+The existing `connectionTesting` flag defaults on, is owner-controlled and enforced
+at admission and journal registration. Off blocks new checks; disabling it does
+not bypass journalling, shutdown verification or mandatory isolation. Existing
+turns may finish normally. `jobDiagnostics` can hide optional details, but never
+disables the journal. The provider turn has a maximum twenty-second deadline
+within the diagnostic request budget, followed by bounded shutdown cleanup, which
+can outlast that deadline. Public login remains a separate administrative operation.
+
+Automated tests mock database, SSH readiness/auth, provider execution and worker
+lifecycle proofs. They cover absent journals, allocation failures, stale connection
+bindings, capacity/flag/stops, wrong replies, cancellation, unknown shutdown,
+connection-edit exclusion and the full diagnostic HTTP path. No real provider or
+worker is launched in these tests. Live controller/worker upgrade acceptance has
+not been performed for this change; it must not be described as deployed.

@@ -27,6 +27,11 @@ func (s *server) agentAdmission(st room.State, rid string, requested int) error 
 			local++
 		}
 	}
+	for pid, roomID := range s.verificationRooms {
+		if roomID == rid && s.active[pid] {
+			local++
+		}
+	}
 	if local+requested > maxRoomAgentTurns {
 		return errors.New("Room agent concurrency limit reached; request a smaller group or wait for active turns to finish")
 	}

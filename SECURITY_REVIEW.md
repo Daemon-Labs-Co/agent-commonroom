@@ -1,5 +1,17 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Connection verification lifecycle — 13 October 2026
+
+Provider connection checks now use controller journal allocation, managed run-v2,
+emergency cancellation, verified shutdown and restart reconciliation. Legacy
+worker verify-v1 model launch is rejected. Verification counts toward admission
+limits and prevents connection edit/delete/sign-out during its active reservation.
+Mocks cover allocation/cancellation/shutdown failure and HTTP integration. This
+closes the identified controller-journalling gap for connection verification in
+source; live worker/controller upgrade remains unverified. Human login operations,
+legacy worker records, independent audit rollback protection and distributed
+ownership are separate remaining issues. See [connection lifecycle](docs/connection-testing.md#controller-owned-verification-lifecycle).
+
 ## Task dispatch transaction hardening — 13 October 2026
 
 Task send/review now uses an owner-only server command rather than separate browser

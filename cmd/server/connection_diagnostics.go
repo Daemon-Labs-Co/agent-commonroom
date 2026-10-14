@@ -243,8 +243,23 @@ func (s *server) connectionTest(w http.ResponseWriter, r *http.Request) {
 		}
 		progress = func(check connectionCheck) { send(map[string]any{"type": "stage", "check": check}) }
 	}
-	result := checkConnectionDraftProgress(ctx, *connection, os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"), probeWorker, registered, progress)
-	if s.append(r.Context(), "connection.tested", map[string]string{"actorId": ownerID, "connectionId": connection.ID, "status": result.Status}) != nil {
+	probe := func(ctx context.Context, alias, action, value string) ([]byte, error) {
+		if action == "verify-v1" {
+			return s.managedVerification(ctx, *connection, requestedRoom(r))
+		}
+		probe := probeWorker
+		if s.connectionProbe != nil {
+			probe = s.connectionProbe
+		}
+		return probe(ctx, alias, action, value)
+	}
+	result := checkConnectionDraftProgress(ctx, *connection, os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"), probe, registered, progress)
+	auditCtx, auditCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer auditCancel()
+	if s.append(auditCtx, "connection.tested", map[string]string{"actorId": ownerID, "connectionId": connection.ID, "status": result.Status}) != nil {
+		s.mu.Lock()
+		s.tripIntegrityLocked()
+		s.mu.Unlock()
 		if stream {
 			send(map[string]string{"type": "error", "message": "Unable to record connection check"})
 		} else {
