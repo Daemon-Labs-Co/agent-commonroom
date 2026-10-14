@@ -99,3 +99,21 @@ See [security hardening](security-hardening.md) and [restricted database setup](
 ## Free durable job safety
 
 See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+
+## Single-controller startup lease
+
+Run one controller per installation. Startup takes an exclusive nonblocking kernel
+lease on `.data/controller.lock` before loading identity, connecting to the DB or
+checking workers. A second controller in the same working directory stops with a
+clear startup error. The empty 0600 lock file stays in place; process exit releases
+the kernel lease. **Do not delete or replace this file while any controller may
+be running.** Stop the existing service, then start its replacement. Do not retry
+by choosing another data directory against the same database.
+
+Stop old controller versions before upgrading: they do not participate in this
+lease. This mandatory local safeguard has no feature flag. It does not coordinate
+separate working directories, hosts or network filesystems, nor establish a
+distributed DB lease. Multi-controller deployment remains unsupported. Migration
+and the isolated worker entry point do not take the controller lease; operators
+must still coordinate migrations separately. Tests use temporary local directories
+and verify exclusion, release, inode preservation and linked-lock rejection.

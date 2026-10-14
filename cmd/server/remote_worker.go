@@ -277,18 +277,9 @@ func writeWorkerRecord(dir string, v workerJobRecord, exclusive bool) error {
 func readWorkerRecord(dir, job string) (workerJobRecord, error) {
 	var v workerJobRecord
 	path := filepath.Join(dir, job+".json")
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 8192 {
-		return v, errors.New("Unknown or unsafe worker job")
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return v, errors.New("Unknown worker job")
-	}
-	defer f.Close()
-	raw, err := io.ReadAll(io.LimitReader(f, 8193))
-	if err != nil || len(raw) > 8192 || json.Unmarshal(raw, &v) != nil || v.JobID != job {
-		return v, errors.New("Invalid worker record")
+	raw, err := readPrivateBounded(path, 8192)
+	if err != nil || json.Unmarshal(raw, &v) != nil || v.JobID != job {
+		return v, errors.New("Invalid or unsafe worker record")
 	}
 	if v.Version != 0 && v.Version != 2 {
 		return v, errors.New("Unsupported worker record")
@@ -329,13 +320,9 @@ func configureWorker() error {
 		return err
 	}
 	path := filepath.Join(home, ".config/commonroom-worker/config.json")
-	fi, err := os.Lstat(path)
-	if err != nil || !fi.Mode().IsRegular() || fi.Mode().Perm()&0077 != 0 || fi.Size() > 8192 {
-		return errors.New("Worker requires owner-only ~/.config/commonroom-worker/config.json")
-	}
-	raw, err := os.ReadFile(path)
+	raw, err := readPrivateBounded(path, 8192)
 	if err != nil {
-		return err
+		return errors.New("Worker requires owner-only, bounded ~/.config/commonroom-worker/config.json")
 	}
 	var c workerConfiguration
 	decoder := json.NewDecoder(strings.NewReader(string(raw)))

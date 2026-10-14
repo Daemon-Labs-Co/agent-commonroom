@@ -6,12 +6,16 @@ import (
 	"agentroom/internal/room"
 	"context"
 	"sync"
+	"time"
 )
 
 type server struct {
+	storageTimeout    time.Duration
 	connectionProbe   workerProbe
 	verificationRooms map[string]string
 	verificationTurn  func(context.Context) (string, error)
+
+	dailyTurnLimit    int
 	taskReady         func(string) error
 	taskTurn          func(context.Context, room.Participant, string, string) (string, error)
 	activeJobs        map[string]string

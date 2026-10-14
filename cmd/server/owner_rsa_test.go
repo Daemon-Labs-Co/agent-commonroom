@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -43,8 +44,9 @@ func TestRSAOwnerLifecycle(t *testing.T) {
 	}
 	key := parsed.(*rsa.PrivateKey)
 	s := &server{auth: a}
-	a.sessions["setup-session"] = ownerSession{CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
+	a.sessions["setup-session"] = ownerSession{ActorID: ownerID, CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
 	r := httptest.NewRequest("POST", "/api/owner-key/download", nil)
+	r = r.WithContext(context.WithValue(r.Context(), actorContextKey{}, ownerID))
 	r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: "setup-session"})
 	w := httptest.NewRecorder()
 	s.downloadOwnerKey(w, r)

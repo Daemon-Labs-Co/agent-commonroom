@@ -65,9 +65,10 @@ labels and timestamps, and controller logs record safe job-ID lifecycle lines.
 Do not publish operational identifiers without reviewing them for sensitivity.
 
 The view distinguishes unverified/missing worker observations from confirmed
-shutdown. Historical/untracked records are reported separately. Nonterminal legacy
-or untracked work requires administrator review because this controller cannot
-prove its ownership. Normal completed legacy records do not require task replay.
+shutdown. Historical/untracked records are reported separately. Every legacy
+record, including finished/failed/cancelled records, requires administrator review
+because its format contains no verifiable shutdown proof. Terminal text alone
+cannot establish ownership or shutdown. No legacy task is automatically replayed.
 
 ## Flag and permissions
 
@@ -182,3 +183,36 @@ now allocate a controller journal entry and use run-v2/fencing. Synthetic verifi
 memberships appear in job diagnostics, not in the squad. Unconfirmed verification
 shutdown blocks restart/resume like any other managed job. Human provider login
 is a separate administrative operation and is not claimed to share this journal.
+
+## Daily allocation budget
+
+All journalled allocations, including connection checks, consume the mandatory
+[UTC-day managed-turn budget](execution-budgets.md). Lifecycle updates and
+reconciliation do not refund or consume additional units.
+
+Worker records and persistent leases now use [descriptor-based private file checks](private-file-security.md), including owner-only permissions, ownership, hard-link rejection and no-follow/nonblocking opens. Trusted parent directories and host administrators remain outside this guarantee.
+
+## Legacy terminal records after upgrade
+
+Only a terminal record in the current worker lifecycle format with explicit
+`shutdownConfirmed` can be classified as settled. Legacy/future formats cannot
+acquire that authority from their status string. Legacy records remain visible
+as unresolved with legacy lease state; they block new admission and worker-idle
+confirmation used by startup/recovery. Current known active jobs retain their
+ordinary scope/capacity accounting. This mandatory shutdown-proof gate has no
+feature flag, and disabling diagnostics does not bypass it.
+
+Before upgrading a worker containing legacy records, schedule an operator
+maintenance window. Stop old supervisors, independently inspect their processes
+and all managed containers, and retain the original operational records for
+review. Do not edit their version/status or invent a shutdownConfirmed field.
+Only after verifying absence of old work should the administrator move reviewed
+legacy operational records to a protected archive outside the active job scan.
+This is manual maintenance, not an application-provided migration or proof.
+Keep the immutable application audit history intact. When shutdown cannot be
+verified, leave execution stopped; never restart or replay the old task blindly.
+
+Synthetic format/status matrices and temporary-record diagnostics tests verify
+classification, admission refusal, idle checks and unchanged legacy content.
+No live legacy supervisors or Docker cleanup were tested. The owner still needs
+explicit integrity/safety recovery after worker state is repaired.

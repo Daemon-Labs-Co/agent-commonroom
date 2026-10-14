@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
@@ -25,24 +24,26 @@ func main() {
 		log.Print("Audit schema migration completed")
 		return
 	}
+	controllerLease, leaseErr := acquireControllerLease(".data/controller.lock")
+	if leaseErr != nil {
+		log.Fatal("Controller startup refused: ", leaseErr)
+	}
+	defer controllerLease.Close()
 	developmentEnabled, developmentRegistry, developmentErr := loadControllerDevelopmentConfiguration(".data/development-workspaces.json", os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 	if developmentErr != nil {
 		log.Fatal(developmentErr)
 	}
 	os.Setenv("COMMONROOM_DEVELOPMENT_WORKSPACES", developmentEnabled)
 	os.Setenv("COMMONROOM_DEVELOPMENT_REPOSITORIES", developmentRegistry)
-	ctx := context.Background()
-	var localConfig struct {
-		DatabaseURL         string `json:"databaseUrl"`
-		RemoteWorkerAlias   string `json:"remoteWorkerAlias"`
-		RemoteWorkerEnabled bool   `json:"remoteWorkerEnabled"`
+	dailyTurnLimit, budgetErr := parseDailyTurnLimit(os.Getenv("COMMONROOM_DAILY_TURN_LIMIT"))
+	if budgetErr != nil {
+		log.Fatal(budgetErr)
 	}
-	if raw, e := os.ReadFile(".data/local-config.json"); e == nil {
-		if e = json.Unmarshal(raw, &localConfig); e != nil {
-			log.Fatal("Invalid local configuration: ", e)
-		}
-	} else if !os.IsNotExist(e) {
-		log.Fatal(e)
+	ctx, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelStartup()
+	localConfig, configErr := loadLocalConfiguration(".data/local-config.json")
+	if configErr != nil {
+		log.Fatal("Private local configuration unavailable: ", configErr)
 	}
 	if os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS") == "" && localConfig.RemoteWorkerAlias != "" {
 		os.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", localConfig.RemoteWorkerAlias)
@@ -66,16 +67,14 @@ func main() {
 	}
 	db, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Runtime database pool unavailable; inspect database administration logs")
 	}
 	defer db.Close()
-	if err = db.Ping(ctx); err != nil {
-		log.Fatal("PostgreSQL unavailable: ", err)
-	}
-	if err = validateRuntimeDatabase(ctx, db); err != nil {
+	if err = verifyRuntimeDatabaseStartup(ctx, db.Ping, db); err != nil {
 		log.Fatal(err)
 	}
-	s := &server{db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
+	cancelStartup()
+	s := &server{dailyTurnLimit: dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/members", s.members)
 	mux.HandleFunc("/api/login", s.login)
@@ -181,5 +180,5 @@ func main() {
 		}
 		s.auth.protect(s.actorGuard(mux)).ServeHTTP(w, r)
 	})
-	log.Fatal((&http.Server{Addr: addr, Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 50 * time.Second}).ListenAndServe())
+	log.Fatal(newHTTPServer(addr, h).ListenAndServe())
 }

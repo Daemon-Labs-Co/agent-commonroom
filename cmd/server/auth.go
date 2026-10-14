@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -54,14 +55,7 @@ func loadOwnerKey(path string) (string, error) {
 	if !os.IsExist(err) {
 		return "", err
 	}
-	info, err := os.Lstat(path)
-	if err != nil {
-		return "", err
-	}
-	if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
-		return "", fmt.Errorf("owner key must be a regular file readable only by its owner")
-	}
-	raw, err := os.ReadFile(path)
+	raw, err := readPrivateBounded(path, 128)
 	if err != nil {
 		return "", err
 	}
@@ -106,7 +100,7 @@ func (a *ownerAuth) session(r *http.Request) (ownerSession, bool) {
 	if !ok {
 		session, ok = a.sessions[sessionDigest(cookie.Value)]
 	}
-	if !ok || !time.Now().Before(session.Expires) {
+	if !ok || session.ActorID == "" || !time.Now().Before(session.Expires) {
 		delete(a.sessions, cookie.Value)
 		delete(a.sessions, sessionDigest(cookie.Value))
 		return ownerSession{}, false
@@ -144,7 +138,9 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		ChallengeID string `json:"challengeId"`
 		Signature   string `json:"signature"`
 	}
-	if json.NewDecoder(r.Body).Decode(&request) != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&request) != nil || decoder.Decode(new(any)) != io.EOF {
 		http.Error(w, "Invalid sign-in request", 400)
 		return
 	}
@@ -156,26 +152,34 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		a.window = now
 		a.attempts = 0
 	}
-	if a.attempts >= 5 {
-		w.Header().Set("Retry-After", "60")
-		http.Error(w, "Too many sign-in attempts; try again in a minute", 429)
-		return
-	}
-	a.attempts++
 	actorID := request.ActorID
 	if actorID == "" {
 		actorID = ownerID
 	}
 	signed := false
 	if request.ChallengeID != "" {
-		if actorID == ownerID {
-			signed = a.verifySignature(request.ChallengeID, request.Signature)
+		// Unknown or expired challenges cannot cause an unauthenticated member
+		// request to replay the full database state. Valid proofs remain checkable
+		// even after the failed-attempt response budget is exhausted.
+		challenge, known := a.challenges[request.ChallengeID]
+		if known && now.Before(challenge.Expires) {
+			if actorID == ownerID {
+				signed = a.verifySignature(request.ChallengeID, request.Signature)
+			} else {
+				signed = s.verifyMemberLogin(r.Context(), actorID, request.ChallengeID, request.Signature)
+			}
 		} else {
-			signed = s.verifyMemberLogin(r.Context(), actorID, request.ChallengeID, request.Signature)
+			delete(a.challenges, request.ChallengeID)
 		}
 	}
 	bootstrap := actorID == ownerID && a.key != "" && subtle.ConstantTimeCompare([]byte(request.Key), []byte(a.key)) == 1
 	if !signed && !bootstrap {
+		if a.attempts >= 5 {
+			w.Header().Set("Retry-After", "60")
+			http.Error(w, "Too many failed sign-in attempts; try again in a minute", 429)
+			return
+		}
+		a.attempts++
 		http.Error(w, "Invalid owner key", 401)
 		return
 	}
@@ -198,19 +202,29 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 			delete(a.sessions, token)
 		}
 	}
-	if len(a.sessions) >= 32 {
+	previous := map[string]ownerSession{}
+	if old, e := r.Cookie("commonroom_session"); e == nil {
+		for _, key := range []string{old.Value, sessionDigest(old.Value)} {
+			if existing, ok := a.sessions[key]; ok {
+				previous[key] = existing
+			}
+		}
+	}
+	if len(a.sessions)-len(previous) >= 32 {
 		http.Error(w, "Too many active sessions; sign out of another session or wait for expiry", 429)
 		return
 	}
-	if old, e := r.Cookie("commonroom_session"); e == nil {
-		delete(a.sessions, old.Value)
-		delete(a.sessions, sessionDigest(old.Value))
+	for key := range previous {
+		delete(a.sessions, key)
 	}
 	token := id() + id()
 	session := ownerSession{ActorID: actorID, CSRF: id() + id(), Expires: now.Add(8 * time.Hour)}
 	a.sessions[token] = session
 	if err := a.persistSessionsLocked(); err != nil {
 		delete(a.sessions, token)
+		for key, value := range previous {
+			a.sessions[key] = value
+		}
 		http.Error(w, "Unable to save private session", 503)
 		return
 	}

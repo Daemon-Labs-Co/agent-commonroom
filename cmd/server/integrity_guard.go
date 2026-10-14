@@ -18,15 +18,21 @@ func (s *server) tripIntegrityLocked() {
 	if s.integrityStopPath != "" {
 		file, err := os.OpenFile(s.integrityStopPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 		if err == nil {
-			_, err = file.WriteString("Audit verification failed. Explicit owner recovery required.\n")
+			_, err = file.WriteString("Audit verification or required persistence failed. Explicit owner recovery required.\n")
 			if err == nil {
 				err = file.Sync()
 			}
 			if closeErr := file.Close(); err == nil {
 				err = closeErr
 			}
+			if err == nil {
+				err = syncParentDirectory(s.integrityStopPath)
+			}
 		}
-		if err != nil && !os.IsExist(err) {
+		if os.IsExist(err) {
+			err = syncParentDirectory(s.integrityStopPath)
+		}
+		if err != nil {
 			log.Print("Integrity stop marker could not be persisted; do not restart until storage is repaired")
 		}
 	}
@@ -102,6 +108,12 @@ func (s *server) recoverIntegrityLocked(w http.ResponseWriter, r *http.Request) 
 		if err := os.Remove(s.integrityStopPath); err != nil && !os.IsNotExist(err) {
 			http.Error(w, "Recovery marker could not be cleared; execution remains stopped", 503)
 			return
+		} else if err == nil {
+			if syncParentDirectory(s.integrityStopPath) != nil {
+				s.tripIntegrityLocked()
+				http.Error(w, "Recovery marker removal could not be persisted; execution remains stopped", 503)
+				return
+			}
 		}
 	}
 	s.integrityFault = false

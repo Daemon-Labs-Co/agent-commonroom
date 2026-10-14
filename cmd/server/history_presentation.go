@@ -12,6 +12,11 @@ const historyFlagSQL = "SELECT payload FROM events WHERE kind='feature.flag.upda
 // historyPresentationEnabled reads only the latest setting, not the full history.
 // Missing means on. Read/decoding failures stop the enriched history response.
 func (s *server) historyPresentationEnabled(ctx context.Context) (bool, error) {
+	ctx, cancel := s.storageContext(ctx)
+	defer cancel()
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
 	rows, err := s.db.Query(ctx, historyFlagSQL, "historyRefinement")
 	if err != nil {
 		return false, err
@@ -30,6 +35,9 @@ func (s *server) historyPresentationEnabled(ctx context.Context) (bool, error) {
 			return false, err
 		}
 		enabled = flag.Enabled
+	}
+	if ctx.Err() != nil {
+		return false, ctx.Err()
 	}
 	return enabled, rows.Err()
 }

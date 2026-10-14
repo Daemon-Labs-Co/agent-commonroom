@@ -148,11 +148,7 @@ func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, 
 		return nil, nil, err
 	}
 	credentialPath := filepath.Join(authRoot, connectionAuthKey(connection), endpoint, filename)
-	fi, err := os.Lstat(credentialPath)
-	if err != nil || !fi.Mode().IsRegular() || fi.Size() > 65536 || fi.Mode().Perm()&0077 != 0 {
-		return nil, nil, errors.New("Provide a regular, owner-only provider credential file in COMMONROOM_AGENT_AUTH_DIR")
-	}
-	raw, err := os.ReadFile(credentialPath)
+	raw, err := readPrivateBounded(credentialPath, 65536)
 	if err != nil || len(raw) > 65536 || !json.Valid(raw) {
 		return nil, nil, errors.New("Provider credential file must contain bounded valid JSON")
 	}
@@ -161,8 +157,15 @@ func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, 
 		return nil, nil, err
 	}
 	cleanupDir := func() { os.RemoveAll(dir) }
+	if repository != "" {
+		bundle, err = stageDevelopmentBundle(bundle, repository, dir)
+		if err != nil {
+			cleanupDir()
+			return nil, nil, err
+		}
+	}
 	credential := filepath.Join(dir, "auth.json")
-	if err = os.WriteFile(credential, raw, 0444); err != nil {
+	if err = stageContainerCredential(credential, raw); err != nil {
 		cleanupDir()
 		return nil, nil, err
 	}
@@ -219,6 +222,8 @@ type providerGateway struct {
 	closed      bool
 	slots       chan struct{}
 	ctx         context.Context
+	cancel      context.CancelFunc
+	lookupIP    func(context.Context, string, string) ([]net.IP, error)
 }
 
 // Claude subscription and Console OAuth both exchange tokens at platform.claude.com.
@@ -230,7 +235,16 @@ func providerHostAllowed(provider, host string) bool {
 	return provider == "claude" && (host == "api.anthropic.com" || host == "console.anthropic.com" || host == "claude.ai" || host == "claude.com" || host == "platform.claude.com")
 }
 func publicProviderIP(ip net.IP) bool {
-	for _, cidr := range []string{"100.64.0.0/10", "198.18.0.0/15", "192.0.0.0/24", "192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24", "2001:db8::/32"} {
+	if ip.To4() == nil {
+		// Only native currently allocated global-unicast space is supported.
+		// Translation/transition routes can conceal a private IPv4 destination;
+		// IsGlobalUnicast alone does not establish ordinary public reachability.
+		_, native, _ := net.ParseCIDR("2000::/3")
+		if !native.Contains(ip) {
+			return false
+		}
+	}
+	for _, cidr := range []string{"0.0.0.0/8", "100.64.0.0/10", "198.18.0.0/15", "192.0.0.0/24", "192.0.2.0/24", "192.31.196.0/24", "192.52.193.0/24", "192.88.99.0/24", "192.175.48.0/24", "198.51.100.0/24", "203.0.113.0/24", "240.0.0.0/4", "2001::/23", "2001:db8::/32", "2002::/16", "2620:4f:8000::/48", "3ffe::/16", "3fff::/20"} {
 		_, reserved, _ := net.ParseCIDR(cidr)
 		if reserved.Contains(ip) {
 			return false
@@ -247,24 +261,35 @@ func newProviderGateway(ctx context.Context, socket, provider string) (*provider
 		l.Close()
 		return nil, err
 	}
-	g := &providerGateway{socket: socket, listener: l, connections: map[net.Conn]bool{}, slots: make(chan struct{}, 8), ctx: ctx}
-	g.server = &http.Server{ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 8192, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { g.connect(w, r, provider) })}
-	go g.server.Serve(l)
+	ctx, cancel := context.WithCancel(ctx)
+	bounded := &gatewayListener{Listener: l, slots: make(chan struct{}, maximumGatewayConnections)}
+	g := &providerGateway{socket: socket, listener: bounded, connections: map[net.Conn]bool{}, slots: make(chan struct{}, 8), ctx: ctx, cancel: cancel, lookupIP: net.DefaultResolver.LookupIP}
+	g.server = &http.Server{ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 15 * time.Second, MaxHeaderBytes: 8192, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { g.connect(w, r, provider) })}
+	go g.server.Serve(bounded)
 	return g, nil
 }
 func (g *providerGateway) Close() {
-	g.server.Close()
+	// Cancel pre-tunnel resolution/dialing as well as established connections.
+	// A source fork CAN omit this, BUT then shutdown leaves work in flight.
+	if g.cancel != nil {
+		g.cancel()
+	}
 	g.mu.Lock()
-	defer g.mu.Unlock()
 	g.closed = true
 	for c := range g.connections {
 		c.Close()
 	}
+	g.mu.Unlock()
+	g.server.Close()
 }
 func (g *providerGateway) connect(w http.ResponseWriter, r *http.Request, provider string) {
 	host, port, err := net.SplitHostPort(r.Host)
 	if r.Method != "CONNECT" || err != nil || port != "443" || !providerHostAllowed(provider, host) {
 		http.Error(w, "Destination denied", 403)
+		return
+	}
+	if g.ctx.Err() != nil {
+		http.Error(w, "Gateway stopped", http.StatusServiceUnavailable)
 		return
 	}
 	select {
@@ -276,7 +301,11 @@ func (g *providerGateway) connect(w http.ResponseWriter, r *http.Request, provid
 	}
 	ctx, cancel := context.WithTimeout(g.ctx, 10*time.Second)
 	defer cancel()
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	lookup := g.lookupIP
+	if lookup == nil {
+		lookup = net.DefaultResolver.LookupIP
+	}
+	ips, err := lookup(ctx, "ip", host)
 	if err != nil || len(ips) == 0 {
 		http.Error(w, "Provider unavailable", 502)
 		return

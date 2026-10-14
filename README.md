@@ -15,6 +15,9 @@ Task assignment uses [atomic server-owned dispatch](docs/task-dispatch.md), with
 visible pending/completed/failed outcomes and explicit recovery for interrupted
 work. The owner-controlled `taskDispatch` feature defaults on.
 
+Managed execution defaults to 200 journalled launches per UTC day. Operators can
+configure `COMMONROOM_DAILY_TURN_LIMIT` (1–100000); see [execution budgets](docs/execution-budgets.md).
+
 ## What works
 
 - Rooms, invitation-only human accounts, personal rooms and owner-controlled access.

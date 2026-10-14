@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"syscall"
 )
 
 var repositoryDigestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
@@ -49,8 +50,8 @@ func controllerDevelopmentRepository(roomID, enabled, registry string) (string, 
 
 // providerTurnArgs defines two exact policies. The development policy uses the
 // mandatory outer Docker sandbox as its execution backend, avoiding nested bwrap
-// user namespaces. It must NEVER be used by a host launcher. Read-only chat stays
-// unchanged, including for connection verification and credential management.
+// user namespaces. It must NEVER be used by a host launcher. Chat explicitly
+// disables command tools; credential-management login has a separate policy.
 func providerTurnArgs(provider string, development bool) []string {
 	if provider == "codex" {
 		sandbox := "read-only"
@@ -60,6 +61,11 @@ func providerTurnArgs(provider string, development bool) []string {
 		args := []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", sandbox, "-c", `approval_policy="never"`}
 		if development {
 			args = append(args, "-c", `shell_environment_policy.inherit="all"`)
+		} else {
+			// Read-only is not tool-free: command tools could still read mounted
+			// credentials. Chat and verification must not expose command tools.
+			// Development still requires a separate credential-free tool boundary.
+			args = append(args, "-c", `features.shell_tool=false`)
 		}
 		return args
 	}
@@ -117,20 +123,76 @@ func workerDevelopmentBundle(key, digest, enabled, registry string) (string, err
 	if err != nil || resolved != repository.Bundle {
 		return "", errors.New("Development bundle must use a canonical path without symlinks")
 	}
-	file, err := os.Open(repository.Bundle)
+	file, err := openDevelopmentBundle(repository.Bundle)
 	if err != nil {
 		return "", errors.New("Approved development bundle unavailable")
 	}
 	defer file.Close()
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0022 != 0 || info.Size() <= 0 || info.Size() > 256*1024*1024 {
-		return "", errors.New("Development bundle must be a bounded regular file without group/world write access")
-	}
 	hash := sha256.New()
-	if _, err = io.Copy(hash, file); err != nil || hex.EncodeToString(hash.Sum(nil)) != digest {
+	n, err := io.Copy(hash, io.LimitReader(file, maximumDevelopmentBundle+1))
+	if err != nil || n > maximumDevelopmentBundle || hex.EncodeToString(hash.Sum(nil)) != digest {
 		return "", errors.New("Development bundle checksum mismatch")
 	}
 	return repository.Bundle, nil
+}
+
+const maximumDevelopmentBundle int64 = 256 * 1024 * 1024
+
+// openDevelopmentBundle validates the actual opened inode, never a prior stat.
+// Nonblocking/no-follow avoids FIFO hangs and final-component substitution. A
+// bundle may be administrator-owned/readable; unlike credential files it need
+// not have mode 0600. The checksum is still mandatory, including during staging.
+func openDevelopmentBundle(path string) (*os.File, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		return nil, errors.New("Approved development bundle unavailable")
+	}
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0022 != 0 || info.Size() <= 0 || info.Size() > maximumDevelopmentBundle {
+		f.Close()
+		return nil, errors.New("Development bundle must be a bounded regular file without group/world write access")
+	}
+	return f, nil
+}
+
+// stageDevelopmentBundle copies and hashes the same bounded descriptor into a
+// private per-turn directory. Docker mounts this checked copy, never the source
+// path that an operator could replace after verification. A fork CAN skip this,
+// BUT risks granting a turn an unapproved snapshot. Parent directory is trusted.
+func stageDevelopmentBundle(source, digest, dir string) (string, error) {
+	f, err := openDevelopmentBundle(source)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	target := filepath.Join(dir, "repository.bundle")
+	out, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0444)
+	if err != nil {
+		return "", errors.New("Private development snapshot unavailable")
+	}
+	valid := false
+	defer func() {
+		out.Close()
+		if !valid {
+			os.Remove(target)
+		}
+	}()
+	hash := sha256.New()
+	n, err := io.Copy(io.MultiWriter(out, hash), io.LimitReader(f, maximumDevelopmentBundle+1))
+	if err != nil || n > maximumDevelopmentBundle || hex.EncodeToString(hash.Sum(nil)) != digest {
+		return "", errors.New("Development bundle checksum mismatch")
+	}
+	// The rootless container UID is mapped differently from the host account.
+	// Normalize readability despite a restrictive host umask; the parent remains
+	// private and Docker mounts the file read-only.
+	if err := out.Chmod(0444); err != nil {
+		return "", errors.New("Private development snapshot unavailable")
+	}
+	if err := out.Close(); err != nil {
+		return "", errors.New("Private development snapshot unavailable")
+	}
+	valid = true
+	return target, nil
 }
 
 // developmentRunArgs adds only the prevalidated snapshot and fixed bootstrap
@@ -170,18 +232,11 @@ func agentExecutionSession(previous, thread, repository string) (string, string,
 // values override this dedicated owner-only, non-secret configuration file.
 func loadControllerDevelopmentConfiguration(path, enabled, registry string) (string, string, error) {
 	if enabled == "" || registry == "" {
-		info, err := os.Lstat(path)
+		raw, err := readPrivateBounded(path, 8192)
 		if err != nil && !os.IsNotExist(err) {
 			return "", "", err
 		}
 		if err == nil {
-			if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 8192 {
-				return "", "", errors.New("Development configuration must be a bounded owner-only regular file")
-			}
-			raw, err := os.ReadFile(path)
-			if err != nil {
-				return "", "", err
-			}
 			var config struct {
 				Enabled      bool              `json:"enabled"`
 				Repositories map[string]string `json:"repositories"`

@@ -22,6 +22,8 @@ func (s *server) append(ctx context.Context, kind string, payload any) error {
 // appendBatch commits a whole business operation under the existing audit-chain
 // lock. No dispatch may start until it succeeds; failure rolls back every event.
 func (s *server) appendBatch(ctx context.Context, changes []auditChange) error {
+	ctx, cancel := s.storageContext(ctx)
+	defer cancel()
 	if len(changes) == 0 {
 		return nil
 	}

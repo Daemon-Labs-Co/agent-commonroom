@@ -54,3 +54,51 @@ func TestNewAppendOverwritesClaimedActorAndChecksMetadata(t *testing.T) {
 		t.Fatal("metadata tampering did not stop execution")
 	}
 }
+
+func TestProtectedAuditFormatCannotDowngradeToLegacy(t *testing.T) {
+	t.Parallel()
+	s, db, h := mockServer(t)
+	db.seedLegacy("message.created", map[string]string{"text": "Synthetic historical prefix"})
+	if err := s.append(context.Background(), "company.updated", map[string]string{"name": "Synthetic protected"}); err != nil {
+		t.Fatal(err)
+	}
+	// Correctly linked/hash-consistent data with missing metadata must still fail.
+	db.seedLegacy("message.created", map[string]string{"text": "Synthetic downgrade"})
+	active, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s.cancels["synthetic"] = cancel
+	w := mockRequest(h, "GET", "/api/integrity", "")
+	var result struct {
+		Valid bool `json:"valid"`
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &result) != nil || result.Valid || !s.integrityFault || active.Err() == nil {
+		t.Fatal("audit format downgrade accepted", w.Code, w.Body.String())
+	}
+	s.recoveryIdle = func(context.Context, string) (bool, error) {
+		t.Error("worker queried before invalid audit rejected")
+		return true, nil
+	}
+	w = mockRequest(h, "POST", "/api/integrity", `{"reason":"Synthetic owner attempt"}`)
+	if w.Code != 409 || !s.integrityFault {
+		t.Fatal("owner bypassed format barrier", w.Code)
+	}
+}
+func TestLegacyPrefixTransitionsToProtectedAuditWithoutRewriting(t *testing.T) {
+	t.Parallel()
+	s, db, h := mockServer(t)
+	db.seedLegacy("message.created", map[string]string{"text": "Synthetic historical prefix"})
+	original := db.snapshot()[0]
+	if err := s.append(context.Background(), "company.updated", map[string]string{"name": "Synthetic protected"}); err != nil {
+		t.Fatal(err)
+	}
+	db.seed("message.created", map[string]string{"text": "Synthetic new fixture"})
+	w := mockRequest(h, "GET", "/api/integrity", "")
+	var result struct {
+		Valid     bool `json:"valid"`
+		Protected int  `json:"metadataProtectedRecords"`
+		Legacy    int  `json:"legacyMetadataRecords"`
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &result) != nil || !result.Valid || result.Protected != 2 || result.Legacy != 1 || db.snapshot()[0] != original {
+		t.Fatal("legitimate transition failed", w.Code, w.Body.String())
+	}
+}

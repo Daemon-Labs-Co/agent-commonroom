@@ -139,7 +139,8 @@ func (s *server) agentSafety(w http.ResponseWriter, r *http.Request) {
 		event["roomId"] = rid
 	}
 	if err = s.append(ctx, "agents."+req.Action, event); err != nil {
-		http.Error(w, "Audit recording failed; local stop remains active. Do not restart until investigated.", 503)
+		s.tripIntegrityLocked()
+		http.Error(w, "Audit recording failed; execution stop is latched. Owner integrity recovery is required before resuming.", 503)
 		return
 	}
 	if req.Action == "resume" {
