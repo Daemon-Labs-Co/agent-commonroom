@@ -1,5 +1,254 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Provider/tool separation implementation plan — 14 October 2026
+
+Scoped capability admission, an injected audited dispatcher, a trusted tool-container
+launch plan and a bounded inspection verifier exist as unused `internal/toolbroker`
+infrastructure with synthetic adversarial tests. The verifier refuses mismatched
+mounts, redirected named-volume options, unexpected environment and weakened
+selected runtime policy. It consumes only future trusted-daemon evidence, not
+model/plugin claims. A mock-driven container executor adapter now verifies policy and routes a fixed
+helper by immutable ID, with bounded cleanup/absence checks on failure. No real
+Docker runner, installed image helper, concrete audit store, production endpoint or provider
+bridge is wired. Credential exposure
+remains OPEN; these components do not prove transport, image/kernel enforcement,
+volume freshness, filesystem safety or pair shutdown.
+
+Typed broker requests/actions now have pre-copy/hash/serialization budgets too,
+including aggregate argument sizes and canonical non-allocating hex validation.
+Broker/helper input and typed actions also reject malformed Unicode before lossy
+JSON replacement can change paths/content; synthetic regression tests pass.
+Synthetic early-refusal/allocation tests cover non-JSON callers. This hardens the
+unused foundation; it does not change production provider execution.
+
+The executor adapter independently enforces the copied declared-tool policy and
+trusted scope/lifetime before any Docker interaction, in addition to dispatcher
+admission. Synthetic tests reject undeclared command/write/patch operations while
+preserving permitted reads. It also rejects malformed/inconsistent helper receipts
+before output/success, and refuses command/patch operations without an implemented
+helper contract. Consistent receipts are not independent filesystem attestation.
+It remains an unused internal adapter, not an audit
+or authentication API and not a deployed separation guarantee.
+
+Unused `internal/toolworkspace` now provides bounded descriptor-rooted reads and
+atomic replacement writes, refusing unsafe inodes and unconfirmed durability.
+Synthetic temporary-file tests cover traversal, escaping links, FIFO/hard-link
+refusal and pinned-parent replacement. Rooted paths are not container/mount
+isolation, and no helper/RPC/production path is wired; credential exposure remains
+OPEN. Runtime enforcement and concurrent-code/disk/crash concerns stay separate.
+
+`cmd/tool-helper` now defines a strict bounded read/write subprocess protocol for
+the future tool image. It rejects alternate roots/arguments, malformed/duplicate
+fields, commands and patches; binary reads use bounded base64 responses and write
+response failures are unconfirmed outcomes. Synthetic tests match the broker's
+wire format. A fixed Linux-only shim now launches it with no shell/arguments and an explicit
+credential-free child environment; mocked process tests pass. A tool-only image recipe now copies both with a narrow context and pinned-base
+guard; no actual image build/install or real runner invocation has been verified; this does not
+change production execution or close credential exposure.
+
+The remaining credential/tool exposure now has an explicit two-container broker
+design with scoped capability, audit acknowledgement, pair shutdown proof, fresh
+volume migration and pinned-provider evidence gates. Vendor interface references
+are distinguished from unverified adapter assumptions. Runtime integration is still PLANNED; no
+production broker or security closure is claimed. It is a free/core mandatory boundary, not
+a premium entitlement or isolation-off switch.
+See [implementation/acceptance plan](docs/provider-tool-separation.md).
+
+## Bounded history storage reads — 14 October 2026
+
+History-setting lookup and event queries/row scans now use the mandatory storage
+deadline, shared across a history request. Explicit context checks prevent partial
+responses even when a timed-out row iterator reports no driver error. Mocked
+settings/query/partial-row stalls cover paged and bounded legacy responses.
+This narrows DB-pool/handler availability risk; live performance, volumetric
+limits and durable total-storage quotas remain open.
+See [history deadlines](docs/storage-deadlines.md#history-reads).
+
+## Durable local provider credential revocation — 14 October 2026
+
+Worker sign-out requires directory sync after removal, including absent-file
+retries; sync errors do not acknowledge success. Login publication also syncs
+its directory. Unknown providers cannot default to deleting Codex credentials.
+Synthetic failure/retry tests pass without real credentials/providers. This is
+local storage revocation only, not provider-wide token invalidation, historical
+volume cleanup or verified physical crash durability.
+See [credential durability](docs/connection-sign-in.md#durable-local-credential-publication-and-sign-out).
+
+## Exclusive credential staging — 14 October 2026
+
+Per-turn credentials are now exclusively created in a validated private parent,
+without following/overwriting an existing destination. Permissions are explicitly
+normalized for the mapped container UID, independent of host umask. Synthetic
+fixtures verify alias/non-overwrite/input/parent/mode boundaries; no real secrets
+were accessed. Mapped-UID runtime behavior and crash cleanup remain unverified.
+This does not close credential visibility to tools in the same container.
+See [staging boundary](docs/private-file-security.md#exclusive-per-turn-credential-staging).
+
+## Fail-closed identity defaults — 14 October 2026
+
+Missing request context and actor-less sessions no longer inherit owner identity.
+Owner-only handlers refuse unidentified requests; key download has its own owner
+check alongside CSRF/middleware. Synthetic tests cover direct-handler refusal,
+raw/hashed session rejection and explicit owner-key lifecycle. Route registration
+must still use authentication/authorization middleware; no universal claim is
+made for handlers that omit their own permission checks.
+See [identity contract](docs/security-hardening.md#no-implicit-owner-identity).
+
+## Legacy shutdown-proof barrier — 14 October 2026
+
+Legacy terminal worker statuses no longer count as verified shutdown. Only
+current-format terminal records with explicit confirmation are settled; legacy
+records remain unchanged and visible as unresolved, blocking admission/idle
+recovery. Synthetic matrices and temporary-record tests cover these paths.
+An operator must independently review/archive old operational records during
+maintenance; no automatic proof, rewrite or task replay is supplied.
+See [upgrade guidance](docs/worker-jobs.md#legacy-terminal-records-after-upgrade).
+
+## Development snapshot substitution — 14 October 2026
+
+The launcher now mounts a private checked per-turn copy rather than an original
+host source path that may change after hashing. Source descriptor checks use
+no-follow/nonblocking opens and bounded actual reads. Synthetic replacement,
+FIFO/symlink/write-permission/size and failure-cleanup tests pass without Docker
+or providers. Live mounting, crash temporary cleanup and worker-account compromise
+remain outside this verification. Credential/tool co-location remains OPEN.
+See [staging contract](docs/development-workspaces.md#per-turn-verified-snapshot-staging).
+
+## Provider gateway pre-header admission — 14 October 2026
+
+A fixed 16-client listener limit now covers accepted sockets before headers,
+DNS or CONNECT slot admission. Excess sockets close immediately and slots are
+released once through concurrent/double cleanup. Existing 8-tunnel and timeout
+limits remain. Synthetic pipe and ephemeral local Unix tests exercise the bound
+without DNS/providers/DB. This narrows gateway memory/connection exhaustion;
+volumetric CPU pressure, global public-server admission and credential/tool
+separation remain OPEN. It is a required free/core limit, not an optional toggle.
+See [gateway admission](docs/container-isolation.md#gateway-connection-admission).
+
+## Provider gateway cancellation — 14 October 2026
+
+Gateway closure now cancels pending DNS/dial work and rejects new requests before
+resolution, in addition to closing listener/tunnels. Pre-tunnel read/write/idle
+timeouts are explicit. A synthetic blocking resolver verifies cancellation with
+no external requests. Physical worker shutdown and development credential
+separation remain separate requirements. See [gateway shutdown](docs/container-isolation.md#gateway-shutdown-and-pre-tunnel-limits).
+
+## Codex chat command-tool restriction — 14 October 2026
+
+Chat and reply verification now explicitly disable Codex command tools; read-only
+alone permitted tool reads. Worker exact-prefix validation rejects removing or
+overriding the restriction for fresh/resumed turns. Synthetic argument tests
+pass; deployed CLI tool availability remains unverified. Development credential/
+tool co-location remains OPEN and needs a separate worker/broker boundary.
+See [chat policy](docs/security-hardening.md#codex-chat-command-tool-policy).
+
+## Provider transition-address denial — 14 October 2026
+
+Provider egress now rejects IPv6 translation/transition and other special-use
+routes, plus reserved IPv4 space that generic global-unicast classification can
+admit. Mapped IPv4 is classified as IPv4; native public IPv4/IPv6 remains allowed.
+Exact provider hosts and validation/pinned dialing are preserved. Synthetic
+address regressions only; no DNS/provider access. NAT64-only connectivity is
+intentionally unsupported. See [address policy](docs/container-isolation.md#native-public-provider-address-policy).
+
+## Bounded credential-safe DB startup — 14 October 2026
+
+Runtime pool/connection/privilege startup shares a ten-second deadline and does
+not print raw connection errors. Mocked connection/query/row stalls and
+least-privilege tests verify refusal without live DB access. Unknown privileges
+still fail closed. Cooperative cancellation and operator migration timeout remain
+requirements. See [DB startup checks](docs/database-security.md#bounded-startup-checks).
+
+## Local controller startup fencing — 14 October 2026
+
+The supported single-controller deployment now holds a private persistent-inode
+kernel lease before DB/identity/worker startup. Concurrent startup in the same
+data directory fails closed. Separate directories/hosts and old binaries remain
+outside this lease; distributed controller coordination is still OPEN. Do not
+unlink an active lease or launch two installations against one DB. Synthetic
+lease tests verify exclusion/release/inode stability without real services.
+See [startup lease](docs/operations.md#single-controller-startup-lease).
+
+## Session/stop directory durability — 14 October 2026
+
+Session replacement/removal and emergency-stop marker creation/removal now sync
+the parent directory. Errors remain failures; recovery relatches and retries
+marker creation when removal durability fails. Synthetic failure-injection tests
+verify complete replacement before sync, propagated errors and temporary cleanup.
+Filesystem/hardware crash guarantees and unavailable marker storage remain
+operator/integration concerns. See [durability limits](docs/private-file-security.md#crash-durability-of-sessions-and-emergency-stops).
+
+## Controller configuration descriptor checks — 14 October 2026
+
+Private local and development configuration now use bounded descriptor validation
+including ownership, link count and file type. This removes the development
+loader's check/reopen race and the local loader's unchecked read. Invalid local
+JSON is rejected without echoing credential-containing input. Synthetic fixtures
+cover unsafe file types/links/permissions/size and strict decoding. No live
+configuration or credential was read. See [private-file configuration](docs/private-file-security.md#controller-configuration).
+
+## HTTP header parsing and credential-tool exposure — 14 October 2026
+
+HTTP headers now have a mandatory 16 KiB budget (plus Go parser lookahead), with
+explicit bounded idle/header/read/write durations. Synthetic loopback requests
+verify HTTP 431 before handler invocation and subsequent availability.
+
+**OPEN: provider credential disclosure from development tools.** Current provider
+and tool processes share a credential-bearing container/UID. Read-only credentials
+can still be read and emitted through model output. Separate provider execution
+from credential-free tool workers via a narrow broker; do not claim prompt rules
+or output filtering fix this. Source review only; no credential reads or live
+provider tests. See [details](docs/security-hardening.md#open-credentials-shared-with-development-tools).
+
+## Durable emergency-stop audit failure — 14 October 2026
+
+Failed stop/resume audit persistence now latches the private integrity marker and
+cancels all contexts, including when the request originally targeted a room.
+Restart restoration and explicit owner integrity recovery apply; ordinary Resume
+cannot clear the failed-audit stop. Mocked begin/insert/commit failures test marker
+persistence and cancellation without live data. An unwritable marker directory
+still prevents a restart-persistence guarantee and requires operator repair.
+See [emergency-stop outages](docs/security-hardening.md#emergency-stop-audit-outages).
+
+## Storage deadline hardening — 14 October 2026
+
+State replay, append transactions and integrity verification now cap cooperative
+storage work at five seconds. Mocked query/row/begin/insert stalls roll back, and
+a controller-lock regression verifies emergency stop can proceed after a stalled
+read times out. Integrity timeout cancels contexts and latches execution off.
+This narrows storage-driven cancellation/availability risk; arbitrary locks,
+non-cooperative backends and physical worker termination remain separate concerns.
+See [bounded storage waits](docs/storage-deadlines.md).
+
+## Audit format downgrade barrier — 14 October 2026
+
+Verification now rejects unprotected records after the first metadata-protected
+record, even when hashes and links are consistent. Legacy prefixes remain
+unchanged. Mocked tests verify cancellation and refusal of owner recovery on a
+synthetic downgrade. This is mandatory local integrity enforcement, not independent
+rollback protection: stripping an entire protected suffix or rewriting all records
+still needs an externally anchored head/sequence. See [audit format barrier](docs/security-hardening.md#audit-metadata-format-barrier).
+
+## Authentication availability hardening — 14 October 2026
+
+Valid owner/invited-human proofs remain usable after the shared failed-attempt
+response budget is exhausted; invalid attempts still receive throttled responses.
+Unknown/expired or malformed member challenges cannot force repeated DB replay.
+Session renewal works at capacity and restores the prior session on persistence
+failure. Tests cover RSA/owner/member proofs, replay, strict decoding and raw/hashed
+session rollback. This does not claim volumetric/challenge-pool/cryptographic CPU
+DoS resistance. See [login availability](docs/login-availability.md).
+
+## Private file/lease substitution hardening — 13 October 2026
+
+Security-critical file reads and persistent lock opens now validate the opened
+inode with no-follow/nonblocking flags, ownership, private permissions, link count
+and bounded size/reads. Synthetic tests cover link substitution, FIFO rejection,
+aliased locks and descriptor stability. This narrows worker/credential state-file
+substitution risks; trusted parent directories, same-account/host administrators
+and independent content/rollback integrity remain outside the guarantee. No live
+credential or deployment verification was performed. See [private file safety](docs/private-file-security.md).
+
 ## Connection verification lifecycle — 13 October 2026
 
 Provider connection checks now use controller journal allocation, managed run-v2,

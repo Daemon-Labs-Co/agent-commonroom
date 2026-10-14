@@ -40,6 +40,13 @@ func (d *mockDB) snapshot() []mockEvent {
 	return append([]mockEvent(nil), d.events...)
 }
 func (d *mockDB) seed(kind string, value any) {
+	d.seedRecord(kind, value, false)
+}
+
+// seedLegacy deliberately bypasses the format barrier for downgrade regressions.
+func (d *mockDB) seedLegacy(kind string, value any) { d.seedRecord(kind, value, true) }
+
+func (d *mockDB) seedRecord(kind string, value any, legacy bool) {
 	raw, err := json.Marshal(value)
 	if err != nil {
 		d.t.Fatal(err)
@@ -50,7 +57,20 @@ func (d *mockDB) seed(kind string, value any) {
 	if len(d.events) > 0 {
 		previous = d.events[len(d.events)-1].hash
 	}
-	d.events = append(d.events, mockEvent{kind: kind, payload: string(raw), previous: previous, hash: checksum(previous, kind, string(raw)), id: fmt.Sprintf("seed-%d", len(d.events)+1), sequence: int64(len(d.events) + 1), at: time.Unix(int64(len(d.events)), 0).UTC()})
+	meta := auditRecordMetadata{Version: 1, ID: fmt.Sprintf("seed-%d", len(d.events)+1), Sequence: int64(len(d.events) + 1), CommittedAt: time.Unix(int64(len(d.events)), 0).UTC()}
+	if !legacy {
+		for _, event := range d.events {
+			var fields map[string]json.RawMessage
+			if json.Unmarshal([]byte(event.payload), &fields) == nil && fields["_auditRecord"] != nil {
+				raw, err = protectAuditMetadata(raw, meta)
+				if err != nil {
+					d.t.Fatal(err)
+				}
+				break
+			}
+		}
+	}
+	d.events = append(d.events, mockEvent{kind: kind, payload: string(raw), previous: previous, hash: checksum(previous, kind, string(raw)), id: meta.ID, sequence: meta.Sequence, at: meta.CommittedAt})
 }
 func (d *mockDB) Begin(ctx context.Context) (pgx.Tx, error) {
 	if err := ctx.Err(); err != nil {

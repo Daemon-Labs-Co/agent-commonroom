@@ -107,6 +107,14 @@ func TestWorkerIdleScanFailsClosed(t *testing.T) {
 	if err := writeWorkerRecord(dir, workerJobRecord{JobID: job, Status: "cancelled"}, false); err != nil {
 		t.Fatal(err)
 	}
+	if idle, _ := workerRecordsIdle(dir); idle {
+		t.Fatal("legacy terminal label accepted without shutdown proof")
+	}
+	confirmed := fakeWorkerRecord(t, job, "room/agent/connection/worker")
+	confirmed.Status, confirmed.ShutdownConfirmed = "cancelled", true
+	if err := writeWorkerRecord(dir, confirmed, false); err != nil {
+		t.Fatal(err)
+	}
 	if idle, err := workerRecordsIdle(dir); !idle || err != nil {
 		t.Fatal(idle, err)
 	}

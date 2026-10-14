@@ -24,7 +24,9 @@ func requestActor(r *http.Request) string {
 	if v, ok := r.Context().Value(actorContextKey{}).(string); ok {
 		return v
 	}
-	return ownerID
+	// Absence of middleware identity grants no authority. In particular, a
+	// handler added without the actor guard must never inherit owner privileges.
+	return ""
 }
 func member(st room.State, id string) (room.Actor, bool) {
 	for _, a := range st.Actors {
@@ -62,7 +64,8 @@ func (s *server) actorGuard(next http.Handler) http.Handler {
 		}
 		actor := session.ActorID
 		if actor == "" {
-			actor = ownerID
+			http.Error(w, "Session identity missing; sign in again", http.StatusUnauthorized)
+			return
 		}
 		if r.URL.Path == "/api/agent-safety" && actor == ownerID {
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), actorContextKey{}, actor)))
@@ -279,6 +282,17 @@ func (s *server) members(w http.ResponseWriter, r *http.Request) {
 	reply(w, v)
 }
 func (s *server) verifyMemberLogin(ctx context.Context, actor, cid, sig string) bool {
+	// Consume before database access so one invalid member attempt cannot reuse
+	// a known challenge to force repeated full-state replays. Caller holds auth.mu.
+	challenge, ok := s.auth.challenges[cid]
+	delete(s.auth.challenges, cid)
+	if !ok || !time.Now().Before(challenge.Expires) {
+		return false
+	}
+	raw, e := base64.StdEncoding.DecodeString(sig)
+	if e != nil || (len(raw) < 384 || len(raw) > 512) {
+		return false
+	}
 	st, e := s.load(ctx)
 	if e != nil {
 		return false
@@ -294,15 +308,6 @@ func (s *server) verifyMemberLogin(ctx context.Context, actor, cid, sig string) 
 	parsed, e := x509.ParsePKIXPublicKey(block.Bytes)
 	key, ok := parsed.(*rsa.PublicKey)
 	if e != nil || !ok {
-		return false
-	}
-	challenge, ok := s.auth.challenges[cid]
-	delete(s.auth.challenges, cid)
-	if !ok || !time.Now().Before(challenge.Expires) {
-		return false
-	}
-	raw, e := base64.StdEncoding.DecodeString(sig)
-	if e != nil {
 		return false
 	}
 	digest := sha256.Sum256([]byte(challenge.Value))

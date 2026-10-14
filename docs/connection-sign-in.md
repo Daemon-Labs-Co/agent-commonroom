@@ -93,3 +93,27 @@ Every visit or render of **Connections** checks credential presence for supporte
 The owner may select **Sign out** and confirm clearing that connection/provider’s saved worker credential. Other connections, conversation history and session volumes remain. Provider-wide token revocation is separate; historical credential copies in existing agent session volumes are not erased by this action. Subsequent managed turns require a newly saved credential from the private connection store. Active agents using the connection must finish or be stopped before sign-out. The worker serializes sign-in/export and sign-out with an exclusive per-connection/provider file lock; a busy login is rejected rather than cleared mid-flow. Update both controller and Linux worker binaries for the `auth-logout-v1` protocol.
 
 This uses the existing default-on, owner-only, server-enforced `connectionSignIn` flag; disabling it hides status and sign-out controls and rejects requests without altering stored credentials or mandatory isolation. Sign-out intent and completion are readable immutable audit events, without secrets. A transport failure leaves completion unknown; recheck status before retrying. Automated tests use synthetic temporary credentials and mocked database events, covering scope, concurrent authentication, active-turn rejection, permissions/flags and UI state selection. Live provider token revocation is neither implemented nor tested.
+
+## Durable local credential publication and sign-out
+
+Successful worker sign-out now requires syncing the credential store's directory
+after unlinking the selected connection/provider file. If synchronization fails,
+the worker does not acknowledge signedOut. Retrying an already-absent file still
+syncs the directory: prior removal may be visible but not durably acknowledged.
+Repair storage and retry/recheck rather than assuming a failed request completed.
+Unsupported provider identifiers are refused, never mapped to Codex by default.
+
+Saved login publication uses a complete synced temporary file, atomic rename and
+parent-directory sync before reporting success. A post-rename sync error is
+ambiguous: the replacement may be visible, but its durability is unconfirmed.
+Invalid exports still preserve the previous login; do not assume all I/O failures
+leave the prior file unchanged. These required storage controls have no off switch
+and apply under the existing default-on owner-only connectionSignIn feature.
+Disabling that feature continues to reject the administrative API without changing
+credentials or weakening isolation/audit requirements.
+
+This is local forgetting, not provider-wide token revocation, secure physical
+erasure or cleanup of historical credential copies in session volumes. Those
+limitations remain. Synthetic sync-failure/retry/provider tests and private-file
+publication tests use no real credentials or provider accounts. Filesystem/hardware
+power-loss guarantees have not been verified live.

@@ -216,3 +216,44 @@ func TestSafetyResumeVerifiesChainBeforeWorkerOrApproval(t *testing.T) {
 		t.Fatal("tampered chain resumed", w.Code)
 	}
 }
+
+func TestFailedEmergencyStopAuditSurvivesRestart(t *testing.T) {
+	for _, scope := range []string{"application", "room"} {
+		for _, failure := range []string{"begin", "insert", "commit"} {
+			t.Run(scope+"/"+failure, func(t *testing.T) {
+				t.Parallel()
+				s, db, h := safetyHarness(t)
+				s.integrityStopPath = filepath.Join(t.TempDir(), "stop-marker")
+				model, cancelModel := context.WithCancel(context.Background())
+				defer cancelModel()
+				s.cancels["model"] = cancelModel
+				workflow, cancelWorkflow := context.WithCancel(context.Background())
+				defer cancelWorkflow()
+				s.workflowLive = map[string]context.CancelFunc{"workflow": cancelWorkflow}
+				db.failAt = failure
+				w := mockRequest(h, "POST", "/api/agent-safety", `{"action":"stop","scope":"`+scope+`","reason":"Synthetic required persistence outage"}`)
+				if w.Code != 503 || !s.integrityFault || model.Err() != context.Canceled || workflow.Err() != context.Canceled {
+					t.Fatal("stop audit failure did not latch/cancel all work", w.Code)
+				}
+				info, err := os.Stat(s.integrityStopPath)
+				if err != nil || info.Mode().Perm() != 0600 {
+					t.Fatal("private restart marker missing", err)
+				}
+				fresh := &server{integrityStopPath: s.integrityStopPath}
+				fresh.restoreIntegrityStop()
+				if !fresh.agentsBlockedLocked(room.State{}, "engineering") {
+					t.Fatal("restart lost failed stop")
+				}
+				db.failAt = ""
+				s.checkIntegrityNow()
+				if !s.integrityFault {
+					t.Fatal("storage restoration cleared stop automatically")
+				}
+				w = mockRequest(h, "POST", "/api/agent-safety", `{"action":"resume","scope":"application"}`)
+				if w.Code != 409 || !s.integrityFault {
+					t.Fatal("ordinary resume bypassed integrity recovery", w.Code)
+				}
+			})
+		}
+	}
+}

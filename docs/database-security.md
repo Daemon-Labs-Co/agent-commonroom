@@ -115,3 +115,20 @@ There is deliberately no UI/environment flag to disable these boundaries. Tests
 mock catalog queries, writes, metadata and failures; they never connect to
 PostgreSQL. Real database grant/HBA configuration needs administrator verification
 in each deployment before it can be considered protected.
+
+## Bounded startup checks
+
+Serving startup allows ten seconds for runtime pool creation, connection probe
+and least-privilege verification together. Earlier caller cancellation still
+applies. Unreachable storage, stalled privilege queries or unknown/broad privileges
+refuse startup; no agent execution begins. Connection/pool failures use generic
+messages instead of printing driver errors that may contain credentials or
+untrusted backend detail. Inspect protected database administration logs for
+connection diagnostics and restart after repair. These mandatory checks have no
+feature flag and do not weaken role restrictions.
+
+Mocked tests stall connection, query and row iteration with a short caller
+deadline, and verify least-privilege acceptance, broad-role rejection and synthetic
+secret omission. No live DB outage has been tested. Cooperative driver cancellation
+is required; this is not an external watchdog for a backend that ignores context.
+The separate operator-run migration command still needs its own operational timeout.

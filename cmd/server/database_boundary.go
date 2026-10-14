@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,6 +28,24 @@ const runtimePrivilegeSQL = `SELECT
 
 type catalogQuerier interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+// verifyRuntimeDatabaseStartup bounds connection and privilege verification as
+// one operation. Never log the raw connection error: drivers/backends may include
+// credentials or untrusted server detail. Unknown privileges refuse startup.
+func verifyRuntimeDatabaseStartup(ctx context.Context, ping func(context.Context) error, db catalogQuerier) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if ctx.Err() != nil || ping(ctx) != nil {
+		return errors.New("Runtime database connection unavailable; inspect database administration logs")
+	}
+	if err := validateRuntimeDatabase(ctx, db); err != nil {
+		return err
+	}
+	if ctx.Err() != nil {
+		return errors.New("Runtime database startup verification timed out")
+	}
+	return nil
 }
 
 func runtimeDatabaseConfig(url string) (*pgxpool.Config, error) {

@@ -6,9 +6,11 @@ import (
 	"agentroom/internal/room"
 	"context"
 	"sync"
+	"time"
 )
 
 type server struct {
+	storageTimeout    time.Duration
 	connectionProbe   workerProbe
 	verificationRooms map[string]string
 	verificationTurn  func(context.Context) (string, error)

@@ -113,3 +113,12 @@ bindings, capacity/flag/stops, wrong replies, cancellation, unknown shutdown,
 connection-edit exclusion and the full diagnostic HTTP path. No real provider or
 worker is launched in these tests. Live controller/worker upgrade acceptance has
 not been performed for this change; it must not be described as deployed.
+
+### Chat command-tool restriction
+
+Codex reply probes use the mandatory command-tool-disabled chat prefix, including
+`features.shell_tool=false`; read-only alone still permits reads through tools.
+The isolated worker rejects altered/old prefixes. Upgrade controller and worker
+together. Claude probes retain an empty tool allowlist. Synthetic tests verify
+argument enforcement, not live provider tool availability. This is a required
+security control with no feature toggle. See [chat policy and limits](security-hardening.md#codex-chat-command-tool-policy).

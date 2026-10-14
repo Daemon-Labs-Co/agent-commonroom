@@ -22,6 +22,9 @@ coverage:
 check: test-race
 	go vet ./...
 	node --check docker/agent/entrypoint.cjs
+	node --check docker/tools/tool-call.cjs
+	node --test tests/tool-call.test.cjs
+	node --test tests/tool-image.test.cjs
 	node --test tests/agent-entrypoint.test.cjs tests/credential-export.test.cjs tests/workspace-readiness.test.cjs
 	node --check web/human-attention.js
 	node --test tests/human-attention.test.cjs

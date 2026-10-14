@@ -42,21 +42,16 @@ func (a *ownerAuth) configureSessionPersistence(path string, enabled bool) error
 		a.sessionPath = ""
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return err
+		} else if err == nil {
+			return syncParentDirectory(path)
 		}
 		return nil
 	}
 	a.sessionPath = path
-	info, err := os.Lstat(path)
+	raw, err := readPrivateBounded(path, 65536)
 	if os.IsNotExist(err) {
 		return nil
 	}
-	if err != nil {
-		return err
-	}
-	if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 65536 {
-		return errors.New("Session store must be a private, bounded regular file")
-	}
-	raw, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -110,23 +105,7 @@ func (a *ownerAuth) persistSessionsLocked() error {
 	if err = os.MkdirAll(filepath.Dir(a.sessionPath), 0700); err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(filepath.Dir(a.sessionPath), ".sessions-")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(f.Name())
-	if _, err = f.Write(raw); err != nil {
-		f.Close()
-		return err
-	}
-	if err = f.Sync(); err != nil {
-		f.Close()
-		return err
-	}
-	if err = f.Close(); err != nil {
-		return err
-	}
-	return os.Rename(f.Name(), a.sessionPath)
+	return replacePrivateDurably(a.sessionPath, raw, syncParentDirectory)
 }
 func persistentHumanSessionsEnabled() (bool, error) {
 	value := os.Getenv("COMMONROOM_PERSISTENT_SESSIONS")

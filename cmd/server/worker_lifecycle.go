@@ -40,14 +40,7 @@ func (l *workerLease) Close() {
 // skip fencing, BUT allows delayed launches after cancellation and overlapping jobs.
 func workerTryLease(dir, name string) (*workerLease, bool, error) {
 	path := filepath.Join(dir, name)
-	if info, err := os.Lstat(path); err == nil {
-		if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
-			return nil, false, errors.New("unsafe worker lease")
-		}
-	} else if !os.IsNotExist(err) {
-		return nil, false, err
-	}
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
+	f, err := openPrivateRegular(path, os.O_RDWR|os.O_CREATE, 8192)
 	if err != nil {
 		return nil, false, err
 	}
@@ -150,7 +143,9 @@ func boundedWorkerRecords(dir string) ([]workerJobRecord, error) {
 	return records, nil
 }
 func workerJobSettled(v workerJobRecord) bool {
-	return workerTerminal(v.Status) && (v.Version == 0 || v.Version == 2 && v.ShutdownConfirmed)
+	// A terminal label from a legacy supervisor is not shutdown proof. Never
+	// silently upgrade that label into permission to resume managed execution.
+	return workerTerminal(v.Status) && v.Version == workerLifecycleVersion && v.ShutdownConfirmed
 }
 
 // workerAdmission checks durable records and live containers under the shared

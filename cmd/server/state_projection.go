@@ -12,6 +12,8 @@ import (
 )
 
 func (s *server) load(ctx context.Context) (room.State, error) {
+	ctx, cancel := s.storageContext(ctx)
+	defer cancel()
 	activities := map[string]string{}
 	background := map[string][]room.BackgroundActivity{}
 	activityStarts := map[string]time.Time{}
@@ -24,6 +26,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
+		if err := ctx.Err(); err != nil {
+			return st, err
+		}
 		var kind string
 		var data []byte
 		if err = rows.Scan(&kind, &data); err != nil {
@@ -400,6 +405,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			st.Incident = false
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return st, err
+	}
 	projectAgentStatusDetails(&st, activities, failures)
 	projectAgentElapsed(&st, activityStarts, time.Now().UTC())
 	projectBackground(&st, background)
@@ -414,5 +422,8 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	}
 	projectActors(&st)
 	projectHumanAttention(&st, acknowledged)
+	if err := ctx.Err(); err != nil {
+		return st, err
+	}
 	return st, rows.Err()
 }
