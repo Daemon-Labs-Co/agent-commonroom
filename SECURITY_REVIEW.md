@@ -1,5 +1,16 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Task dispatch transaction hardening — 13 October 2026
+
+Task send/review now uses an owner-only server command rather than separate browser
+agent/task writes. Intent and outcomes are atomic, retries use durable receipts,
+and pending task records cannot be edited or replayed until result or verified
+worker-quiescence reconciliation. Task dispatch is optional/default-on; disabling
+it preserves history and does not bypass mandatory execution safeguards. This
+narrows the browser dispatch gap in SEC-13; distributed controllers, independent
+audit anchoring and exactly-once external effects remain unsupported. Tests mock
+all DB/provider interactions. See [task dispatch](docs/task-dispatch.md).
+
 ## Workflow outcome transaction hardening — 13 October 2026
 
 Background workflow success/failure outcomes now commit run and participant state

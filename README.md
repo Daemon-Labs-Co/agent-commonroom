@@ -11,6 +11,10 @@ supported fallback or isolation-disable switch.
 **Status:** working development prototype, supported with one controller. Public
 internet hosting and hostile multi-tenant deployment are not production-ready.
 
+Task assignment uses [atomic server-owned dispatch](docs/task-dispatch.md), with
+visible pending/completed/failed outcomes and explicit recovery for interrupted
+work. The owner-controlled `taskDispatch` feature defaults on.
+
 ## What works
 
 - Rooms, invitation-only human accounts, personal rooms and owner-controlled access.

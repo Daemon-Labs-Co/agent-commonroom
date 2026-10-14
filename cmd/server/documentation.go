@@ -27,6 +27,7 @@ var documentationCatalog = []documentationEntry{
 	{"isolation", "Mandatory container execution", "docs/container-isolation.md"},
 	{"development-workspaces", "Ready-to-work development agents", "docs/development-workspaces.md"},
 	{"workflow-execution", "Running workflows", "docs/workflow-execution.md"},
+	{"task-dispatch", "Sending tasks to agents", "docs/task-dispatch.md"},
 	{"atomic-operations", "Atomic operations and safe retries", "docs/atomic-operations.md"},
 	{"context-disclosure", "Context disclosure controls", "docs/context-disclosure.md"},
 	{"worker-jobs", "Free worker job safety and diagnostics", "docs/worker-jobs.md"},

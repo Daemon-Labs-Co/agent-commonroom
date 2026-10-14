@@ -106,3 +106,9 @@ Regression tests inject begin, every outcome insert and commit failures using th
 in-memory database mock. A runner-level test verifies that a failed result batch
 leaves the prior run/session intact and prevents the next agent from launching.
 No database connection or live provider is used.
+
+## Task dispatch
+
+[Task dispatch](task-dispatch.md) now commits task state, dispatch message, agent
+activity/session and retry receipt before launch, and task/agent outcomes together.
+Pending intents require verified worker quiescence for explicit owner reconciliation.

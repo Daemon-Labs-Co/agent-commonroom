@@ -528,12 +528,17 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 
 // finishAgentTurn discards cancelled results even if dispatch has been resumed.
 func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, endpoint string, err error) {
+	s.finishAgentTurnWithTask(ctx, p, text, endpoint, err, "", "")
+}
+
+func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant, text, endpoint string, err error, taskID, dispatchID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer delete(s.active, p.ID)
 	defer delete(s.cancels, p.ID)
 	st, e := s.load(context.Background())
 	if e != nil {
+		s.tripIntegrityLocked()
 		return
 	}
 	found := false
@@ -544,7 +549,11 @@ func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, 
 		}
 	}
 	if !found {
-		s.append(context.Background(), "agent.stopped", map[string]string{"participantId": p.ID, "name": p.Name, "reason": "removed from room"})
+		changes := taskOutcome(st, taskID, dispatchID, "Stopped")
+		changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "removed from room"}})
+		if s.appendBatch(context.Background(), changes) != nil {
+			s.tripIntegrityLocked()
+		}
 		return
 	}
 	changes := []auditChange{}
@@ -564,6 +573,7 @@ func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, 
 		changes = append(changes, auditChange{Kind: "message.created", Payload: room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()}})
 	}
 	changes = append(changes, auditChange{Kind: "participant.session", Payload: p})
+	changes = append(changes, taskOutcome(st, taskID, dispatchID, p.Status)...)
 	if e := s.appendBatch(context.Background(), changes); e != nil {
 		s.tripIntegrityLocked()
 	}

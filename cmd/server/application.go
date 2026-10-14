@@ -9,6 +9,8 @@ import (
 )
 
 type server struct {
+	taskReady         func(string) error
+	taskTurn          func(context.Context, room.Participant, string, string) (string, error)
 	activeJobs        map[string]string
 	jobSnapshot       func(context.Context, string) (workerJobsSnapshot, error)
 	jobFence          func(context.Context, string, workerFenceRequest) error

@@ -108,6 +108,9 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			return nil, false
 		}
 		v.RoomID = roomID
+		v.DispatchID = ""
+		v.DispatchStatus = ""
+		v.DispatchDetail = ""
 		switch v.Status {
 		case "Assigned", "Working", "Submitted", "Reviewing", "Changes requested", "Accepted":
 		default:
@@ -128,6 +131,13 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			for _, old := range st.Tasks {
 				if old.ID == v.ID && old.RoomID == roomID {
 					found = true
+					if old.DispatchStatus == "pending" {
+						http.Error(w, "Task dispatch pending; wait for its result or reconcile the worker", 409)
+						return nil, false
+					}
+					v.DispatchID = old.DispatchID
+					v.DispatchStatus = old.DispatchStatus
+					v.DispatchDetail = old.DispatchDetail
 					if old.Revision != v.Revision {
 						http.Error(w, "Task changed; reload", 409)
 						return nil, false

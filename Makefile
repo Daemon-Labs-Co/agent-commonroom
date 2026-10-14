@@ -42,7 +42,7 @@ check: test-race
 	node --check web/app.js
 	node --test tests/operation-retry.test.cjs tests/context-disclosure.test.cjs
 	node --check web/features.js
-	node --test tests/squad-count.test.cjs
+	node --test tests/squad-count.test.cjs tests/task-dispatch.test.cjs
 	node --check web/squad-profiles.js
 	node --check web/agent-invitation.js
 	node --check web/help-icons.js

@@ -94,12 +94,12 @@ func (s *server) actorGuard(next http.Handler) http.Handler {
 				http.Error(w, "Owner permission required", 403)
 				return
 			}
-			if path == "/api/agents" || path == "/api/provider-auth" {
+			if path == "/api/task-dispatch" || path == "/api/agents" || path == "/api/provider-auth" {
 				http.Error(w, "Agent control currently requires the owner", 403)
 				return
 			}
 		}
-		if path == "/api/state" || path == "/api/events" || path == "/api/agents" {
+		if path == "/api/task-dispatch" || path == "/api/state" || path == "/api/events" || path == "/api/agents" {
 			if !canAccess(st, actor, requestedRoom(r)) {
 				http.Error(w, "Room access denied", 403)
 				return

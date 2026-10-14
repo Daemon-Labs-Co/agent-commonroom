@@ -243,3 +243,10 @@ See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) fo
 ## Disclosure and operation safety
 
 See [context disclosure contracts](context-disclosure.md) for room/provider and memory export controls, and [atomic operations](atomic-operations.md) for required edit revisions, `Idempotency-Key`, response replay and single-controller limits.
+
+## Atomic task dispatch
+
+See [Task dispatch](task-dispatch.md#api-and-technical-contract) for the owner-only
+`POST /api/task-dispatch` work/review/reconcile contract, retry receipts, permission
+checks and default-on `taskDispatch` flag. The browser no longer sends an agent
+message and task-status mutation as separate operations.

@@ -56,3 +56,16 @@ No live database/provider tests or controller deployment were performed. This is
 one focused security correction, not completion of the security/refactor/plugin
 roadmap. The prior 15x planning factor remains a hypothesis for comparable slices;
 this checkpoint has no independent pre-implementation estimate.
+
+## Atomic task dispatch — 13 October 2026
+
+Started **21:14:42 EDT**, final code verification **21:21:14 EDT**: **6m 32s**.
+Includes implementation, a corrected synthetic fixture, mocked transaction/retry/
+permission/result tests, UI tests, documentation and full checks. No separate
+pre-implementation estimate was recorded for this slice.
+
+Final `make test`: **2.05s**; full `make check`: **6.37s**, including Go race/static
+and JavaScript checks. Earlier successful runs: test 2.27s/2.10s, full check
+6.74s/6.39s. Tests did not connect to a database or launch real provider agents.
+This is source verification only; the running controller was not replaced and
+live worker/provider acceptance is still outstanding.

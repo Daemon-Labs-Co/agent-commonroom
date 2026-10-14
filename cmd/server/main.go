@@ -89,6 +89,7 @@ func main() {
 	mux.HandleFunc("/api/integrity", s.integrity)
 	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
+	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
 	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
 	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
 	mux.HandleFunc("/api/job-diagnostics", s.jobDiagnostics)

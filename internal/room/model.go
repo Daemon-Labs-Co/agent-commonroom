@@ -98,14 +98,17 @@ type Room struct {
 	Description          string               `json:"description"`
 }
 type Task struct {
-	ID       string `json:"id"`
-	RoomID   string `json:"roomId"`
-	Title    string `json:"title"`
-	Criteria string `json:"criteria"`
-	Assignee string `json:"assignee"`
-	Reviewer string `json:"reviewer"`
-	Status   string `json:"status"`
-	Revision int    `json:"revision"`
+	DispatchID     string `json:"dispatchId,omitempty"`
+	DispatchStatus string `json:"dispatchStatus,omitempty"`
+	DispatchDetail string `json:"dispatchDetail,omitempty"`
+	ID             string `json:"id"`
+	RoomID         string `json:"roomId"`
+	Title          string `json:"title"`
+	Criteria       string `json:"criteria"`
+	Assignee       string `json:"assignee"`
+	Reviewer       string `json:"reviewer"`
+	Status         string `json:"status"`
+	Revision       int    `json:"revision"`
 }
 type Evidence struct {
 	ID      string    `json:"id"`
