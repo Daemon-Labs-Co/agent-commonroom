@@ -4,7 +4,7 @@
 
 ## Get running
 
-Use the main README for dependencies, database setup, owner sign-in, and local startup. Runtime needs Go, PostgreSQL, and a browser; Node.js is needed for JavaScript syntax checks. Gitleaks is needed for secret checks. Provider CLIs and SSH are optional until working on those integrations.
+Use the main README for dependencies, database setup, owner sign-in, and local startup. Runtime needs Go, PostgreSQL, and a browser; Node.js is needed for JavaScript checks and Python 3.8+ for offline engine build-policy tests (standard library only). Gitleaks is needed for secret checks. Provider CLIs and SSH are optional until working on those integrations.
 
 ## Branch and commit policy
 

@@ -629,3 +629,24 @@ missing separated bridge. Tests cover refusal and retained chat validation. This
 closes new legacy development admission in updated source, not all provider native
 capabilities or a working replacement. Existing/deployed old worker binaries/jobs,
 pinned Linux bridge/native-tool verification and production separation remain OPEN.
+
+## Reviewed engine preparation — 14 October 2026
+
+Dedicated Codex build preparation now verifies the replacement bridge policy as
+well as upstream source before editing the trusted build checkout. Altered policy
+and unexpected dependency lockfiles fail without changing the source. The release
+lockfile requires a pinned local-workspace version normalization only; external
+versions/checksums remain unchanged. Eight offline synthetic tests cover drift,
+symlink refusal, preservation of rejected input and successful one-time preparation.
+This is mandatory free/core build policy, with no opt-out or paid bypass.
+
+The isolated Linux compile/test verification is separate from CommonRoom's fast
+checks. No provider login/model turn is performed by these tests. Production
+engine artifact verification, broker audit transport and paired supervision remain
+OPEN; source preparation does not make the credentials-separated runtime usable.
+See docker/engine/README.md and docs/provider-tool-separation.md.
+
+Pinned Linux/amd64 compilation and three synthetic router tests now pass. A
+development CLI binary also built and passed network-disabled version/schema
+metadata checks, with no provider turn. This verifies the selected factory's
+construction and packaging only; it does not close production SEC-04 separation.

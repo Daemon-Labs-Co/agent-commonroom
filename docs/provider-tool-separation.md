@@ -685,3 +685,12 @@ runtime/native-tool verification. No provider agent was launched and no credenti
 contents were read. A reviewed client build or explicitly authorized API-backed
 engine is required where the stock CLI cannot prove the boundary; do not silently
 change existing subscription accounts to separately billed API usage.
+
+## Dedicated Codex client build
+
+The [reviewed engine build instructions](../docker/engine/README.md) describe the
+pinned upstream source, callback-only router patch, source/policy integrity checks
+and required Linux verification. This retains CLI subscription accounts. It is not
+yet a production bridge: binary verification, controlled engine settings, durable
+audit callbacks and paired supervision remain required before development can run.
+No feature flag can bypass these prerequisites.
