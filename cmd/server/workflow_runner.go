@@ -481,6 +481,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		s.mu.Lock()
 		st, err := s.load(context.Background())
 		if err != nil {
+			s.tripIntegrityLocked()
 			s.mu.Unlock()
 			return
 		}
@@ -497,21 +498,18 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		fail := func(e error) {
 			run.Status = "failed"
 			run.Detail = e.Error()
-			_ = s.saveWorkflowRun(&run)
 			node := workflowNode(run.Workflow, run.NodeID)
+			var changes []auditChange
 			if (node.Type == "agent" || node.Type == "review") && !s.active[node.AgentID] {
-				latest, loadErr := s.load(context.Background())
-				if loadErr == nil {
-					for _, participant := range latest.Participants {
-						if participant.ID == node.AgentID && participant.RoomID == run.RoomID {
-							participant.Status = "Blocked"
-							_ = s.append(context.Background(), "agent.error", map[string]string{"participantId": participant.ID, "error": e.Error()})
-							_ = s.append(context.Background(), "participant.session", participant)
-							break
-						}
+				for _, participant := range st.Participants {
+					if participant.ID == node.AgentID && participant.RoomID == run.RoomID {
+						participant.Status = "Blocked"
+						changes = append(changes, auditChange{Kind: "agent.error", Payload: map[string]string{"participantId": participant.ID, "error": e.Error()}}, auditChange{Kind: "participant.session", Payload: participant})
+						break
 					}
 				}
 			}
+			s.persistWorkflowTransitionLocked(&run, changes...)
 		}
 		if ctx.Err() != nil || !workflowExecutionEnabled(st) {
 			fail(errors.New("Execution cancelled or feature disabled"))
@@ -541,21 +539,21 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		if n.Type == "approval" || n.Type == "evidence" || n.Type == "decision" {
 			run.Status = "awaiting_human"
 			run.Detail = n.Title + ": " + n.Instructions + "\n" + n.Evidence
-			_ = s.saveWorkflowRun(&run)
+			s.persistWorkflowTransitionLocked(&run)
 			s.mu.Unlock()
 			return
 		}
 		if n.Type == "finish" {
 			run.Status = "completed"
 			run.Detail = "Completed with human acceptance"
-			_ = s.saveWorkflowRun(&run)
+			s.persistWorkflowTransitionLocked(&run)
 			s.mu.Unlock()
 			return
 		}
 		if n.Type == "start" {
 			appendWorkflowStep(&run, n, "Run started by owner", "", "next")
 			run.NodeID = nextWorkflowNode(run.Workflow, n.ID, "next")
-			if s.saveWorkflowRun(&run) != nil {
+			if s.persistWorkflowTransitionLocked(&run) != nil {
 				s.mu.Unlock()
 				return
 			}
@@ -593,7 +591,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 			return
 		}
 		if p.ID == "" {
-			if err = s.saveWorkflowRun(&run); err != nil {
+			if err = s.persistWorkflowTransitionLocked(&run); err != nil {
 				s.mu.Unlock()
 				return
 			}
@@ -610,6 +608,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 			changes := []auditChange{{Kind: "workflow.run.updated", Payload: run}, {Kind: "agent.activity", Payload: map[string]any{"participantId": p.ID, "activity": "Workflow: " + run.Workflow.Name + " / " + n.Title, "startedAt": time.Now().UTC()}}, {Kind: "participant.session", Payload: p}}
 			if err = s.appendBatch(context.Background(), changes); err != nil {
 				stop()
+				s.tripIntegrityLocked()
 				s.mu.Unlock()
 				return
 			}
@@ -643,6 +642,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		delete(s.cancels, p.ID)
 		current, loadErr := s.load(context.Background())
 		if loadErr != nil {
+			s.tripIntegrityLocked()
 			s.mu.Unlock()
 			return
 		}
@@ -651,6 +651,8 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 				run = v
 			}
 		}
+		st = current
+		var sessionChanges []auditChange
 		if p.ID != "" {
 			for _, member := range current.Participants {
 				if member.ID == p.ID {
@@ -659,12 +661,15 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 					if err != nil {
 						p.Status = "Blocked"
 					}
-					_ = s.append(context.Background(), "participant.session", p)
+					sessionChanges = append(sessionChanges, auditChange{Kind: "participant.session", Payload: p})
 					break
 				}
 			}
 		}
 		if run.Status != "running" {
+			if err := s.appendBatch(context.Background(), sessionChanges); err != nil {
+				s.tripIntegrityLocked()
+			}
 			s.mu.Unlock()
 			return
 		}
@@ -702,7 +707,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		}
 		appendWorkflowStep(&run, n, output, "", port)
 		run.NodeID = nextWorkflowNode(run.Workflow, n.ID, port)
-		if s.saveWorkflowRun(&run) != nil {
+		if s.persistWorkflowTransitionLocked(&run, sessionChanges...) != nil {
 			s.mu.Unlock()
 			return
 		}

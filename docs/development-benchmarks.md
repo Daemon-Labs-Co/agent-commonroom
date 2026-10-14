@@ -42,3 +42,17 @@ JavaScript checks ran). The preceding uncached Go run took **2.22s**, with full
 checks at **6.32s**. The rebuilt controller serves the application and Help with
 HTTP 200; unauthenticated state access returns 401. Worker idle was verified before
 restart. No live model interaction or database test fixtures were introduced.
+
+## Security-first implementation checkpoint — 13 October 2026
+
+Workflow outcome atomicity and fail-closed persistence: started **17:58:11 EDT**,
+verified **18:00:18 EDT**, elapsed **2m 07s**. Includes source inspection,
+implementation, mocked regression tests, documentation and required checks.
+`make test`: **1.44s**; `make check`: **6.75s** (includes race/static/UI checks).
+An earlier successful test run took 1.98s; the initial sandbox-only attempt could
+not access the existing Go build cache and did not run the server tests.
+
+No live database/provider tests or controller deployment were performed. This is
+one focused security correction, not completion of the security/refactor/plugin
+roadmap. The prior 15x planning factor remains a hypothesis for comparable slices;
+this checkpoint has no independent pre-implementation estimate.
