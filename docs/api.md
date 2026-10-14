@@ -253,3 +253,7 @@ message and task-status mutation as separate operations.
 
 Connection-test provider turns use controller-journalled run-v2 and require durable
 shutdown proof before reporting Working. See [verification lifecycle](connection-testing.md#controller-owned-verification-lifecycle).
+
+Owner job diagnostics also includes application-wide `turnBudget` usage and reset
+time. Admission rejects exhausted daily launch budgets; mandatory registration
+rechecks journal usage atomically before launch. See [execution budgets](execution-budgets.md).

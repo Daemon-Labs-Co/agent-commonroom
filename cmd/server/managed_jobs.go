@@ -74,13 +74,16 @@ func (s *server) managedJobContext(ctx context.Context, p room.Participant) cont
 		if !workerAliasPattern.MatchString(alias) || (provider != "codex" && provider != "claude") {
 			return errors.New("invalid worker binding")
 		}
+		if err = s.admitDailyTurns(latest, time.Now(), 1); err != nil {
+			return err
+		}
 		job.Worker = alias
 		job.Provider = provider
 		job.UpdatedAt = time.Now().UTC()
 		job.DiagnosticCode = "intent_recorded"
 		auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err = s.append(auditCtx, "worker.job.updated", job); err != nil {
+		if err = s.append(context.WithValue(auditCtx, expectedEventCountKey{}, latest.EventCount), "worker.job.updated", job); err != nil {
 			s.tripIntegrityLocked()
 			return errors.New("managed job allocation audit failed; launch refused")
 		}

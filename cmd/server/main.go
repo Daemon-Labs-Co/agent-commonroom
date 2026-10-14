@@ -31,6 +31,10 @@ func main() {
 	}
 	os.Setenv("COMMONROOM_DEVELOPMENT_WORKSPACES", developmentEnabled)
 	os.Setenv("COMMONROOM_DEVELOPMENT_REPOSITORIES", developmentRegistry)
+	dailyTurnLimit, budgetErr := parseDailyTurnLimit(os.Getenv("COMMONROOM_DAILY_TURN_LIMIT"))
+	if budgetErr != nil {
+		log.Fatal(budgetErr)
+	}
 	ctx := context.Background()
 	var localConfig struct {
 		DatabaseURL         string `json:"databaseUrl"`
@@ -75,7 +79,7 @@ func main() {
 	if err = validateRuntimeDatabase(ctx, db); err != nil {
 		log.Fatal(err)
 	}
-	s := &server{db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
+	s := &server{dailyTurnLimit: dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/members", s.members)
 	mux.HandleFunc("/api/login", s.login)

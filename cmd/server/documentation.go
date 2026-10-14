@@ -30,6 +30,7 @@ var documentationCatalog = []documentationEntry{
 	{"task-dispatch", "Sending tasks to agents", "docs/task-dispatch.md"},
 	{"atomic-operations", "Atomic operations and safe retries", "docs/atomic-operations.md"},
 	{"context-disclosure", "Context disclosure controls", "docs/context-disclosure.md"},
+	{"execution-budgets", "Daily managed-turn budget", "docs/execution-budgets.md"},
 	{"worker-jobs", "Free worker job safety and diagnostics", "docs/worker-jobs.md"},
 	{"api", "HTTP API", "docs/api.md"},
 	{"development-benchmarks", "Security and refactoring benchmarks", "docs/development-benchmarks.md"},

@@ -182,3 +182,9 @@ now allocate a controller journal entry and use run-v2/fencing. Synthetic verifi
 memberships appear in job diagnostics, not in the squad. Unconfirmed verification
 shutdown blocks restart/resume like any other managed job. Human provider login
 is a separate administrative operation and is not claimed to share this journal.
+
+## Daily allocation budget
+
+All journalled allocations, including connection checks, consume the mandatory
+[UTC-day managed-turn budget](execution-budgets.md). Lifecycle updates and
+reconciliation do not refund or consume additional units.

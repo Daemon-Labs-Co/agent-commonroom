@@ -83,3 +83,20 @@ No live controller/worker deployment or provider acceptance was performed. Updat
 both components before claiming the old verification launcher is disabled at
 runtime. The capability reuses the existing default-on `connectionTesting` flag;
 mandatory job journalling and shutdown verification have no independent off switch.
+
+## Durable daily turn budgets — 13 October 2026
+
+Started **21:57:00 EDT**, final integrated verification **22:29:20 EDT**:
+**32m 20s elapsed**. This includes implementation, mocked tests, documentation,
+Git dependency inspection, preserving the budget patch, fast-forwarding the feature
+branch to the owner's existing connection-verification commit and resolving four
+overlaps. Main was unchanged; no new commit or push was created. This is total
+elapsed time, not a separately measured coding-only duration.
+
+Final full `make test`: **2.06s**; full `make check`: **6.42s** (race/static/UI).
+Earlier integrated runs took 2.36s / 6.72s. All DB, transport and provider interactions
+were mocked. The final regression explicitly proves verification jobs share the
+budget. No controller/worker deployment or live provider acceptance was performed.
+Daily limits depend on an intact controller journal and a single-controller
+installation; monetary/storage quotas and independent rollback protection remain
+outstanding. See [execution budgets](execution-budgets.md).

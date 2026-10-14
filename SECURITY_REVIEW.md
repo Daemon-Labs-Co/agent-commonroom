@@ -12,6 +12,17 @@ source; live worker/controller upgrade remains unverified. Human login operation
 legacy worker records, independent audit rollback protection and distributed
 ownership are separate remaining issues. See [connection lifecycle](docs/connection-testing.md#controller-owned-verification-lifecycle).
 
+## Durable launch-volume budget — 13 October 2026
+
+Controller admission now has a mandatory application-wide UTC-day allocation
+budget, default 200, configurable from 1 to 100000. The job journal supplies usage;
+restart and optional diagnostic flags do not reset it. Registration rechecks usage
+under the controller lock and appends intent with an expected event count. Owner
+diagnostics expose safe usage/reset details. Mocked tests cover restart, final-slot
+races and rollback. This narrows SEC-10: monetary/token/storage budgets, legacy
+pre-journal work, independent rollback protection and distributed controllers
+remain outside this guarantee. See [execution budgets](docs/execution-budgets.md).
+
 ## Task dispatch transaction hardening — 13 October 2026
 
 Task send/review now uses an owner-only server command rather than separate browser
