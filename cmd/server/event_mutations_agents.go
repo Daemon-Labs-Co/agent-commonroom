@@ -37,6 +37,10 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 				return nil, false
 			}
 		}
+		if connectionHasActiveAgent(st, s.active, v.ID) {
+			http.Error(w, "Connection has active work or verification", 409)
+			return nil, false
+		}
 		v.Actor = "human"
 		p = v
 	case "connection.created", "connection.updated":
@@ -69,6 +73,10 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 			found := false
 			for _, old := range st.Connections {
 				if old.ID == v.ID {
+					if connectionHasActiveAgent(st, s.active, v.ID) {
+						http.Error(w, "Connection has active work or verification", 409)
+						return nil, false
+					}
 					if v.Revision != old.Revision {
 						http.Error(w, "Connection changed; reload", 409)
 						return nil, false

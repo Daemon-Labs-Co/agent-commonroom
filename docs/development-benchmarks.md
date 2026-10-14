@@ -69,3 +69,17 @@ and JavaScript checks. Earlier successful runs: test 2.27s/2.10s, full check
 6.74s/6.39s. Tests did not connect to a database or launch real provider agents.
 This is source verification only; the running controller was not replaced and
 live worker/provider acceptance is still outstanding.
+
+## Managed connection verification — 13 October 2026
+
+Started **21:46:35 EDT**, final code verification **21:54:06 EDT**: **7m 31s**.
+Includes inspection, implementation, a corrected non-comparable binding check,
+mocked lifecycle/HTTP/cancellation/capacity regressions and documentation review.
+Final full `make test`: **2.42s**; full `make check`: **6.58s** (race/static/UI).
+Earlier successful test runs took 2.49s, 1.91s and 2.18s; the first full check took
+6.68s. All provider/SSH/DB operations in tests were mocked.
+
+No live controller/worker deployment or provider acceptance was performed. Update
+both components before claiming the old verification launcher is disabled at
+runtime. The capability reuses the existing default-on `connectionTesting` flag;
+mandatory job journalling and shutdown verification have no independent off switch.

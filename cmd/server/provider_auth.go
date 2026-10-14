@@ -34,6 +34,9 @@ func (b *cappedStatusOutput) Write(p []byte) (int, error) {
 // Disabling its feature flag cannot disable execution isolation or restore a
 // host CLI fallback. Source forks CAN bypass this, BUT expose host credentials.
 func connectionHasActiveAgent(st room.State, active map[string]bool, connection string) bool {
+	if active[verificationParticipant("", connection).ID] {
+		return true
+	}
 	for _, p := range st.Participants {
 		if p.ConnectionID == connection && active[p.ID] {
 			return true

@@ -167,11 +167,18 @@ on 13 October 2026 passed in 2.45 seconds; it used a synthetic container and
 temporary records, with no provider credentials mounted and no database access.
 
 This is a managed-job lifecycle foundation, not complete distributed application
-support. HTTP operation idempotency, atomic multi-event business updates,
-distributed workflow cursor ownership and transactional conflict checks remain
-Free follow-up work. Controllers must not run concurrently against shared business
+support. HTTP retry receipts and atomic agent/workflow/task dispatch updates are now
+implemented; distributed workflow cursor ownership remains Free follow-up work. Controllers must not run concurrently against shared business
 state merely because worker execution is fenced. Provider connection verification
-also uses worker leases/outcomes, but does not yet have controller journal intent;
-an abandoned verification job needs operator reconciliation. Unresolved legacy
+now uses controller-journalled run-v2 intent and verified shutdown; abandoned
+verification jobs require explicit owner reconciliation. Unresolved legacy
 jobs are not automatically adopted or erased. Provider requests/file changes
 already performed cannot be undone by killing a container.
+
+## Connection verification jobs
+
+[Connection provider checks](connection-testing.md#controller-owned-verification-lifecycle)
+now allocate a controller journal entry and use run-v2/fencing. Synthetic verification
+memberships appear in job diagnostics, not in the squad. Unconfirmed verification
+shutdown blocks restart/resume like any other managed job. Human provider login
+is a separate administrative operation and is not claimed to share this journal.
