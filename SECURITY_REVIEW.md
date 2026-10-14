@@ -618,3 +618,14 @@ SEC-04 remains open. Mandatory container isolation is now the documented executi
 ## Mandatory worker implementation — 11 October 2026
 
 Managed Codex/Claude turns now use Linux/rootless Docker with no direct fallback, non-root/read-only/capability restrictions, private membership volumes, provider-only CONNECT egress and bounded resources/output/cleanup. Direct SSH and non-Linux dispatch are blocked. Legacy host-session resume is blocked; client profile payloads cannot set execution provenance, and connection reassignment clears old bindings and is denied while active. Mocked regression checks pass. Live Docker/provider behavior, configured host mounts, remote workers, crash reconciliation and independent incident shutdown remain unverified or unfinished. SEC-04/08/09/10 are mitigated in these paths, not universally closed. See docs/container-isolation.md.
+
+
+## Legacy development admission barrier — 14 October 2026
+
+Updated controller dispatch, worker request validation and local preparation now
+refuse the known credential-bearing native development path before credentials or
+Docker are accessed. No owner/flag/paid bypass is supported. Status identifies the
+missing separated bridge. Tests cover refusal and retained chat validation. This
+closes new legacy development admission in updated source, not all provider native
+capabilities or a working replacement. Existing/deployed old worker binaries/jobs,
+pinned Linux bridge/native-tool verification and production separation remain OPEN.

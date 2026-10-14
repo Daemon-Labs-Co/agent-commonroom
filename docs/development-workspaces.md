@@ -2,6 +2,16 @@
 
 [Documentation index](README.md)
 
+**Current security status (14 October 2026): legacy native development execution is
+blocked in the updated controller and worker.** The historical single-container
+setup below no longer authorizes development, even with its operator flags enabled.
+Model-controlled tools cannot share readable provider credentials. A verified
+separate provider/tool bridge is required; see [the replacement contract](provider-tool-separation.md).
+Chat and provider sign-in retain their existing policies. No old job is adopted,
+replayed or automatically stopped by this admission change. Stop/inspect existing
+workers before deploying updated binaries; no binaries have been deployed by this
+change. Do not apply the historical installation steps as a bypass.
+
 Development agents need a repository they can edit, Git metadata they can update, and commands that can execute **before their first development turn**. A reachable Docker daemon or a successful conversational reply does not prove those capabilities.
 
 ## What changes

@@ -83,7 +83,9 @@ Retain the existing CLI-based accounts; do not silently migrate customers to API
 billing or another provider. If the pinned provider cannot establish the required
 interface, its separated development mode is unavailable, with an explicit
 reason. Do not return to credential-bearing native tool execution as a fallback.
-This document does not change today's launch behavior.
+The updated controller and worker now refuse the legacy native development path;
+this closes admission to the known unsafe shared-container mode, but does not
+install a working replacement or terminate existing old-worker jobs.
 
 ## Lifecycle, cancellation and migration
 
@@ -655,3 +657,31 @@ is withheld and the job fenced/cleanup queried. Full tests and checks pass. This
 required free/core verification has no bypass flag. Real image/tool runner,
 provider bridge, durable audit transport and production credential separation
 remain OPEN, with no UI/connection behavior or deployment change.
+
+
+## Legacy development admission barrier
+
+`requireCredentialSeparatedDevelopment` rejects nonempty development repository
+bindings in controller execution, worker request validation and local preparation,
+before credential reads or Docker setup. There is no flag, owner exemption or paid
+entitlement for the old path. Signing in again, using read-only credential mounts
+or disabling inner namespaces cannot satisfy this boundary. The user-facing agent
+status identifies the bridge requirement rather than an authentication failure.
+
+This is temporary feature unavailability while the replacement is implemented,
+not a completed provider bridge. Existing off-by-default development operator
+flags/registries and stored snapshots remain intact; enabling them cannot restore
+native tool execution. Chat/login retain their policies, without a claim that this
+barrier proves all chat native capabilities. Existing jobs/old binaries are not
+killed or modified; operators must stop and verify workers before deploying updates.
+Automated tests use synthetic requests and prove rejection before preparation.
+
+Local metadata inspection found Codex CLI `0.162.0-alpha.17.2`; generated app-server
+schemas include experimental dynamic tools but no guaranteed disable-all-native-tools
+field. Claude metadata reported `2.1.287`; vendor docs distinguish built-in tool
+selection, MCP configuration and restricted/customization modes. Neither local
+metadata inspection nor published flag descriptions substitutes for pinned Linux
+runtime/native-tool verification. No provider agent was launched and no credential
+contents were read. A reviewed client build or explicitly authorized API-backed
+engine is required where the stock CLI cannot prove the boundary; do not silently
+change existing subscription accounts to separately billed API usage.

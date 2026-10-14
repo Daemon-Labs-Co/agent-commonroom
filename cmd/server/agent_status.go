@@ -13,6 +13,8 @@ import (
 func safeAgentFailure(raw string) (reason, next string) {
 	text := strings.ToLower(raw)
 	switch {
+	case strings.Contains(text, "credential-separated"):
+		return "Development is blocked because native tools share provider credentials.", "The administrator must install and verify the separate provider/tool bridge. Signing in again or disabling isolation will not fix this."
 	case strings.Contains(text, "deadline exceeded"), strings.Contains(text, "timed out"):
 		return "The agent did not finish before its time limit.", "Inspect partial work, then retry or split the task into smaller steps."
 	case strings.Contains(text, "signal: killed"):

@@ -8,7 +8,7 @@ run through an approved **Linux worker with rootless Docker**. CommonRoom can ru
 on your Mac while the worker runs on a Debian server. Host execution has no
 supported fallback or isolation-disable switch.
 
-**Status:** working development prototype, supported with one controller. Public
+**Status:** working prototype, supported with one controller. Legacy native code-development turns are blocked until a verified credential-separated bridge is available. Public
 internet hosting and hostile multi-tenant deployment are not production-ready.
 
 Task assignment uses [atomic server-owned dispatch](docs/task-dispatch.md), with

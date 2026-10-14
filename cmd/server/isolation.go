@@ -105,6 +105,9 @@ func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string,
 // rootless container boundary remains mandatory. A source bypass CAN expose host
 // authority, BUT invalidates containment and must never be an automatic fallback.
 func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, repository string, args ...string) (*exec.Cmd, func(), error) {
+	if err := requireCredentialSeparatedDevelopment(repository); err != nil {
+		return nil, nil, err
+	}
 	bundle, err := workerDevelopmentBundle(key, repository, os.Getenv("COMMONROOM_WORKER_DEVELOPMENT"), os.Getenv("COMMONROOM_WORKER_DEVELOPMENT_REPOSITORIES"))
 	if err != nil {
 		return nil, nil, err

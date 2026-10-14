@@ -91,8 +91,8 @@ func TestDevelopmentProtocolRequiresSnapshotAndExactToolPolicy(t *testing.T) {
 		if provider == "codex" {
 			v.Args = append(v.Args, "-")
 		}
-		if _, err := encodeWorkerRequest(v); err != nil {
-			t.Fatal(provider, err)
+		if _, err := encodeWorkerRequest(v); err != errCredentialBoundary {
+			t.Fatal("legacy credential-bearing development must remain unavailable", provider, err)
 		}
 		v.Repository = ""
 		if _, err := encodeWorkerRequest(v); err == nil {

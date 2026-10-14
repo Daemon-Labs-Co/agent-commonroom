@@ -471,3 +471,16 @@ No real DB/provider/Docker/image or credential interaction. Consistent result
 metadata is not filesystem attestation. Actual runner/engine-pair supervision and
 production credential separation remain OPEN. Required free/core result checks
 have no bypass flag or deployment change.
+
+
+## Legacy credential-bearing development admission — 14 October 2026
+
+Task/research start **09:28:22 EDT**, final verification **09:39:49 EDT**:
+**11m 27s**, including official interface research and local CLI metadata/schema
+inspection. First full `make test` **2.32s** failed a superseded test that expected
+legacy development acceptance; it now verifies mandatory refusal. Passing runs
+**2.41s** and final **2.37s**; `make check` **6.93s** and final **7.22s**. Synthetic
+requests, mock DB and metadata-only CLI inspection; no provider turns, credential
+contents, live DB or deployment. The replacement bridge is not implemented by this
+slice and old deployed workers/jobs are unchanged. Required free/core safety has
+no flag or owner/paid bypass.

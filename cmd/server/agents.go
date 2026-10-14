@@ -485,6 +485,9 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 	if policyErr != nil {
 		return "", policyErr
 	}
+	if err := requireCredentialSeparatedDevelopment(repository); err != nil {
+		return "", err
+	}
 	mode, thread, sessionErr := agentExecutionSession(p.ExecutionMode, p.ThreadID, repository)
 	if sessionErr != nil {
 		return "", sessionErr

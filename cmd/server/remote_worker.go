@@ -88,6 +88,9 @@ func decodeWorkerRequest(encoded string) (workerRunRequest, error) {
 // development policy bound to an approved snapshot. The worker independently
 // verifies its administrator-owned room registry before any launch.
 func validateWorkerRun(v workerRunRequest) error {
+	if err := requireCredentialSeparatedDevelopment(v.Repository); err != nil {
+		return err
+	}
 	if v.Version != workerLifecycleVersion || !validWorkerJobID(v.JobID) || strings.TrimSpace(v.Key) == "" || len(v.Key) > 1024 {
 		return errors.New("Invalid worker identity")
 	}
