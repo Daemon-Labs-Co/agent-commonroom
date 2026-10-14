@@ -75,3 +75,34 @@ and commit failures, canonical JSON, and concurrent state checks. Tests exercise
 rollback at each batch position, receipt failure, replay/conflicting input,
 retry after failure, stale entity edits, audit-chain continuity and CSRF retry
 key reuse. Tests never access PostgreSQL or launch provider agents.
+
+## Workflow outcome persistence
+
+The background runner commits each successful step's next run revision and the
+agent's Idle session in one transaction. Failure outcomes commit the failed run,
+agent error and Blocked session together. Human-gate and completion transitions
+also check persistence before ending the runner. No next node is dispatched after
+an outcome write fails.
+
+`persistWorkflowTransitionLocked` owns this background transition boundary. It
+requires the controller mutex, advances the caller's revision only after commit,
+and latches the existing integrity execution stop if persistence fails. Runner
+state-read or dispatch-intent persistence failures also latch that stop. Controller
+logs emit a fixed diagnostic without provider output or raw database errors.
+
+If the UI still shows Working or Running after a storage outage, that is the last
+committed state, not evidence that a job continues. Repair storage, inspect history
+and worker state, and use the existing owner-only incident recovery procedure.
+Recovery does not automatically retry the failed action. Stop and cancellation
+cannot undo an external action already performed before its result failed to save.
+
+This is mandatory security/correctness behavior with no independent off switch.
+The existing `workflowExecution` flag governs whether workflows may execute;
+neither state bypasses audit persistence or the integrity stop. Single-controller
+coordination remains the supported model. Explicit request/response workflow
+mutations and external provider effects are not distributed transactions.
+
+Regression tests inject begin, every outcome insert and commit failures using the
+in-memory database mock. A runner-level test verifies that a failed result batch
+leaves the prior run/session intact and prevents the next agent from launching.
+No database connection or live provider is used.

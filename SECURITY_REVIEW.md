@@ -1,5 +1,16 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Workflow outcome transaction hardening — 13 October 2026
+
+Background workflow success/failure outcomes now commit run and participant state
+atomically. Gate/completion persistence errors are handled; state-read, intent and
+outcome storage failures latch the mandatory integrity stop rather than silently
+ending the runner. Mocked regression tests cover partial-write rollback and prevent
+next-node dispatch after failed outcome persistence. This narrows SEC-13; browser
+initiated task dispatch, distributed ownership, independent rollback protection
+and external action reconciliation remain open. No live provider/DB verification
+is implied. See [workflow persistence](docs/atomic-operations.md#workflow-outcome-persistence).
+
 ## Disclosure and atomic business operations — 13 October 2026
 
 Server-side prompt assembly checks room/provider disclosure policies; foreign-room
