@@ -4,8 +4,8 @@
 
 The internal `toolbroker.ToolContainerRuntime` implements the tool half of the
 paired worker launcher. It performs fixed Docker creation, full reported-policy
-inspection and immutable-ID startup. It does not launch a model, bootstrap a
-workspace, authenticate a controller, or enable managed development. No paired
+inspection, immutable-ID startup and credential-free snapshot bootstrap. It
+does not launch a model, authenticate a controller or enable managed development. No paired
 launch endpoint or production pair adapter calls it yet.
 
 Users have no new configuration or button. Existing development settings cannot
@@ -16,8 +16,9 @@ infrastructure with no on/off flag, owner exemption or paid bypass.
 
 Only a trusted isolated worker may construct this module. Before creation, that
 worker must authenticate the controller, acquire the paired job/membership
-leases, persist creation intent, and bootstrap a fresh job-specific volume from
-the approved snapshot without provider credentials. This module verifies that
+leases, persist creation intent and allocate a fresh job-specific empty volume.
+After idle startup, Bootstrap initializes it from the approved snapshot without
+provider credentials. This module verifies that
 volume exists and reports the expected local driver, name, labels, canonical
 mountpoint and no driver options. It cannot attest the volume's contents or its
 history. Reusing a previously credential-bearing volume is forbidden.
@@ -59,7 +60,8 @@ case where Docker created a container but its reply was lost. The runtime never
 blindly removes a name or declares a whole pair stopped. Existing fixed-name
 identity discovery, immutable-ID cleanup, both-role inventory and released
 supervisor ownership remain required. See [paired lifecycle](worker-pairs.md).
-Volume cleanup and bootstrap lifecycle remain separate unfinished P0 work.
+Volume allocation/cleanup and production adapter assembly remain unfinished P0
+work; bootstrap is now implemented and tested internally.
 
 ## Tests and verification limits
 
@@ -75,7 +77,7 @@ an explicit expected state. Existing inspection tests continue covering unwanted
 mounts, credentials, environment, driver options, namespaces and resources.
 
 No live rootless runtime or reviewed tool image has been verified for this change.
-The reviewed engine driver, fresh bootstrap, authenticated audit transport,
+The reviewed engine driver, live bootstrap verification, authenticated audit transport,
 production pair integration and runtime acceptance gates remain open. This module
 is an implementation step toward P0 closure, not evidence that managed development
 is ready. See [execution progress](p0-execution-progress-2026-10-15.md).
@@ -83,3 +85,20 @@ is ready. See [execution progress](p0-execution-progress-2026-10-15.md).
 A source fork **CAN** call the runtime outside the paired supervisor, substitute
 an unsafe runner or skip inspection. **BUT** that invalidates the admission,
 credential-separation and crash-recovery guarantees.
+
+## Workspace readiness
+
+The idle container starts in `/workspace`, leaving that volume empty for the
+bootstrap helper. `Bootstrap` receives the worker-staged approved bundle over
+stdin; no host bundle mount or provider-auth volume is introduced. The fixed
+helper runs by immutable container ID and returns bounded job/digest/commit/branch
+metadata. A matching receipt and fresh full policy inspection unlock tool actions
+on that same plan. An independently constructed plan starts unready and cannot
+run tools. This intentionally prevents the older dispatcher assembly from enabling
+execution until it is connected to the bootstrapped plan.
+
+The paired supervisor starts the idle tool, checks bootstrap receipt binding, then
+starts the engine. Missing, forged or failed readiness leaves the engine stopped.
+Cancellation closes blocked snapshot input; each runtime attempts bootstrap once.
+The worker retains leases through bootstrap and must fence both roles on failure.
+See [workspace bootstrap](workspace-bootstrap.md) for Git policy and limits.

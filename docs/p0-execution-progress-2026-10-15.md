@@ -179,3 +179,41 @@ revocation test then led to explicit synchronous cancelled-context refusal.
 A sandboxed race attempt could not write Go cache; final suites completed with
 cache access. No live provider, Docker workload, database or deployment was used.
 See [the runtime contract](tool-container-runtime.md).
+
+## Credential-free snapshot bootstrap
+
+Implemented a streamed bootstrap helper inside the tool container. It requires an
+empty workspace, checks the original bounded bundle's SHA-256 before controlled
+Git, bounds source-tree metadata/files/bytes, rejects symlinks/submodules and
+unsafe paths, suppresses hooks/inherited settings and checkout transformations,
+and creates a verified job-specific feature branch. Raw source and Git diagnostics
+are not persisted or returned as receipts. Both source and Git metadata must be
+writable before success.
+
+The tool runtime streams the worker-staged bundle by immutable container ID,
+closes blocked input on cancellation, validates a strict job/digest/commit/branch
+receipt and rechecks full runtime policy. Only that plan becomes tool-ready.
+Unready plans cannot run file actions. Pair startup now starts the idle tool,
+requires its bootstrap receipt and only then starts the engine. Missing/forged
+receipts and uncertain bootstrap stop progression without replay. The tool image
+recipe includes the helper and requires a reviewed base with fixed Git/Node paths;
+the build context remains deny-all except explicit reviewed source.
+
+Final full `make test` passed in **3.43s**; final full `make check` passed in
+**8.31s**. Server and broker normal tests ran; previously tested bootstrap/helper and
+unchanged domain/workspace packages were cached. Race, vet, Python and
+JavaScript checks passed. All Git/Docker/database interactions are mocked;
+filesystem fixtures use temporary directories. No live Git clone, provider,
+Docker workload, database or deployment was used. Initial focused tests exposed
+an updated plan initializer and test fixture edit; both were corrected before
+final verification. New guides are linked from README/index and in-app Help.
+
+This is internal implementation, not release closure. Fresh-volume allocation
+and cleanup, production paired adapter/dispatcher assembly, authenticated audit
+transport, reviewed engine/images, bounded commands/artifacts and real
+Git/image/rootless verification remain P0 blockers. The older dispatcher assembly
+creates an unready plan and cannot enable file tools until production assembly
+shares the bootstrap-verified plan. Development admission stays blocked and P1
+remains paused. See [bootstrap contract](workspace-bootstrap.md).
+
+Final review bound workspace readiness to its original job lifetime. Fresh call contexts cannot revive tools after job cancellation, and cancellation during an action suppresses its success output. Both regressions pass in the final full suites above.

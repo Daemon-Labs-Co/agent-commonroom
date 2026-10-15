@@ -1,12 +1,14 @@
 package main
 
 import (
+	"agentroom/internal/workspacebootstrap"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -68,6 +70,17 @@ func (f *pairLaunchFake) Start(ctx context.Context, id string) error {
 	}
 	return nil
 }
+func (f *pairLaunchFake) Bootstrap(ctx context.Context, id string) (workspacebootstrap.Receipt, error) {
+	f.calls = append(f.calls, "bootstrap:"+id[:1])
+	r := workspacebootstrap.Receipt{Version: 1, Job: f.supervisor.record.JobID, Repository: f.supervisor.record.Pair.Repository, Commit: strings.Repeat("a", 40), Branch: "feature/commonroom-" + f.supervisor.record.JobID}
+	if f.fail == "bootstrap" {
+		return r, errors.New("synthetic bootstrap failure")
+	}
+	if f.fail == "bootstrap-binding" {
+		r.Job = "foreign"
+	}
+	return r, nil
+}
 func TestWorkerPairStartOwnsDurableOrdering(t *testing.T) {
 	t.Parallel()
 	s, err := admitWorkerPair(t.Context(), t.TempDir(), pairRequest(), nil)
@@ -79,7 +92,7 @@ func TestWorkerPairStartOwnsDurableOrdering(t *testing.T) {
 	if err = s.Start(t.Context(), fake); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"create:tool", "verify:tool", "create:engine", "verify:engine", "inspect:c", "inspect:d", "start:c", "start:d"}
+	want := []string{"create:tool", "verify:tool", "create:engine", "verify:engine", "inspect:c", "inspect:d", "start:c", "bootstrap:c", "start:d"}
 	if !reflect.DeepEqual(fake.calls, want) || s.record.Status != "running" {
 		t.Fatalf("calls %v status %s", fake.calls, s.record.Status)
 	}
@@ -89,7 +102,7 @@ func TestWorkerPairStartOwnsDurableOrdering(t *testing.T) {
 }
 func TestWorkerPairStartRetainsUncertainFailure(t *testing.T) {
 	t.Parallel()
-	for _, failure := range []string{"create:tool", "verify:engine", "inspect:c", "inspect:d", "resources:c", "resources:d", "start:c", "start:d"} {
+	for _, failure := range []string{"create:tool", "verify:engine", "inspect:c", "inspect:d", "resources:c", "resources:d", "start:c", "bootstrap", "bootstrap-binding", "start:d"} {
 		t.Run(failure, func(t *testing.T) {
 			t.Parallel()
 			dir := t.TempDir()
@@ -101,6 +114,9 @@ func TestWorkerPairStartRetainsUncertainFailure(t *testing.T) {
 			fake := &pairLaunchFake{t: t, supervisor: s, fail: failure}
 			if err = s.Start(t.Context(), fake); err == nil {
 				t.Fatal("failure accepted")
+			}
+			if strings.HasPrefix(failure, "bootstrap") && slices.Contains(fake.calls, "start:d") {
+				t.Fatal("engine started before workspace verification")
 			}
 			record, err := readWorkerRecord(dir, s.record.JobID)
 			if err != nil || record.ShutdownConfirmed || record.Status == "running" || !record.Pair.Tool.CreationStarted {

@@ -722,3 +722,14 @@ no provider, host-launch or optional-security fallback. This does not establish
 fresh volume contents, bootstrap provenance, engine driver safety or production
 pair integration. Those P0 gates and live verification remain open; development
 admission is still blocked. See [runtime contract](docs/tool-container-runtime.md).
+
+### Workspace bootstrap continuation — 15 October 2026
+
+Streamed bootstrap now checks the approved bundle hash before controlled Git,
+requires an empty isolated workspace, bounds accepted tree size/file types and
+suppresses hooks/configuration/checkout transforms. Job-bound receipts and fresh
+runtime inspection gate file tools; pair startup requires bootstrap before the
+engine. Partial or uncertain results cannot be replayed. No optional flag bypass
+exists. Fresh-volume allocation/cleanup, real Git/image/rootless verification,
+production adapter assembly and authenticated audit/engine integration remain open
+P0 work; development admission stays blocked. See [bootstrap contract](docs/workspace-bootstrap.md).

@@ -29,7 +29,7 @@ func inspectionFixture(t *testing.T) (*ToolContainerPlan, toolInspection, toolVo
 	c.State.Dead = boolValue(false)
 	c.Config.Image = p.image
 	c.Config.User = "1000:1000"
-	c.Config.WorkingDir = "/workspace/repository"
+	c.Config.WorkingDir = "/workspace"
 	c.Config.Entrypoint = []string{"/usr/local/bin/node"}
 	c.Config.Cmd = []string{"-e", toolIdleProgram}
 	c.Config.Healthcheck.Test = []string{"NONE"}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"agentroom/internal/toolbroker"
+	"agentroom/internal/workspacebootstrap"
 	"context"
 	"encoding/json"
 	"errors"
@@ -184,13 +185,15 @@ func (s *workerPairSupervisor) BindCreated(ctx context.Context, role, id string)
 // workerPairLaunchAdapter is trusted worker policy, never model-supplied launch
 // arguments. Create MUST create without starting, Verify MUST inspect reviewed
 // image, mounts, credentials and aggregate resource policy, and Start MUST use
-// the immutable ID and respect cancellation. No production adapter is wired yet.
+// the immutable ID and respect cancellation. Bootstrap must return a job-bound
+// receipt before engine startup. No production adapter is wired yet.
 // A source fork CAN violate this contract, BUT loses container isolation proof.
 type workerPairLaunchAdapter interface {
 	Create(context.Context, workerPairIdentity) (string, error)
 	Verify(context.Context, workerPairIdentity, string) error
 	Inspect(context.Context, string) ([]byte, error)
 	Start(context.Context, string) error
+	Bootstrap(context.Context, string) (workspacebootstrap.Receipt, error)
 }
 
 type workerPairIdentity struct{ Job, Role, Repository string }
@@ -265,6 +268,18 @@ func (s *workerPairSupervisor) Start(ctx context.Context, adapter workerPairLaun
 		}
 		if err = adapter.Start(run, id); err != nil {
 			return errors.New("pair start unconfirmed")
+		}
+		if role == "tool" {
+			s.mu.Lock()
+			err = s.available(run)
+			s.mu.Unlock()
+			if err != nil {
+				return err
+			}
+			receipt, err := adapter.Bootstrap(run, id)
+			if err != nil || !workspacebootstrap.ValidReceipt(receipt, original.JobID, original.Pair.Repository) {
+				return errors.New("pair workspace bootstrap unverified")
+			}
 		}
 	}
 	s.mu.Lock()

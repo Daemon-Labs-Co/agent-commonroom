@@ -44,7 +44,7 @@ func NewContainerExecutor(plan *ToolContainerPlan, runner DockerRunner, dockerRo
 // launch options. Failed/ambiguous work fences authority and requires tool-container
 // absence proof; the future supervisor must additionally stop/verify the engine.
 func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Action, out io.Writer) error {
-	if ctx == nil || ctx.Err() != nil || out == nil {
+	if ctx == nil || ctx.Err() != nil || out == nil || !e.plan.workspaceReady() {
 		return ErrRejected
 	}
 	// Only implemented file operations may reach the current image helper.
@@ -59,6 +59,13 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	action.Command = append([]string(nil), action.Command...)
 	ctx, cancelAuthority := e.plan.authority.executionContext(ctx)
 	defer cancelAuthority()
+	ready := e.plan.workspace.Load()
+	stop := context.AfterFunc(ready.lifetime, cancelAuthority)
+	defer stop()
+	if ready.lifetime.Err() != nil || ctx.Err() != nil {
+		return ErrRejected
+	}
+
 	input, err := json.Marshal(action)
 	if err != nil || len(input) > MaxRequestBytes {
 		return ErrRejected
@@ -89,12 +96,12 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	defer cancel()
 	output := &boundedOutput{cancel: cancel}
 	args := []string{"exec", "-i", "--user", "1000:1000", "--workdir", "/workspace/repository", id, "/usr/local/bin/node", "/opt/commonroom/tool-call.cjs"}
-	if execCtx.Err() != nil {
+	if execCtx.Err() != nil || ready.lifetime.Err() != nil {
 		return e.failed(id, false)
 	}
 	runErr := e.runner.Run(execCtx, args, input, output)
 	raw, overflow := output.snapshot()
-	if runErr != nil || execCtx.Err() != nil || overflow {
+	if runErr != nil || execCtx.Err() != nil || ready.lifetime.Err() != nil || overflow {
 		return e.failed(id, overflow)
 	}
 	if !validHelperResult(raw, action) {

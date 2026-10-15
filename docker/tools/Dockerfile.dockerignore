@@ -7,6 +7,9 @@ cmd/**
 !cmd/tool-helper/
 cmd/tool-helper/**
 !cmd/tool-helper/main.go
+!cmd/workspace-bootstrap/
+cmd/workspace-bootstrap/**
+!cmd/workspace-bootstrap/main.go
 !internal/
 internal/**
 !internal/toolworkspace/
@@ -15,6 +18,9 @@ internal/toolworkspace/**
 !internal/strictjson/
 internal/strictjson/**
 !internal/strictjson/encoding.go
+!internal/workspacebootstrap/
+internal/workspacebootstrap/**
+!internal/workspacebootstrap/bootstrap.go
 !docker/
 docker/**
 !docker/tools/

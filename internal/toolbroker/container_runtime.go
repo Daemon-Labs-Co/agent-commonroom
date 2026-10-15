@@ -9,8 +9,9 @@ import (
 
 // ToolContainerRuntime is the constrained tool half of the paired launcher.
 // Only the trusted isolated worker may construct it, after journalled admission
-// and credential-free bootstrap of a fresh job volume. It never creates or
-// initializes a volume, mounts host files, or accepts Docker flags from a model.
+// and allocation of a fresh job volume. Bootstrap initializes it after idle
+// startup. This module never creates a volume, mounts host files or accepts
+// Docker flags from a model.
 // Pair lifecycle MUST bind both IDs and inspect aggregate policy before Start.
 // A source fork CAN bypass those steps, BUT loses crash/containment guarantees.
 // No production pair endpoint currently calls this module.
@@ -21,6 +22,8 @@ type ToolContainerRuntime struct {
 	id                 string
 	attempted, started bool
 	verified           bool
+	running            bool
+	bootstrapAttempted bool
 }
 
 func NewToolContainerRuntime(lifetime context.Context, plan *ToolContainerPlan, runner DockerRunner, dockerRoot string) (*ToolContainerRuntime, error) {
@@ -156,5 +159,9 @@ func (r *ToolContainerRuntime) Start(ctx context.Context, id string) error {
 	if err != nil || strings.TrimSpace(string(raw)) != id {
 		return ErrExecution
 	}
-	return r.verify(child, id, true)
+	if err = r.verify(child, id, true); err != nil {
+		return err
+	}
+	r.running = true
+	return nil
 }

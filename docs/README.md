@@ -71,3 +71,5 @@ Planned security architecture: [Provider/tool credential separation](provider-to
 - [Managed job lifecycle](managed-job-lifecycle.md): controller dispatch, durable attribution and recovery ownership.
 
 - [Constrained tool-container launch](tool-container-runtime.md): fixed creation/start policy, immutable identities and remaining runtime integration.
+
+- [Credential-free workspace bootstrap](workspace-bootstrap.md): approved bundle streaming, controlled Git checkout and readiness before engine startup.

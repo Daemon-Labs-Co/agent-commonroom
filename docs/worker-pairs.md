@@ -49,13 +49,15 @@ launch adapter:
 4. Bind both IDs and verify their aggregate resource inspection before starting
    either role or claiming running state. Never reuse an attempted role or
    substitute an ID. Engine and tool must have different IDs.
-5. Stop on cancellation, expiry or journal failure. Closing the supervisor releases
+5. Start the idle tool, bootstrap its approved snapshot and validate the
+   job/repository/commit/branch receipt before starting the engine.
+6. Stop on cancellation, expiry or journal failure. Closing the supervisor releases
    leases, but does not itself prove containers stopped or settle the journal.
 
 Both identities are journalled before either container starts. Adapter errors,
 cancellation or a durable cancellation latch stop the sequence without retries;
 uncertain creation remains available to fenced recovery. Only successful starts
-and final journal persistence publish `running`. Closing the supervisor cancels
+a matching bootstrap receipt and final journal persistence publish `running`. Closing the supervisor cancels
 its original lifetime, then waits for any in-flight creation/start adapter call
 to return before releasing leases. Concurrent close callers all wait for this
 ownership barrier. A cancellation signal alone is never shutdown proof.
@@ -129,8 +131,8 @@ There is no pair-safety-off flag, owner exemption, paid bypass or uncontained
 fallback. Optional diagnostics flags do not disable journal/fencing checks.
 
 Live rootless pair creation/shutdown has not been verified for these changes.
-Production pair startup wiring, fresh controlled provider configuration, credential-free
-workspace bootstrap, aggregate runtime resource verification, authenticated audit
+Production pair startup wiring, fresh controlled provider configuration, live credential-free
+workspace bootstrap verification, aggregate runtime resource verification, authenticated audit
 substreams, callback-only provider drivers, command execution and artifacts remain
 open P0 integration work. See [the execution progress](p0-execution-progress-2026-10-15.md)
 and [provider/tool separation](provider-tool-separation.md).
@@ -147,3 +149,5 @@ tool-side Docker create/inspect/start implementation for later adapter assembly.
 It does not supply the engine half or bootstrap the volume, and no production
 pair adapter is enabled. Both role IDs must still be durably bound and aggregate
 policy verified before startup.
+
+[Workspace bootstrap](workspace-bootstrap.md) now implements the streamed, credential-free initialization step. Production adapter and volume lifecycle integration remain open.

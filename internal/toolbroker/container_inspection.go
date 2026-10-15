@@ -144,7 +144,7 @@ func (p *ToolContainerPlan) verifyInspection(container, volume []byte, dockerRoo
 	if !isBool(c.State.Running, running) || !isBool(c.State.Paused, false) || !isBool(c.State.Restarting, false) || !isBool(c.State.Dead, false) || c.State.Error != "" {
 		return ErrRejected
 	}
-	if c.Config.User != "1000:1000" || c.Config.WorkingDir != "/workspace/repository" || !slices.Equal(c.Config.Entrypoint, []string{"/usr/local/bin/node"}) || !slices.Equal(c.Config.Cmd, []string{"-e", toolIdleProgram}) || !sameMap(c.Config.Labels, p.labels()) || !slices.Equal(c.Config.Healthcheck.Test, []string{"NONE"}) {
+	if c.Config.User != "1000:1000" || c.Config.WorkingDir != "/workspace" || !slices.Equal(c.Config.Entrypoint, []string{"/usr/local/bin/node"}) || !slices.Equal(c.Config.Cmd, []string{"-e", toolIdleProgram}) || !sameMap(c.Config.Labels, p.labels()) || !slices.Equal(c.Config.Healthcheck.Test, []string{"NONE"}) {
 		return ErrRejected
 	}
 	env := map[string]string{}
