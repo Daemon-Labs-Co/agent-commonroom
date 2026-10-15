@@ -158,6 +158,62 @@ authority and historical supersession links. Derived summaries and cached memori
 must preserve source access restrictions. SOC 2 readiness is an enterprise goal,
 not certification achieved by implementing logging.
 
+## Secret exposure alerts and managed secrets — requested, not implemented
+
+Added by the owner on 15 October 2026. Keep existing P0 execution/security work
+first. This section is a requirement, not a claim that detection, secret editing
+or export already exists.
+
+FR-25: Every connected model/agent must be instructed to watch for passwords,
+API keys, tokens and other credentials and immediately report suspected exposure.
+The application must also provide server-side detection at supported input,
+context-export and output boundaries; prompt instructions alone are insufficient.
+Block or redact suspected credentials before persistence/provider transmission
+where possible. Alerts identify the source and credential category without
+repeating the value. Say "potentially exposed" unless exposure is established;
+detection cannot prove that a third party used a credential. Advise the user to
+revoke/rotate exposed credentials and put the replacement in managed secrets,
+not paste it into chat. Revocation/rotation is human-authorized, never silently
+performed. Detection coverage and false positives/negatives must be disclosed.
+Existing immutable records must not be rewritten to hide a historical exposure.
+
+FR-26: The authorized human can directly create, inspect/reveal, edit and remove
+key/value entries through a dedicated secrets editor. Support usernames,
+passwords, API keys, tokens and API return/callback URLs; allow nonsecret
+configuration values without claiming that every URL or username is a password.
+Secret values must bypass the LLM and ordinary room/event APIs. Apply owner
+permissions and CSRF checks to reads/reveals, writes and exports; paid expansion
+requires scoped explicit permissions rather than all room members gaining access.
+Audit only the authenticated human and generic operation with the standard
+record timestamp, for example "Mark edited the secrets". Do not include key
+names, values, changed fields, file contents, raw exports or value-derived
+fingerprints. Use dedicated protected storage outside the
+append-only event payloads. The protection/encryption, deployment ownership and
+rotation contracts must be specified and tested before implementation is complete.
+
+FR-27: Export the selected key/value entries directly to an owner-selected
+secrets file on an authorized user-controlled worker or as an explicit owner
+download. Define a safe file format (initial target: dotenv-compatible), validate
+keys, safely encode values, and never execute/source the file during export.
+Require explicit target/overwrite authorization; use atomic publication, private
+file permissions, bounded input and symlink/path protections. Keep secrets files
+out of Git, chat, logs, artifact bundles, memory providers and model context.
+An exported plaintext file is not encrypted storage and must be described
+accurately. Export may contain credentials but must never populate the provider
+engine's context or broadly mount secrets into model-controlled development tools.
+Any runtime use needs separately authorized, scoped consumption consistent with
+the mandatory provider/tool credential boundary.
+
+FR-28: Secret detection is a protective requirement for all adapters, independent
+of paid access. The optional secrets-editor/export capability needs an
+owner-controlled, server-enforced flag with documented defaults and both-state
+permission tests; disabling it preserves stored values and never disables existing
+credential isolation, authentication, audit integrity or exposure protection.
+Use only synthetic credentials and temporary file fixtures in tests. Cover
+redacted notifications, pre-persistence/provider-export interception, false
+positives, unauthorized reveal/edit/export, value encoding, concurrent edits,
+unsafe targets and prevention of secret values entering ordinary audit records.
+
 ## Release acceptance and completion
 
 Demonstrate two agents with different personas discussing a task, bounded

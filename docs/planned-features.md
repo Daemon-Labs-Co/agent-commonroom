@@ -2,6 +2,34 @@
 
 The org chart is implemented on its own feature branch; the other entries remain requested features, not shipped capabilities. Implement each on its own feature branch with tests, user/technical documentation and an owner-controlled server-enforced flag. Do not mix them into the current UI refinement branch or commit/push on behalf of the owner.
 
+## Secret exposure alerts and managed secrets
+
+Owner-requested 15 October 2026; **not implemented**. Authoritative requirements:
+[FR-25–FR-28](../FUNCTIONAL_SPEC.md#secret-exposure-alerts-and-managed-secrets--requested-not-implemented).
+Existing P0 execution/security gates remain first; this entry does not enable a
+new credential path or expand the current runtime's authority.
+
+- All agents watch for credential exposure and notify the human without echoing
+  values. Add deterministic server-side checks before supported persistence and
+  provider-export boundaries; do not rely on model compliance alone.
+- Distinguish suspected exposure from confirmed exposure. Prompt rotation/revocation
+  and save replacements through an authorized key/value secrets editor, never chat.
+- Keep usernames, passwords, tokens, API keys and return URLs in a dedicated store
+  outside ordinary events/model context. Owner reveal/edit/delete/export actions
+  need explicit permissions, actor/action-only auditing and concurrency protection.
+  Example: "Mark edited the secrets" plus the standard timestamp; never log key
+  names, values, changed fields, exported contents or hashes of values.
+- Export safely encoded values directly to an authorized user-controlled secrets
+  file or explicit download, with safe targets, private permissions and atomic
+  replacement. Never execute the exported file or include it in Git/artifacts.
+- Before implementation, finalize protected storage/encryption, dotenv encoding,
+  key/reference exposure and scoped runtime consumption. Preserve the mandatory
+  provider/tool credential separation contract.
+- Proposed editor/export flag: `managedSecrets`, default **off**, owner-only,
+  server-enforced; disabling preserves stored secrets. Detection remains a
+  separate protective requirement. This is a proposed contract, not a currently
+  accepted server flag. Tests use synthetic credentials/temp files only.
+
 ## Worker process monitoring and callbacks
 
 Implemented slices: bounded active-turn admission, elapsed dispatch age warnings,

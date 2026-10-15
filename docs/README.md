@@ -65,3 +65,5 @@ Planned security architecture: [Provider/tool credential separation](provider-to
 - [Scoped tool audit callbacks](tool-audit-callbacks.md): mandatory metadata protocol, authorization, historical compatibility and integration limits.
 
 - [P0 execution progress — 15 October 2026](p0-execution-progress-2026-10-15.md): verified build/audit changes and remaining runtime gates.
+
+- [Paired worker lifecycle](worker-pairs.md): versioned journals, immutable-ID cancellation, downgrade refusal and remaining launch integration.

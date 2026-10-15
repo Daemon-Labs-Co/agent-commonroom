@@ -677,3 +677,26 @@ Pinned Linux/amd64 compilation and three synthetic router tests now pass. A
 development CLI binary also built and passed network-disabled version/schema
 metadata checks, with no provider turn. This verifies the selected factory's
 construction and packaging only; it does not close production SEC-04 separation.
+
+
+## Paired lifecycle component — 15 October 2026
+
+Version-3 worker journals now retain both engine/tool identities, creation intents
+and absence observations. Pair cancellation has an explicit versioned command,
+refuses legacy acknowledgements, verifies role/job/repository bindings, cleans by
+immutable IDs and requires released supervisor ownership before settlement.
+Partial cleanup, name replacement, unknown job containers and unavailable inventory
+remain unresolved. Tests use synthetic temporary journals and mocked Docker;
+no live runtime verification was performed. See [paired lifecycle](docs/worker-pairs.md).
+This closes no claim of complete credential-separated execution: actual launch,
+bootstrap, aggregate runtime verification, authenticated audit transport,
+callback-only provider drivers and artifact delivery remain open. The mandatory
+legacy development admission barrier stays enforced.
+
+Controller version-3 registration/recovery now retains immutable execution and
+repository binding, requires real initiating-human/company provenance and current
+repository policy, rejects legacy snapshot/deadline substitution and uses the
+paired cancellation protocol. Automatic lifecycle evidence retains the initiating
+human. The legacy launcher refuses version-3 registrations. Owner recovery is
+mock-tested with diagnostic flags off/on, mismatches and failed shutdown; no live
+paired execution is enabled or claimed.

@@ -22,6 +22,10 @@ Chronological notes below mentioning the old auditor/flag describe superseded
 components. The authenticated live supervisor, pair lifecycle and provider bridge
 remain open; the legacy development admission barrier stays enforced.
 
+Paired lifecycle journals and exact-ID cancellation are now implemented as
+[worker infrastructure](worker-pairs.md); versioned pair launching and live
+provider integration remain open.
+
 ## Required architecture
 
 One logical managed job owns three trusted relationships:

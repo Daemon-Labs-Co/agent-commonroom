@@ -529,3 +529,16 @@ vet, Python and JavaScript checks. Synthetic tests used mocked database and
 executor interactions; no provider agents, databases or real Docker workloads
 were launched. Production paired runtime remains unimplemented/unverified; see
 [P0 progress](p0-execution-progress-2026-10-15.md).
+
+
+## Paired lifecycle continuation — 15 October 2026
+
+Version-3 worker/controller journalling and cancellation were developed with
+synthetic temporary-file fixtures and mock Docker/database boundaries. Final
+full `make test` passed in **3.04s**, full `make check` in **7.69s**. Server and
+room-domain tests ran; unchanged Go packages were cached. Earlier complete
+milestones passed in **2.29s / 7.17s** and **2.54s / 7.74s** as downgrade and
+controller-recovery coverage were added. Times measure each complete command;
+total active development time was not instrumented. No live provider, database
+or Docker workload was launched. Paired launch and provider verification remain
+open; see [the current component contract](worker-pairs.md).

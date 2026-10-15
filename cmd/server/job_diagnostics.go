@@ -32,11 +32,11 @@ func remoteJobsSnapshot(ctx context.Context, alias string) (workerJobsSnapshot, 
 			return workerJobsSnapshot{}, errors.New("worker_snapshot_invalid")
 		}
 		seen[view.JobID] = true
-		if view.Version != 0 && view.Version != 2 {
+		if view.Version != 0 && view.Version != 2 && view.Version != workerPairLifecycleVersion {
 			return workerJobsSnapshot{}, errors.New("worker_snapshot_invalid")
 		}
-		if view.Version == 2 {
-			if !validV2WorkerRecord(view.workerJobRecord) {
+		if view.Version == 2 || view.Version == workerPairLifecycleVersion {
+			if !validWorkerRecord(view.workerJobRecord) {
 				return workerJobsSnapshot{}, errors.New("worker_snapshot_invalid")
 			}
 			_, err := newWorkerJobRecord(workerRunRequest{JobID: view.JobID, Provider: view.Provider, Key: view.RoomID + "/" + view.ParticipantID + "/" + view.ConnectionID + "/worker"})
@@ -55,19 +55,18 @@ func remoteFenceJob(ctx context.Context, alias string, request workerFenceReques
 	raw, _ := json.Marshal(request)
 	encoded := base64.RawURLEncoding.EncodeToString(raw)
 	var output limitedAgentOutput
-	cmd := workerSSHCommand(ctx, alias, "cancel-v2", encoded)
+	action := "cancel-v2"
+	if request.Version == 3 {
+		action = "cancel-pair-v1"
+	}
+	cmd := workerSSHCommand(ctx, alias, action, encoded)
 	cmd.Stdout = &output
 	cmd.Stderr = io.Discard
 	if cmd.Run() != nil {
 		return errors.New("worker_shutdown_unverified")
 	}
-	var ack struct {
-		Version int    `json:"version"`
-		JobID   string `json:"jobId"`
-		Scope   string `json:"scope"`
-		Stopped bool   `json:"stopped"`
-	}
-	if len(output.Bytes()) > 4096 || json.Unmarshal(output.Bytes(), &ack) != nil || ack.Version != 2 || ack.JobID != expected.JobID || ack.Scope != expected.Scope || !ack.Stopped {
+	var ack workerFenceAck
+	if len(output.Bytes()) > 4096 || json.Unmarshal(output.Bytes(), &ack) != nil || !validWorkerFenceAck(request, expected, ack) {
 		return errors.New("worker_shutdown_unverified")
 	}
 	return nil
@@ -92,7 +91,14 @@ type jobDiagnostic struct {
 }
 
 func sameWorkerBinding(job room.ManagedJob, view workerJobView) bool {
-	return view.Version == 2 && view.JobID == job.JobID && view.Provider == job.Provider && view.RoomID == job.RoomID && view.ParticipantID == job.ParticipantID && view.ConnectionID == job.ConnectionID
+	if job.Version == workerPairLifecycleVersion {
+		if view.Pair == nil || view.Execution != job.Execution || view.Pair.Repository != job.RepositoryDigest || !view.Deadline.Equal(job.Deadline) {
+			return false
+		}
+	} else if view.Pair != nil || view.Execution != "" {
+		return false
+	}
+	return view.Version == job.Version && (view.Version == 2 || view.Version == workerPairLifecycleVersion) && view.JobID == job.JobID && view.Provider == job.Provider && view.RoomID == job.RoomID && view.ParticipantID == job.ParticipantID && view.ConnectionID == job.ConnectionID
 }
 func boundedJobDiagnostics(st room.State, snapshot workerJobsSnapshot, snapshotErr error, rid, participant string) []jobDiagnostic {
 	jobs := []jobDiagnostic{}
@@ -106,7 +112,7 @@ func boundedJobDiagnostics(st room.State, snapshot workerJobsSnapshot, snapshotE
 			for _, view := range snapshot.Jobs {
 				if view.JobID == job.JobID {
 					item.WorkerStatus = "unverified"
-					if sameWorkerBinding(job, view) && validV2WorkerRecord(view.workerJobRecord) {
+					if sameWorkerBinding(job, view) && validWorkerRecord(view.workerJobRecord) {
 						switch view.Status {
 						case "starting", "running", "finished", "failed", "cancelled", "shutdown_unconfirmed":
 							item.WorkerStatus = view.Status
@@ -277,7 +283,7 @@ func (s *server) jobRecovery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, view := range snapshot.Jobs {
-			if view.JobID == job.JobID && (!sameWorkerBinding(job, view) || !validV2WorkerRecord(view.workerJobRecord) || view.LeaseState != "free") {
+			if view.JobID == job.JobID && (!sameWorkerBinding(job, view) || !validWorkerRecord(view.workerJobRecord) || view.LeaseState != "free") {
 				http.Error(w, "Worker supervisor remains active or binding is unverified; explicitly cancel if intended", 409)
 				return
 			}

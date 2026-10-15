@@ -157,6 +157,8 @@ type Actor struct {
 // ManagedJob is a safe, durable execution binding. Model data and arguments
 // never belong here; ShutdownConfirmed comes only from a fenced worker proof.
 type ManagedJob struct {
+	Execution         string    `json:"execution,omitempty"`
+	RepositoryDigest  string    `json:"repositoryDigest,omitempty"`
 	InitiatorID       string    `json:"initiatorId,omitempty"`
 	CompanyID         string    `json:"companyId,omitempty"`
 	Version           int       `json:"version"`
