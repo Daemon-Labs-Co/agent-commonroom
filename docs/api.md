@@ -257,3 +257,16 @@ shutdown proof before reporting Working. See [verification lifecycle](connection
 Owner job diagnostics also includes application-wide `turnBudget` usage and reset
 time. Admission rejects exhausted daily launch budgets; mandatory registration
 rechecks journal usage atomically before launch. See [execution budgets](execution-budgets.md).
+
+
+### Paired worker recovery infrastructure
+
+The existing owner-only job diagnostics/recovery routes can represent explicitly
+registered version-3 paired jobs. Their durable execution/repository binding
+cannot change across lifecycle updates. Reconciliation requires matching worker
+version, membership, repository, original deadline and released ownership.
+The controller sends the explicit paired cancellation protocol and records failed
+shutdown as unresolved; diagnostic flag changes never bypass these checks.
+No paired launch API is enabled. Existing version-2 chat jobs keep their original
+protocol; neither version can be silently substituted for the other. See
+[paired worker lifecycle](worker-pairs.md) for the implementation boundary.

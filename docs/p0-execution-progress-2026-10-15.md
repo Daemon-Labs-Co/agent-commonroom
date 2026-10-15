@@ -55,8 +55,17 @@ The production execution path is not wired. Do not remove
 engine, reuse old credential-bearing workspaces, or treat the constructor/tests
 above as completed runtime separation.
 
-The next concrete integration unit is a worker-owned paired lifecycle under the
-existing membership/job leases:
+The worker-owned paired journal/cancellation slice is now implemented under the
+existing membership/job leases; see [the current contract](worker-pairs.md).
+Version-3 records and explicit pair cancellation reject protocol downgrades, and
+partial creation/shutdown stays unresolved until both-role inventory and released
+supervisor ownership are verified. Controller paired registration now records
+version/execution/repository and original human/company provenance, and owner
+recovery uses the matching paired cancellation contract. Snapshot mismatches or
+partial shutdown cannot settle those jobs. No paired launch endpoint is enabled.
+
+Remaining integration requirements (journal/cancellation portions of items 1/6
+are now component-tested):
 
 1. Introduce explicitly versioned paired launch/cancel/status records. Persist
    both immutable container identities and partial-creation state before engine
@@ -86,3 +95,23 @@ The design/acceptance gates remain in [provider/tool separation](provider-tool-s
 
 No live provider, Docker deployment, credential inspection or database access was
 performed for these changes. P0-3 remains a release blocker; P1 has not resumed.
+
+
+## Paired lifecycle continuation verification
+
+Implemented version-3 paired journals, creation intents and immutable IDs,
+lease-fenced dual shutdown, partial-create discovery, explicit paired cancellation
+and downgrade refusal. Added controller paired registration, immutable repository
+and execution binding, matching owner recovery, original-repository audit checks
+and initiating-human attribution for lifecycle updates. The legacy launch path
+rejects paired registration.
+
+Final full `make test`: **3.04s**. Final full `make check`: **7.69s**. Server and
+room-domain tests ran; unchanged Go packages were cached. Full race/vet/Python/
+JavaScript checks completed. New tests use synthetic temporary worker journals,
+mocked container/database interactions and the real owner recovery handler.
+Source review reported no actionable defect in these lifecycle paths.
+No live containers/providers, deployment or database access were used.
+P0-3 remains open for pair startup/bootstrap, authenticated callback transport,
+callback-only provider drivers, reviewed artifacts and live verification.
+P1 and secrets-manager implementation remain paused.

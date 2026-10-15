@@ -5,36 +5,67 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
 	"strings"
 	"time"
 )
 
 type managedJobContextKey struct{}
 type managedJobRegistration struct {
-	JobID    string
-	IssuedAt time.Time
-	Deadline time.Time
-	Register func(string, string) error
-	Update   func(string) error
+	Version    int
+	Repository string
+	JobID      string
+	IssuedAt   time.Time
+	Deadline   time.Time
+	Register   func(string, string) error
+	Update     func(string) error
 }
 
 // managedJobContext records intent before SSH dispatch, independent of optional
 // diagnostics. Audit failure prevents launch or latches execution off. It never
 // stores prompts, provider output, command arguments or credentials.
 func (s *server) managedJobContext(ctx context.Context, p room.Participant) context.Context {
+	return s.managedExecutionJobContext(ctx, p, "", nil)
+}
+
+// managedPairJobContext journals identity only. It does not enable launch or
+// bypass the mandatory development barrier. Repository policy is rechecked at
+// registration; absent human provenance cannot become owner authority.
+func (s *server) managedPairJobContext(ctx context.Context, p room.Participant, repository string) context.Context {
+	return s.managedExecutionJobContext(ctx, p, repository, func() (string, error) {
+		return controllerDevelopmentRepository(p.RoomID, os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
+	})
+}
+
+func (s *server) managedExecutionJobContext(ctx context.Context, p room.Participant, repository string, policy func() (string, error)) context.Context {
 	job := room.ManagedJob{Version: 2, JobID: id(), RoomID: p.RoomID, ParticipantID: p.ID, ConnectionID: p.ConnectionID, Status: "allocated", AllocatedAt: time.Now().UTC()}
 	job.InitiatorID, _ = ctx.Value(actorContextKey{}).(string)
+	paired := policy != nil || repository != ""
+	if paired {
+		job.Version = workerPairLifecycleVersion
+		job.Execution = workerPairExecution
+		job.RepositoryDigest = repository
+	}
 	job.Deadline, _ = ctx.Deadline()
 	if job.Deadline.IsZero() {
 		job.Deadline = job.AllocatedAt.Add(3 * time.Minute)
 	}
 	registered := false
-	registration := managedJobRegistration{JobID: job.JobID, IssuedAt: job.AllocatedAt, Deadline: job.Deadline}
+	registration := managedJobRegistration{Version: job.Version, Repository: repository, JobID: job.JobID, IssuedAt: job.AllocatedAt, Deadline: job.Deadline}
 	registration.Register = func(alias, provider string) error {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		if registered || ctx.Err() != nil {
 			return errors.New("managed job already allocated or cancelled")
+		}
+		if paired {
+			if job.InitiatorID == "" || !repositoryDigestPattern.MatchString(repository) || policy == nil {
+				return errors.New("paired job requires approved repository and human provenance")
+			}
+			approved, err := policy()
+			if err != nil || approved != repository {
+				return errors.New("paired repository policy changed")
+			}
 		}
 		latest, err := s.load(ctx)
 		if err != nil {
@@ -89,6 +120,9 @@ func (s *server) managedJobContext(ctx context.Context, p room.Participant) cont
 		job.Provider = provider
 		job.UpdatedAt = time.Now().UTC()
 		job.DiagnosticCode = "intent_recorded"
+		if !validManagedJob(job) {
+			return errors.New("invalid managed job registration")
+		}
 		auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if job.InitiatorID != "" {
@@ -137,6 +171,9 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 	job.Status = status
 	job.UpdatedAt = time.Now().UTC()
 	job.DiagnosticCode = status
+	if job.InitiatorID != "" {
+		auditCtx = withInitiatingActor(auditCtx, job.InitiatorID)
+	}
 	job.ShutdownConfirmed = status == "shutdown_confirmed"
 	if err = s.append(auditCtx, "worker.job.updated", job); err != nil {
 		s.tripIntegrityLocked()
@@ -162,10 +199,22 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 }
 
 func validManagedJob(v room.ManagedJob) bool {
+	switch v.Version {
+	case workerLifecycleVersion:
+		if v.Execution != "" || v.RepositoryDigest != "" {
+			return false
+		}
+	case workerPairLifecycleVersion:
+		if v.Execution != workerPairExecution || !repositoryDigestPattern.MatchString(v.RepositoryDigest) || v.InitiatorID == "" || v.CompanyID == "" || !v.Deadline.After(v.AllocatedAt) || v.Deadline.Sub(v.AllocatedAt) > 3*time.Minute {
+			return false
+		}
+	default:
+		return false
+	}
 	if v.InitiatorID != "" && !membershipPartPattern.MatchString(v.InitiatorID) || v.CompanyID != "" && !membershipPartPattern.MatchString(v.CompanyID) {
 		return false
 	}
-	if v.Version != 2 || !validWorkerJobID(v.JobID) || !membershipPartPattern.MatchString(v.RoomID) || !membershipPartPattern.MatchString(v.ParticipantID) || !membershipPartPattern.MatchString(v.ConnectionID) || !workerAliasPattern.MatchString(v.Worker) || (v.Provider != "codex" && v.Provider != "claude") || v.AllocatedAt.IsZero() || v.UpdatedAt.IsZero() || v.Deadline.IsZero() {
+	if !validWorkerJobID(v.JobID) || !membershipPartPattern.MatchString(v.RoomID) || !membershipPartPattern.MatchString(v.ParticipantID) || !membershipPartPattern.MatchString(v.ConnectionID) || !workerAliasPattern.MatchString(v.Worker) || (v.Provider != "codex" && v.Provider != "claude") || v.AllocatedAt.IsZero() || v.UpdatedAt.IsZero() || v.Deadline.IsZero() {
 		return false
 	}
 	switch v.Status {
@@ -182,7 +231,7 @@ func jobsDebugEnabled(st room.State) bool {
 }
 
 func managedJobFence(job room.ManagedJob) workerFenceRequest {
-	return workerFenceRequest{Version: 2, JobID: job.JobID, Provider: job.Provider, Key: strings.Join([]string{job.RoomID, job.ParticipantID, job.ConnectionID, "worker"}, "/")}
+	return workerFenceRequest{Version: job.Version, Repository: job.RepositoryDigest, JobID: job.JobID, Provider: job.Provider, Key: strings.Join([]string{job.RoomID, job.ParticipantID, job.ConnectionID, "worker"}, "/")}
 }
 
 func hasUnconfirmedManagedJobs(st room.State) bool {

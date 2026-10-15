@@ -168,7 +168,7 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 		toolSeparation = toolSeparationTurnArgs(provider, args)
 	}
 	registration, ok := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
-	if !ok || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
+	if !ok || registration.Version != workerLifecycleVersion || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
 		return nil, nil, errors.New("Durable managed job registration is required")
 	}
 	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository, ToolSeparation: toolSeparation}
@@ -221,19 +221,21 @@ type workerConfiguration struct {
 	DevelopmentRepositories map[string]developmentRepository `json:"developmentRepositories,omitempty"`
 }
 type workerJobRecord struct {
-	Version           int       `json:"version,omitempty"`
-	RoomID            string    `json:"roomId,omitempty"`
-	ParticipantID     string    `json:"participantId,omitempty"`
-	ConnectionID      string    `json:"connectionId,omitempty"`
-	Scope             string    `json:"scope,omitempty"`
-	StartedAt         time.Time `json:"startedAt,omitempty"`
-	UpdatedAt         time.Time `json:"updatedAt,omitempty"`
-	Deadline          time.Time `json:"deadline,omitempty"`
-	ShutdownConfirmed bool      `json:"shutdownConfirmed"`
-	DiagnosticCode    string    `json:"diagnosticCode,omitempty"`
-	JobID             string    `json:"jobId"`
-	Status            string    `json:"status"`
-	Provider          string    `json:"provider"`
+	Pair              *workerPairRecord `json:"pair,omitempty"`
+	Execution         string            `json:"execution,omitempty"`
+	Version           int               `json:"version,omitempty"`
+	RoomID            string            `json:"roomId,omitempty"`
+	ParticipantID     string            `json:"participantId,omitempty"`
+	ConnectionID      string            `json:"connectionId,omitempty"`
+	Scope             string            `json:"scope,omitempty"`
+	StartedAt         time.Time         `json:"startedAt,omitempty"`
+	UpdatedAt         time.Time         `json:"updatedAt,omitempty"`
+	Deadline          time.Time         `json:"deadline,omitempty"`
+	ShutdownConfirmed bool              `json:"shutdownConfirmed"`
+	DiagnosticCode    string            `json:"diagnosticCode,omitempty"`
+	JobID             string            `json:"jobId"`
+	Status            string            `json:"status"`
+	Provider          string            `json:"provider"`
 }
 
 func workerStateDirectory() (string, error) {
@@ -246,6 +248,9 @@ func workerStateDirectory() (string, error) {
 	return dir, err
 }
 func writeWorkerRecord(dir string, v workerJobRecord, exclusive bool) error {
+	if (v.Pair != nil || v.Execution != "") && !validWorkerRecord(v) {
+		return errors.New("invalid paired worker record")
+	}
 	raw, _ := json.Marshal(v)
 	path := filepath.Join(dir, v.JobID+".json")
 	if exclusive {
@@ -290,10 +295,10 @@ func readWorkerRecord(dir, job string) (workerJobRecord, error) {
 	if err != nil || json.Unmarshal(raw, &v) != nil || v.JobID != job {
 		return v, errors.New("Invalid or unsafe worker record")
 	}
-	if v.Version != 0 && v.Version != 2 {
+	if v.Version != 0 && v.Version != 2 && v.Version != workerPairLifecycleVersion {
 		return v, errors.New("Unsupported worker record")
 	}
-	if v.Version == 2 && !validV2WorkerRecord(v) {
+	if v.Version != 0 && !validWorkerRecord(v) {
 		return v, errors.New("Invalid worker binding or lifecycle")
 	}
 
@@ -437,8 +442,11 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		json.NewEncoder(out).Encode(v)
 		return 0
 	}
-	if args[0] == "cancel-v2" {
+	if args[0] == "cancel-v2" || args[0] == "cancel-pair-v1" {
 		request, err := decodeFenceRequest(args[1])
+		if err == nil && ((args[0] == "cancel-v2" && request.Version != 2) || (args[0] == "cancel-pair-v1" && request.Version != 3)) {
+			err = errors.New("cancellation protocol mismatch")
+		}
 		if err != nil {
 			return fail(err)
 		}
@@ -458,7 +466,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		if err != nil {
 			return fail(err)
 		}
-		json.NewEncoder(out).Encode(map[string]any{"version": 2, "jobId": record.JobID, "stopped": record.ShutdownConfirmed, "scope": record.Scope, "cancellationRequested": true})
+		json.NewEncoder(out).Encode(workerFenceAcknowledgement(request, record))
 		return 0
 	}
 

@@ -145,7 +145,7 @@ func boundedWorkerRecords(dir string) ([]workerJobRecord, error) {
 func workerJobSettled(v workerJobRecord) bool {
 	// A terminal label from a legacy supervisor is not shutdown proof. Never
 	// silently upgrade that label into permission to resume managed execution.
-	return workerTerminal(v.Status) && v.Version == workerLifecycleVersion && v.ShutdownConfirmed
+	return workerTerminal(v.Status) && (v.Version == workerLifecycleVersion || v.Version == workerPairLifecycleVersion) && v.ShutdownConfirmed && validWorkerPair(v)
 }
 
 // workerAdmission checks durable records and live containers under the shared
@@ -155,10 +155,13 @@ func workerAdmission(records []workerJobRecord, containers []string, next worker
 	byJob := map[string]workerJobRecord{}
 	for _, record := range records {
 		byJob[record.JobID] = record
+		if !validWorkerPair(record) {
+			return errors.New("invalid pair lifecycle evidence")
+		}
 		if workerJobSettled(record) {
 			continue
 		}
-		if record.Version != 2 {
+		if record.Version != 2 && record.Version != workerPairLifecycleVersion {
 			return errors.New("legacy unresolved worker job requires administrator review")
 		}
 		if record.Scope == next.Scope {
@@ -171,8 +174,16 @@ func workerAdmission(records []workerJobRecord, containers []string, next worker
 	}
 	for _, name := range containers {
 		job := strings.TrimPrefix(name, "commonroom-turn-")
+		paired := false
+		for _, role := range []string{"engine", "tool"} {
+			if strings.HasPrefix(name, "commonroom-"+role+"-") {
+				job = strings.TrimPrefix(name, "commonroom-"+role+"-")
+				paired = true
+				break
+			}
+		}
 		record, ok := byJob[job]
-		if !strings.HasPrefix(name, "commonroom-turn-") || !validWorkerJobID(job) || !ok || record.Version != 2 || workerJobSettled(record) {
+		if (!paired && !strings.HasPrefix(name, "commonroom-turn-")) || !validWorkerJobID(job) || !ok || (record.Version != 2 && record.Version != workerPairLifecycleVersion) || workerJobSettled(record) || paired != (record.Pair != nil) {
 			return errors.New("unreconciled managed container blocks dispatch")
 		}
 		if record.Scope == next.Scope {
@@ -198,6 +209,13 @@ func admitWorkerJob(ctx context.Context, dir string, request workerRunRequest, c
 	if err != nil {
 		return record, nil, err
 	}
+	return admitWorkerRecord(ctx, dir, record, containers)
+}
+
+func admitWorkerRecord(ctx context.Context, dir string, record workerJobRecord, containers []string) (workerJobRecord, *workerJobLeases, error) {
+	if !validWorkerRecord(record) {
+		return record, nil, errors.New("invalid worker admission record")
+	}
 	admission, err := workerWaitLease(ctx, dir, ".admission.lease")
 	if err != nil {
 		return record, nil, err
@@ -213,6 +231,10 @@ func admitWorkerJob(ctx context.Context, dir string, request workerRunRequest, c
 		return record, nil, errors.New("job supervisor is already active")
 	}
 	leases := &workerJobLeases{scope: scope, job: job}
+	if _, err := os.Lstat(filepath.Join(dir, record.JobID+".cancel")); !os.IsNotExist(err) {
+		leases.Close()
+		return record, nil, errors.New("worker identity cancelled or unverified")
+	}
 	records, err := boundedWorkerRecords(dir)
 	if err == nil {
 		err = workerAdmission(records, containers, record)
@@ -272,28 +294,47 @@ func stopWorkerContainer(ctx context.Context, job string) error {
 }
 
 type workerFenceRequest struct {
-	Version  int    `json:"version"`
-	JobID    string `json:"jobId"`
-	Provider string `json:"provider"`
-	Key      string `json:"key"`
+	Repository string `json:"repository,omitempty"`
+	Version    int    `json:"version"`
+	JobID      string `json:"jobId"`
+	Provider   string `json:"provider"`
+	Key        string `json:"key"`
 }
 
 func (v workerFenceRequest) record() (workerJobRecord, error) {
-	if v.Version != 2 || !validWorkerJobID(v.JobID) || (v.Provider != "codex" && v.Provider != "claude") {
+	if (v.Version != 2 && v.Version != 3) || !validWorkerJobID(v.JobID) || (v.Provider != "codex" && v.Provider != "claude") || (v.Version == 2 && v.Repository != "") || (v.Version == 3 && !repositoryDigestPattern.MatchString(v.Repository)) {
 		return workerJobRecord{}, errors.New("invalid cancellation binding")
 	}
-	return newWorkerJobRecord(workerRunRequest{JobID: v.JobID, Provider: v.Provider, Key: v.Key})
+	record, err := newWorkerJobRecord(workerRunRequest{JobID: v.JobID, Provider: v.Provider, Key: v.Key})
+	if err == nil && v.Version == 3 {
+		record.Version = workerPairLifecycleVersion
+		record.Execution = workerPairExecution
+		record.Pair = &workerPairRecord{Version: workerPairVersion, Repository: v.Repository}
+	}
+	return record, err
 }
 
 // fenceWorkerJob tombstones before launch and proves the supervisor lease is
 // released before acknowledging shutdown. No automatic task replay is permitted.
 func fenceWorkerJob(ctx context.Context, dir string, request workerFenceRequest, stopContainer func(context.Context, string) error) (workerJobRecord, error) {
+	return fenceWorkerJobContainers(ctx, dir, request, func(ctx context.Context, v workerJobRecord) (workerJobRecord, error) {
+		if v.Pair != nil {
+			return stopWorkerPair(ctx, v, dockerCLIRunner{})
+		}
+		return v, stopContainer(ctx, v.JobID)
+	})
+}
+
+func fenceWorkerJobContainers(ctx context.Context, dir string, request workerFenceRequest, stopContainers func(context.Context, workerJobRecord) (workerJobRecord, error)) (workerJobRecord, error) {
+	if ctx == nil || ctx.Err() != nil || stopContainers == nil {
+		return workerJobRecord{}, errors.New("worker cancellation context unavailable")
+	}
 	expected, err := request.record()
 	if err != nil {
 		return expected, err
 	}
 	existing, err := readWorkerRecord(dir, request.JobID)
-	if err == nil && (existing.Version != 2 || existing.Scope != expected.Scope || existing.ConnectionID != expected.ConnectionID || existing.Provider != expected.Provider) {
+	if err == nil && !sameWorkerFenceBinding(existing, expected) {
 		return expected, errors.New("worker cancellation binding mismatch")
 	}
 	if err != nil {
@@ -338,7 +379,7 @@ func fenceWorkerJob(ctx context.Context, dir string, request workerFenceRequest,
 				record = expected
 				missing = true
 			}
-			if record.Version != 2 || record.Scope != expected.Scope || record.ConnectionID != expected.ConnectionID || record.Provider != expected.Provider {
+			if !sameWorkerFenceBinding(record, expected) {
 				return expected, errors.New("worker cancellation binding mismatch")
 			}
 			if missing {
@@ -346,7 +387,21 @@ func fenceWorkerJob(ctx context.Context, dir string, request workerFenceRequest,
 					return expected, err
 				}
 			}
-			if err = stopContainer(ctx, request.JobID); err != nil {
+			stopped, stopErr := stopContainers(ctx, record)
+			if !sameWorkerFenceBinding(stopped, expected) {
+				return record, errors.New("shutdown changed worker binding")
+			}
+			record = stopped
+			err = stopErr
+			if err == nil {
+				candidate := record
+				candidate.Status = "cancelled"
+				candidate.ShutdownConfirmed = true
+				if !validWorkerRecord(candidate) || ctx.Err() != nil {
+					err = errors.New("shutdown proof incomplete")
+				}
+			}
+			if err != nil {
 				record.Status = "shutdown_unconfirmed"
 				record.DiagnosticCode = "container_shutdown_unverified"
 				record.UpdatedAt = time.Now().UTC()
@@ -370,7 +425,11 @@ func fenceWorkerJob(ctx context.Context, dir string, request workerFenceRequest,
 		}
 		// Removal can interrupt a still-held supervisor, but a missing container alone
 		// never counts as stopped: keep waiting for the lease to be released.
-		if err = stopContainer(ctx, request.JobID); err != nil {
+		active, readErr := readWorkerRecord(dir, request.JobID)
+		if readErr != nil || !sameWorkerFenceBinding(active, expected) {
+			return expected, errors.New("active worker binding unverified")
+		}
+		if _, err = stopContainers(ctx, active); err != nil {
 			return expected, err
 		}
 		select {
@@ -408,7 +467,7 @@ func workerSnapshot(dir string, containers []string) (workerJobsSnapshot, error)
 	})
 	for _, record := range records {
 		view := workerJobView{workerJobRecord: record, LeaseState: "legacy"}
-		if record.Version == 2 {
+		if record.Version == 2 || record.Version == workerPairLifecycleVersion {
 			lease, free, err := workerTryLease(dir, ".job-"+record.JobID+".lease")
 			if err != nil {
 				return result, err
@@ -472,6 +531,9 @@ func workerRuntimeReady(ctx context.Context) error {
 }
 
 func validV2WorkerRecord(v workerJobRecord) bool {
+	if !validWorkerPair(v) {
+		return false
+	}
 	if v.Version != 2 || !validWorkerJobID(v.JobID) || (v.Provider != "codex" && v.Provider != "claude") || v.StartedAt.IsZero() || v.UpdatedAt.IsZero() || !v.Deadline.After(v.StartedAt) {
 		return false
 	}
@@ -493,4 +555,16 @@ func validV2WorkerRecord(v workerJobRecord) bool {
 		return true
 	}
 	return false
+}
+
+// Pair cancellation is a separate versioned contract. Legacy requests may not
+// reinterpret a pair as one container, including across mixed worker binaries.
+func sameWorkerFenceBinding(record, expected workerJobRecord) bool {
+	if record.Version != expected.Version || record.JobID != expected.JobID || record.Scope != expected.Scope || record.ConnectionID != expected.ConnectionID || record.Provider != expected.Provider || record.Execution != expected.Execution {
+		return false
+	}
+	if expected.Pair == nil {
+		return record.Pair == nil
+	}
+	return record.Pair != nil && record.Pair.Version == expected.Pair.Version && record.Pair.Repository == expected.Pair.Repository
 }
