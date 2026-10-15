@@ -37,7 +37,7 @@ func (codexAdapter) Capabilities() room.Capabilities {
 // every turn uses it and fails closed if containment cannot be established.
 // Existing external session IDs do not confer permission to run on the host.
 func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
-	args := providerTurnArgs("codex", a.development)
+	args := providerTurnArgs("codex", a.development, false)
 	if thread != "" {
 		args = append(args, "resume", thread)
 	}
@@ -447,7 +447,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	for _, p := range targets {
 		s.active[p.ID] = true
 		prompt := prompts[p.ID]
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		ctx, cancel := context.WithTimeout(detachedInitiatorContext(r.Context()), 3*time.Minute)
 		s.cancels[p.ID] = cancel
 		go s.runAgent(ctx, cancel, p, prompt, endpoints[p.ID])
 	}
@@ -484,6 +484,9 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 	repository, policyErr := controllerDevelopmentRepository(p.RoomID, os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 	if policyErr != nil {
 		return "", policyErr
+	}
+	if err := requireCredentialSeparatedDevelopment(repository); err != nil {
+		return "", err
 	}
 	mode, thread, sessionErr := agentExecutionSession(p.ExecutionMode, p.ThreadID, repository)
 	if sessionErr != nil {
@@ -605,7 +608,7 @@ func (claudeAdapter) Capabilities() room.Capabilities {
 // and resource limits before launch;
 // isolation failure must block execution rather than fall back to this launcher.
 func (a claudeAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
-	args := providerTurnArgs("claude", a.development)
+	args := providerTurnArgs("claude", a.development, false)
 	if thread != "" {
 		args = append(args, "--resume", thread)
 	}

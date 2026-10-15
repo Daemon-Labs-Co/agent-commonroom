@@ -78,17 +78,27 @@ func providerCredentialName(provider string) string {
 
 // Forget only this connection/provider's stored credential; provider-wide revocation is separate.
 func clearWorkerCredential(root, provider string) error {
-	err := os.Remove(filepath.Join(root, providerCredentialName(provider)))
-	if os.IsNotExist(err) {
-		return nil
+	return clearWorkerCredentialDurably(root, provider, syncParentDirectory)
+}
+
+// clearWorkerCredentialDurably acknowledges local revocation only after the
+// directory entry is synced. Missing-file retries must sync too: a previous
+// unlink may have succeeded while its durability acknowledgement failed.
+func clearWorkerCredentialDurably(root, provider string, syncDirectory func(string) error) error {
+	if provider != "codex" && provider != "claude" {
+		return errors.New("Unsupported credential provider")
 	}
-	return err
+	path := filepath.Join(root, providerCredentialName(provider))
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return syncDirectory(path)
 }
 func lockWorkerCredential(root string) (func(), error) {
 	if err := os.MkdirAll(root, 0700); err != nil {
 		return nil, err
 	}
-	f, err := os.OpenFile(filepath.Join(root, ".auth.lock"), os.O_CREATE|os.O_RDWR, 0600)
+	f, err := openPrivateRegular(filepath.Join(root, ".auth.lock"), os.O_CREATE|os.O_RDWR, 8192)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +109,7 @@ func lockWorkerCredential(root string) (func(), error) {
 	return func() { syscall.Flock(int(f.Fd()), syscall.LOCK_UN); f.Close() }, nil
 }
 func credentialPresent(path string) bool {
-	fi, err := os.Lstat(path)
-	if err != nil || !fi.Mode().IsRegular() || fi.Mode().Perm()&0077 != 0 || fi.Size() > 65536 {
-		return false
-	}
-	raw, err := os.ReadFile(path)
+	raw, err := readPrivateBounded(path, 65536)
 	return err == nil && len(raw) > 2 && json.Valid(raw)
 }
 
@@ -269,43 +275,21 @@ func workerCredentialExportArgs(image, volume, provider string) ([]string, error
 }
 
 // persistWorkerCredential validates only the exported provider file and replaces
-// the connection's private credential atomically. Invalid/missing exports leave
-// the previous login untouched. No credential bytes are written to diagnostics.
+// the connection's private credential atomically and syncs its parent. Invalid
+// exports leave the prior login untouched; post-rename sync failure is ambiguous
+// and must not be acknowledged as saved. No credential bytes enter diagnostics.
 func persistWorkerCredential(root, provider, source string) error {
 	if provider != "codex" && provider != "claude" {
 		return errors.New("Unsupported credential provider")
 	}
-	fi, err := os.Lstat(source)
-	if err != nil || !fi.Mode().IsRegular() || fi.Size() > 65536 {
-		return errors.New("Invalid provider credential file")
-	}
-	raw, err := os.ReadFile(source)
-	if err != nil || len(raw) > 65536 || len(raw) <= 2 || !json.Valid(raw) {
-		return errors.New("Invalid provider credential JSON")
+	raw, err := readPrivateBounded(source, 65536)
+	if err != nil || len(raw) <= 2 || !json.Valid(raw) {
+		return errors.New("Invalid private provider credential JSON")
 	}
 	if err = os.MkdirAll(root, 0700); err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(root, ".login-")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(f.Name())
-	if _, err = f.Write(raw); err != nil {
-		f.Close()
-		return err
-	}
-	if err = f.Sync(); err != nil {
-		f.Close()
-		return err
-	}
-	if err = f.Close(); err != nil {
-		return err
-	}
-	if err = os.Rename(f.Name(), filepath.Join(root, providerCredentialName(provider))); err != nil {
-		return err
-	}
-	return nil
+	return replacePrivateDurably(filepath.Join(root, providerCredentialName(provider)), raw, syncParentDirectory)
 }
 
 // workerVerifyConnection rejects the legacy unjournalled verification launcher.

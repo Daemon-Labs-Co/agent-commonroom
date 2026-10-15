@@ -2,6 +2,16 @@
 
 [Documentation index](README.md)
 
+**Current security status (14 October 2026): legacy native development execution is
+blocked in the updated controller and worker.** The historical single-container
+setup below no longer authorizes development, even with its operator flags enabled.
+Model-controlled tools cannot share readable provider credentials. A verified
+separate provider/tool bridge is required; see [the replacement contract](provider-tool-separation.md).
+Chat and provider sign-in retain their existing policies. No old job is adopted,
+replayed or automatically stopped by this admission change. Stop/inspect existing
+workers before deploying updated binaries; no binaries have been deployed by this
+change. Do not apply the historical installation steps as a bypass.
+
 Development agents need a repository they can edit, Git metadata they can update, and commands that can execute **before their first development turn**. A reachable Docker daemon or a successful conversational reply does not prove those capabilities.
 
 ## What changes
@@ -91,3 +101,28 @@ Automated tests use synthetic temporary files and mocked process launches, never
 The dedicated Debian rootless worker was updated and a secret-scanned committed repository bundle was configured for Engineering and Quality & Security. Both Codex and Claude performed real shell commands under the unchanged network/capability/root-filesystem limits, confirmed `/workspace/repository` and their separate feature branches, wrote/read/deleted a temporary probe, and reported Git 2.39.5, Go 1.26.9, Node 24.21.0 and GNU Make 4.3. Go reported `GOPROXY=off`, `GOMODCACHE=/opt/commonroom/go-modules` and `GOTOOLCHAIN=local`. Codex no longer encountered the nested namespace error in that development turn. A nonfatal provider-side MCP connection warning was observed separately; it did not prevent command execution.
 
 These were manual deployment checks, not automated test fixtures; they used no database, live room messages or project edits. They do not prove every future provider version, language toolchain, task, or malicious workload is supported. A new image digest must be reviewed and reverified. The loaded snapshot is the selected committed revision; uncommitted fixes are not silently imported. Automatic export/merge remains unavailable. Sequential execution can be enabled separately; it does not transfer private workspace files between agents.
+
+## Per-turn verified snapshot staging
+
+Before a development container launches, the worker opens the approved bundle
+with no-follow/nonblocking flags and validates that opened inode. Bundle reads
+are capped at 256 MiB plus one detection byte, including if a file grows after
+its initial size check. Special files, final-component symlinks, empty/oversized
+files and group/world-writable sources are refused.
+
+The launcher then copies and hashes one bounded source descriptor into the
+private per-turn directory. It mounts that read-only checked copy rather than
+reopening the original host path through Docker. A source replacement after
+staging cannot change the approved bytes mounted by that turn; a replacement
+before staging must still match the approved digest. Failed copy/hash/close
+validation prevents launch and removes the partial copy. The per-turn directory
+is removed by existing cleanup. Provision up to 256 MiB of additional temporary
+space per active development turn; restart/crash orphan cleanup remains an
+operator concern. This is mandatory snapshot enforcement, not an optional flag;
+the development capability remains off by default and owner-configured as above.
+
+Synthetic file fixtures verify substitution isolation, unsafe-type/permission/
+size refusal and cleanup without a database, Docker or provider. Live bind-mount
+behavior and disk-outage handling were not tested. Trusted worker-account/parent
+directory control remains required. This does not separate credentials from the
+provider's development tools; that finding remains open.

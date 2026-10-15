@@ -1,0 +1,23 @@
+# Dockerfile-specific context: deny everything except the minimal tool source.
+# No .data, .git, credentials, provider bootstrap, tests or host snapshots.
+**
+!go.mod
+!cmd/
+cmd/**
+!cmd/tool-helper/
+cmd/tool-helper/**
+!cmd/tool-helper/main.go
+!internal/
+internal/**
+!internal/toolworkspace/
+internal/toolworkspace/**
+!internal/toolworkspace/workspace_unix.go
+!internal/strictjson/
+internal/strictjson/**
+!internal/strictjson/encoding.go
+!docker/
+docker/**
+!docker/tools/
+docker/tools/**
+!docker/tools/Dockerfile
+!docker/tools/tool-call.cjs

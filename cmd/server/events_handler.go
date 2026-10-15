@@ -18,6 +18,9 @@ type eventRequest struct {
 
 func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
+		ctx, cancel := s.storageContext(r.Context())
+		defer cancel()
+		r = r.WithContext(ctx)
 		paged := r.URL.Query().Get("page") == "true"
 		sql := "SELECT sequence,kind,committed_at,hash,payload FROM events ORDER BY sequence DESC LIMIT 200"
 		var args []any
@@ -57,7 +60,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			}
 			result = append(result, event)
 		}
-		if rows.Err() != nil {
+		if rows.Err() != nil || ctx.Err() != nil {
 			http.Error(w, "Unable to read events", 500)
 			return
 		}

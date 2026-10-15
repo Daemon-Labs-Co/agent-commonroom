@@ -1,0 +1,132 @@
+# Scoped tool audit callbacks
+
+This mandatory free/core component connects the broker dispatcher to the
+controller's append-only event store through bounded acknowledgements. It is not
+a public API, a new connection type or a completed paired-worker deployment.
+
+## User behavior, permissions and flags
+
+History summaries describe "Agent tool action requested · read" and "Agent tool
+action · succeeded", for example. Records contain the actual initiating human,
+company, room, participant, connection, job/call identity, approved repository
+digest, deadline and action/result hashes. They contain no action content, paths,
+commands, raw output, capability tokens or provider credentials. Hashes correlate
+evidence; they do not attest filesystem contents or stop administrator tampering.
+
+There is no audit-off flag, owner exemption or paid bypass. Disabling optional
+background-work, job-diagnostics or policy-editor UI cannot disable audit or stored
+context-export restrictions. This component grants no new dispatch permissions.
+
+The existing administrator-owned `COMMONROOM_DEVELOPMENT_WORKSPACES` switch
+defaults off. `COMMONROOM_DEVELOPMENT_REPOSITORIES` must map the room to its
+approved snapshot digest. These environment settings take effect in a newly
+started controller process; room members cannot edit them. The callback checks
+policy for every acknowledgement. Disabling development preserves history and
+refuses future acknowledgements; it does not itself prove running containers have
+stopped. The pair supervisor must cancel and verify both containers.
+
+Only an enabled human with current room access may initiate work. The durable job
+must name that human and company. Owner-owned provider credentials do not imply
+owner identity for their user. Changed role/revision, room access, participant
+revision, connection binding/revision, repository policy or stop state prevents
+subsequent acknowledgement. Jobs without explicit human/company provenance remain
+readable, but cannot be silently upgraded into tool authority.
+
+Legacy credential-bearing development remains blocked. Paired engine/tool
+supervision, authenticated channel wiring and application dispatch integration
+are still required before agent development can use this component.
+
+## Wire and integration contract
+
+`internal/toolbroker.AuditClient` implements `Auditor` over a supervisor-owned
+`io.ReadWriteCloser`; `ServeAudit` implements the controller side. **The caller
+must authenticate the peer** and keep this link separate from engine/model stdout
+and tool arguments. These types create no listener, HTTP route or authentication.
+Channel `Close` must safely interrupt concurrent reads/writes.
+
+Each newline-delimited frame has exact lower-case keys:
+
+- `version`: protocol 1.
+- `sequence`: consecutive integer, maximum 200 frames/100 calls.
+- `session`: fresh random 128-bit client nonce, pinned for the entire link.
+- `stage`: `intent` followed by `outcome` for that call.
+- `intent`: immutable scope, call ID, operation and canonical action SHA-256.
+- `outcome`: present only for outcomes; status, output byte count and hash.
+
+Acknowledgements contain `version`, `digest` and `accepted`. The digest binds the
+canonical complete frame, including session, sequence, scope and outcome. An old
+call/link acknowledgement cannot authorize a new request. This is not a signature
+or replacement for channel authentication.
+
+Frames are capped at 4 KiB. Decoding rejects unknown, missing, case-folded or
+duplicate members, nulls, malformed Unicode, trailing values, arrays, invalid
+order, reused calls and wrong scope/session/sequence. Declared success without the
+matching full-frame digest is refused.
+
+The dispatcher reserves authority and waits for committed intent acknowledgement
+**before** invoking the isolated executor. It withholds results until the outcome
+is committed and acknowledged. Cancellation closes blocked I/O. Partial writes,
+EOF, refusal and malformed responses fence the link/dispatcher authority. There
+is no automatic reconnect/replay. EOF/budget exhaustion is not completion or
+container shutdown proof.
+
+The controller's `serveToolAudit` assembly method requires the original human
+context and matching managed-job registration. `controllerToolAuditor` reloads
+state under controller coordination for each phase and appends with an expected
+event count. Conflicts are rejected, not retried. It permits one unresolved intent
+per job and rejects reused call IDs. Commit failure gives no positive ack and
+latches the existing integrity stop. Unresolved intent requires reconciliation,
+never replay. Cancellation/deadline can leave an unresolved intent; the component
+does not pretend to persist an outcome after its context has been cancelled.
+
+`worker.tool.intent` / `worker.tool.outcome` replay into internal `State.ToolAudits`,
+keyed by job plus call ID. Replay rejects orphan outcomes, changed immutable
+metadata, duplicate phases and invalid terminal evidence. Managed-job identity,
+company and execution bindings are immutable across lifecycle updates. Timestamps
+are controller-generated; deadline and repository remain bound to the original job.
+
+Source **CAN** substitute the auditor, mix channels or skip checks, **BUT** that
+invalidates durable admission and can allow unaudited access to organization
+credentials/workspaces. Mandatory container isolation has no host fallback. The
+pair supervisor must still enforce images, credential-free mounts, aggregate
+quotas, cancellation and immutable-ID absence proof.
+
+## Verification and limits
+
+Tests use in-memory pipes, synthetic metadata, the existing in-memory event-store
+mock and fake executors. They cover the entire callback/store/executor ordering,
+flags off/on, real human attribution, commit failure, revocation, immutable
+bindings, replay, malformed input, blocked-I/O cancellation and exclusion of raw
+payloads/tokens. They launch no provider agents, Docker containers or DB connections.
+
+The hardened component is now integrated into the shared development checkout.
+Its tests exercise in-memory transport and mocked persistence/execution; they
+do not establish production runtime integration.
+Actual supervisor transport, paired execution, live-provider compatibility,
+crash recovery and artifact delivery remain open. This channel is not permission
+to remove the legacy admission barrier.
+
+## Runner integration acceptance contract
+
+The earlier `storedToolAuditor` writer has been removed. `newToolDispatcher`
+requires an isolated worker job context and an explicit audit channel, constructs
+`AuditClient`, and has no local persistence fallback. Its returned cleanup must
+be called by the supervisor. Worker cancellation or deadline revokes authority and
+closes blocked audit I/O even if a later dispatch supplies a fresh context. `tool.call.*` replay remains
+readable for historical compatibility; new actions use scoped `worker.tool.*`
+records. The supervisor must still authenticate and wire the channel before any
+production development admission changes. A constructor is not proof of that wiring.
+
+| Boundary | Required integration behavior | Evidence still needed |
+| --- | --- | --- |
+| Human provenance | Carry the initiating human and managed-job registration through asynchronous dispatch; persist initiator/company at registration. Reject missing provenance. | Runner-to-controller tests for a member using an owner-owned connection, missing identity and changed membership. |
+| Trusted scope | Construct scope from controller-approved registration and repository policy, never model arguments or a callback frame. | Tests rejecting changed job, company, participant, connection, digest and deadline bindings. |
+| Callback assembly | Pair `AuditClient` with `serveToolAudit` over a peer-authenticated supervisor channel separate from engine stdout. The controller uses `controllerToolAuditor`. | Authentication/stream-routing tests and an isolated callback round trip through the actual runner assembly. |
+| Execution ordering | The tool-side dispatcher waits for durable intent before execution and durable outcome before releasing results. | Runner tests proving neither execution nor result release occurs after a refused, stale or lost acknowledgement. |
+| Cancellation and shutdown | Fence authority on channel failure; cancel both isolated containers and prove absence by immutable IDs. A closed stream or exhausted frame budget is insufficient. | Pair-supervisor cancellation, crash and shutdown tests; isolated worker verification. |
+| Recovery | Retain unresolved durable intents for explicit reconciliation. Do not replay an uncertain action or reopen authority automatically. | Crash/restart reconciliation policy and tests for intent committed before acknowledgement loss. |
+
+These are acceptance requirements, not implemented runtime guarantees. Component tests already exercise scoped store
+checks and transport failure behavior; they do not substitute for the runner
+assembly and live-runtime evidence listed here. Keep the legacy admission barrier
+and production separation status open until the complete path is verified.

@@ -8,7 +8,7 @@ run through an approved **Linux worker with rootless Docker**. CommonRoom can ru
 on your Mac while the worker runs on a Debian server. Host execution has no
 supported fallback or isolation-disable switch.
 
-**Status:** working development prototype, supported with one controller. Public
+**Status:** working prototype, supported with one controller. Legacy native code-development turns are blocked until a verified credential-separated bridge is available. Public
 internet hosting and hostile multi-tenant deployment are not production-ready.
 
 Task assignment uses [atomic server-owned dispatch](docs/task-dispatch.md), with
@@ -41,7 +41,9 @@ configure `COMMONROOM_DAILY_TURN_LIMIT` (1–100000); see [execution budgets](do
 ### 1. Install the prerequisites and get the source
 
 You need **Go 1.26+**, **PostgreSQL** (17 has been exercised), and a current browser
-with JavaScript and Web Crypto. **Node.js** is needed for development checks.
+with JavaScript and Web Crypto. **Node.js and Python 3.8+** are needed for
+development checks. Python checks use only the standard library; no Python
+packages or provider credentials are required.
 There is no frontend package install or bundling step.
 
 On macOS with Homebrew:

@@ -12,7 +12,7 @@ import (
 )
 
 func sampleWorkerRequest() workerRunRequest {
-	return workerRunRequest{Version: 2, IssuedAt: time.Now().UTC(), Deadline: time.Now().Add(179 * time.Second).UTC(), JobID: strings.Repeat("a", 32), Provider: "codex", Key: "room/agent/connection/worker", Args: []string{"exec", "--json", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only", "-c", `approval_policy="never"`, "-"}}
+	return workerRunRequest{Version: 2, IssuedAt: time.Now().UTC(), Deadline: time.Now().Add(179 * time.Second).UTC(), JobID: strings.Repeat("a", 32), Provider: "codex", Key: "room/agent/connection/worker", Args: append(providerTurnArgs("codex", false, false), "-")}
 }
 func TestRemoteWorkerRegistrationAndFlag(t *testing.T) {
 	t.Parallel()

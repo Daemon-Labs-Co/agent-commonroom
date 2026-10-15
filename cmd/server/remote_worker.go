@@ -46,14 +46,15 @@ func remoteWorkerEndpoint(endpoint, configured, enabled string) (string, string,
 }
 
 type workerRunRequest struct {
-	Version    int       `json:"version"`
-	IssuedAt   time.Time `json:"issuedAt"`
-	Deadline   time.Time `json:"deadline"`
-	JobID      string    `json:"jobId"`
-	Provider   string    `json:"provider"`
-	Key        string    `json:"key"`
-	Args       []string  `json:"args"`
-	Repository string    `json:"repository,omitempty"`
+	Version        int       `json:"version"`
+	IssuedAt       time.Time `json:"issuedAt"`
+	Deadline       time.Time `json:"deadline"`
+	JobID          string    `json:"jobId"`
+	Provider       string    `json:"provider"`
+	Key            string    `json:"key"`
+	Args           []string  `json:"args"`
+	Repository     string    `json:"repository,omitempty"`
+	ToolSeparation bool      `json:"toolSeparation,omitempty"`
 }
 
 func encodeWorkerRequest(v workerRunRequest) (string, error) {
@@ -88,6 +89,9 @@ func decodeWorkerRequest(encoded string) (workerRunRequest, error) {
 // development policy bound to an approved snapshot. The worker independently
 // verifies its administrator-owned room registry before any launch.
 func validateWorkerRun(v workerRunRequest) error {
+	if err := requireCredentialSeparatedDevelopment(v.Repository); err != nil {
+		return err
+	}
 	if v.Version != workerLifecycleVersion || !validWorkerJobID(v.JobID) || strings.TrimSpace(v.Key) == "" || len(v.Key) > 1024 {
 		return errors.New("Invalid worker identity")
 	}
@@ -107,7 +111,10 @@ func validateWorkerRun(v workerRunRequest) error {
 	if v.Provider != "codex" && v.Provider != "claude" {
 		return errors.New("Unsupported worker provider")
 	}
-	base = providerTurnArgs(v.Provider, v.Repository != "")
+	if v.ToolSeparation && v.Repository == "" {
+		return errors.New("Tool separation requires an approved development workspace")
+	}
+	base = providerTurnArgs(v.Provider, v.Repository != "", v.ToolSeparation)
 	if v.Provider == "codex" {
 		suffix = []string{"-"}
 		threadFlag = "resume"
@@ -152,17 +159,19 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 		return nil, nil, err
 	}
 	repository := ""
+	toolSeparation := false
 	if developmentTurnArgs(provider, args) {
 		repository, err = controllerDevelopmentRepository(strings.SplitN(key, "/", 2)[0], os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 		if err != nil || repository == "" {
 			return nil, nil, errors.New("Development workspace is not enabled for this room")
 		}
+		toolSeparation = toolSeparationTurnArgs(provider, args)
 	}
 	registration, ok := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
 	if !ok || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
 		return nil, nil, errors.New("Durable managed job registration is required")
 	}
-	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository}
+	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository, ToolSeparation: toolSeparation}
 	encoded, err := encodeWorkerRequest(request)
 	if err != nil {
 		return nil, nil, err
@@ -277,18 +286,9 @@ func writeWorkerRecord(dir string, v workerJobRecord, exclusive bool) error {
 func readWorkerRecord(dir, job string) (workerJobRecord, error) {
 	var v workerJobRecord
 	path := filepath.Join(dir, job+".json")
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 || info.Size() > 8192 {
-		return v, errors.New("Unknown or unsafe worker job")
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return v, errors.New("Unknown worker job")
-	}
-	defer f.Close()
-	raw, err := io.ReadAll(io.LimitReader(f, 8193))
-	if err != nil || len(raw) > 8192 || json.Unmarshal(raw, &v) != nil || v.JobID != job {
-		return v, errors.New("Invalid worker record")
+	raw, err := readPrivateBounded(path, 8192)
+	if err != nil || json.Unmarshal(raw, &v) != nil || v.JobID != job {
+		return v, errors.New("Invalid or unsafe worker record")
 	}
 	if v.Version != 0 && v.Version != 2 {
 		return v, errors.New("Unsupported worker record")
@@ -329,13 +329,9 @@ func configureWorker() error {
 		return err
 	}
 	path := filepath.Join(home, ".config/commonroom-worker/config.json")
-	fi, err := os.Lstat(path)
-	if err != nil || !fi.Mode().IsRegular() || fi.Mode().Perm()&0077 != 0 || fi.Size() > 8192 {
-		return errors.New("Worker requires owner-only ~/.config/commonroom-worker/config.json")
-	}
-	raw, err := os.ReadFile(path)
+	raw, err := readPrivateBounded(path, 8192)
 	if err != nil {
-		return err
+		return errors.New("Worker requires owner-only, bounded ~/.config/commonroom-worker/config.json")
 	}
 	var c workerConfiguration
 	decoder := json.NewDecoder(strings.NewReader(string(raw)))
@@ -543,7 +539,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		writeWorkerRecord(dir, record, false)
 		return fail(errors.New("Worker prompt exceeded limit"))
 	}
-	cmd, cleanup, err := localIsolatedDevelopmentCommand(ctx, request.Provider, request.Key, request.JobID, request.Repository, request.Args...)
+	cmd, cleanup, err := localIsolatedDevelopmentCommand(ctx, request.Provider, request.Key, request.JobID, request.Repository, request.ToolSeparation, request.Args...)
 	if err != nil {
 		record.Status = "failed"
 		record.UpdatedAt = time.Now().UTC()

@@ -4,6 +4,7 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"agentroom/internal/toolbroker"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,8 @@ import (
 )
 
 func (s *server) load(ctx context.Context) (room.State, error) {
+	ctx, cancel := s.storageContext(ctx)
+	defer cancel()
 	activities := map[string]string{}
 	background := map[string][]room.BackgroundActivity{}
 	activityStarts := map[string]time.Time{}
@@ -24,6 +27,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
+		if err := ctx.Err(); err != nil {
+			return st, err
+		}
 		var kind string
 		var data []byte
 		if err = rows.Scan(&kind, &data); err != nil {
@@ -31,6 +37,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 		st.EventCount++
 		switch kind {
+		case "worker.tool.intent", "worker.tool.outcome":
+			if err := projectToolAudit(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "operation.receipt":
 			var receipt room.OperationReceipt
 			if json.Unmarshal(data, &receipt) != nil || len(receipt.Key) != 64 || len(receipt.Fingerprint) != 64 || receipt.Status < 200 || receipt.Status >= 300 || !json.Valid(receipt.Response) {
@@ -40,6 +50,36 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				st.OperationReceipts = map[string]room.OperationReceipt{}
 			}
 			st.OperationReceipts[receipt.Key] = receipt
+		case "tool.call.intent":
+			var intent toolbroker.Intent
+			// ValidAuditIntent's deadline check is admission-time-relative; replay
+			// happens long after that deadline passed, so validate shape as of the
+			// intent's own deadline instant rather than wall-clock now (see its doc
+			// comment: "outcome persistence may instead use the original intent's
+			// admission instant" — the same reasoning applies to replaying history).
+			if json.Unmarshal(data, &intent) != nil || !toolbroker.ValidAuditIntent(intent, intent.Scope.Deadline.Add(-time.Nanosecond)) {
+				return st, errors.New("invalid tool call intent event")
+			}
+			if st.ToolCalls == nil {
+				st.ToolCalls = map[string]room.ToolCallAudit{}
+			}
+			st.ToolCalls[intent.CallID] = room.ToolCallAudit{
+				CallID: intent.CallID, JobID: intent.Scope.JobID, RoomID: intent.Scope.Room,
+				ParticipantID: intent.Scope.Participant, ConnectionID: intent.Scope.Connection,
+				Provider: intent.Scope.Provider, Operation: intent.Operation,
+				PayloadDigest: intent.PayloadDigest, Status: "pending",
+			}
+		case "tool.call.outcome":
+			var record toolCallOutcomeRecord
+			if json.Unmarshal(data, &record) != nil || !toolbroker.ValidAuditOutcome(record.Outcome) {
+				return st, errors.New("invalid tool call outcome event")
+			}
+			existing, ok := st.ToolCalls[record.Intent.CallID]
+			if !ok {
+				return st, errors.New("tool call outcome has no recorded intent")
+			}
+			existing.Status, existing.OutputBytes, existing.OutputDigest = record.Outcome.Status, record.Outcome.OutputBytes, record.Outcome.OutputDigest
+			st.ToolCalls[record.Intent.CallID] = existing
 		case "worker.job.updated":
 			var job room.ManagedJob
 			if json.Unmarshal(data, &job) != nil || !validManagedJob(job) {
@@ -47,6 +87,13 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			if st.ManagedJobs == nil {
 				st.ManagedJobs = map[string]room.ManagedJob{}
+			}
+			if prior, exists := st.ManagedJobs[job.JobID]; exists {
+				binding := job
+				binding.Status, binding.DiagnosticCode, binding.UpdatedAt, binding.ShutdownConfirmed = prior.Status, prior.DiagnosticCode, prior.UpdatedAt, prior.ShutdownConfirmed
+				if binding != prior || prior.ShutdownConfirmed && !job.ShutdownConfirmed {
+					return st, errors.New("managed job binding changed")
+				}
 			}
 			st.ManagedJobs[job.JobID] = job
 		case "actor.help.updated":
@@ -400,6 +447,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			st.Incident = false
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return st, err
+	}
 	projectAgentStatusDetails(&st, activities, failures)
 	projectAgentElapsed(&st, activityStarts, time.Now().UTC())
 	projectBackground(&st, background)
@@ -414,5 +464,8 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	}
 	projectActors(&st)
 	projectHumanAttention(&st, acknowledged)
+	if err := ctx.Err(); err != nil {
+		return st, err
+	}
 	return st, rows.Err()
 }

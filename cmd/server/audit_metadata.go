@@ -24,7 +24,8 @@ func protectAuditMetadata(raw []byte, meta auditRecordMetadata) ([]byte, error) 
 
 // New records bind identity/order/time inside their existing canonical payload
 // checksum. Legacy records stay byte-for-byte unchanged and explicitly lack
-// this protection. Neither version alone can detect prefix rollback.
+// this protection. Chain verification forbids legacy records after this version
+// appears. Neither version alone can detect prefix rollback.
 func verifyAuditMetadata(payload string, id string, sequence int64, at time.Time) (protected, valid bool) {
 	var fields map[string]json.RawMessage
 	if json.Unmarshal([]byte(payload), &fields) != nil {

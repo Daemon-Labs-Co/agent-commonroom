@@ -95,3 +95,87 @@ After provider login exits successfully, the worker reads the known credential f
 Regression tests exercise the actual fixed exporter script with synthetic temporary files, its Docker isolation arguments, output limits, and atomic persistence. Automated tests do not access a database or launch Docker/provider agents. A successful browser login followed by status from a fresh worker process is still required to verify a deployment.
 
 Isolated model turns keep standard input open (`docker run -i`) so the adapter can deliver its bounded prompt. They do not allocate a terminal, preserving machine-readable responses. Interactive human login separately uses a terminal. A saved credential and a successful live connection check are separate states.
+
+## Native public provider address policy
+
+The mandatory CONNECT gateway rejects special-use/reserved IPv4 destinations
+and permits only ordinary native IPv6 global-unicast addresses in `2000::/3`,
+excluding protocol assignments, transition mechanisms, documentation and retired
+blocks. NAT64/translation, 6to4, Teredo and other special-use routes are denied
+even if a platform classifies them as global unicast. IPv4-mapped IPv6 is checked
+as IPv4. Exact provider hostname/443 checks, validation of every resolved answer
+and dialing the validated address directly remain required. No optional flag or
+uncontained network fallback exists.
+
+This conservative policy may reject a provider on a NAT64-only network. Configure
+ordinary native public IPv4/IPv6 connectivity; do not relax the denial to reach
+private addresses. Future allocation changes need an explicit policy review.
+Synthetic address tests perform no DNS queries or provider connections. Trusted
+resolver/host routing compromise remains outside this address classifier; this
+does not fix the separate provider credential/tool co-location issue.
+
+Policy references: [IANA IPv6 special-purpose registry](https://www.iana.org/assignments/iana-ipv6-special-registry),
+[IANA IPv6 address space](https://www.iana.org/assignments/ipv6-address-space), and
+[IANA IPv4 special-purpose registry](https://www.iana.org/assignments/iana-ipv4-special-registry).
+
+## Gateway shutdown and pre-tunnel limits
+
+Each provider gateway owns a cancellable context derived from its turn. Closing
+the gateway cancels in-flight DNS resolution and dialing, closes established
+tunnels and stops the listener. Requests reaching a closed gateway are refused
+before resolution. The pre-tunnel HTTP server bounds headers to 8 KiB with a
+five-second header timeout and fifteen-second read/write/idle timeouts. Hijacked
+provider tunnels retain their separate three-minute deadline and byte limits.
+These mandatory limits have no product toggle and do not relax hostname/IP policy.
+
+Synthetic tests use a temporary Unix socket and injected blocking resolver; they
+verify prompt cancellation and refusal of new work without any DNS/provider/DB
+access. Cooperative resolver/dial cancellation is required. This narrows leftover
+network work during shutdown; it does not prove physical container termination
+or fix readable provider credentials in development tools. Worker shutdown proof
+and integrity recovery requirements remain unchanged.
+
+### Development snapshot substitution protection
+
+Development launches mount a private per-turn checksum-verified bundle copy.
+They do not mount the original operator source path after a prior hash check.
+Descriptor checks and bounded reads also reject special files and growing-input
+overreads. See [snapshot staging and capacity requirements](development-workspaces.md#per-turn-verified-snapshot-staging).
+These mandatory checks have no isolation bypass; development credential/tool
+co-location is still an open separate issue.
+
+### Credential staging permissions
+
+Per-turn credential staging requires exclusive file creation in a worker-owned
+0700 directory and explicitly normalizes file mode 0444 for the mapped container
+UID. Existing/aliased targets are refused. See [staging contract and limits](private-file-security.md#exclusive-per-turn-credential-staging).
+The read-only bind does not prevent development tools from reading credentials;
+credential/tool separation remains open.
+
+### Gateway connection admission
+
+Each provider gateway accepts at most **16 live client connections**, including
+clients that have not sent HTTP headers yet. Its existing **8 CONNECT slots**
+continue to bound DNS/dial/tunnel work. Excess accepted sockets are immediately
+closed before HTTP parsing or DNS; callers may see a connection reset/EOF rather
+than an HTTP error. A slot remains held for the full connection/tunnel lifetime
+and is released once when cleanup closes it. Header/read/write/idle deadlines
+and shutdown cancellation remain independently enforced.
+
+This is a required free/core availability safeguard, with no optional feature
+flag, paid entitlement or supported limit-disable option. It takes effect when
+the updated worker binary is deployed; this source change does not deploy it.
+Do not loosen it to work around agent loops. Investigate repeated reconnects and
+provider/client behavior instead. This bounds live HTTP connection state, not
+socket backlog, accept-loop CPU, bandwidth, cross-job quotas or provider spend.
+
+Technical contract: `gatewayListener.Accept` admits into a fixed buffered slot
+channel before handing a client to `net/http`, closing excess clients. Its
+`gatewayClient.Close` uses `sync.Once` to release admission after underlying
+connection cleanup, including concurrent/double closes. `newProviderGateway`
+uses this wrapper for both its listener record and HTTP serving. A source fork
+CAN remove the cap, BUT exposes the worker to untrusted pre-header connections.
+Synthetic pipe-listener and ephemeral local Unix-socket tests cover saturation,
+release, concurrent close, pre-header admission and shutdown without contacting
+DNS/providers, reading credentials or using a database. Pinned-provider/runtime
+integration and volumetric protection remain unverified.

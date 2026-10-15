@@ -32,14 +32,7 @@ func writePrivateFile(path string, data []byte) error {
 	return closeErr
 }
 func readPrivateFile(path string) ([]byte, error) {
-	info, e := os.Lstat(path)
-	if e != nil {
-		return nil, e
-	}
-	if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
-		return nil, fmt.Errorf("unsafe owner credential file permissions")
-	}
-	return os.ReadFile(path)
+	return readPrivateBounded(path, 65536)
 }
 func (a *ownerAuth) prepareRSA(path string) error {
 	a.setupPath = path
@@ -153,6 +146,10 @@ func (a *ownerAuth) verifySignature(challengeID, signature string) bool {
 	return rsa.VerifyPSS(a.publicKey, crypto.SHA256, digest[:], sig, &rsa.PSSOptions{SaltLength: 32, Hash: crypto.SHA256}) == nil
 }
 func (s *server) downloadOwnerKey(w http.ResponseWriter, r *http.Request) {
+	if requestActor(r) != ownerID {
+		http.Error(w, "Owner permission required", http.StatusForbidden)
+		return
+	}
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", 405)
 		return

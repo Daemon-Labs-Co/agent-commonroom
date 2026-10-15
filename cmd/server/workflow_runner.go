@@ -260,7 +260,7 @@ func (s *server) workflowRuns(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 409)
 			return
 		}
-		run := room.WorkflowRun{ID: id(), RoomID: rid, Workflow: graph, Input: req.Input, ActorID: ownerID, NodeID: startWorkflowNode(graph), Status: "running", Visits: map[string]int{}, Steps: []room.WorkflowStep{}}
+		run := room.WorkflowRun{ID: id(), RoomID: rid, Workflow: graph, Input: req.Input, ActorID: requestActor(r), NodeID: startWorkflowNode(graph), Status: "running", Visits: map[string]int{}, Steps: []room.WorkflowStep{}}
 		if err = s.saveOperationRun(r.Context(), &run, 202); err != nil {
 			operationError(w, err)
 			return
@@ -600,7 +600,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		if seconds == 0 {
 			seconds = 180
 		}
-		turnCtx, stop := context.WithTimeout(ctx, time.Duration(seconds)*time.Second)
+		turnCtx, stop := context.WithTimeout(withInitiatingActor(ctx, run.ActorID), time.Duration(seconds)*time.Second)
 		if p.ID != "" {
 			p.Status = "Working"
 			run.Revision++

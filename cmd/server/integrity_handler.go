@@ -20,6 +20,9 @@ func (s *server) integrity(w http.ResponseWriter, r *http.Request) {
 // integrityLocked requires s.mu; every verification failure stops execution,
 // including failures that prevent the incident from being committed.
 func (s *server) integrityLocked(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := s.storageContext(r.Context())
+	defer cancel()
+	r = r.WithContext(ctx)
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
 		return
@@ -34,7 +37,14 @@ func (s *server) integrityLocked(w http.ResponseWriter, r *http.Request) {
 	count := 0
 	valid := true
 	protectedCount := 0
+	protectedFormatSeen := false
 	for rows.Next() {
+		if ctx.Err() != nil {
+			rows.Close()
+			s.tripIntegrityLocked()
+			http.Error(w, "Integrity verification timed out", 503)
+			return
+		}
 		var kind, payload, prev, hash string
 		var eventID string
 		var sequence int64
@@ -50,7 +60,10 @@ func (s *server) integrityLocked(w http.ResponseWriter, r *http.Request) {
 		}
 		protected, metadataValid := verifyAuditMetadata(payload, eventID, sequence, committedAt)
 		if protected {
+			protectedFormatSeen = true
 			protectedCount++
+		} else if protectedFormatSeen {
+			valid = false
 		}
 		if !metadataValid {
 			valid = false
