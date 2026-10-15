@@ -73,7 +73,7 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	if _, err = e.plan.RunArgs(time.Now()); err != nil {
 		return err
 	}
-	container, err := e.capture(ctx, []string{"inspect", "--type", "container", "--format", "{{json .}}", e.plan.ContainerName()}, MaxInspectionBytes)
+	container, err := e.capture(ctx, []string{"inspect", "--type", "container", "--format", "{{json .}}", ready.containerID}, MaxInspectionBytes)
 	if err != nil {
 		e.plan.authority.Revoke()
 		return ErrRejected
@@ -84,10 +84,11 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 		return ErrRejected
 	}
 	var inspected toolInspection
-	if decodeInspection(container, &inspected) != nil {
+	if decodeInspection(container, &inspected) != nil || inspected.ID != ready.containerID {
+		e.plan.authority.Revoke()
 		return ErrRejected
 	}
-	// Names may be reassigned after inspection; never dispatch or clean up by name.
+	// Inspection and dispatch stay pinned to the original bootstrap identity.
 	id := inspected.ID
 	if _, err = e.plan.RunArgs(time.Now()); err != nil {
 		return err

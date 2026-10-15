@@ -35,6 +35,8 @@ var documentationCatalog = []documentationEntry{
 	{"private-file-security", "Private file and lease safety", "docs/private-file-security.md"},
 	{"provider-tool-separation", "Planned provider/tool credential separation", "docs/provider-tool-separation.md"},
 	{"workspace-bootstrap", "Credential-free workspace bootstrap", "docs/workspace-bootstrap.md"},
+	{"workspace-volumes", "Fresh workspace volumes and cleanup", "docs/workspace-volumes.md"},
+	{"audited-tool-session", "Shared audited tool session", "docs/audited-tool-session.md"},
 	{"tool-container-runtime", "Constrained tool-container launch", "docs/tool-container-runtime.md"},
 	{"worker-pairs", "Paired worker lifecycle", "docs/worker-pairs.md"},
 	{"execution-budgets", "Daily managed-turn budget", "docs/execution-budgets.md"},

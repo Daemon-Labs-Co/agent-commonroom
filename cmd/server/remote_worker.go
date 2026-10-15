@@ -250,7 +250,7 @@ func readWorkerRecord(dir, job string) (workerJobRecord, error) {
 	if err != nil || json.Unmarshal(raw, &v) != nil || v.JobID != job {
 		return v, errors.New("Invalid or unsafe worker record")
 	}
-	if v.Version != 0 && v.Version != 2 && v.Version != workerPairLifecycleVersion {
+	if v.Version != 0 && v.Version != 2 && !pairedLifecycleVersion(v.Version) {
 		return v, errors.New("Unsupported worker record")
 	}
 	if v.Version != 0 && !validWorkerRecord(v) {
@@ -397,9 +397,9 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		json.NewEncoder(out).Encode(v)
 		return 0
 	}
-	if args[0] == "cancel-v2" || args[0] == "cancel-pair-v1" {
+	if args[0] == "cancel-v2" || args[0] == "cancel-pair-v1" || args[0] == "cancel-pair-workspace-v1" {
 		request, err := decodeFenceRequest(args[1])
-		if err == nil && ((args[0] == "cancel-v2" && request.Version != 2) || (args[0] == "cancel-pair-v1" && request.Version != 3)) {
+		if err == nil && ((args[0] == "cancel-v2" && request.Version != 2) || (args[0] == "cancel-pair-v1" && request.Version != 3) || (args[0] == "cancel-pair-workspace-v1" && request.Version != workerWorkspaceLifecycleVersion)) {
 			err = errors.New("cancellation protocol mismatch")
 		}
 		if err != nil {

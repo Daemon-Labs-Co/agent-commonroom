@@ -247,3 +247,7 @@ Internal execution design: [managed job lifecycle](docs/managed-job-lifecycle.md
 [Constrained tool-container launch](docs/tool-container-runtime.md) implements the internal tool-side create/inspect/start sequence. Credential-free workspace bootstrap is internally implemented; production pair integration and live verification remain unfinished. Managed development stays blocked.
 
 [Workspace bootstrap](docs/workspace-bootstrap.md) documents snapshot checks, checkout limits, readiness gating and remaining integration work.
+
+[Workspace volume lifecycle](docs/workspace-volumes.md) adds internal version-4 allocation and lease-owned cleanup. New paired starts require workspace evidence; historical version-3 pairs are recovery-only. Development remains blocked pending production integration and live verification.
+
+[Shared audited tool sessions](docs/audited-tool-session.md) bind bootstrap, original container identity and durable dispatch to one plan. Production engine/audit transport integration remains unfinished.

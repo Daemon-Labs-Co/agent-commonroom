@@ -40,13 +40,24 @@ func (s *server) managedPairJobContext(ctx context.Context, p room.Participant, 
 	})
 }
 
+// managedWorkspaceJobContext records the version-4 workspace cleanup contract.
+// It creates no process and cannot enable the blocked development launch path.
+func (s *server) managedWorkspaceJobContext(ctx context.Context, p room.Participant, repository string) context.Context {
+	return s.managedExecutionJobContextVersion(ctx, p, repository, func() (string, error) {
+		return controllerDevelopmentRepository(p.RoomID, os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
+	}, workerWorkspaceLifecycleVersion)
+}
+
 func (s *server) managedExecutionJobContext(ctx context.Context, p room.Participant, repository string, policy func() (string, error)) context.Context {
+	return s.managedExecutionJobContextVersion(ctx, p, repository, policy, workerWorkspaceLifecycleVersion)
+}
+func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.Participant, repository string, policy func() (string, error), version int) context.Context {
 	job := room.ManagedJob{Version: 2, JobID: id(), RoomID: p.RoomID, ParticipantID: p.ID, ConnectionID: p.ConnectionID, Status: "allocated", AllocatedAt: time.Now().UTC()}
 	job.InitiatorID, _ = ctx.Value(actorContextKey{}).(string)
 	paired := policy != nil || repository != ""
 	if paired {
-		job.Version = workerPairLifecycleVersion
-		job.Execution = workerPairExecution
+		job.Version = version
+		job.Execution = pairExecution(version)
 		job.RepositoryDigest = repository
 	}
 	job.Deadline, _ = ctx.Deadline()
@@ -207,8 +218,8 @@ func validManagedJob(v room.ManagedJob) bool {
 		if v.Execution != "" || v.RepositoryDigest != "" {
 			return false
 		}
-	case workerPairLifecycleVersion:
-		if v.Execution != workerPairExecution || !repositoryDigestPattern.MatchString(v.RepositoryDigest) || v.InitiatorID == "" || v.CompanyID == "" || !v.Deadline.After(v.AllocatedAt) || v.Deadline.Sub(v.AllocatedAt) > 3*time.Minute {
+	case workerPairLifecycleVersion, workerWorkspaceLifecycleVersion:
+		if v.Execution != pairExecution(v.Version) || !repositoryDigestPattern.MatchString(v.RepositoryDigest) || v.InitiatorID == "" || v.CompanyID == "" || !v.Deadline.After(v.AllocatedAt) || v.Deadline.Sub(v.AllocatedAt) > 3*time.Minute {
 			return false
 		}
 	default:

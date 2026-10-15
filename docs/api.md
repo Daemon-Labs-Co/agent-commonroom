@@ -262,7 +262,7 @@ rechecks journal usage atomically before launch. See [execution budgets](executi
 ### Paired worker recovery infrastructure
 
 The existing owner-only job diagnostics/recovery routes can represent explicitly
-registered version-3 paired jobs. Their durable execution/repository binding
+registered version-3 historical pairs and version-4 workspace-bearing jobs. Their durable execution/repository binding
 cannot change across lifecycle updates. Reconciliation requires matching worker
 version, membership, repository, original deadline and released ownership.
 The controller sends the explicit paired cancellation protocol and records failed
@@ -270,3 +270,5 @@ shutdown as unresolved; diagnostic flag changes never bypass these checks.
 No paired launch API is enabled. Existing version-2 chat jobs keep their original
 protocol; neither version can be silently substituted for the other. See
 [paired worker lifecycle](worker-pairs.md) for the implementation boundary.
+
+Version-4 recovery uses `cancel-pair-workspace-v1` and requires workspace-removal evidence as well as container/lease proof. HTTP cancellation/reconciliation does not grant workspace discard authority: a present workspace remains retained/unresolved until a separate approved discard workflow is implemented. Older protocols cannot settle these records. See [workspace volumes](workspace-volumes.md).

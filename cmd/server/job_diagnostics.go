@@ -32,10 +32,10 @@ func remoteJobsSnapshot(ctx context.Context, alias string) (workerJobsSnapshot, 
 			return workerJobsSnapshot{}, errors.New("worker_snapshot_invalid")
 		}
 		seen[view.JobID] = true
-		if view.Version != 0 && view.Version != 2 && view.Version != workerPairLifecycleVersion {
+		if view.Version != 0 && view.Version != 2 && !pairedLifecycleVersion(view.Version) {
 			return workerJobsSnapshot{}, errors.New("worker_snapshot_invalid")
 		}
-		if view.Version == 2 || view.Version == workerPairLifecycleVersion {
+		if view.Version == 2 || pairedLifecycleVersion(view.Version) {
 			if !validWorkerRecord(view.workerJobRecord) {
 				return workerJobsSnapshot{}, errors.New("worker_snapshot_invalid")
 			}
@@ -58,6 +58,9 @@ func remoteFenceJob(ctx context.Context, alias string, request workerFenceReques
 	action := "cancel-v2"
 	if request.Version == 3 {
 		action = "cancel-pair-v1"
+	}
+	if request.Version == workerWorkspaceLifecycleVersion {
+		action = "cancel-pair-workspace-v1"
 	}
 	cmd := workerSSHCommand(ctx, alias, action, encoded)
 	cmd.Stdout = &output
@@ -91,14 +94,14 @@ type jobDiagnostic struct {
 }
 
 func sameWorkerBinding(job room.ManagedJob, view workerJobView) bool {
-	if job.Version == workerPairLifecycleVersion {
+	if pairedLifecycleVersion(job.Version) {
 		if view.Pair == nil || view.Execution != job.Execution || view.Pair.Repository != job.RepositoryDigest || !view.Deadline.Equal(job.Deadline) {
 			return false
 		}
 	} else if view.Pair != nil || view.Execution != "" {
 		return false
 	}
-	return view.Version == job.Version && (view.Version == 2 || view.Version == workerPairLifecycleVersion) && view.JobID == job.JobID && view.Provider == job.Provider && view.RoomID == job.RoomID && view.ParticipantID == job.ParticipantID && view.ConnectionID == job.ConnectionID
+	return view.Version == job.Version && (view.Version == 2 || pairedLifecycleVersion(view.Version)) && view.JobID == job.JobID && view.Provider == job.Provider && view.RoomID == job.RoomID && view.ParticipantID == job.ParticipantID && view.ConnectionID == job.ConnectionID
 }
 func boundedJobDiagnostics(st room.State, snapshot workerJobsSnapshot, snapshotErr error, rid, participant string) []jobDiagnostic {
 	jobs := []jobDiagnostic{}

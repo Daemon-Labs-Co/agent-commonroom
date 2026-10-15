@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 type runtimeScenario struct {
@@ -17,6 +18,8 @@ type runtimeScenario struct {
 	mode            string
 	calls           []string
 	creates, starts int
+	volumeExists    bool
+	volumeCreates   int
 }
 
 func (f *runtimeScenario) Run(ctx context.Context, args []string, in []byte, out io.Writer) error {
@@ -34,14 +37,57 @@ func (f *runtimeScenario) Run(ctx context.Context, args []string, in []byte, out
 			raw = []byte(f.container.ID)
 		}
 	case "volume":
-		if f.mode == "missing-volume" {
-			return errors.New("not found")
+		switch args[1] {
+		case "ls":
+			if f.mode == "volume-inventory-error" {
+				return errors.New("synthetic unavailable")
+			}
+			if f.volumeExists {
+				raw = []byte(f.volume.Name)
+			}
+		case "create":
+			f.volumeCreates++
+			if f.mode == "volume-create-error" {
+				return errors.New("unknown volume create")
+			}
+			f.volumeExists = true
+			f.volume.Labels = map[string]string{}
+			for i, arg := range args {
+				if arg == "--label" {
+					key, value, _ := strings.Cut(args[i+1], "=")
+					f.volume.Labels[key] = value
+				}
+			}
+			f.volume.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+			raw = []byte(f.volume.Name)
+			if f.mode == "volume-create-reply" {
+				raw = []byte("foreign")
+			}
+		case "inspect":
+			if f.mode == "missing-volume" || !f.volumeExists {
+				return errors.New("not found")
+			}
+			v := f.volume
+			if f.mode == "volume-bind" {
+				v.Options = map[string]string{"device": "/synthetic/host", "o": "bind"}
+			}
+			if f.mode == "volume-time" {
+				v.CreatedAt = "invalid"
+			}
+			if f.mode == "volume-replaced" {
+				v.CreatedAt = time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano)
+			}
+			if f.mode == "volume-nonce" {
+				v.Labels = map[string]string{}
+				for k, value := range f.volume.Labels {
+					v.Labels[k] = value
+				}
+				v.Labels["commonroom.workspace.nonce"] = strings.Repeat("e", 32)
+			}
+			raw = inspectJSON(f.t, v)
+		default:
+			f.t.Fatalf("unexpected volume operation %v", args)
 		}
-		v := f.volume
-		if f.mode == "volume-bind" {
-			v.Options = map[string]string{"device": "/synthetic/host", "o": "bind"}
-		}
-		raw = inspectJSON(f.t, v)
 	case "create":
 		f.creates++
 		expected, err := f.plan.CreateArgs(f.plan.authority.issued)
@@ -94,7 +140,7 @@ func (f *runtimeScenario) Run(ctx context.Context, args []string, in []byte, out
 	_, err := out.Write(raw)
 	return err
 }
-func runtimeSetup(t *testing.T, mode string) (*ToolContainerRuntime, *runtimeScenario, context.CancelFunc) {
+func unpreparedRuntimeSetup(t *testing.T, mode string) (*ToolContainerRuntime, *runtimeScenario, context.CancelFunc) {
 	t.Helper()
 	p, c, v, root, _ := inspectionFixture(t)
 	a, _ := liveFixture(t)
@@ -109,6 +155,21 @@ func runtimeSetup(t *testing.T, mode string) (*ToolContainerRuntime, *runtimeSce
 		t.Fatal(err)
 	}
 	return r, fake, cancel
+}
+func runtimeSetup(t *testing.T, mode string) (*ToolContainerRuntime, *runtimeScenario, context.CancelFunc) {
+	t.Helper()
+	r, f, cancel := unpreparedRuntimeSetup(t, "")
+	intent, err := f.plan.WorkspaceIntent(time.Now())
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	if _, err = r.PrepareVolume(t.Context(), intent); err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	f.mode = mode
+	return r, f, cancel
 }
 func TestToolRuntimeCreateInspectStart(t *testing.T) {
 	t.Parallel()

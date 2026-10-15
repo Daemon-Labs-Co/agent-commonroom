@@ -15,8 +15,10 @@ worker to recover new paired work.
 
 ## Durable identity and admission
 
-Paired records use lifecycle **version 3**, execution `separated-pair-v1`, and
-nested pair metadata **version 1**. A version-2 record must not contain pair
+New paired starts use lifecycle **version 4**, execution
+`separated-pair-workspace-v1`, and nested pair metadata **version 1**. Historical
+version-3 `separated-pair-v1` records remain recovery-only. Version 4 additionally
+journals fresh workspace identity and requires its cleanup proof. A version-2 record must not contain pair
 metadata. This ensures older binaries, which reject unknown lifecycle versions,
 cannot silently ignore the extra fields and declare one-container shutdown.
 
@@ -42,16 +44,18 @@ start. Live daemon enforcement still requires runtime verification.
 The internal `Start` interface now owns the following sequence behind a trusted
 launch adapter:
 
-1. Persist `BeginCreate` for a role before creating its fixed-name container.
-2. Use Docker **create**, not create-and-start `run`, with reviewed images,
+1. Persist the version-4 workspace intent, allocate a fresh volume and durably
+   bind its nonce/daemon creation time before container creation.
+2. Persist `BeginCreate` for a role before creating its fixed-name container.
+3. Use Docker **create**, not create-and-start `run`, with reviewed images,
    mounts and aggregate resource policy.
-3. Inspect identity/policy and durably `BindCreated` before starting that container.
-4. Bind both IDs and verify their aggregate resource inspection before starting
+4. Inspect identity/policy and durably `BindCreated` before starting that container.
+5. Bind both IDs and verify their aggregate resource inspection before starting
    either role or claiming running state. Never reuse an attempted role or
    substitute an ID. Engine and tool must have different IDs.
-5. Start the idle tool, bootstrap its approved snapshot and validate the
+6. Start the idle tool, bootstrap its approved snapshot and validate the
    job/repository/commit/branch receipt before starting the engine.
-6. Stop on cancellation, expiry or journal failure. Closing the supervisor releases
+7. Stop on cancellation, expiry or journal failure. Closing the supervisor releases
    leases, but does not itself prove containers stopped or settle the journal.
 
 Both identities are journalled before either container starts. Adapter errors,
@@ -72,7 +76,9 @@ then crash recovery and the mandatory credential boundary are no longer proven.
 
 ## Cancellation and crash reconciliation
 
-`cancel-pair-v1` is the explicit worker cancellation command. Its request is
+`cancel-pair-v1` retains the historical container-only cancellation contract.
+New version-4 jobs require `cancel-pair-workspace-v1` and workspace removal proof.
+The historical request is
 version 3, bound to job/provider/membership and repository digest. Legacy
 `cancel-v2` cannot settle a pair. A version-2 or changed-scope/repository reply
 cannot acknowledge pair shutdown. The control-plane transport remains the
@@ -100,11 +106,11 @@ No action, provider session or uncertain side effect is replayed automatically.
 The controller has an explicit internal paired registration path. It requires
 an initiating human with current room access, a company binding, enabled matching
 repository policy and the bounded original deadline. It persists execution kind
-and repository digest as immutable version-3 job metadata before dispatch.
+and repository digest as immutable versioned job metadata before dispatch.
 Registration policy changes or missing provenance fail closed. This path creates
 no process and does not bypass development admission.
 
-Owner recovery of recorded version-3 jobs sends the paired cancellation protocol.
+Owner recovery preserves the recorded version-3 or version-4 cancellation protocol.
 Snapshot version, execution kind, repository digest, deadline and membership must
 match; stale/legacy evidence or held ownership cannot authorize reconciliation.
 Diagnostic UI flags do not disable recovery checks. Ordinary chat remains
@@ -150,4 +156,6 @@ It does not supply the engine half or bootstrap the volume, and no production
 pair adapter is enabled. Both role IDs must still be durably bound and aggregate
 policy verified before startup.
 
-[Workspace bootstrap](workspace-bootstrap.md) now implements the streamed, credential-free initialization step. Production adapter and volume lifecycle integration remain open.
+[Workspace bootstrap](workspace-bootstrap.md) now implements the streamed, credential-free initialization step. Volume lifecycle is internally implemented; production adapter assembly remains open.
+
+[Fresh workspace volumes and cleanup](workspace-volumes.md) specifies version-4 creation, creator-lease ownership and remaining daemon limitations.

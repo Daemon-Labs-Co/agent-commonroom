@@ -82,7 +82,7 @@ func (a *controllerToolAuditor) check(ctx context.Context, bound bool) (room.Sta
 	}
 	repository, err := a.repository()
 	job, exists := st.ManagedJobs[a.scope.JobID]
-	if job.Version == workerPairLifecycleVersion && job.RepositoryDigest != a.scope.RepositoryDigest {
+	if pairedLifecycleVersion(job.Version) && job.RepositoryDigest != a.scope.RepositoryDigest {
 		return st, principal, participant, connection, toolbroker.ErrAudit
 	}
 	if ctx.Err() != nil || err != nil || repository == "" || repository != a.scope.RepositoryDigest || !exists || job.InitiatorID != a.actorID || job.CompanyID != st.Company.ID || job.Status != "submitted" || job.ShutdownConfirmed || job.RoomID != a.scope.Room || job.ParticipantID != a.scope.Participant || job.ConnectionID != a.scope.Connection || job.Provider != a.scope.Provider || !job.Deadline.Equal(a.scope.Deadline) || !a.scope.Deadline.After(time.Now()) || a.server.agentsBlockedLocked(st, a.scope.Room) {

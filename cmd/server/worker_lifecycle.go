@@ -145,7 +145,7 @@ func boundedWorkerRecords(dir string) ([]workerJobRecord, error) {
 func workerJobSettled(v workerJobRecord) bool {
 	// A terminal label from a legacy supervisor is not shutdown proof. Never
 	// silently upgrade that label into permission to resume managed execution.
-	return workerTerminal(v.Status) && (v.Version == workerLifecycleVersion || v.Version == workerPairLifecycleVersion) && v.ShutdownConfirmed && validWorkerPair(v)
+	return workerTerminal(v.Status) && (v.Version == workerLifecycleVersion || pairedLifecycleVersion(v.Version)) && v.ShutdownConfirmed && validWorkerPair(v)
 }
 
 // workerAdmission checks durable records and live containers under the shared
@@ -161,7 +161,7 @@ func workerAdmission(records []workerJobRecord, containers []string, next worker
 		if workerJobSettled(record) {
 			continue
 		}
-		if record.Version != 2 && record.Version != workerPairLifecycleVersion {
+		if record.Version != 2 && !pairedLifecycleVersion(record.Version) {
 			return errors.New("legacy unresolved worker job requires administrator review")
 		}
 		if record.Scope == next.Scope {
@@ -183,7 +183,7 @@ func workerAdmission(records []workerJobRecord, containers []string, next worker
 			}
 		}
 		record, ok := byJob[job]
-		if (!paired && !strings.HasPrefix(name, "commonroom-turn-")) || !validWorkerJobID(job) || !ok || (record.Version != 2 && record.Version != workerPairLifecycleVersion) || workerJobSettled(record) || paired != (record.Pair != nil) {
+		if (!paired && !strings.HasPrefix(name, "commonroom-turn-")) || !validWorkerJobID(job) || !ok || (record.Version != 2 && !pairedLifecycleVersion(record.Version)) || workerJobSettled(record) || paired != (record.Pair != nil) {
 			return errors.New("unreconciled managed container blocks dispatch")
 		}
 		if record.Scope == next.Scope {
@@ -294,21 +294,22 @@ func stopWorkerContainer(ctx context.Context, job string) error {
 }
 
 type workerFenceRequest struct {
-	Repository string `json:"repository,omitempty"`
-	Version    int    `json:"version"`
-	JobID      string `json:"jobId"`
-	Provider   string `json:"provider"`
-	Key        string `json:"key"`
+	Repository       string `json:"repository,omitempty"`
+	DiscardWorkspace bool   `json:"discardWorkspace,omitempty"`
+	Version          int    `json:"version"`
+	JobID            string `json:"jobId"`
+	Provider         string `json:"provider"`
+	Key              string `json:"key"`
 }
 
 func (v workerFenceRequest) record() (workerJobRecord, error) {
-	if (v.Version != 2 && v.Version != 3) || !validWorkerJobID(v.JobID) || (v.Provider != "codex" && v.Provider != "claude") || (v.Version == 2 && v.Repository != "") || (v.Version == 3 && !repositoryDigestPattern.MatchString(v.Repository)) {
+	if (v.DiscardWorkspace && v.Version != workerWorkspaceLifecycleVersion) || (v.Version != 2 && !pairedLifecycleVersion(v.Version)) || !validWorkerJobID(v.JobID) || (v.Provider != "codex" && v.Provider != "claude") || (v.Version == 2 && v.Repository != "") || (pairedLifecycleVersion(v.Version) && !repositoryDigestPattern.MatchString(v.Repository)) {
 		return workerJobRecord{}, errors.New("invalid cancellation binding")
 	}
 	record, err := newWorkerJobRecord(workerRunRequest{JobID: v.JobID, Provider: v.Provider, Key: v.Key})
-	if err == nil && v.Version == 3 {
-		record.Version = workerPairLifecycleVersion
-		record.Execution = workerPairExecution
+	if err == nil && pairedLifecycleVersion(v.Version) {
+		record.Version = v.Version
+		record.Execution = pairExecution(v.Version)
 		record.Pair = &workerPairRecord{Version: workerPairVersion, Repository: v.Repository}
 	}
 	return record, err
@@ -387,8 +388,10 @@ func fenceWorkerJobContainers(ctx context.Context, dir string, request workerFen
 					return expected, err
 				}
 			}
-			stopped, stopErr := stopContainers(ctx, record)
-			if !sameWorkerFenceBinding(stopped, expected) {
+			cleanupCtx := context.WithValue(ctx, workerCleanupOwnershipKey{}, true)
+			cleanupCtx = context.WithValue(cleanupCtx, workerWorkspaceDiscardKey{}, request.DiscardWorkspace)
+			stopped, stopErr := stopContainers(cleanupCtx, record)
+			if !sameWorkerFenceBinding(stopped, expected) || !sameWorkspaceEvidence(record, stopped) {
 				return record, errors.New("shutdown changed worker binding")
 			}
 			record = stopped
@@ -467,7 +470,7 @@ func workerSnapshot(dir string, containers []string) (workerJobsSnapshot, error)
 	})
 	for _, record := range records {
 		view := workerJobView{workerJobRecord: record, LeaseState: "legacy"}
-		if record.Version == 2 || record.Version == workerPairLifecycleVersion {
+		if record.Version == 2 || pairedLifecycleVersion(record.Version) {
 			lease, free, err := workerTryLease(dir, ".job-"+record.JobID+".lease")
 			if err != nil {
 				return result, err

@@ -28,6 +28,7 @@ type ToolContainerPlan struct {
 	authority *Authority
 	image     string
 	workspace atomic.Pointer[workspaceReadiness]
+	volume    atomic.Pointer[WorkspaceVolumeIdentity]
 }
 
 // NewToolContainerPlan requires an approved immutable image from private worker
@@ -125,9 +126,12 @@ func (p *ToolContainerPlan) CreateArgs(now time.Time) ([]string, error) {
 
 // Readiness is issued only by successful bootstrap and retains its original job.
 // A fresh per-call context must never revive a cancelled workspace authority.
-type workspaceReadiness struct{ lifetime context.Context }
+type workspaceReadiness struct {
+	lifetime    context.Context
+	containerID string
+}
 
 func (p *ToolContainerPlan) workspaceReady() bool {
 	ready := p.workspace.Load()
-	return ready != nil && ready.lifetime.Err() == nil
+	return ready != nil && ready.lifetime.Err() == nil && digest(ready.containerID, 32)
 }

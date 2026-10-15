@@ -217,3 +217,70 @@ shares the bootstrap-verified plan. Development admission stays blocked and P1
 remains paused. See [bootstrap contract](workspace-bootstrap.md).
 
 Final review bound workspace readiness to its original job lifetime. Fresh call contexts cannot revive tools after job cancellation, and cancellation during an action suppresses its success output. Both regressions pass in the final full suites above.
+
+## Continuous P0 work: workspace volume lifecycle
+
+Implemented fresh local-volume allocation with journal-before-create nonce intent,
+daemon creation-time binding, fixed options and refusal of existing/unknown
+identity. New starts now require lifecycle version 4 and execution
+`separated-pair-workspace-v1`; historical version-3 pairs are recovery-only.
+Version-4 cancellation/acknowledgement cannot be downgraded to container-only
+proof. Controller registration, snapshots, recovery and scoped audit understand
+the new immutable execution/repository binding.
+
+Cleanup waits for creator ownership, validates volume identity twice, refuses
+live references and proves name/job-workspace absence. Pending creation after a
+lost reply can be discovered by its journalled nonce. Failed or partial cleanup
+stays unresolved and counts against admission. Named-volume deletion still trusts
+the daemon/administrator because Docker has no immutable volume deletion ID.
+
+Workspace deletion is not implied by ordinary stop. The trusted worker's explicit
+`discardWorkspace` authority defaults false and cannot be attached to older
+protocols. The HTTP recovery path does not grant discard; present workspaces stay
+retained/unresolved until a separate approved-discard or artifact-retention flow
+is integrated. No owner/UI role grants an implicit destructive bypass.
+
+Focused normal and race regressions passed for allocation, replacement/in-use
+refusal, crash discovery, held leases, mixed versions and owner recovery with
+optional diagnostics disabled. Full-suite timings are recorded below after final
+verification. All Docker/database interactions are mocked and journals are in
+temporary directories. No live volumes, credentials, provider or database were
+accessed. Production assembly, reviewed engine/images, authenticated audit
+transport, bounded commands/artifacts, approved discard workflow and live runtime
+verification remain P0 work. See [workspace volumes](workspace-volumes.md).
+
+Workspace-volume checkpoint: full `make test` **3.27s**, full `make check`
+**8.48s**, both passed. Server normal tests ran; previously tested broker and
+unchanged packages were cached. Full race/static/UI checks passed.
+
+## Shared audited tool session and timed-run closeout
+
+Implemented one tool-session constructor that shares authority, plan, runtime,
+bootstrap readiness and dispatcher. Durable intent/outcome acknowledgement remains
+mandatory. Runtime readiness now pins the immutable bootstrap container ID as
+well as the original job lifetime; matching name/labels/settings on a replacement
+cannot inherit execution. Audited integration tests exercise fresh allocation,
+creation, bootstrap and file dispatch through real framed local audit channels
+with mocked Docker operations. Intent failure prevents execution, outcome failure
+suppresses output, and closing the session revokes authority and interrupts I/O.
+The construction-failure path also closes its owned audit link.
+
+Shared-session checkpoint full `make test`: **3.16s**; full `make check`:
+**8.92s**, both passed. Final closeout verification: full `make test` **0.69s**;
+full `make check` **3.19s**, both passed. All Go test packages were cached in the
+final normal suite; complete JavaScript/Python/static checks still ran. No live
+provider, Git clone, Docker workload, database or deployment was used.
+
+The final continuation arrived after the requested 16:00 Toronto cutoff; the
+clock read 23:17 UTC (19:17 Toronto). No further feature work was started in that
+continuation; only final verification and reporting were performed. Work remains
+on `codex/p0-worker-runtime-continuation`, based on merge ef04f00. Bootstrap source
+files left untracked by the prior merge were preserved with this change set.
+
+P0 is not complete. Remaining blockers include authenticated supervisor audit
+transport, reviewed callback-only engine/production pair assembly, bounded command
+execution, artifacts and observed-check delivery, approved workspace discard/
+retention workflow, disk quotas and dedicated live Git/image/rootless/provider
+verification. The development admission barrier remains enforced. P1 was not
+started, and the user's condition for committing after clearing P0 was not met.
+See [shared audited session](audited-tool-session.md) for the current contract.

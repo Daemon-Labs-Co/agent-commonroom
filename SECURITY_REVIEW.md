@@ -733,3 +733,24 @@ engine. Partial or uncertain results cannot be replayed. No optional flag bypass
 exists. Fresh-volume allocation/cleanup, real Git/image/rootless verification,
 production adapter assembly and authenticated audit/engine integration remain open
 P0 work; development admission stays blocked. See [bootstrap contract](docs/workspace-bootstrap.md).
+
+### Version-4 workspace identity and cleanup
+
+New paired starts require workspace-aware version 4; older pairs remain recovery-
+only. Volume allocation records nonce intent before Docker, binds creation time
+before containers and refuses adoption. Cleanup requires released creator
+ownership, exact nonce/time/labels, no references and successful absence inventory.
+It defaults to retaining present workspaces: HTTP stop/reconcile never supplies
+explicit discard authority. No flag disables these checks. Direct daemon owners
+remain trusted because named-volume removal has no immutable-ID compare/delete.
+No live runtime verification is claimed. See [contract](docs/workspace-volumes.md).
+
+### Shared audited tool-session assembly
+
+Runtime/bootstrap and dispatcher now share one plan and original lifetime.
+Readiness pins the original immutable tool-container ID, so replacement by name
+or matching policy cannot inherit it. Framed audit failure still denies work or
+suppresses unaudited results; close/failure revokes authority and closes I/O.
+This does not authenticate the future SSH transport, implement the engine side
+or close live verification. Mandatory development admission remains blocked.
+See [session contract](docs/audited-tool-session.md).

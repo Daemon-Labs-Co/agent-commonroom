@@ -42,6 +42,9 @@ func (p *ToolContainerPlan) VolumeCreateArgs(now time.Time) ([]string, error) {
 	for _, key := range []string{"commonroom.managed", "commonroom.execution", "commonroom.job", "commonroom.repository"} {
 		args = append(args, "--label", key+"="+labels[key])
 	}
+	if identity := p.volume.Load(); identity != nil {
+		args = append(args, "--label", "commonroom.workspace.nonce="+identity.Nonce)
+	}
 	return append(args, p.WorkspaceVolume()), nil
 }
 
@@ -84,8 +87,8 @@ type toolInspection struct {
 	}
 }
 type toolVolumeInspection struct {
-	Name, Driver, Scope, Mountpoint string
-	Options, Labels                 map[string]string
+	Name, Driver, Scope, Mountpoint, CreatedAt string
+	Options, Labels                            map[string]string
 }
 
 func isBool(p *bool, value bool) bool  { return p != nil && *p == value }
@@ -267,8 +270,14 @@ func inspectionValue(d *json.Decoder, depth int) error {
 
 // verifyVolume rejects Docker local-driver options that could hide host binds.
 func (p *ToolContainerPlan) verifyVolume(v toolVolumeInspection, dockerRoot string) error {
+	if identity := p.volume.Load(); identity != nil {
+		return p.verifyVolumeIdentity(v, *identity, dockerRoot)
+	}
+	return p.verifyVolumeShape(v, dockerRoot, p.labels())
+}
+func (p *ToolContainerPlan) verifyVolumeShape(v toolVolumeInspection, dockerRoot string, labels map[string]string) error {
 	expectedSource := path.Join(dockerRoot, "volumes", p.WorkspaceVolume(), "_data")
-	if v.Name != p.WorkspaceVolume() || v.Driver != "local" || v.Scope != "local" || v.Mountpoint != expectedSource || len(v.Options) != 0 || !sameMap(v.Labels, p.labels()) {
+	if v.Name != p.WorkspaceVolume() || v.Driver != "local" || v.Scope != "local" || v.Mountpoint != expectedSource || len(v.Options) != 0 || !sameMap(v.Labels, labels) {
 		return ErrRejected
 	}
 	return nil

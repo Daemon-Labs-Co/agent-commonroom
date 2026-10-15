@@ -73,3 +73,7 @@ Planned security architecture: [Provider/tool credential separation](provider-to
 - [Constrained tool-container launch](tool-container-runtime.md): fixed creation/start policy, immutable identities and remaining runtime integration.
 
 - [Credential-free workspace bootstrap](workspace-bootstrap.md): approved bundle streaming, controlled Git checkout and readiness before engine startup.
+
+- [Fresh workspace volumes and cleanup](workspace-volumes.md): version-4 allocation, identity, explicit discard and reconciliation.
+
+- [Shared audited tool session](audited-tool-session.md): one bootstrapped plan, immutable execution identity and durable acknowledgements.
