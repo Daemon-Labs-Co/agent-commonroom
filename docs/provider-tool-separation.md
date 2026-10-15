@@ -1,6 +1,6 @@
 # Provider/tool credential separation design
 
-**Status: runtime separation planned; protocol and injected dispatcher foundations implemented, not wired and not a security closure.** This is the
+**Status: runtime separation planned; protocol, injected dispatcher, real Auditor and real DockerRunner foundations implemented, not wired and not a security closure.** This is the
 next core/free security boundary. Current development tools share a credential-
 bearing container and can read its provider authentication. Private staging,
 read-only binds, prompt instructions and output filtering do not prevent that.
@@ -685,6 +685,61 @@ runtime/native-tool verification. No provider agent was launched and no credenti
 contents were read. A reviewed client build or explicitly authorized API-backed
 engine is required where the stock CLI cannot prove the boundary; do not silently
 change existing subscription accounts to separately billed API usage.
+
+## Real Auditor and DockerRunner (first concrete implementations)
+
+Two of the three remaining "no real implementation" gaps in the mock-driven
+foundation above are closed in source: `cmd/server.storedToolAuditor` is the
+first real `toolbroker.Auditor`, and `cmd/server.dockerCLIRunner` is the first
+real `toolbroker.DockerRunner`. Neither has a production caller; `cmd/server.
+newToolDispatcher` proves they assemble into a working `Dispatcher` and is
+itself only called by its own test.
+
+`storedToolAuditor.RecordIntent`/`RecordOutcome` persist through the existing
+append-only audit chain (`event_store.go`'s `s.append`), as `tool.call.intent`/
+`tool.call.outcome` events, inheriting that path's hash-chain, actor
+attribution and transaction guarantees rather than adding a parallel storage
+mechanism. `state_projection.go` replays both kinds into `room.State.ToolCalls`
+(unexported from `/api/state` for now; add a projection consumer only when one
+needs to display pending/settled calls). An outcome event with no matching
+intent fails replay closed, matching this package's existing philosophy.
+`RecordIntent` validates with `toolbroker.ValidAuditIntent` at the real
+admission instant; `RecordOutcome` deliberately does not re-run that
+deadline-in-future check, since a call that ran right up to (or past) its
+deadline still produces a legitimate outcome — re-validating "now" there would
+incorrectly reject it, exactly as `ValidAuditIntent`'s own doc comment warns.
+Replaying historical intents reuses `ValidAuditIntent` against the intent's
+own recorded deadline instant rather than wall-clock "now", for the same
+reason: replay happens long after any 3-minute admission window closed.
+
+`dockerCLIRunner.Run` shells out to the local `docker` CLI with the exact
+arguments `ContainerExecutor` already built — it parses no shell, accepts no
+caller-chosen executable, and never inherits the ambient environment (same
+three-variable allowlist as the existing single-container agent path). It
+re-verifies the local-only, resource-enforcing Docker context
+(`verifiedLocalDockerContext`, extracted from `isolation.go` so this check is
+defined once and shared by both the existing agent-container path and this
+new tool-container path) before *every* call, not once per session, since one
+tool action drives several `Run` invocations (inspect, inspect, exec, and on
+failure ps/rm/ps) and each is a point where a tampered or remote context must
+still be caught.
+
+Automated tests mock the database (`storedToolAuditor`) or check only
+precondition refusal before any subprocess runs (`dockerCLIRunner`); per this
+project's established convention for every other Docker-touching path, live
+Docker behavior is not mocked with a fake `docker` shim and stays a documented
+manual verification step. `newToolDispatcher`'s test confirms the assembly
+compiles and constructs correctly without touching Docker, since
+`NewContainerExecutor` only validates inputs at construction time.
+
+**Still open, unchanged by this update:** no caller dispatches a real tool
+call during a live agent turn; the transport question of how a provider's
+in-container tool call would get intercepted and routed through this broker
+(instead of running directly in the provider's own container, as today)
+remains an explicit, separate, un-started design decision. Volume bootstrap
+from an approved repository snapshot, pairing a tool container's lifecycle
+with its owning agent job, and the real tool image build/install are also
+still unimplemented. Shared-container credential disclosure remains OPEN.
 
 ## Dedicated Codex client build
 

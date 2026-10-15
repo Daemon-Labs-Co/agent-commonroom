@@ -46,14 +46,15 @@ func remoteWorkerEndpoint(endpoint, configured, enabled string) (string, string,
 }
 
 type workerRunRequest struct {
-	Version    int       `json:"version"`
-	IssuedAt   time.Time `json:"issuedAt"`
-	Deadline   time.Time `json:"deadline"`
-	JobID      string    `json:"jobId"`
-	Provider   string    `json:"provider"`
-	Key        string    `json:"key"`
-	Args       []string  `json:"args"`
-	Repository string    `json:"repository,omitempty"`
+	Version        int       `json:"version"`
+	IssuedAt       time.Time `json:"issuedAt"`
+	Deadline       time.Time `json:"deadline"`
+	JobID          string    `json:"jobId"`
+	Provider       string    `json:"provider"`
+	Key            string    `json:"key"`
+	Args           []string  `json:"args"`
+	Repository     string    `json:"repository,omitempty"`
+	ToolSeparation bool      `json:"toolSeparation,omitempty"`
 }
 
 func encodeWorkerRequest(v workerRunRequest) (string, error) {
@@ -110,7 +111,10 @@ func validateWorkerRun(v workerRunRequest) error {
 	if v.Provider != "codex" && v.Provider != "claude" {
 		return errors.New("Unsupported worker provider")
 	}
-	base = providerTurnArgs(v.Provider, v.Repository != "")
+	if v.ToolSeparation && v.Repository == "" {
+		return errors.New("Tool separation requires an approved development workspace")
+	}
+	base = providerTurnArgs(v.Provider, v.Repository != "", v.ToolSeparation)
 	if v.Provider == "codex" {
 		suffix = []string{"-"}
 		threadFlag = "resume"
@@ -155,17 +159,19 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 		return nil, nil, err
 	}
 	repository := ""
+	toolSeparation := false
 	if developmentTurnArgs(provider, args) {
 		repository, err = controllerDevelopmentRepository(strings.SplitN(key, "/", 2)[0], os.Getenv("COMMONROOM_DEVELOPMENT_WORKSPACES"), os.Getenv("COMMONROOM_DEVELOPMENT_REPOSITORIES"))
 		if err != nil || repository == "" {
 			return nil, nil, errors.New("Development workspace is not enabled for this room")
 		}
+		toolSeparation = toolSeparationTurnArgs(provider, args)
 	}
 	registration, ok := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
 	if !ok || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
 		return nil, nil, errors.New("Durable managed job registration is required")
 	}
-	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository}
+	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository, ToolSeparation: toolSeparation}
 	encoded, err := encodeWorkerRequest(request)
 	if err != nil {
 		return nil, nil, err
@@ -533,7 +539,7 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		writeWorkerRecord(dir, record, false)
 		return fail(errors.New("Worker prompt exceeded limit"))
 	}
-	cmd, cleanup, err := localIsolatedDevelopmentCommand(ctx, request.Provider, request.Key, request.JobID, request.Repository, request.Args...)
+	cmd, cleanup, err := localIsolatedDevelopmentCommand(ctx, request.Provider, request.Key, request.JobID, request.Repository, request.ToolSeparation, request.Args...)
 	if err != nil {
 		record.Status = "failed"
 		record.UpdatedAt = time.Now().UTC()

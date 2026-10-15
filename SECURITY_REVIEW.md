@@ -1,5 +1,32 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Provider/tool separation: real Auditor and DockerRunner — 14 October 2026
+
+Two of the mock-driven foundation's three "no real implementation" gaps are
+closed in source: `cmd/server.storedToolAuditor` (a real `toolbroker.Auditor`
+persisting intent/outcome through the existing append-only audit chain, as
+new `tool.call.intent`/`tool.call.outcome` events replayed into
+`room.State.ToolCalls`) and `cmd/server.dockerCLIRunner` (a real
+`toolbroker.DockerRunner` shelling out to the local `docker` CLI with literal
+argv, no shell, and the same local-only/resource-enforcing context check used
+by the existing single-container agent path, extracted into
+`verifiedLocalDockerContext` and shared rather than duplicated). A new
+`cmd/server.newToolDispatcher` proves these assemble with the existing
+`Dispatcher`/`ContainerExecutor`/`ToolContainerPlan` into a working whole.
+Mocked/precondition-only tests pass; no live Docker or database was used.
+See [provider/tool separation](docs/provider-tool-separation.md#real-auditor-and-dockerrunner-first-concrete-implementations).
+
+This closes no finding by itself. `newToolDispatcher` has no caller outside
+its own test — no live agent turn dispatches a real tool call through it, and
+the transport question of how a provider's in-container tool call would be
+intercepted and routed here remains a separate, un-started design decision.
+Volume bootstrap, tool-container lifecycle pairing with its owning agent job,
+and the real tool image build/install are also still unimplemented. A new
+default-off `toolSeparation` feature flag was added as a rollout
+marker/kill-switch ahead of that first real caller; it currently gates nothing
+observable. **Shared-container credential disclosure (provider and tool
+processes sharing one credential-bearing container) remains OPEN.**
+
 ## Provider/tool separation implementation plan — 14 October 2026
 
 Scoped capability admission, an injected audited dispatcher, a trusted tool-container

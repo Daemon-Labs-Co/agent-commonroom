@@ -35,18 +35,18 @@ type Action struct {
 // implementations must durably persist it before acknowledging; returning nil
 // without persistence invalidates the security contract. Raw tokens are excluded.
 type Intent struct {
-	Scope         Scope
-	CallID        string
-	Operation     string
-	PayloadDigest string
+	Scope         Scope  `json:"scope"`
+	CallID        string `json:"callId"`
+	Operation     string `json:"operation"`
+	PayloadDigest string `json:"payloadDigest"`
 }
 
 // Outcome is evidence metadata, not raw tool output. Success is acknowledged only
 // after completion persistence; failure may represent an ambiguous side effect.
 type Outcome struct {
-	Status       string
-	OutputBytes  int
-	OutputDigest string
+	Status       string `json:"status"`
+	OutputBytes  int    `json:"outputBytes"`
+	OutputDigest string `json:"outputDigest"`
 }
 
 // Auditor is the trusted controller persistence boundary. Implementations must

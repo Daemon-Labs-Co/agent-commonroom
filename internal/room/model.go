@@ -178,11 +178,34 @@ type OperationReceipt struct {
 	Status      int             `json:"status"`
 	Response    json.RawMessage `json:"response"`
 }
+
+// ToolCallAudit is replayed intent/outcome evidence for a broker-mediated tool
+// call (internal/toolbroker). It is durable audit metadata only — never raw
+// tool output, capability tokens or Docker launch details. Status "pending"
+// means an intent was recorded with no matching outcome yet; replay never
+// infers completion or retries on its own. Commit timestamps are not surfaced
+// here yet; add them from the event's protected _auditRecord metadata only
+// when a consumer actually needs to display them.
+type ToolCallAudit struct {
+	CallID        string `json:"callId"`
+	JobID         string `json:"jobId"`
+	RoomID        string `json:"roomId"`
+	ParticipantID string `json:"participantId"`
+	ConnectionID  string `json:"connectionId"`
+	Provider      string `json:"provider"`
+	Operation     string `json:"operation"`
+	PayloadDigest string `json:"payloadDigest"`
+	Status        string `json:"status"`
+	OutputBytes   int    `json:"outputBytes"`
+	OutputDigest  string `json:"outputDigest"`
+}
 type State struct {
 	HumanRevision     int                         `json:"humanRevision"`
 	EventCount        int64                       `json:"-"`
 	OperationReceipts map[string]OperationReceipt `json:"-"`
 	ManagedJobs       map[string]ManagedJob       `json:"-"`
+	ToolAudits        map[string]ManagedToolCall  `json:"-"`
+	ToolCalls         map[string]ToolCallAudit    `json:"-"`
 	Organization      OrganizationChart           `json:"organization"`
 	FeatureFlags      map[string]bool             `json:"featureFlags"`
 	AgentsStopped     bool                        `json:"agentsStopped"`
