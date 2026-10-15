@@ -25,7 +25,7 @@ func executorFixture(t *testing.T) (*ToolContainerPlan, toolInspection, []byte, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.workspace.Store(&workspaceReadiness{lifetime: context.Background()}) // Synthetic initialized workspace.
+	p.workspace.Store(&workspaceReadiness{lifetime: context.Background(), containerID: c.ID}) // Synthetic initialized workspace.
 	return p, c, inspectJSON(t, c), inspectJSON(t, v), root, a.scope, Action{Operation: "read", Path: r.Path}
 }
 func runtimeMock(t *testing.T, c, volume []byte, exec func(context.Context, []string, []byte, io.Writer) error, cleanup func([]string, io.Writer) error) DockerRunner {
@@ -297,7 +297,7 @@ func TestContainerExecutorRevocationCancelsRunner(t *testing.T) {
 }
 func TestDispatcherUsesContainerExecutorAfterAudit(t *testing.T) {
 	t.Parallel()
-	p, _, raw, vol, root, scope, _ := executorFixture(t)
+	p, c, raw, vol, root, scope, _ := executorFixture(t)
 	stage := 0
 	response := syntheticReadResult(t, "ok")
 	runner := runtimeMock(t, raw, vol, func(_ context.Context, _ []string, _ []byte, out io.Writer) error {
@@ -324,12 +324,41 @@ func TestDispatcherUsesContainerExecutorAfterAudit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.workspace.Store(&workspaceReadiness{lifetime: context.Background()}) // Synthetic completed bootstrap.
+	p.workspace.Store(&workspaceReadiness{lifetime: context.Background(), containerID: c.ID}) // Synthetic completed bootstrap.
 	e := containerExecutor(t, p, runner, root)
 	d := dispatcher(t, a, audit, e)
 	r := Request{Scope: scope, Capability: token, CallID: "call", Operation: "read", Path: "file.go"}
 	output, err := d.Dispatch(context.Background(), r)
 	if err != nil || !bytes.Equal(output, response) || stage != 3 {
 		t.Fatal("audited container adapter flow failed")
+	}
+}
+
+func TestExecutorPinsOriginalBootstrapIdentity(t *testing.T) {
+	t.Parallel()
+	p, c, _, vol, root, scope, action := executorFixture(t)
+	original := c.ID
+	c.ID = strings.Repeat("e", 64) // Identical policy, different container.
+	raw := inspectJSON(t, c)
+	runner := mockDocker(func(ctx context.Context, args []string, _ []byte, out io.Writer) error {
+		if args[0] == "inspect" {
+			if args[len(args)-1] != original {
+				t.Fatal("inspection used a mutable/replacement identity")
+			}
+			_, err := out.Write(raw)
+			return err
+		}
+		if args[0] == "volume" {
+			_, err := out.Write(vol)
+			return err
+		}
+		t.Fatal("replacement reached execution or cleanup")
+		return ErrRejected
+	})
+	e := containerExecutor(t, p, runner, root)
+	ctx, cancel := context.WithDeadline(t.Context(), scope.Deadline)
+	defer cancel()
+	if e.Execute(ctx, scope, action, io.Discard) != ErrRejected {
+		t.Fatal("replacement container accepted")
 	}
 }

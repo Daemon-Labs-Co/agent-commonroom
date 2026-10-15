@@ -572,3 +572,20 @@ interactions, including invalid snapshots/trees/receipts, output failure, blocke
 input cancellation, readiness gating and engine-start ordering. No actual Git
 clone, provider, Docker workload or database was used. These timings do not
 measure image builds, Git checkout or live rootless runtime performance.
+
+### Workspace volume lifecycle — continuous P0 run, 15 October 2026
+
+Full command wall times measured monotonically: `make test` **3.27s**;
+`make check` **8.48s**. Server tests ran; previously tested broker and unchanged
+packages were cached in the normal suite. Full race/vet/Python/JavaScript checks
+passed. Tests mock every Docker/database operation and use temporary journals and
+local synthetic leases. No actual volume, provider or database was accessed.
+
+### Shared tool session and timed-run closeout — 15 October 2026
+
+Shared-session full suites passed: `make test` **3.16s**, `make check` **8.92s**.
+Final closeout full suites passed: `make test` **0.69s**, `make check` **3.19s**.
+All normal Go test packages were cached at closeout; full static/Python/JavaScript
+checks still ran. Earlier uncached runs verified allocation/bootstrap, immutable
+execution identity and framed durable audit with mocked Docker/database
+interactions. No live provider, Git clone, Docker workload or database was used.

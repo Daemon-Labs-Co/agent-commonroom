@@ -1,6 +1,7 @@
 package main
 
 import (
+	"agentroom/internal/toolbroker"
 	"agentroom/internal/workspacebootstrap"
 	"context"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 type pairLaunchFake struct {
@@ -81,9 +83,23 @@ func (f *pairLaunchFake) Bootstrap(ctx context.Context, id string) (workspaceboo
 	}
 	return r, nil
 }
+func startPairRequest() workerRunRequest {
+	r := pairRequest()
+	r.Version = workerWorkspaceLifecycleVersion
+	return r
+}
+func (f *pairLaunchFake) WorkspaceIntent(ctx context.Context) (toolbroker.WorkspaceVolumeIdentity, error) {
+	f.calls = append(f.calls, "workspace-intent")
+	return toolbroker.WorkspaceVolumeIdentity{Version: 1, Name: "commonroom-tool-work-" + f.supervisor.record.JobID, Nonce: strings.Repeat("b", 32)}, nil
+}
+func (f *pairLaunchFake) PrepareVolume(ctx context.Context, intent toolbroker.WorkspaceVolumeIdentity) (toolbroker.WorkspaceVolumeIdentity, error) {
+	f.calls = append(f.calls, "prepare-volume")
+	intent.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	return intent, nil
+}
 func TestWorkerPairStartOwnsDurableOrdering(t *testing.T) {
 	t.Parallel()
-	s, err := admitWorkerPair(t.Context(), t.TempDir(), pairRequest(), nil)
+	s, err := admitWorkerPair(t.Context(), t.TempDir(), startPairRequest(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +108,7 @@ func TestWorkerPairStartOwnsDurableOrdering(t *testing.T) {
 	if err = s.Start(t.Context(), fake); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"create:tool", "verify:tool", "create:engine", "verify:engine", "inspect:c", "inspect:d", "start:c", "bootstrap:c", "start:d"}
+	want := []string{"workspace-intent", "prepare-volume", "create:tool", "verify:tool", "create:engine", "verify:engine", "inspect:c", "inspect:d", "start:c", "bootstrap:c", "start:d"}
 	if !reflect.DeepEqual(fake.calls, want) || s.record.Status != "running" {
 		t.Fatalf("calls %v status %s", fake.calls, s.record.Status)
 	}
@@ -106,7 +122,7 @@ func TestWorkerPairStartRetainsUncertainFailure(t *testing.T) {
 		t.Run(failure, func(t *testing.T) {
 			t.Parallel()
 			dir := t.TempDir()
-			s, err := admitWorkerPair(t.Context(), dir, pairRequest(), nil)
+			s, err := admitWorkerPair(t.Context(), dir, startPairRequest(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -137,7 +153,7 @@ func TestWorkerPairStartStopsOnCancellation(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 			dir := t.TempDir()
-			s, err := admitWorkerPair(ctx, dir, pairRequest(), nil)
+			s, err := admitWorkerPair(ctx, dir, startPairRequest(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -193,7 +209,7 @@ func TestWorkerPairCloseRetainsLeaseUntilStartupReturns(t *testing.T) {
 		t.Run(phase, func(t *testing.T) {
 			t.Parallel()
 			dir := t.TempDir()
-			s, err := admitWorkerPair(t.Context(), dir, pairRequest(), nil)
+			s, err := admitWorkerPair(t.Context(), dir, startPairRequest(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -13,6 +13,9 @@ import (
 )
 
 func managedPairFixture(t *testing.T) (*server, *mockDB, http.Handler, managedJobRegistration) {
+	return managedPairFixtureVersion(t, workerPairLifecycleVersion)
+}
+func managedPairFixtureVersion(t *testing.T, version int) (*server, *mockDB, http.Handler, managedJobRegistration) {
 	t.Helper()
 	s, db, _ := mockServer(t)
 	db.seed("connection.created", room.Connection{ID: "pair-connection", Name: "Synthetic provider", Protocol: "CLI", Provider: "openai", Endpoint: "ssh://worker", Revision: 1})
@@ -20,7 +23,7 @@ func managedPairFixture(t *testing.T) (*server, *mockDB, http.Handler, managedJo
 	db.seed("participant.created", p)
 	ctx := context.WithValue(t.Context(), actorContextKey{}, ownerID)
 	repository := strings.Repeat("b", 64)
-	ctx = s.managedExecutionJobContext(ctx, p, repository, func() (string, error) { return repository, nil })
+	ctx = s.managedExecutionJobContextVersion(ctx, p, repository, func() (string, error) { return repository, nil }, version)
 	registration := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
 	if err := registration.Register("worker", "codex"); err != nil {
 		t.Fatal(err)

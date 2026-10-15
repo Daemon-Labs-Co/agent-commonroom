@@ -17,6 +17,18 @@ import (
 const workerPairVersion = 1
 const workerPairLifecycleVersion = 3
 const workerPairExecution = "separated-pair-v1"
+const workerWorkspaceLifecycleVersion = 4
+const workerWorkspaceExecution = "separated-pair-workspace-v1"
+
+func pairedLifecycleVersion(version int) bool {
+	return version == workerPairLifecycleVersion || version == workerWorkspaceLifecycleVersion
+}
+func pairExecution(version int) string {
+	if version == workerWorkspaceLifecycleVersion {
+		return workerWorkspaceExecution
+	}
+	return workerPairExecution
+}
 
 // workerPairRecord is additive, explicitly versioned lifecycle evidence, not an
 // execution capability. Both roles share one job lease and the old logical-job
@@ -24,10 +36,16 @@ const workerPairExecution = "separated-pair-v1"
 // No provider, token, command or host path belongs here.
 // A source fork CAN skip creation journalling, BUT invalidates crash recovery.
 type workerPairRecord struct {
-	Version    int                 `json:"version"`
-	Repository string              `json:"repository"`
-	Engine     workerPairContainer `json:"engine"`
-	Tool       workerPairContainer `json:"tool"`
+	Version    int                  `json:"version"`
+	Repository string               `json:"repository"`
+	Engine     workerPairContainer  `json:"engine"`
+	Tool       workerPairContainer  `json:"tool"`
+	Workspace  *workerPairWorkspace `json:"workspace,omitempty"`
+}
+type workerPairWorkspace struct {
+	CreationStarted bool                               `json:"creationStarted"`
+	Identity        toolbroker.WorkspaceVolumeIdentity `json:"identity"`
+	Removed         bool                               `json:"removed"`
 }
 type workerPairContainer struct {
 	CreationStarted bool   `json:"creationStarted"`
@@ -41,13 +59,30 @@ func validPairContainerID(id string) bool {
 }
 func validWorkerPair(v workerJobRecord) bool {
 	if v.Execution == "" {
-		return v.Pair == nil && v.Version != workerPairLifecycleVersion
+		return v.Pair == nil && !pairedLifecycleVersion(v.Version)
 	}
-	if v.Version != workerPairLifecycleVersion || v.Execution != workerPairExecution || v.Pair == nil {
+	if !pairedLifecycleVersion(v.Version) || v.Execution != pairExecution(v.Version) || v.Pair == nil {
 		return false
 	}
 	p := v.Pair
 	if p.Version != workerPairVersion || !repositoryDigestPattern.MatchString(p.Repository) {
+		return false
+	}
+	if v.Version == workerPairLifecycleVersion && p.Workspace != nil {
+		return false
+	}
+	if workspace := p.Workspace; workspace != nil {
+		if !workspace.CreationStarted || !toolbroker.ValidWorkspaceVolume(v.JobID, workspace.Identity, workspace.Identity.CreatedAt != "") {
+			return false
+		}
+		if workspace.Removed && !workspace.CreationStarted {
+			return false
+		}
+	}
+	if v.Version == workerWorkspaceLifecycleVersion && v.Status == "running" && (p.Workspace == nil || p.Workspace.Identity.CreatedAt == "" || p.Workspace.Removed) {
+		return false
+	}
+	if v.ShutdownConfirmed && p.Workspace != nil && !p.Workspace.Removed {
 		return false
 	}
 	for _, c := range []workerPairContainer{p.Engine, p.Tool} {
@@ -89,7 +124,7 @@ type workerPairSupervisor struct {
 // admitWorkerPair is an internal worker seam, not a new run-v2 variant or public
 // endpoint. The legacy development barrier remains enforced at all entry points.
 func admitWorkerPair(ctx context.Context, dir string, request workerRunRequest, containers []string) (*workerPairSupervisor, error) {
-	if ctx == nil || ctx.Err() != nil || request.Version != workerPairLifecycleVersion || !validWorkerJobID(request.JobID) || !repositoryDigestPattern.MatchString(request.Repository) || (request.Provider != "codex" && request.Provider != "claude") {
+	if ctx == nil || ctx.Err() != nil || !pairedLifecycleVersion(request.Version) || !validWorkerJobID(request.JobID) || !repositoryDigestPattern.MatchString(request.Repository) || (request.Provider != "codex" && request.Provider != "claude") {
 		return nil, errors.New("invalid pair admission")
 	}
 	now := time.Now()
@@ -100,8 +135,8 @@ func admitWorkerPair(ctx context.Context, dir string, request workerRunRequest, 
 	if err != nil {
 		return nil, err
 	}
-	record.Version = workerPairLifecycleVersion
-	record.Execution = workerPairExecution
+	record.Version = request.Version
+	record.Execution = pairExecution(request.Version)
 	record.Pair = &workerPairRecord{Version: workerPairVersion, Repository: request.Repository}
 	record, leases, err := admitWorkerRecord(ctx, dir, record, containers)
 	if err != nil {
@@ -198,6 +233,14 @@ type workerPairLaunchAdapter interface {
 
 type workerPairIdentity struct{ Job, Role, Repository string }
 
+// Workspace allocation is a version-4-only contract. Version-3 readers cannot
+// ignore workspace evidence and falsely confirm container-only shutdown.
+type workerWorkspaceLaunchAdapter interface {
+	workerPairLaunchAdapter
+	WorkspaceIntent(context.Context) (toolbroker.WorkspaceVolumeIdentity, error)
+	PrepareVolume(context.Context, toolbroker.WorkspaceVolumeIdentity) (toolbroker.WorkspaceVolumeIdentity, error)
+}
+
 // Start owns the lifecycle ordering behind one interface. Both identities are
 // durable before either process starts. Errors retain the journal for explicit
 // fenced recovery; startup never retries uncertain creation or starts.
@@ -211,10 +254,22 @@ func (s *workerPairSupervisor) Start(ctx context.Context, adapter workerPairLaun
 	s.mu.Lock()
 	original := s.record
 	s.mu.Unlock()
+	if original.Version != workerWorkspaceLifecycleVersion {
+		return errors.New("container-only pair records cannot start workspace jobs")
+	}
 	run, cancel := context.WithDeadline(ctx, original.Deadline)
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer stop()
 	defer cancel()
+	if original.Version == workerWorkspaceLifecycleVersion {
+		workspaceAdapter, ok := adapter.(workerWorkspaceLaunchAdapter)
+		if !ok {
+			return errors.New("workspace launch adapter required")
+		}
+		if err := s.prepareWorkspace(run, workspaceAdapter); err != nil {
+			return err
+		}
+	}
 	for _, role := range []string{"tool", "engine"} {
 		if err := s.BeginCreate(run, role); err != nil {
 			return err
@@ -423,6 +478,9 @@ func stopWorkerPair(ctx context.Context, v workerJobRecord, runner toolbroker.Do
 	if failed {
 		return v, errors.New("pair shutdown unverified")
 	}
+	if v.Version == workerWorkspaceLifecycleVersion {
+		return stopWorkerWorkspace(ctx, v, runner)
+	}
 	return v, nil
 }
 
@@ -436,6 +494,7 @@ type workerFenceAck struct {
 	CancellationRequested bool   `json:"cancellationRequested"`
 	Execution             string `json:"execution,omitempty"`
 	Repository            string `json:"repository,omitempty"`
+	WorkspaceRemoved      bool   `json:"workspaceRemoved,omitempty"`
 }
 
 func workerFenceAcknowledgement(request workerFenceRequest, record workerJobRecord) workerFenceAck {
@@ -443,25 +502,29 @@ func workerFenceAcknowledgement(request workerFenceRequest, record workerJobReco
 	if record.Pair != nil {
 		ack.Repository = record.Pair.Repository
 	}
+	if request.Version == workerWorkspaceLifecycleVersion {
+		ack.WorkspaceRemoved = record.ShutdownConfirmed && record.Pair != nil && (record.Pair.Workspace == nil || record.Pair.Workspace.Removed)
+	}
 	return ack
 }
 func validWorkerFenceAck(request workerFenceRequest, expected workerJobRecord, ack workerFenceAck) bool {
 	if ack.Version != request.Version || ack.JobID != expected.JobID || ack.Scope != expected.Scope || !ack.Stopped {
 		return false
 	}
-	if request.Version == 3 {
-		return ack.CancellationRequested && ack.Execution == workerPairExecution && ack.Repository == request.Repository
+	if pairedLifecycleVersion(request.Version) {
+		return ack.CancellationRequested && ack.Execution == pairExecution(request.Version) && ack.Repository == request.Repository && (ack.WorkspaceRemoved == (request.Version == workerWorkspaceLifecycleVersion))
 	}
-	return ack.Execution == "" && ack.Repository == ""
+	return ack.Execution == "" && ack.Repository == "" && !ack.WorkspaceRemoved
 }
 
-// Version 3 cannot be interpreted by old binaries as a version-2 single job.
+// Versions 3/4 cannot be interpreted as a version-2 single job; version 4
+// additionally prevents old container-only readers ignoring workspace cleanup.
 // Reuse common scalar validation only after checking the actual pair evidence.
 func validWorkerRecord(v workerJobRecord) bool {
 	if v.Version == workerLifecycleVersion {
 		return validV2WorkerRecord(v)
 	}
-	if v.Version != workerPairLifecycleVersion || v.Pair == nil || !validWorkerPair(v) {
+	if !pairedLifecycleVersion(v.Version) || v.Pair == nil || !validWorkerPair(v) {
 		return false
 	}
 	base := v

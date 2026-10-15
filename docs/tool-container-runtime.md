@@ -16,7 +16,8 @@ infrastructure with no on/off flag, owner exemption or paid bypass.
 
 Only a trusted isolated worker may construct this module. Before creation, that
 worker must authenticate the controller, acquire the paired job/membership
-leases, persist creation intent and allocate a fresh job-specific empty volume.
+leases and persist a version-4 workspace creation intent before allocating a
+fresh job-specific empty volume through PrepareVolume.
 After idle startup, Bootstrap initializes it from the approved snapshot without
 provider credentials. This module verifies that
 volume exists and reports the expected local driver, name, labels, canonical
@@ -60,8 +61,9 @@ case where Docker created a container but its reply was lost. The runtime never
 blindly removes a name or declares a whole pair stopped. Existing fixed-name
 identity discovery, immutable-ID cleanup, both-role inventory and released
 supervisor ownership remain required. See [paired lifecycle](worker-pairs.md).
-Volume allocation/cleanup and production adapter assembly remain unfinished P0
-work; bootstrap is now implemented and tested internally.
+Volume allocation/cleanup and bootstrap are internally implemented. Production
+adapter assembly and live verification remain unfinished P0 work. See
+[workspace volumes](workspace-volumes.md) for version-4 identity and cleanup.
 
 ## Tests and verification limits
 
@@ -94,11 +96,14 @@ stdin; no host bundle mount or provider-auth volume is introduced. The fixed
 helper runs by immutable container ID and returns bounded job/digest/commit/branch
 metadata. A matching receipt and fresh full policy inspection unlock tool actions
 on that same plan. An independently constructed plan starts unready and cannot
-run tools. This intentionally prevents the older dispatcher assembly from enabling
-execution until it is connected to the bootstrapped plan.
+run tools. The shared audited-session constructor now provides the runtime and dispatcher
+with the same plan; callers using only the legacy dispatcher wrapper still
+cannot bootstrap or enable execution. Production pair assembly remains open.
 
 The paired supervisor starts the idle tool, checks bootstrap receipt binding, then
 starts the engine. Missing, forged or failed readiness leaves the engine stopped.
 Cancellation closes blocked snapshot input; each runtime attempts bootstrap once.
 The worker retains leases through bootstrap and must fence both roles on failure.
 See [workspace bootstrap](workspace-bootstrap.md) for Git policy and limits.
+
+See [shared audited tool session](audited-tool-session.md) for the constructor and immutable-ID dispatch contract.

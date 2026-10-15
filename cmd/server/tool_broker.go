@@ -4,7 +4,6 @@ import (
 	"agentroom/internal/toolbroker"
 	"context"
 	"io"
-	"sync"
 	"time"
 )
 
@@ -14,42 +13,22 @@ import (
 // This component does not launch a pair or authenticate a transport by itself.
 // A source fork CAN substitute channel, BUT invalidates durable admission.
 func newToolDispatcher(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser) (*toolbroker.Dispatcher, string, func(), error) {
+	session, token, err := newWorkerToolSession(ctx, scope, allowed, image, dockerRoot, now, channel, dockerCLIRunner{})
+	if err != nil {
+		return nil, "", nil, err
+	}
+	return session.Dispatcher, token, session.Close, nil
+}
+
+// newWorkerToolSession preserves the worker-job check while sharing readiness,
+// authority and lifetime across runtime and durable audit. Runner injection is
+// trusted assembly/test work, never a public/model choice or host fallback.
+func newWorkerToolSession(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner toolbroker.DockerRunner) (*toolbroker.ToolSession, string, error) {
 	job, ok := ctxJob(ctx)
 	if !ok || job != scope.JobID || channel == nil {
-		return nil, "", nil, toolbroker.ErrRejected
+		return nil, "", toolbroker.ErrRejected
 	}
-	authority, token, err := toolbroker.New(scope, allowed, now)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	plan, err := toolbroker.NewToolContainerPlan(authority, image, now)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	executor, err := toolbroker.NewContainerExecutor(plan, dockerCLIRunner{}, dockerRoot)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	audit, err := toolbroker.NewAuditClient(channel, scope)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	dispatcher, err := toolbroker.NewDispatcher(authority, audit, executor)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	// Lifetime is the worker job, even if a caller later supplies a fresh context
-	// to Dispatch. Cleanup is explicit, idempotent and closes blocked channel I/O.
-	lifetime, cancel := context.WithDeadline(ctx, scope.Deadline)
-	var once sync.Once
-	closeLink := func() { once.Do(func() { authority.Revoke(); _ = channel.Close() }) }
-	stop := context.AfterFunc(lifetime, func() { closeLink(); cancel() })
-	cleanup := func() { stop(); closeLink(); cancel() }
-	if lifetime.Err() != nil {
-		cleanup()
-		return nil, "", nil, toolbroker.ErrRejected
-	}
-	return dispatcher, token, cleanup, nil
+	return toolbroker.NewToolSession(ctx, scope, allowed, image, dockerRoot, now, channel, runner)
 }
 
 func ctxJob(ctx context.Context) (string, bool) {
