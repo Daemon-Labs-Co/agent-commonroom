@@ -769,3 +769,19 @@ and required Linux verification. This retains CLI subscription accounts. It is n
 yet a production bridge: binary verification, controlled engine settings, durable
 audit callbacks and paired supervision remain required before development can run.
 No feature flag can bypass these prerequisites.
+
+## Aggregate pair resources
+
+The internal paired lifecycle requires bounded Docker inspection metadata for
+both roles before either starts. `toolbroker.VerifyPairResources` rejects
+missing, unlimited, negative, duplicate/ambiguous or oversized reported limits,
+expanded swap, and shared container identities. Each role is capped at 512 MiB,
+0.5 CPU and 64 processes; the logical pair remains within 1 GiB, one CPU and 128
+processes. These mandatory limits have no off switch or permission exemption.
+
+This is worker infrastructure, not an operator-enabled execution feature. The
+trusted launch adapter must obtain inspection directly from the approved rootless
+daemon, verify full role/image/mount policy and enforce fresh credential-free
+workspace bootstrap. Reported values alone do not prove runtime enforcement.
+The production pair adapter and live resource verification remain open P0 work;
+no configuration change enables paired development yet.

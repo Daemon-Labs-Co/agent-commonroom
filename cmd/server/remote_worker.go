@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -167,51 +166,7 @@ func remoteAgentCommand(ctx context.Context, endpoint, key string, args []string
 		}
 		toolSeparation = toolSeparationTurnArgs(provider, args)
 	}
-	registration, ok := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
-	if !ok || registration.Version != workerLifecycleVersion || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
-		return nil, nil, errors.New("Durable managed job registration is required")
-	}
-	request := workerRunRequest{Version: 2, IssuedAt: registration.IssuedAt, Deadline: registration.Deadline, JobID: registration.JobID, Provider: provider, Key: key, Args: args, Repository: repository, ToolSeparation: toolSeparation}
-	encoded, err := encodeWorkerRequest(request)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err = registration.Register(alias, provider); err != nil {
-		return nil, nil, err
-	}
-	var once sync.Once
-	monitorDone := make(chan struct{})
-	if _, ok := ctx.Value(backgroundCallbackKey{}).(backgroundCallback); ok {
-		go monitorRemoteBackground(ctx, monitorDone, alias, request.JobID, provider)
-	}
-	cleanup := func() {
-		once.Do(func() {
-			close(monitorDone)
-			cancelCtx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
-			defer cancel()
-			fence := workerFenceRequest{Version: 2, JobID: request.JobID, Provider: provider, Key: key}
-			err := remoteFenceJob(cancelCtx, alias, fence)
-			if err != nil {
-				_ = registration.Update("shutdown_unconfirmed")
-				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
-				fmt.Fprintln(os.Stderr, "Remote worker cancellation unconfirmed:", request.JobID)
-				return
-			}
-			if registration.Update("shutdown_confirmed") != nil {
-				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
-				return
-			}
-			emitBackground(ctx, "shutdown_confirmed", request.JobID)
-
-		})
-	}
-	if err = registration.Update("submitted"); err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	cmd := workerSSHCommand(ctx, alias, "run-v2", encoded)
-	cmd.WaitDelay = 2 * time.Second
-	return cmd, cleanup, nil
+	return dispatchManagedWorker(ctx, alias, workerRunRequest{Version: workerLifecycleVersion, Provider: provider, Key: key, Args: args, Repository: repository, ToolSeparation: toolSeparation}, managedWorkerTransport{command: workerSSHCommand, fence: remoteFenceJob, monitor: monitorRemoteBackground})
 }
 
 type workerConfiguration struct {

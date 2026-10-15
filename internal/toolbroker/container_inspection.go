@@ -53,6 +53,7 @@ type toolInspection struct {
 	State        struct {
 		Running, Paused, Restarting, Dead *bool
 		Error                             string
+		Status                            string
 	}
 	Config struct {
 		Image, User, WorkingDir string
@@ -109,6 +110,17 @@ func sameMap(a, b map[string]string) bool {
 // This verifies selected reported policy only: it cannot prove a trusted daemon,
 // image contents, fresh volume history, atomic execution, or real shutdown.
 func (p *ToolContainerPlan) VerifyInspection(container, volume []byte, dockerRoot string, now time.Time) error {
+	return p.verifyInspection(container, volume, dockerRoot, now, true)
+}
+
+// VerifyCreatedInspection checks the same policy before any process may start.
+// A stopped existing container is not automatically fresh; creation ownership
+// must be established by the worker lifecycle and ToolContainerRuntime.
+func (p *ToolContainerPlan) VerifyCreatedInspection(container, volume []byte, dockerRoot string, now time.Time) error {
+	return p.verifyInspection(container, volume, dockerRoot, now, false)
+}
+
+func (p *ToolContainerPlan) verifyInspection(container, volume []byte, dockerRoot string, now time.Time, running bool) error {
 	if _, err := p.RunArgs(now); err != nil {
 		return err
 	}
@@ -126,7 +138,10 @@ func (p *ToolContainerPlan) VerifyInspection(container, volume []byte, dockerRoo
 	if strings.HasPrefix(p.image, "sha256:") && c.Image != p.image {
 		return ErrRejected
 	}
-	if !isBool(c.State.Running, true) || !isBool(c.State.Paused, false) || !isBool(c.State.Restarting, false) || !isBool(c.State.Dead, false) || c.State.Error != "" {
+	if !running && c.State.Status != "created" {
+		return ErrRejected
+	}
+	if !isBool(c.State.Running, running) || !isBool(c.State.Paused, false) || !isBool(c.State.Restarting, false) || !isBool(c.State.Dead, false) || c.State.Error != "" {
 		return ErrRejected
 	}
 	if c.Config.User != "1000:1000" || c.Config.WorkingDir != "/workspace/repository" || !slices.Equal(c.Config.Entrypoint, []string{"/usr/local/bin/node"}) || !slices.Equal(c.Config.Cmd, []string{"-e", toolIdleProgram}) || !sameMap(c.Config.Labels, p.labels()) || !slices.Equal(c.Config.Healthcheck.Test, []string{"NONE"}) {
@@ -159,8 +174,7 @@ func (p *ToolContainerPlan) VerifyInspection(container, volume []byte, dockerRoo
 	if len(h.Ulimits) != 1 || h.Ulimits[0].Name != "nofile" || h.Ulimits[0].Soft != 512 || h.Ulimits[0].Hard != 512 {
 		return ErrRejected
 	}
-	expectedSource := path.Join(dockerRoot, "volumes", p.WorkspaceVolume(), "_data")
-	if v.Name != p.WorkspaceVolume() || v.Driver != "local" || v.Scope != "local" || v.Mountpoint != expectedSource || len(v.Options) != 0 || !sameMap(v.Labels, p.labels()) {
+	if p.verifyVolume(v, dockerRoot) != nil {
 		return ErrRejected
 	}
 	workspaces := 0
@@ -246,6 +260,15 @@ func inspectionValue(d *json.Decoder, depth int) error {
 		return ErrRejected
 	}
 	if _, err = d.Token(); err != nil {
+		return ErrRejected
+	}
+	return nil
+}
+
+// verifyVolume rejects Docker local-driver options that could hide host binds.
+func (p *ToolContainerPlan) verifyVolume(v toolVolumeInspection, dockerRoot string) error {
+	expectedSource := path.Join(dockerRoot, "volumes", p.WorkspaceVolume(), "_data")
+	if v.Name != p.WorkspaceVolume() || v.Driver != "local" || v.Scope != "local" || v.Mountpoint != expectedSource || len(v.Options) != 0 || !sameMap(v.Labels, p.labels()) {
 		return ErrRejected
 	}
 	return nil

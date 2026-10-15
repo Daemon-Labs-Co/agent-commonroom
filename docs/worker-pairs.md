@@ -33,21 +33,38 @@ job slot under the eight-global/four-per-room limits, including unresolved work.
 Both expected container names are recognized together; orphan, legacy-version,
 unknown or already-settled container associations block admission. Duplicate job
 IDs, a held membership lease and persisted cancellation all refuse admission.
-This accounts for logical jobs; actual engine/tool resource partitioning and
-inspection remain requirements for the future launcher.
+This accounts for logical jobs. The internal startup module also requires
+reported inspection limits for both roles: each at most 512 MiB, half a CPU and
+64 processes, with swap equal to memory. Missing or unbounded limits and
+inspection identities different from the journal are rejected before either
+start. Live daemon enforcement still requires runtime verification.
 
-The owning supervisor must:
+The internal `Start` interface now owns the following sequence behind a trusted
+launch adapter:
 
 1. Persist `BeginCreate` for a role before creating its fixed-name container.
 2. Use Docker **create**, not create-and-start `run`, with reviewed images,
    mounts and aggregate resource policy.
 3. Inspect identity/policy and durably `BindCreated` before starting that container.
-4. Bind both IDs before claiming running state. Never reuse an attempted role or
+4. Bind both IDs and verify their aggregate resource inspection before starting
+   either role or claiming running state. Never reuse an attempted role or
    substitute an ID. Engine and tool must have different IDs.
 5. Stop on cancellation, expiry or journal failure. Closing the supervisor releases
    leases, but does not itself prove containers stopped or settle the journal.
 
-These methods create no containers and grant no host-execution authority. A
+Both identities are journalled before either container starts. Adapter errors,
+cancellation or a durable cancellation latch stop the sequence without retries;
+uncertain creation remains available to fenced recovery. Only successful starts
+and final journal persistence publish `running`. Closing the supervisor cancels
+its original lifetime, then waits for any in-flight creation/start adapter call
+to return before releasing leases. Concurrent close callers all wait for this
+ownership barrier. A cancellation signal alone is never shutdown proof.
+
+The adapter receives fixed job, role and repository identity, never model launch
+arguments. It must create without starting, inspect full image/mount/credential
+and aggregate resource policy, and start only the supplied immutable ID with
+cancellation. No production adapter is wired, so this is an internal tested
+module, not an enabled runtime. A
 source fork **CAN** skip journalling or start before identity publication, **BUT**
 then crash recovery and the mandatory credential boundary are no longer proven.
 
@@ -112,8 +129,21 @@ There is no pair-safety-off flag, owner exemption, paid bypass or uncontained
 fallback. Optional diagnostics flags do not disable journal/fencing checks.
 
 Live rootless pair creation/shutdown has not been verified for these changes.
-Actual pair startup, fresh controlled provider configuration, credential-free
+Production pair startup wiring, fresh controlled provider configuration, credential-free
 workspace bootstrap, aggregate runtime resource verification, authenticated audit
 substreams, callback-only provider drivers, command execution and artifacts remain
 open P0 integration work. See [the execution progress](p0-execution-progress-2026-10-15.md)
 and [provider/tool separation](provider-tool-separation.md).
+
+The startup tests cross this same interface and verify durable ordering, failure
+at creation/inspection/start, no uncertain replay, context cancellation and the
+durable cancellation latch. Pair cleanup shares immutable-ID shutdown mechanics
+with the tool executor while retaining pair-specific name, label and lease proof.
+This concentrates lifecycle knowledge for locality and gives later callers
+leverage without exposing Docker ordering.
+
+The [constrained tool runtime](tool-container-runtime.md) now supplies the fixed
+tool-side Docker create/inspect/start implementation for later adapter assembly.
+It does not supply the engine half or bootstrap the volume, and no production
+pair adapter is enabled. Both role IDs must still be durably bound and aggregate
+policy verified before startup.

@@ -102,3 +102,20 @@ func (p *ToolContainerPlan) RunArgs(now time.Time) ([]string, error) {
 func (p *ToolContainerPlan) RemoveArgs() []string {
 	return []string{"rm", "--force", p.ContainerName()}
 }
+
+// CreateArgs generates a stopped container with the same mandatory policy.
+// Explicit immutable-ID cleanup replaces automatic removal so crash evidence is
+// retained. Callers must not start it until inspection and pair journalling pass.
+func (p *ToolContainerPlan) CreateArgs(now time.Time) ([]string, error) {
+	args, err := p.RunArgs(now)
+	if err != nil {
+		return nil, err
+	}
+	out := []string{"create"}
+	for _, arg := range args[1:] {
+		if arg != "-d" && arg != "--rm" {
+			out = append(out, arg)
+		}
+	}
+	return out, nil
+}

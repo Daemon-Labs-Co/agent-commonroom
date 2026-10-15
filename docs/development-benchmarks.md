@@ -542,3 +542,22 @@ controller-recovery coverage were added. Times measure each complete command;
 total active development time was not instrumented. No live provider, database
 or Docker workload was launched. Paired launch and provider verification remain
 open; see [the current component contract](worker-pairs.md).
+
+### Architecture deepening and pair resource gate — 15 October 2026
+
+Full command wall times measured with a monotonic clock: `make test` **2.92s**;
+`make check` **6.36s**. Server tests ran; unchanged Go packages and the toolbroker
+package tested immediately beforehand were cached in the final normal suite.
+Full race/vet/Python/JavaScript verification passed. Tests cover lifecycle ordering,
+cancellation, uncertain cleanup, mocked transport/audit failure and reported pair
+resource rejection. No live Docker/provider/database verification was performed.
+
+### Constrained tool launch — 15 October 2026
+
+Monotonic full command wall times: `make test` **3.29s**; `make check` **8.66s**.
+Server, tool-helper and toolbroker tests ran; unchanged room/strictjson/workspace
+packages were cached in the normal suite. Full race/vet/Python/JavaScript checks
+passed. Runtime scenarios use mocked Docker inspection/creation/start responses;
+no live daemon/provider/database is exercised. Tests cover unsafe or missing
+volume policy, adoption refusal, original cancellation/revocation, immutable IDs,
+changed policy and refusal to replay uncertain startup.

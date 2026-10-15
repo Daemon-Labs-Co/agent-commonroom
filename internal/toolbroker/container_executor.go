@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"path"
-	"strings"
 	"time"
 )
 
@@ -141,39 +140,5 @@ func (e *ContainerExecutor) failed(id string, overflow bool) error {
 }
 
 func (e *ContainerExecutor) stopAndConfirm(ctx context.Context, id string) error {
-	if !digest(id, 32) {
-		return ErrShutdownUnconfirmed
-	}
-	absent, err := e.containerAbsent(ctx, id)
-	if err != nil {
-		return err
-	}
-	if absent {
-		return nil
-	}
-	if _, err = e.capture(ctx, []string{"rm", "--force", id}, MaxInspectionBytes); err != nil {
-		return ErrShutdownUnconfirmed
-	}
-	absent, err = e.containerAbsent(ctx, id)
-	if err != nil || !absent {
-		return ErrShutdownUnconfirmed
-	}
-	return nil
-}
-
-// containerAbsent requires a successful exact-ID inventory query; a failed
-// inspection/daemon outage is not absence. Unexpected output never broadens cleanup.
-func (e *ContainerExecutor) containerAbsent(ctx context.Context, id string) (bool, error) {
-	raw, err := e.capture(ctx, []string{"ps", "-a", "--no-trunc", "--filter", "id=" + id, "--format", "{{.ID}}"}, MaxInspectionBytes)
-	if err != nil {
-		return false, ErrShutdownUnconfirmed
-	}
-	value := strings.TrimSpace(string(raw))
-	if value == "" {
-		return true, nil
-	}
-	if value != id {
-		return false, ErrShutdownUnconfirmed
-	}
-	return false, nil
+	return StopContainer(ctx, e.runner, id, nil)
 }
