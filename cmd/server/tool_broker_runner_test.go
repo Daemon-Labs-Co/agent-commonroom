@@ -35,6 +35,10 @@ func TestDockerCLIRunnerRejectsMissingPreconditions(t *testing.T) {
 			if err := (dockerCLIRunner{}).Run(tc.ctx, tc.args, nil, writer); err == nil {
 				t.Fatal("expected a precondition rejection")
 			}
+			if err := (dockerCLIRunner{}).RunInput(tc.ctx, tc.args, nil, writer); err == nil {
+				t.Fatal("expected streaming precondition rejection")
+			}
+
 		})
 	}
 }

@@ -1,8 +1,10 @@
 package toolbroker
 
 import (
+	"context"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,6 +27,7 @@ var toolImageRepository = regexp.MustCompile(`^[a-z0-9][a-z0-9./:_-]{0,254}$`)
 type ToolContainerPlan struct {
 	authority *Authority
 	image     string
+	workspace atomic.Pointer[workspaceReadiness]
 }
 
 // NewToolContainerPlan requires an approved immutable image from private worker
@@ -40,7 +43,7 @@ func NewToolContainerPlan(authority *Authority, image string, now time.Time) (*T
 	if authority.revoked || now.Before(authority.issued) || !validScope(authority.scope, now) {
 		return nil, ErrRejected
 	}
-	return &ToolContainerPlan{authority, image}, nil
+	return &ToolContainerPlan{authority: authority, image: image}, nil
 }
 func validToolImage(image string) bool {
 	if len(image) > 327 {
@@ -65,8 +68,8 @@ func (p *ToolContainerPlan) WorkspaceVolume() string {
 
 // RunArgs checks revocation/lifetime and returns a fresh slice. Planning is not
 // an atomic Docker launch; the future fenced supervisor must revalidate authority.
-// The single named volume must be initialized from the approved snapshot by a
-// separate credential-free bootstrap step. No host bundle/auth/socket is mounted.
+// The idle container uses /workspace so the named volume stays empty until
+// credential-free Bootstrap initializes its repository before engine startup. No host bundle/auth/socket is mounted.
 // The fixed tool-only image must provide Node at the declared entrypoint; holding
 // the process alive does not authorize any tool execution or establish readiness.
 func (p *ToolContainerPlan) RunArgs(now time.Time) ([]string, error) {
@@ -86,7 +89,7 @@ func (p *ToolContainerPlan) RunArgs(now time.Time) ([]string, error) {
 		"--ulimit", "nofile=512:512", "--log-driver=none",
 		"--tmpfs", "/tmp:" + toolScratchOptions,
 		"--mount", "type=volume,src=" + p.WorkspaceVolume() + ",dst=/workspace",
-		"--workdir", "/workspace/repository",
+		"--workdir", "/workspace",
 		"--env", "HOME=/tmp/tool-home", "--env", "HTTP_PROXY=", "--env", "HTTPS_PROXY=",
 		"--env", "ALL_PROXY=", "--env", "NO_PROXY=", "--env", "NODE_OPTIONS=",
 		"--env", "NODE_USE_ENV_PROXY=0",
@@ -101,4 +104,30 @@ func (p *ToolContainerPlan) RunArgs(now time.Time) ([]string, error) {
 // inspect absence and release both-container leases before settling a pair.
 func (p *ToolContainerPlan) RemoveArgs() []string {
 	return []string{"rm", "--force", p.ContainerName()}
+}
+
+// CreateArgs generates a stopped container with the same mandatory policy.
+// Explicit immutable-ID cleanup replaces automatic removal so crash evidence is
+// retained. Callers must not start it until inspection and pair journalling pass.
+func (p *ToolContainerPlan) CreateArgs(now time.Time) ([]string, error) {
+	args, err := p.RunArgs(now)
+	if err != nil {
+		return nil, err
+	}
+	out := []string{"create"}
+	for _, arg := range args[1:] {
+		if arg != "-d" && arg != "--rm" {
+			out = append(out, arg)
+		}
+	}
+	return out, nil
+}
+
+// Readiness is issued only by successful bootstrap and retains its original job.
+// A fresh per-call context must never revive a cancelled workspace authority.
+type workspaceReadiness struct{ lifetime context.Context }
+
+func (p *ToolContainerPlan) workspaceReady() bool {
+	ready := p.workspace.Load()
+	return ready != nil && ready.lifetime.Err() == nil
 }

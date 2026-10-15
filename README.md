@@ -241,3 +241,9 @@ Start with the [documentation index](docs/README.md), [architecture](docs/archit
 [GPL-3.0-only](LICENSE). Copyright © 2026 Agent CommonRoom contributors.
 Bundled provider icons retain their upstream notice in `web/icons/LICENSE.lobe-icons`.
 Provider names and logos identify integrations and do not imply endorsement.
+
+Internal execution design: [managed job lifecycle](docs/managed-job-lifecycle.md) and [paired worker lifecycle](docs/worker-pairs.md). Pair startup is not enabled for users; mandatory admission safeguards remain in force.
+
+[Constrained tool-container launch](docs/tool-container-runtime.md) implements the internal tool-side create/inspect/start sequence. Credential-free workspace bootstrap is internally implemented; production pair integration and live verification remain unfinished. Managed development stays blocked.
+
+[Workspace bootstrap](docs/workspace-bootstrap.md) documents snapshot checks, checkout limits, readiness gating and remaining integration work.

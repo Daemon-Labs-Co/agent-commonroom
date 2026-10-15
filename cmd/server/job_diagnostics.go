@@ -297,21 +297,14 @@ func (s *server) jobRecovery(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Recorded worker is no longer approved", 409)
 		return
 	}
-	fence := s.jobFence
-	if fence == nil {
-		fence = remoteFenceJob
-	}
-	err = fence(ctx, job.Worker, managedJobFence(job))
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	status := "shutdown_confirmed"
-	if err != nil {
-		status = "shutdown_unconfirmed"
-	}
-	if s.recordManagedJobLocked(job.JobID, status) != nil {
+	shutdownErr, auditErr := s.reconcileManagedJob(ctx, job)
+	if auditErr != nil {
 		http.Error(w, "Worker result could not be audited; execution remains stopped", 503)
 		return
 	}
+	err = shutdownErr
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if err != nil {
 		http.Error(w, "Worker shutdown unconfirmed; application stop remains active", 503)
 		return

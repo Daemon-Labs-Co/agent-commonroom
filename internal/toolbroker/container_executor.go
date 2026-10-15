@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"path"
-	"strings"
 	"time"
 )
 
@@ -45,7 +44,7 @@ func NewContainerExecutor(plan *ToolContainerPlan, runner DockerRunner, dockerRo
 // launch options. Failed/ambiguous work fences authority and requires tool-container
 // absence proof; the future supervisor must additionally stop/verify the engine.
 func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Action, out io.Writer) error {
-	if ctx == nil || ctx.Err() != nil || out == nil {
+	if ctx == nil || ctx.Err() != nil || out == nil || !e.plan.workspaceReady() {
 		return ErrRejected
 	}
 	// Only implemented file operations may reach the current image helper.
@@ -60,6 +59,13 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	action.Command = append([]string(nil), action.Command...)
 	ctx, cancelAuthority := e.plan.authority.executionContext(ctx)
 	defer cancelAuthority()
+	ready := e.plan.workspace.Load()
+	stop := context.AfterFunc(ready.lifetime, cancelAuthority)
+	defer stop()
+	if ready.lifetime.Err() != nil || ctx.Err() != nil {
+		return ErrRejected
+	}
+
 	input, err := json.Marshal(action)
 	if err != nil || len(input) > MaxRequestBytes {
 		return ErrRejected
@@ -90,12 +96,12 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	defer cancel()
 	output := &boundedOutput{cancel: cancel}
 	args := []string{"exec", "-i", "--user", "1000:1000", "--workdir", "/workspace/repository", id, "/usr/local/bin/node", "/opt/commonroom/tool-call.cjs"}
-	if execCtx.Err() != nil {
+	if execCtx.Err() != nil || ready.lifetime.Err() != nil {
 		return e.failed(id, false)
 	}
 	runErr := e.runner.Run(execCtx, args, input, output)
 	raw, overflow := output.snapshot()
-	if runErr != nil || execCtx.Err() != nil || overflow {
+	if runErr != nil || execCtx.Err() != nil || ready.lifetime.Err() != nil || overflow {
 		return e.failed(id, overflow)
 	}
 	if !validHelperResult(raw, action) {
@@ -141,39 +147,5 @@ func (e *ContainerExecutor) failed(id string, overflow bool) error {
 }
 
 func (e *ContainerExecutor) stopAndConfirm(ctx context.Context, id string) error {
-	if !digest(id, 32) {
-		return ErrShutdownUnconfirmed
-	}
-	absent, err := e.containerAbsent(ctx, id)
-	if err != nil {
-		return err
-	}
-	if absent {
-		return nil
-	}
-	if _, err = e.capture(ctx, []string{"rm", "--force", id}, MaxInspectionBytes); err != nil {
-		return ErrShutdownUnconfirmed
-	}
-	absent, err = e.containerAbsent(ctx, id)
-	if err != nil || !absent {
-		return ErrShutdownUnconfirmed
-	}
-	return nil
-}
-
-// containerAbsent requires a successful exact-ID inventory query; a failed
-// inspection/daemon outage is not absence. Unexpected output never broadens cleanup.
-func (e *ContainerExecutor) containerAbsent(ctx context.Context, id string) (bool, error) {
-	raw, err := e.capture(ctx, []string{"ps", "-a", "--no-trunc", "--filter", "id=" + id, "--format", "{{.ID}}"}, MaxInspectionBytes)
-	if err != nil {
-		return false, ErrShutdownUnconfirmed
-	}
-	value := strings.TrimSpace(string(raw))
-	if value == "" {
-		return true, nil
-	}
-	if value != id {
-		return false, ErrShutdownUnconfirmed
-	}
-	return false, nil
+	return StopContainer(ctx, e.runner, id, nil)
 }

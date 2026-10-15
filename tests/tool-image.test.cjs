@@ -11,11 +11,11 @@ const ignore = fs.readFileSync(path.join(root, 'docker/tools/Dockerfile.dockerig
 test('tool build context deny-all with only reviewed source exceptions', () => {
   const rules = ignore.split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith('#'));
   assert.equal(rules[0], '**');
-  const subtreeExclusions = new Set(['cmd/**','cmd/tool-helper/**','internal/**','internal/toolworkspace/**','internal/strictjson/**','docker/**','docker/tools/**']);
+  const subtreeExclusions = new Set(['cmd/**','cmd/tool-helper/**','cmd/workspace-bootstrap/**','internal/**','internal/toolworkspace/**','internal/workspacebootstrap/**','internal/strictjson/**','docker/**','docker/tools/**']);
   const allowed = new Set([
-    'go.mod','cmd/','cmd/tool-helper/','cmd/tool-helper/main.go',
+    'go.mod','cmd/','cmd/tool-helper/','cmd/tool-helper/main.go','cmd/workspace-bootstrap/','cmd/workspace-bootstrap/main.go',
     'internal/','internal/toolworkspace/','internal/toolworkspace/workspace_unix.go',
-    'internal/strictjson/','internal/strictjson/encoding.go',
+    'internal/strictjson/','internal/strictjson/encoding.go','internal/workspacebootstrap/','internal/workspacebootstrap/bootstrap.go',
     'docker/','docker/tools/','docker/tools/Dockerfile','docker/tools/tool-call.cjs'
   ]);
   for (const rule of rules.slice(1)) {
@@ -26,7 +26,7 @@ test('tool build context deny-all with only reviewed source exceptions', () => {
   assert.equal(allowed.size, 0);
   assert.equal(subtreeExclusions.size, 0);
   // Parent exceptions must be followed by subtree exclusion before leaf opt-in.
-  for (const dir of ['cmd','cmd/tool-helper','internal','internal/toolworkspace','internal/strictjson','docker','docker/tools']) {
+  for (const dir of ['cmd','cmd/tool-helper','cmd/workspace-bootstrap','internal','internal/toolworkspace','internal/strictjson','internal/workspacebootstrap','docker','docker/tools']) {
     assert.ok(rules.indexOf('!'+dir+'/') < rules.indexOf(dir+'/**'));
     const leafExceptions = rules.filter(rule => rule.startsWith('!'+dir+'/') && !rule.endsWith('/'));
     assert.ok(leafExceptions.every(rule => rules.indexOf(rule) > rules.indexOf(dir+'/**')));
@@ -38,15 +38,19 @@ test('image copies only declared tool source and helper artifact, never whole tr
   assert.deepEqual(copies, [
     'COPY go.mod ./go.mod',
     'COPY cmd/tool-helper/main.go ./cmd/tool-helper/main.go',
+    'COPY cmd/workspace-bootstrap/main.go ./cmd/workspace-bootstrap/main.go',
+    'COPY internal/workspacebootstrap/bootstrap.go ./internal/workspacebootstrap/bootstrap.go',
     'COPY internal/toolworkspace/workspace_unix.go ./internal/toolworkspace/workspace_unix.go',
     'COPY internal/strictjson/encoding.go ./internal/strictjson/encoding.go',
     'COPY --from=build --chmod=0555 /out/tool-helper /opt/commonroom/tool-helper',
+    'COPY --from=build --chmod=0555 /out/workspace-bootstrap /opt/commonroom/workspace-bootstrap',
     'COPY --chmod=0444 docker/tools/tool-call.cjs /opt/commonroom/tool-call.cjs'
   ]);
   const instructions = recipe.split(/\r?\n/).filter(s => s && !s.startsWith('#')).join('\n');
   assert.doesNotMatch(instructions, /\bADD\s|npm\s|apt-get\s|--mount=|--secret=|--ssh=/);
   assert.match(instructions, /RUN --network=none CGO_ENABLED=0 GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off/);
   assert.match(instructions, /USER 1000:1000/);
+  assert.match(instructions, /test -x \/usr\/bin\/git/);
   assert.match(instructions, /ENTRYPOINT \["\/usr\/local\/bin\/node", "\/opt\/commonroom\/tool-call.cjs"\]/);
 });
 

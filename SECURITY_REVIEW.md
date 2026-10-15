@@ -700,3 +700,36 @@ paired cancellation protocol. Automatic lifecycle evidence retains the initiatin
 human. The legacy launcher refuses version-3 registrations. Owner recovery is
 mock-tested with diagnostic flags off/on, mismatches and failed shutdown; no live
 paired execution is enabled or claimed.
+
+### Architecture continuation — 15 October 2026
+
+Paired lifecycle now owns durable creation-before-start ordering and ID-bound
+aggregate reported-resource checks. Managed job lifecycle concentrates controller
+submission and recovery recording. Shared immutable-container shutdown mechanics
+do not merge tool absence with pair/lease proof. These mandatory safeguards have
+no off switch. The launch adapter remains internal without a production adapter;
+this does not close P0 credential separation or authorize development admission.
+Live rootless runtime/provider enforcement remains unverified. See
+[execution progress](docs/p0-execution-progress-2026-10-15.md).
+
+### Constrained tool-side launch continuation — 15 October 2026
+
+The internal tool runtime derives fixed Docker-create arguments, refuses named
+container adoption and missing/unsafe prepared volumes, verifies stopped policy,
+rechecks before immutable-ID startup and verifies running policy afterward.
+Original job lifetime and no-replay state survive fresh call contexts. There is
+no provider, host-launch or optional-security fallback. This does not establish
+fresh volume contents, bootstrap provenance, engine driver safety or production
+pair integration. Those P0 gates and live verification remain open; development
+admission is still blocked. See [runtime contract](docs/tool-container-runtime.md).
+
+### Workspace bootstrap continuation — 15 October 2026
+
+Streamed bootstrap now checks the approved bundle hash before controlled Git,
+requires an empty isolated workspace, bounds accepted tree size/file types and
+suppresses hooks/configuration/checkout transforms. Job-bound receipts and fresh
+runtime inspection gate file tools; pair startup requires bootstrap before the
+engine. Partial or uncertain results cannot be replayed. No optional flag bypass
+exists. Fresh-volume allocation/cleanup, real Git/image/rootless verification,
+production adapter assembly and authenticated audit/engine integration remain open
+P0 work; development admission stays blocked. See [bootstrap contract](docs/workspace-bootstrap.md).

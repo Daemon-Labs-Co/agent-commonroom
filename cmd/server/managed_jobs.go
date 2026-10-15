@@ -4,9 +4,12 @@ import (
 	"agentroom/internal/room"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -241,4 +244,92 @@ func hasUnconfirmedManagedJobs(st room.State) bool {
 		}
 	}
 	return false
+}
+
+// managedWorkerTransport is the internal transport seam. Production SSH and
+// synthetic tests vary here; durable lifecycle ordering stays in this module.
+// No adapter may bypass isolated-worker admission or enable paired startup.
+type managedWorkerTransport struct {
+	command func(context.Context, string, string, string) *exec.Cmd
+	fence   func(context.Context, string, workerFenceRequest) error
+	monitor func(context.Context, <-chan struct{}, string, string, string)
+}
+
+// dispatchManagedWorker owns intent, submission and terminal shutdown evidence.
+// Callers supply a validated worker binding and invoke the returned cleanup
+// after execution, including command-start failure. Cleanup outlives turn
+// cancellation but has its own bounded lifetime and is safe to call repeatedly.
+func dispatchManagedWorker(ctx context.Context, alias string, request workerRunRequest, transport managedWorkerTransport) (*exec.Cmd, func(), error) {
+	if ctx == nil || ctx.Err() != nil {
+		return nil, nil, errors.New("Managed worker context is unavailable or cancelled")
+	}
+	registration, ok := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
+	if !ok || registration.Version != workerLifecycleVersion || request.Version != workerLifecycleVersion || !validWorkerJobID(registration.JobID) || registration.Register == nil || registration.Update == nil {
+		return nil, nil, errors.New("Durable managed job registration is required")
+	}
+	if transport.command == nil || transport.fence == nil || transport.monitor == nil {
+		return nil, nil, errors.New("Managed worker transport is incomplete")
+	}
+	request.JobID, request.IssuedAt, request.Deadline = registration.JobID, registration.IssuedAt, registration.Deadline
+	encoded, err := encodeWorkerRequest(request)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err = registration.Register(alias, request.Provider); err != nil {
+		return nil, nil, err
+	}
+	var once sync.Once
+	monitorDone := make(chan struct{})
+	cleanup := func() {
+		once.Do(func() {
+			close(monitorDone)
+			cancelCtx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+			defer cancel()
+			fence := workerFenceRequest{Version: request.Version, JobID: request.JobID, Provider: request.Provider, Key: request.Key}
+			if transport.fence(cancelCtx, alias, fence) != nil {
+				_ = registration.Update("shutdown_unconfirmed")
+				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
+				fmt.Fprintln(os.Stderr, "Remote worker cancellation unconfirmed:", request.JobID)
+				return
+			}
+			if registration.Update("shutdown_confirmed") != nil {
+				emitBackground(ctx, "shutdown_unconfirmed", request.JobID)
+				return
+			}
+			emitBackground(ctx, "shutdown_confirmed", request.JobID)
+		})
+	}
+	if err = registration.Update("submitted"); err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	if _, ok := ctx.Value(backgroundCallbackKey{}).(backgroundCallback); ok {
+		go transport.monitor(ctx, monitorDone, alias, request.JobID, request.Provider)
+	}
+	cmd := transport.command(ctx, alias, "run-v2", encoded)
+	if cmd == nil {
+		cleanup()
+		return nil, nil, errors.New("Managed worker command is unavailable")
+	}
+	cmd.WaitDelay = 2 * time.Second
+	return cmd, cleanup, nil
+}
+
+// reconcileManagedJob keeps transport proof and its durable lifecycle outcome
+// together. Authorization and approved-worker checks precede this seam; worker
+// evidence remains independently verified by the transport adapter.
+func (s *server) reconcileManagedJob(ctx context.Context, job room.ManagedJob) (shutdownErr, auditErr error) {
+	fence := s.jobFence
+	if fence == nil {
+		fence = remoteFenceJob
+	}
+	shutdownErr = fence(ctx, job.Worker, managedJobFence(job))
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	status := "shutdown_confirmed"
+	if shutdownErr != nil {
+		status = "shutdown_unconfirmed"
+	}
+	auditErr = s.recordManagedJobLocked(job.JobID, status)
+	return
 }

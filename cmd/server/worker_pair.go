@@ -2,7 +2,9 @@ package main
 
 import (
 	"agentroom/internal/toolbroker"
+	"agentroom/internal/workspacebootstrap"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -70,16 +72,18 @@ func validWorkerPair(v workerJobRecord) bool {
 func pairRoleSettled(c workerPairContainer) bool { return !c.CreationStarted || c.Absent }
 
 // workerPairSupervisor holds existing job/membership leases. The future launcher
-// MUST Docker-create (not run) each fixed-name container, bind its inspected
-// immutable ID durably, and only then start it. This type launches nothing.
+// owns create, inspect, journal and start ordering through its internal adapter.
+// No production launch adapter or public entry point is wired.
 // Its caller must authenticate the controller and validate image/mount policy.
 type workerPairSupervisor struct {
-	ctx    context.Context
-	mu     sync.Mutex
-	dir    string
-	record workerJobRecord
-	leases *workerJobLeases
-	closed bool
+	ctx     context.Context
+	cancel  context.CancelFunc
+	startup sync.Mutex
+	mu      sync.Mutex
+	dir     string
+	record  workerJobRecord
+	leases  *workerJobLeases
+	closed  bool
 }
 
 // admitWorkerPair is an internal worker seam, not a new run-v2 variant or public
@@ -103,15 +107,23 @@ func admitWorkerPair(ctx context.Context, dir string, request workerRunRequest, 
 	if err != nil {
 		return nil, err
 	}
-	return &workerPairSupervisor{ctx: ctx, dir: dir, record: record, leases: leases}, nil
+	lifetime, cancel := context.WithDeadline(ctx, record.Deadline)
+	return &workerPairSupervisor{ctx: lifetime, cancel: cancel, dir: dir, record: record, leases: leases}, nil
 }
+
+// Close cancels first, then retains ownership until in-flight adapter work has
+// returned. Cancellation alone cannot prove a create/start operation has ended.
+// Every concurrent Close waits too; none can report released ownership early.
 func (s *workerPairSupervisor) Close() {
 	s.mu.Lock()
+	s.closed = true
+	s.cancel()
+	s.mu.Unlock()
+	s.startup.Lock()
+	defer s.startup.Unlock()
+	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.closed {
-		s.closed = true
-		s.leases.Close()
-	}
+	s.leases.Close()
 }
 
 // pairUpdate is under the owning lease, and refuses any post-cancellation create
@@ -119,11 +131,11 @@ func (s *workerPairSupervisor) Close() {
 func (s *workerPairSupervisor) pairUpdate(ctx context.Context, role, id string, begin bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if ctx == nil || ctx.Err() != nil || s.ctx.Err() != nil || s.closed || !s.record.Deadline.After(time.Now()) || (role != "engine" && role != "tool") {
+	if ctx == nil || (role != "engine" && role != "tool") {
 		return errors.New("pair supervisor unavailable")
 	}
-	if _, err := os.Lstat(filepath.Join(s.dir, s.record.JobID+".cancel")); !os.IsNotExist(err) {
-		return errors.New("pair cancelled or cancellation state unavailable")
+	if err := s.available(ctx); err != nil {
+		return err
 	}
 	record := s.record
 	pair := *record.Pair
@@ -156,6 +168,7 @@ func (s *workerPairSupervisor) pairUpdate(ctx context.Context, role, id string, 
 	}
 	if err := writeWorkerRecord(s.dir, record, false); err != nil {
 		s.closed = true
+		s.cancel()
 		s.leases.Close()
 		return err
 	}
@@ -167,6 +180,136 @@ func (s *workerPairSupervisor) BeginCreate(ctx context.Context, role string) err
 }
 func (s *workerPairSupervisor) BindCreated(ctx context.Context, role, id string) error {
 	return s.pairUpdate(ctx, role, id, false)
+}
+
+// workerPairLaunchAdapter is trusted worker policy, never model-supplied launch
+// arguments. Create MUST create without starting, Verify MUST inspect reviewed
+// image, mounts, credentials and aggregate resource policy, and Start MUST use
+// the immutable ID and respect cancellation. Bootstrap must return a job-bound
+// receipt before engine startup. No production adapter is wired yet.
+// A source fork CAN violate this contract, BUT loses container isolation proof.
+type workerPairLaunchAdapter interface {
+	Create(context.Context, workerPairIdentity) (string, error)
+	Verify(context.Context, workerPairIdentity, string) error
+	Inspect(context.Context, string) ([]byte, error)
+	Start(context.Context, string) error
+	Bootstrap(context.Context, string) (workspacebootstrap.Receipt, error)
+}
+
+type workerPairIdentity struct{ Job, Role, Repository string }
+
+// Start owns the lifecycle ordering behind one interface. Both identities are
+// durable before either process starts. Errors retain the journal for explicit
+// fenced recovery; startup never retries uncertain creation or starts.
+// This internal seam neither authenticates callers nor enables development.
+func (s *workerPairSupervisor) Start(ctx context.Context, adapter workerPairLaunchAdapter) error {
+	s.startup.Lock()
+	defer s.startup.Unlock()
+	if ctx == nil || adapter == nil {
+		return errors.New("pair startup unavailable")
+	}
+	s.mu.Lock()
+	original := s.record
+	s.mu.Unlock()
+	run, cancel := context.WithDeadline(ctx, original.Deadline)
+	stop := context.AfterFunc(s.ctx, cancel)
+	defer stop()
+	defer cancel()
+	for _, role := range []string{"tool", "engine"} {
+		if err := s.BeginCreate(run, role); err != nil {
+			return err
+		}
+		identity := workerPairIdentity{Job: original.JobID, Role: role, Repository: original.Pair.Repository}
+		id, err := adapter.Create(run, identity)
+		if err != nil || !validPairContainerID(id) {
+			return errors.New("pair creation unconfirmed")
+		}
+		if err = adapter.Verify(run, identity, id); err != nil {
+			return errors.New("pair policy unverified")
+		}
+		if err = s.BindCreated(run, role, id); err != nil {
+			return err
+		}
+	}
+	inspections := map[string][]byte{}
+	for _, role := range []string{"tool", "engine"} {
+		s.mu.Lock()
+		err := s.available(run)
+		id := s.record.Pair.Tool.ID
+		if role == "engine" {
+			id = s.record.Pair.Engine.ID
+		}
+		s.mu.Unlock()
+		if err != nil {
+			return err
+		}
+		data, err := adapter.Inspect(run, id)
+		var observed struct {
+			ID string `json:"Id"`
+		}
+		if err != nil || len(data) > 65536 || json.Unmarshal(data, &observed) != nil || observed.ID != id {
+			return errors.New("pair resources unverified")
+		}
+		inspections[role] = data
+	}
+	if err := toolbroker.VerifyPairResources(inspections["engine"], inspections["tool"]); err != nil {
+		return errors.New("pair resources unverified")
+	}
+	for _, role := range []string{"tool", "engine"} {
+		s.mu.Lock()
+		err := s.available(run)
+		id := s.record.Pair.Tool.ID
+		if role == "engine" {
+			id = s.record.Pair.Engine.ID
+		}
+		s.mu.Unlock()
+		if err != nil {
+			return err
+		}
+		if err = adapter.Start(run, id); err != nil {
+			return errors.New("pair start unconfirmed")
+		}
+		if role == "tool" {
+			s.mu.Lock()
+			err = s.available(run)
+			s.mu.Unlock()
+			if err != nil {
+				return err
+			}
+			receipt, err := adapter.Bootstrap(run, id)
+			if err != nil || !workspacebootstrap.ValidReceipt(receipt, original.JobID, original.Pair.Repository) {
+				return errors.New("pair workspace bootstrap unverified")
+			}
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.available(run); err != nil {
+		return err
+	}
+	record := s.record
+	record.Status = "running"
+	record.DiagnosticCode = "running"
+	record.UpdatedAt = time.Now().UTC()
+	if err := writeWorkerRecord(s.dir, record, false); err != nil {
+		s.closed = true
+		s.cancel()
+		s.leases.Close()
+		return err
+	}
+	s.record = record
+	return nil
+}
+
+// available is called with mu held so Close and state publication serialize.
+func (s *workerPairSupervisor) available(ctx context.Context) error {
+	if ctx.Err() != nil || s.ctx.Err() != nil || s.closed || !s.record.Deadline.After(time.Now()) {
+		return errors.New("pair supervisor unavailable")
+	}
+	if _, err := os.Lstat(filepath.Join(s.dir, s.record.JobID+".cancel")); !os.IsNotExist(err) {
+		return errors.New("pair cancelled or cancellation state unavailable")
+	}
+	return nil
 }
 
 // pairCapture never interprets shell input, inherits credentials or returns raw
@@ -257,22 +400,9 @@ func stopWorkerPair(ctx context.Context, v workerJobRecord, runner toolbroker.Do
 			current.ID = id
 		}
 		if id != "" {
-			observed, err := pairInventory(ctx, runner, "id="+id)
-			if err != nil || observed != "" && observed != id {
-				failed = true
-				continue
-			}
-			if observed != "" {
-				if inspectPairIdentity(ctx, runner, v, role, id) != nil {
-					failed = true
-					continue
-				}
-				if _, err = pairCapture(ctx, runner, []string{"rm", "--force", id}); err != nil {
-					failed = true
-					continue
-				}
-			}
-			if observed, err = pairInventory(ctx, runner, "id="+id); err != nil || observed != "" {
+			if err := toolbroker.StopContainer(ctx, runner, id, func(ctx context.Context, id string) error {
+				return inspectPairIdentity(ctx, runner, v, role, id)
+			}); err != nil {
 				failed = true
 				continue
 			}

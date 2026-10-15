@@ -115,3 +115,105 @@ No live containers/providers, deployment or database access were used.
 P0-3 remains open for pair startup/bootstrap, authenticated callback transport,
 callback-only provider drivers, reviewed artifacts and live verification.
 P1 and secrets-manager implementation remain paused.
+
+## Architecture deepening and aggregate resource gate
+
+Implemented all three selected architecture recommendations:
+
+- Paired lifecycle owns create/verify/durable binding/start ordering through one
+  trusted internal launch adapter. Both IDs and resource observations precede
+  either start. Cancellation, journal failure and uncertain creation refuse replay.
+- Managed job lifecycle owns registration, submission, monitoring, bounded
+  idempotent shutdown and durable recovery status. Endpoint approval, request
+  authentication and independent worker verification remain enforced.
+- Shared immutable-ID shutdown mechanics serve tool failure and paired recovery.
+  Pair recovery still separately checks role/name/job inventory and creator leases;
+  one tool's absence never settles a job.
+
+Continued P0 with mandatory ID-bound aggregate resource inspection before start:
+maximum 512 MiB, 0.5 CPU and 64 processes per role, unchanged total job ceiling,
+positive limits and no extra swap. No product toggle or authority bypass exists.
+
+Full `make test` passed in **2.92s**, `make check` in **6.36s**. Server tests ran;
+unchanged packages and the already-tested toolbroker package were cached in the
+final normal suite. Race, vet, Python and JavaScript checks passed. Tests use
+mocked transports/Docker/database interactions and temporary journals only.
+An initial sandboxed run could not access the Go cache; an intermediate run
+caught a synthetic inspection fixture shape mismatch, corrected before final
+verification. No live containers/providers, deployment or database access occurred.
+
+The internal launch adapter has no production implementation. Fresh workspace
+bootstrap, reviewed engine configuration/images, authenticated audit transport,
+callback driver, bounded commands/artifacts and live isolated verification remain
+open P0 requirements. Development admission remains blocked and P1 remains paused.
+See [managed lifecycle](managed-job-lifecycle.md), [pair lifecycle](worker-pairs.md)
+and [resource policy](provider-tool-separation.md#aggregate-pair-resources).
+
+Final review also fixed Close retaining supervisor leases until in-flight create/start adapter work returns. Blocking create/start regression tests cover concurrent Close and eventual lease release. The full suites above were rerun after this fix.
+
+## Constrained tool launch implementation
+
+Continued P0 with `ToolContainerRuntime`, the concrete tool-side Docker
+create/inspect/start implementation. The plan now has stopped-container create
+arguments without automatic removal. Runtime creation refuses existing names,
+unavailable inventory and missing/unsafe prepared volumes before issuing create.
+Full immutable IDs and the entire stopped-container policy are checked; only a
+fresh `created` state qualifies. Startup repeats policy checks before using the
+immutable ID and verifies running evidence afterward. Creation/start uncertainty
+is never retried, and failed creation does not grant later startup authority.
+Original job cancellation and authority revocation cannot be revived with a new
+call context. Created/running checks share the full inspection implementation.
+
+This module is not yet assembled into a production pair adapter. It does not
+initialize a volume or attest its contents: the future worker bootstrap must
+establish a fresh credential-free volume and preserve provenance before use.
+The controller admission barrier remains unchanged. Reviewed engine driver/image,
+bootstrap, authenticated audit transport, full pair wiring, bounded commands,
+artifacts and live runtime acceptance remain open P0 work. P1 remains paused.
+
+Final full `make test`: **3.29s**. Final full `make check`: **8.66s**. Server,
+tool-helper and toolbroker normal tests ran; room/strictjson/toolworkspace packages
+were cached. Race/vet/Python/JavaScript checks passed. An initial focused test
+exposed a historical-time fixture, corrected to live synthetic authority; a
+revocation test then led to explicit synchronous cancelled-context refusal.
+A sandboxed race attempt could not write Go cache; final suites completed with
+cache access. No live provider, Docker workload, database or deployment was used.
+See [the runtime contract](tool-container-runtime.md).
+
+## Credential-free snapshot bootstrap
+
+Implemented a streamed bootstrap helper inside the tool container. It requires an
+empty workspace, checks the original bounded bundle's SHA-256 before controlled
+Git, bounds source-tree metadata/files/bytes, rejects symlinks/submodules and
+unsafe paths, suppresses hooks/inherited settings and checkout transformations,
+and creates a verified job-specific feature branch. Raw source and Git diagnostics
+are not persisted or returned as receipts. Both source and Git metadata must be
+writable before success.
+
+The tool runtime streams the worker-staged bundle by immutable container ID,
+closes blocked input on cancellation, validates a strict job/digest/commit/branch
+receipt and rechecks full runtime policy. Only that plan becomes tool-ready.
+Unready plans cannot run file actions. Pair startup now starts the idle tool,
+requires its bootstrap receipt and only then starts the engine. Missing/forged
+receipts and uncertain bootstrap stop progression without replay. The tool image
+recipe includes the helper and requires a reviewed base with fixed Git/Node paths;
+the build context remains deny-all except explicit reviewed source.
+
+Final full `make test` passed in **3.43s**; final full `make check` passed in
+**8.31s**. Server and broker normal tests ran; previously tested bootstrap/helper and
+unchanged domain/workspace packages were cached. Race, vet, Python and
+JavaScript checks passed. All Git/Docker/database interactions are mocked;
+filesystem fixtures use temporary directories. No live Git clone, provider,
+Docker workload, database or deployment was used. Initial focused tests exposed
+an updated plan initializer and test fixture edit; both were corrected before
+final verification. New guides are linked from README/index and in-app Help.
+
+This is internal implementation, not release closure. Fresh-volume allocation
+and cleanup, production paired adapter/dispatcher assembly, authenticated audit
+transport, reviewed engine/images, bounded commands/artifacts and real
+Git/image/rootless verification remain P0 blockers. The older dispatcher assembly
+creates an unready plan and cannot enable file tools until production assembly
+shares the bootstrap-verified plan. Development admission stays blocked and P1
+remains paused. See [bootstrap contract](workspace-bootstrap.md).
+
+Final review bound workspace readiness to its original job lifetime. Fresh call contexts cannot revive tools after job cancellation, and cancellation during an action suppresses its success output. Both regressions pass in the final full suites above.

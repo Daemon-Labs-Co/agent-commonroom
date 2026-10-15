@@ -67,3 +67,9 @@ Planned security architecture: [Provider/tool credential separation](provider-to
 - [P0 execution progress — 15 October 2026](p0-execution-progress-2026-10-15.md): verified build/audit changes and remaining runtime gates.
 
 - [Paired worker lifecycle](worker-pairs.md): versioned journals, immutable-ID cancellation, downgrade refusal and remaining launch integration.
+
+- [Managed job lifecycle](managed-job-lifecycle.md): controller dispatch, durable attribution and recovery ownership.
+
+- [Constrained tool-container launch](tool-container-runtime.md): fixed creation/start policy, immutable identities and remaining runtime integration.
+
+- [Credential-free workspace bootstrap](workspace-bootstrap.md): approved bundle streaming, controlled Git checkout and readiness before engine startup.
