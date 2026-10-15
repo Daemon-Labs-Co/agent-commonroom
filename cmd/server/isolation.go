@@ -52,6 +52,7 @@ func isolationAvailable(endpoint string) error {
 	}
 	return nil
 }
+
 // verifiedLocalDockerContext rejects a daemon that cannot enforce required
 // limits and any non-local or environment-overridden Docker context. Shared by
 // every caller that is about to shell out to "docker" for isolated execution
@@ -122,13 +123,13 @@ func isolatedAgentCommand(ctx context.Context, endpoint, key string, args ...str
 	return localIsolatedAgentCommand(ctx, endpoint, key, job, args...)
 }
 func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string, args ...string) (*exec.Cmd, func(), error) {
-	return localIsolatedDevelopmentCommand(ctx, endpoint, key, jobID, "", args...)
+	return localIsolatedDevelopmentCommand(ctx, endpoint, key, jobID, "", false, args...)
 }
 
 // Development changes only the private workspace and provider tool policy; the
 // rootless container boundary remains mandatory. A source bypass CAN expose host
 // authority, BUT invalidates containment and must never be an automatic fallback.
-func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, repository string, args ...string) (*exec.Cmd, func(), error) {
+func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, repository string, toolSeparation bool, args ...string) (*exec.Cmd, func(), error) {
 	if err := requireCredentialSeparatedDevelopment(repository); err != nil {
 		return nil, nil, err
 	}
@@ -136,7 +137,7 @@ func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if developmentTurnArgs(endpoint, args) != (repository != "") {
+	if developmentTurnArgs(endpoint, args) != (repository != "") || toolSeparation != toolSeparationTurnArgs(endpoint, args) || toolSeparation && repository == "" {
 		return nil, nil, errors.New("Provider policy does not match the workspace")
 	}
 

@@ -1,10 +1,26 @@
+<!-- Current implementation contract takes precedence over chronological notes below. -->
 # Provider/tool credential separation design
 
-**Status: runtime separation planned; protocol, injected dispatcher, real Auditor and real DockerRunner foundations implemented, not wired and not a security closure.** This is the
+**Current status (15 October 2026): runtime separation remains unwired. Hardened scoped audit callbacks and the Docker runner are implemented components, not a security closure.** This is the
 next core/free security boundary. Current development tools share a credential-
 bearing container and can read its provider authentication. Private staging,
 read-only binds, prompt instructions and output filtering do not prevent that.
 Do not admit untrusted development workloads on the strength of those controls.
+
+## Current audit integration status
+
+The former unscoped `storedToolAuditor` writer is removed. Worker broker assembly
+requires an explicit `AuditClient` channel and fenced job context; the controller
+uses scoped durable acknowledgements. Historical `tool.call.*` projection remains
+readable. The old `toolSeparation` rollout flag is no longer accepted: mandatory
+audit and credential isolation cannot be disabled. Existing saved flag values
+grant no authority. Provider policy variants are internal validation inputs, not
+an unsafe execution fallback.
+
+See [scoped audit callbacks](tool-audit-callbacks.md) for current contracts.
+Chronological notes below mentioning the old auditor/flag describe superseded
+components. The authenticated live supervisor, pair lifecycle and provider bridge
+remain open; the legacy development admission barrier stays enforced.
 
 ## Required architecture
 

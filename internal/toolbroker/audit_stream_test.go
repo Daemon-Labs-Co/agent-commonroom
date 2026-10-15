@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -154,6 +155,17 @@ func TestAuditClientRejectsStaleMalformedAndPartialAcknowledgements(t *testing.T
 	}
 }
 
+type auditWriteStarted struct {
+	net.Conn
+	started chan struct{}
+	once    sync.Once
+}
+
+func (channel *auditWriteStarted) Write(raw []byte) (int, error) {
+	channel.once.Do(func() { close(channel.started) })
+	return channel.Conn.Write(raw)
+}
+
 func TestAuditCancellationInterruptsBlockedReadAndWrite(t *testing.T) {
 	t.Parallel()
 	for _, mode := range []string{"write", "read"} {
@@ -164,8 +176,8 @@ func TestAuditCancellationInterruptsBlockedReadAndWrite(t *testing.T) {
 			defer right.Close()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			client, _ := NewAuditClient(left, authority.scope)
 			started := make(chan struct{})
+			var channel io.ReadWriteCloser = left
 			if mode == "read" {
 				go func() {
 					var frame AuditFrame
@@ -173,8 +185,9 @@ func TestAuditCancellationInterruptsBlockedReadAndWrite(t *testing.T) {
 					close(started)
 				}()
 			} else {
-				close(started)
+				channel = &auditWriteStarted{Conn: left, started: started}
 			}
+			client, _ := NewAuditClient(channel, authority.scope)
 			done := make(chan error, 1)
 			go func() {
 				done <- client.RecordIntent(ctx, Intent{authority.scope, "call", "read", strings.Repeat("b", 64)})
@@ -206,7 +219,7 @@ func TestAuditServerRejectsForgedScopeAndReorderedFramesBeforePersistence(t *tes
 			go func() {
 				done <- ServeAudit(context.Background(), right, authority.scope, mockAudit{intent: func(context.Context, Intent) error { persisted.Store(true); return nil }})
 			}()
-			frame := AuditFrame{Version: 1, Sequence: 1, Stage: "intent", Intent: Intent{authority.scope, "call", "read", strings.Repeat("b", 64)}}
+			frame := AuditFrame{Version: 1, Sequence: 1, Session: strings.Repeat("a", 32), Stage: "intent", Intent: Intent{authority.scope, "call", "read", strings.Repeat("b", 64)}}
 			switch mode {
 			case "scope":
 				frame.Intent.Scope.JobID = strings.Repeat("f", 32)
@@ -231,5 +244,61 @@ func TestAuditServerRejectsForgedScopeAndReorderedFramesBeforePersistence(t *tes
 				t.Fatal("forged audit frame persisted")
 			}
 		})
+	}
+}
+
+func TestAuditAckCannotBeReplayedOnNewLinkForSameJobAndCall(t *testing.T) {
+	t.Parallel()
+	authority, _ := liveFixture(t)
+	intent := Intent{authority.scope, "call", "read", strings.Repeat("b", 64)}
+	var oldAck auditAck
+	for attempt := 0; attempt < 2; attempt++ {
+		left, right := net.Pipe()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			defer right.Close()
+			var frame AuditFrame
+			if auditRead(bufio.NewReaderSize(right, MaxAuditFrameBytes), &frame) != nil {
+				return
+			}
+			if attempt == 0 {
+				sum, _ := auditFrameDigest(frame)
+				oldAck = auditAck{1, sum, true}
+			}
+			_ = auditWrite(right, oldAck)
+		}()
+		client, _ := NewAuditClient(left, authority.scope)
+		err := client.RecordIntent(context.Background(), intent)
+		if attempt == 0 && err != nil {
+			t.Fatal("first ack refused", err)
+		}
+		if attempt == 1 && err != ErrAudit {
+			t.Fatal("old link ack replayed")
+		}
+		left.Close()
+		<-done
+	}
+}
+
+func TestAuditWireRejectsAmbiguousEncodingAndMissingPrimitiveFields(t *testing.T) {
+	t.Parallel()
+	for _, raw := range [][]byte{
+		[]byte(`{"version":1,"digest":"abc","accepted":true,"extra":1}`),
+		[]byte(`{"version":1,"\u0076ersion":1,"digest":"abc","accepted":true}`),
+		[]byte(`{"version":1,"digest":"\ud800","accepted":true}`),
+		[]byte("{\"version\":1,\"digest\":\"\xff\",\"accepted\":true}"),
+		[]byte(`{"version":1,"digest":"abc","accepted":true} {}`),
+		[]byte(`{"version":1,"digest":"abc"}`),
+		[]byte(`{"version":1,"digest":"abc","accepted":[]}`),
+	} {
+		var ack auditAck
+		if auditDecode(raw, &ack) != ErrAudit {
+			t.Fatal("ambiguous encoding admitted")
+		}
+	}
+	var ack auditAck
+	if auditDecode([]byte(`{"version":1,"digest":"abc","accepted":false}`), &ack) != nil || ack.Accepted {
+		t.Fatal("explicit negative acknowledgement became ambiguous")
 	}
 }

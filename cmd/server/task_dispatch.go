@@ -182,7 +182,7 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.active[p.ID] = true
-	turnCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	turnCtx, cancel := context.WithTimeout(detachedInitiatorContext(r.Context()), 3*time.Minute)
 	s.cancels[p.ID] = cancel
 	go func() {
 		defer cancel()

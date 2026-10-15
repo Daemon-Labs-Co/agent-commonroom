@@ -10,9 +10,11 @@ import (
 func TestLegacyDevelopmentCannotReadCredentialsOrLaunch(t *testing.T) {
 	t.Parallel()
 	for _, provider := range []string{"codex", "claude"} {
-		cmd, cleanup, err := localIsolatedDevelopmentCommand(context.Background(), provider, "synthetic", strings.Repeat("a", 32), strings.Repeat("b", 64), false, providerTurnArgs(provider, true, false)...)
-		if !errors.Is(err, errCredentialBoundary) || cmd != nil || cleanup != nil {
-			t.Fatal("legacy native development preparation reached credential/runtime setup")
+		for _, separated := range []bool{false, true} {
+			cmd, cleanup, err := localIsolatedDevelopmentCommand(context.Background(), provider, "synthetic", strings.Repeat("a", 32), strings.Repeat("b", 64), separated, providerTurnArgs(provider, true, separated)...)
+			if !errors.Is(err, errCredentialBoundary) || cmd != nil || cleanup != nil {
+				t.Fatal("development preparation reached credential/runtime setup before verified paired integration")
+			}
 		}
 	}
 }
