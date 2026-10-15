@@ -52,6 +52,30 @@ func isolationAvailable(endpoint string) error {
 	}
 	return nil
 }
+// verifiedLocalDockerContext rejects a daemon that cannot enforce required
+// limits and any non-local or environment-overridden Docker context. Shared by
+// every caller that is about to shell out to "docker" for isolated execution
+// (the single-container agent path here and the tool-container runner in
+// tool_broker_runner.go) so this check is defined once, not duplicated.
+func verifiedLocalDockerContext(ctx context.Context) error {
+	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	info, err := exec.CommandContext(checkCtx, "docker", "info", "--format", "{{json .}}").Output()
+	cancel()
+	if err != nil || !dockerSecurityReady(info) {
+		return errors.New("Docker must be reachable, rootless, seccomp-enabled and able to enforce CPU, memory/swap and process limits")
+	}
+	// Do not silently use remote Docker contexts: mounts and cleanup belong here.
+	checkCtx, cancel = context.WithTimeout(ctx, 5*time.Second)
+	host, err := exec.CommandContext(checkCtx, "docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}").Output()
+	cancel()
+	if err != nil || !strings.HasPrefix(strings.TrimSpace(string(host)), "unix://") {
+		return errors.New("Only a local Unix-socket Docker context is supported")
+	}
+	if os.Getenv("DOCKER_HOST") != "" || os.Getenv("DOCKER_CONTEXT") != "" {
+		return errors.New("Docker environment overrides are unsupported; select the local rootless context explicitly")
+	}
+	return nil
+}
 func validAgentImage(value string) bool {
 	if strings.HasPrefix(value, "sha256:") && len(value) == 71 {
 		_, err := hex.DecodeString(value[7:])
@@ -105,6 +129,9 @@ func localIsolatedAgentCommand(ctx context.Context, endpoint, key, jobID string,
 // rootless container boundary remains mandatory. A source bypass CAN expose host
 // authority, BUT invalidates containment and must never be an automatic fallback.
 func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, repository string, args ...string) (*exec.Cmd, func(), error) {
+	if err := requireCredentialSeparatedDevelopment(repository); err != nil {
+		return nil, nil, err
+	}
 	bundle, err := workerDevelopmentBundle(key, repository, os.Getenv("COMMONROOM_WORKER_DEVELOPMENT"), os.Getenv("COMMONROOM_WORKER_DEVELOPMENT_REPOSITORIES"))
 	if err != nil {
 		return nil, nil, err
@@ -119,21 +146,8 @@ func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, 
 	if err := isolationAvailable(endpoint); err != nil {
 		return nil, nil, err
 	}
-	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	info, err := exec.CommandContext(checkCtx, "docker", "info", "--format", "{{json .}}").Output()
-	cancel()
-	if err != nil || !dockerSecurityReady(info) {
-		return nil, nil, errors.New("Docker must be reachable, rootless, seccomp-enabled and able to enforce CPU, memory/swap and process limits")
-	}
-	// Do not silently use remote Docker contexts: mounts and cleanup belong here.
-	checkCtx, cancel = context.WithTimeout(ctx, 5*time.Second)
-	host, err := exec.CommandContext(checkCtx, "docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}").Output()
-	cancel()
-	if err != nil || !strings.HasPrefix(strings.TrimSpace(string(host)), "unix://") {
-		return nil, nil, errors.New("Only a local Unix-socket Docker context is supported")
-	}
-	if os.Getenv("DOCKER_HOST") != "" || os.Getenv("DOCKER_CONTEXT") != "" {
-		return nil, nil, errors.New("Docker environment overrides are unsupported; select the local rootless context explicitly")
+	if err := verifiedLocalDockerContext(ctx); err != nil {
+		return nil, nil, err
 	}
 	authRoot := os.Getenv("COMMONROOM_AGENT_AUTH_DIR")
 	if authRoot == "" {

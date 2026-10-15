@@ -87,12 +87,12 @@ func TestDevelopmentProtocolRequiresSnapshotAndExactToolPolicy(t *testing.T) {
 		v := sampleWorkerRequest()
 		v.Provider = provider
 		v.Repository = strings.Repeat("a", 64)
-		v.Args = providerTurnArgs(provider, true)
+		v.Args = providerTurnArgs(provider, true, false)
 		if provider == "codex" {
 			v.Args = append(v.Args, "-")
 		}
-		if _, err := encodeWorkerRequest(v); err != nil {
-			t.Fatal(provider, err)
+		if _, err := encodeWorkerRequest(v); err != errCredentialBoundary {
+			t.Fatal("legacy credential-bearing development must remain unavailable", provider, err)
 		}
 		v.Repository = ""
 		if _, err := encodeWorkerRequest(v); err == nil {
@@ -107,7 +107,7 @@ func TestDevelopmentProtocolRequiresSnapshotAndExactToolPolicy(t *testing.T) {
 }
 func TestDevelopmentMountPreservesContainment(t *testing.T) {
 	t.Parallel()
-	args := isolatedRunArgs("image", "name", "volume", "/socket", "/credential", "codex", providerTurnArgs("codex", true))
+	args := isolatedRunArgs("image", "name", "volume", "/socket", "/credential", "codex", providerTurnArgs("codex", true, false))
 	args = developmentRunArgs(args, "/approved/repo.bundle", strings.Repeat("a", 64), "commonroom-session-"+strings.Repeat("b", 32))
 	joined := strings.Join(args, " ")
 	for _, required := range []string{"--network=none", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges:true", "dst=/run/repository.bundle,readonly"} {

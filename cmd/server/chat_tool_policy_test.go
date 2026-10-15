@@ -41,7 +41,7 @@ func TestChatPolicyAppliesToFreshAndResumedTurns(t *testing.T) {
 		for _, resumed := range []bool{false, true} {
 			v := sampleWorkerRequest()
 			v.Provider = provider
-			v.Args = providerTurnArgs(provider, false)
+			v.Args = providerTurnArgs(provider, false, false)
 			if resumed {
 				flag := "resume"
 				if provider == "claude" {
@@ -57,7 +57,10 @@ func TestChatPolicyAppliesToFreshAndResumedTurns(t *testing.T) {
 			}
 		}
 	}
-	if slices.Contains(providerTurnArgs("codex", true), "features.shell_tool=false") {
+	if slices.Contains(providerTurnArgs("codex", true, false), "features.shell_tool=false") {
 		t.Fatal("development policy accidentally changed; its credential boundary remains separately open")
+	}
+	if !slices.Contains(providerTurnArgs("codex", true, true), "features.shell_tool=false") {
+		t.Fatal("tool-separated development policy must keep the native shell tool disabled")
 	}
 }

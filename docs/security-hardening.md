@@ -358,3 +358,13 @@ success. Unsupported command/patch operations are refused before Docker. Synthet
 mock tests pass. A consistent receipt is not filesystem attestation; image trust,
 paired shutdown and production credential separation remain OPEN. Mandatory
 free/core checks have no bypass flag. See [result contract](provider-tool-separation.md#helper-result-admission-before-success).
+
+
+### Legacy native development blocked
+
+Updated controller/worker code now refuses legacy credential-bearing native
+development before credential access or Docker preparation. Owner/operator flags
+cannot bypass it. Chat/sign-in policies are unchanged. Status explains the bridge
+requirement; reauthentication is not the remedy. No deployed binary or existing
+job was changed. A working replacement and pinned Linux verification remain OPEN.
+See [admission barrier](provider-tool-separation.md#legacy-development-admission-barrier).

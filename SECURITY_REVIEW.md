@@ -1,5 +1,32 @@
 # Agent CommonRoom red-team review — 10 October 2026
 
+## Provider/tool separation: real Auditor and DockerRunner — 14 October 2026
+
+Two of the mock-driven foundation's three "no real implementation" gaps are
+closed in source: `cmd/server.storedToolAuditor` (a real `toolbroker.Auditor`
+persisting intent/outcome through the existing append-only audit chain, as
+new `tool.call.intent`/`tool.call.outcome` events replayed into
+`room.State.ToolCalls`) and `cmd/server.dockerCLIRunner` (a real
+`toolbroker.DockerRunner` shelling out to the local `docker` CLI with literal
+argv, no shell, and the same local-only/resource-enforcing context check used
+by the existing single-container agent path, extracted into
+`verifiedLocalDockerContext` and shared rather than duplicated). A new
+`cmd/server.newToolDispatcher` proves these assemble with the existing
+`Dispatcher`/`ContainerExecutor`/`ToolContainerPlan` into a working whole.
+Mocked/precondition-only tests pass; no live Docker or database was used.
+See [provider/tool separation](docs/provider-tool-separation.md#real-auditor-and-dockerrunner-first-concrete-implementations).
+
+This closes no finding by itself. `newToolDispatcher` has no caller outside
+its own test — no live agent turn dispatches a real tool call through it, and
+the transport question of how a provider's in-container tool call would be
+intercepted and routed here remains a separate, un-started design decision.
+Volume bootstrap, tool-container lifecycle pairing with its owning agent job,
+and the real tool image build/install are also still unimplemented. A new
+default-off `toolSeparation` feature flag was added as a rollout
+marker/kill-switch ahead of that first real caller; it currently gates nothing
+observable. **Shared-container credential disclosure (provider and tool
+processes sharing one credential-bearing container) remains OPEN.**
+
 ## Provider/tool separation implementation plan — 14 October 2026
 
 Scoped capability admission, an injected audited dispatcher, a trusted tool-container
@@ -618,3 +645,35 @@ SEC-04 remains open. Mandatory container isolation is now the documented executi
 ## Mandatory worker implementation — 11 October 2026
 
 Managed Codex/Claude turns now use Linux/rootless Docker with no direct fallback, non-root/read-only/capability restrictions, private membership volumes, provider-only CONNECT egress and bounded resources/output/cleanup. Direct SSH and non-Linux dispatch are blocked. Legacy host-session resume is blocked; client profile payloads cannot set execution provenance, and connection reassignment clears old bindings and is denied while active. Mocked regression checks pass. Live Docker/provider behavior, configured host mounts, remote workers, crash reconciliation and independent incident shutdown remain unverified or unfinished. SEC-04/08/09/10 are mitigated in these paths, not universally closed. See docs/container-isolation.md.
+
+
+## Legacy development admission barrier — 14 October 2026
+
+Updated controller dispatch, worker request validation and local preparation now
+refuse the known credential-bearing native development path before credentials or
+Docker are accessed. No owner/flag/paid bypass is supported. Status identifies the
+missing separated bridge. Tests cover refusal and retained chat validation. This
+closes new legacy development admission in updated source, not all provider native
+capabilities or a working replacement. Existing/deployed old worker binaries/jobs,
+pinned Linux bridge/native-tool verification and production separation remain OPEN.
+
+## Reviewed engine preparation — 14 October 2026
+
+Dedicated Codex build preparation now verifies the replacement bridge policy as
+well as upstream source before editing the trusted build checkout. Altered policy
+and unexpected dependency lockfiles fail without changing the source. The release
+lockfile requires a pinned local-workspace version normalization only; external
+versions/checksums remain unchanged. Eight offline synthetic tests cover drift,
+symlink refusal, preservation of rejected input and successful one-time preparation.
+This is mandatory free/core build policy, with no opt-out or paid bypass.
+
+The isolated Linux compile/test verification is separate from CommonRoom's fast
+checks. No provider login/model turn is performed by these tests. Production
+engine artifact verification, broker audit transport and paired supervision remain
+OPEN; source preparation does not make the credentials-separated runtime usable.
+See docker/engine/README.md and docs/provider-tool-separation.md.
+
+Pinned Linux/amd64 compilation and three synthetic router tests now pass. A
+development CLI binary also built and passed network-disabled version/schema
+metadata checks, with no provider turn. This verifies the selected factory's
+construction and packaging only; it does not close production SEC-04 separation.

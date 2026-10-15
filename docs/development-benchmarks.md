@@ -471,3 +471,45 @@ No real DB/provider/Docker/image or credential interaction. Consistent result
 metadata is not filesystem attestation. Actual runner/engine-pair supervision and
 production credential separation remain OPEN. Required free/core result checks
 have no bypass flag or deployment change.
+
+
+## Legacy credential-bearing development admission — 14 October 2026
+
+Task/research start **09:28:22 EDT**, final verification **09:39:49 EDT**:
+**11m 27s**, including official interface research and local CLI metadata/schema
+inspection. First full `make test` **2.32s** failed a superseded test that expected
+legacy development acceptance; it now verifies mandatory refusal. Passing runs
+**2.41s** and final **2.37s**; `make check` **6.93s** and final **7.22s**. Synthetic
+requests, mock DB and metadata-only CLI inspection; no provider turns, credential
+contents, live DB or deployment. The replacement bridge is not implemented by this
+slice and old deployed workers/jobs are unchanged. Required free/core safety has
+no flag or owner/paid bypass.
+
+## Reviewed Codex build preparation — 14 October 2026
+
+Recorded window **10:15:58–10:37:29 EDT: 21m 31s** through successful Linux router
+tests. Initial repository/worker inspection before the first timed checkpoint is
+excluded; documentation/staging afterward is excluded. This is a tracked window,
+not a claim that the whole credential-separation implementation is complete.
+
+Full `make test`: initial **0.37s**, final **0.40s** (Go results cached). Full
+`make check`: initial **3.21s**, final **2.91s** including eight new offline Python
+tests (**0.004s**). DB interactions mocked; no live provider turns/credentials used.
+
+The successful isolated Linux library verification ran **3m 45s** including startup;
+Cargo reported **3m 39s** compilation, with **3/3 router tests passing in <0.01s**.
+It reused dependencies compiled in earlier attempts. The recorded window includes
+the initial builder download, refusal of stale local workspace lock versions,
+offline comparison/pinned normalization, correcting macOS archive metadata that
+the migration compiler mistook for SQL, and narrowing the cancelled full-target
+build to library tests. No migration was run and no database was created/accessed.
+Unused upstream native-handler warnings remain visible. Release binary, OAuth,
+paired execution/audit and production integration remain unverified/unimplemented.
+
+Through verification-binary metadata checks, the recorded window extends to
+**10:52:45 EDT: 36m 47s** from the same 10:15:58 checkpoint. The unoptimized CLI
+build itself took **7m 52s** including container startup (Cargo **7m 49s**), reusing
+the dependency cache. The resulting binary passed version/schema-generation
+commands with network disabled, read-only root and an empty temporary home. These
+commands start no model turn. The development binary is not a release/deployment;
+OAuth and production paired execution remain unverified.
