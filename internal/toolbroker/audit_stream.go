@@ -3,6 +3,8 @@ package toolbroker
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"io"
 	"sync"
 	"time"
@@ -18,15 +20,22 @@ type AuditClient struct {
 	scope    Scope
 	mu       sync.Mutex
 	sequence int
+	session  string
 	pending  *Intent
 	failed   bool
 }
 
+// NewAuditClient binds one authenticated, non-reusable link to a job and fresh
+// random session nonce. It performs no peer authentication or model launch.
 func NewAuditClient(channel io.ReadWriteCloser, scope Scope) (*AuditClient, error) {
 	if channel == nil || !validScope(scope, time.Now()) {
 		return nil, ErrAudit
 	}
-	return &AuditClient{channel: channel, reader: bufio.NewReaderSize(channel, MaxAuditFrameBytes), scope: scope}, nil
+	var nonce [16]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return nil, ErrAudit
+	}
+	return &AuditClient{channel: channel, reader: bufio.NewReaderSize(channel, MaxAuditFrameBytes), scope: scope, session: hex.EncodeToString(nonce[:])}, nil
 }
 
 func (client *AuditClient) RecordIntent(ctx context.Context, intent Intent) error {
@@ -78,6 +87,7 @@ func (client *AuditClient) exchange(parent context.Context, frame AuditFrame) er
 	defer stop()
 	client.sequence++
 	frame.Sequence = client.sequence
+	frame.Session = client.session
 	expected, err := auditFrameDigest(frame)
 	if err != nil || auditWrite(client.channel, frame) != nil {
 		return client.fail()
@@ -108,9 +118,15 @@ func ServeAudit(parent context.Context, channel io.ReadWriteCloser, scope Scope,
 	reader := bufio.NewReaderSize(channel, MaxAuditFrameBytes)
 	seen := map[string]bool{}
 	var pending *Intent
+	session := ""
 	for sequence := 1; sequence <= 2*MaxCalls; sequence++ {
 		var frame AuditFrame
-		if auditRead(reader, &frame) != nil || ctx.Err() != nil || frame.Version != 1 || frame.Sequence != sequence || frame.Intent.Scope != scope {
+		if auditRead(reader, &frame) != nil || ctx.Err() != nil || frame.Version != 1 || frame.Sequence != sequence || frame.Intent.Scope != scope || !digest(frame.Session, 16) {
+			return ErrAudit
+		}
+		if session == "" {
+			session = frame.Session
+		} else if session != frame.Session {
 			return ErrAudit
 		}
 		var err error

@@ -1,56 +1,61 @@
 package main
 
-// Assembly point for internal/toolbroker's credential/tool-separation
-// foundation: it wires the real Auditor (tool_broker_audit.go) and the real
-// DockerRunner (tool_broker_runner.go) into a working toolbroker.Dispatcher.
-//
-// Nothing in cmd/server calls newToolDispatcher outside its own test. No live
-// HTTP handler or agent turn dispatches a real tool call through it yet.
-// Deciding how a provider's in-container tool call gets intercepted and
-// routed here — instead of running directly in the provider's own container,
-// as it does today — is a separate transport-protocol design question and
-// unstarted follow-up work. See docs/provider-tool-separation.md.
-
 import (
-	"agentroom/internal/room"
 	"agentroom/internal/toolbroker"
+	"context"
+	"io"
+	"sync"
 	"time"
 )
 
-// toolSeparationEnabled defaults off. It currently gates nothing observable:
-// no caller of newToolDispatcher exists yet, so this flag is a rollout
-// marker/kill-switch placed ahead of the first real caller, not an active
-// behavior gate. Per AGENTS.md's mandatory execution boundary, once a real
-// caller exists this flag must never become a way to fall back to the
-// credential-colocated single-container tool path — turning tool separation
-// off must mean "do not use the broker yet," never "use it unsafely."
-func toolSeparationEnabled(st room.State) bool { return st.FeatureFlags["toolSeparation"] }
-
-// newToolDispatcher mints a bounded-lifetime Authority for scope, builds the
-// locked-down tool container plan and the real Docker-backed executor, and
-// assembles them with the real event-store-backed Auditor into a Dispatcher.
-// image and dockerRoot are supplied by the caller from verified worker
-// configuration (see ToolContainerPlan/ContainerExecutor doc comments) — this
-// function sources neither from an environment variable itself, since no
-// caller exists yet to decide where that configuration should come from.
-// The returned token is the raw one-time capability secret; the caller must
-// deliver it to the tool container's paired entrypoint and never log it.
-func (s *server) newToolDispatcher(scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time) (*toolbroker.Dispatcher, string, error) {
+// newToolDispatcher assembles the worker-side broker with mandatory controller
+// acknowledgements. The supervisor MUST authenticate channel and keep it separate
+// from model/stdout traffic. There is no local persistence or no-op audit fallback.
+// This component does not launch a pair or authenticate a transport by itself.
+// A source fork CAN substitute channel, BUT invalidates durable admission.
+func newToolDispatcher(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser) (*toolbroker.Dispatcher, string, func(), error) {
+	job, ok := ctxJob(ctx)
+	if !ok || job != scope.JobID || channel == nil {
+		return nil, "", nil, toolbroker.ErrRejected
+	}
 	authority, token, err := toolbroker.New(scope, allowed, now)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
 	plan, err := toolbroker.NewToolContainerPlan(authority, image, now)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
 	executor, err := toolbroker.NewContainerExecutor(plan, dockerCLIRunner{}, dockerRoot)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
-	dispatcher, err := toolbroker.NewDispatcher(authority, &storedToolAuditor{s}, executor)
+	audit, err := toolbroker.NewAuditClient(channel, scope)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
-	return dispatcher, token, nil
+	dispatcher, err := toolbroker.NewDispatcher(authority, audit, executor)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	// Lifetime is the worker job, even if a caller later supplies a fresh context
+	// to Dispatch. Cleanup is explicit, idempotent and closes blocked channel I/O.
+	lifetime, cancel := context.WithDeadline(ctx, scope.Deadline)
+	var once sync.Once
+	closeLink := func() { once.Do(func() { authority.Revoke(); _ = channel.Close() }) }
+	stop := context.AfterFunc(lifetime, func() { closeLink(); cancel() })
+	cleanup := func() { stop(); closeLink(); cancel() }
+	if lifetime.Err() != nil {
+		cleanup()
+		return nil, "", nil, toolbroker.ErrRejected
+	}
+	return dispatcher, token, cleanup, nil
+}
+
+func ctxJob(ctx context.Context) (string, bool) {
+	if ctx == nil || ctx.Err() != nil {
+		return "", false
+	}
+	job, ok := ctx.Value(workerLocalJobContextKey{}).(string)
+	return job, ok && validWorkerJobID(job)
 }

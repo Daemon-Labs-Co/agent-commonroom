@@ -513,3 +513,19 @@ the dependency cache. The resulting binary passed version/schema-generation
 commands with network disabled, read-only root and an empty temporary home. These
 commands start no model turn. The development binary is not a release/deployment;
 OAuth and production paired execution remain unverified.
+
+
+## Shared P0 integration — 15 October 2026
+
+The shared development baseline at `405c89e` initially did not compile. After
+launch-signature repair and correction of a formatting-sensitive audit test,
+full `make test` passed in **2.44s** and full `make check` in **7.66s**.
+Hardened audit integration and asynchronous initiator preservation then passed
+in **2.62s / 7.38s**. Final runs after binding broker authority to worker
+cancellation passed in **2.20s / 7.28s** respectively. Times are wall time around
+each complete command, not estimates of total active authoring time. Unchanged
+Go packages were cached; server tests ran. `make check` completed its full race,
+vet, Python and JavaScript checks. Synthetic tests used mocked database and
+executor interactions; no provider agents, databases or real Docker workloads
+were launched. Production paired runtime remains unimplemented/unverified; see
+[P0 progress](p0-execution-progress-2026-10-15.md).

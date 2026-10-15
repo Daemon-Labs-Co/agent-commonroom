@@ -25,6 +25,7 @@ Start here for the current product and technical documentation. Agent CommonRoom
 | Run, back up, and troubleshoot an installation | [Operations guide](operations.md) |
 | Report vulnerabilities or understand security limits | [Security policy](../SECURITY.md) and [security review](../SECURITY_REVIEW.md) |
 | Understand requirements and planned behavior | [Functional specification](../FUNCTIONAL_SPEC.md) |
+| Compare the agreed v0.1 scope with current development | [v0.1 gap assessment — 15 October 2026](v0.1-gap-assessment-2026-10-15.md) |
 | Contribute changes | [Contribution guide](../CONTRIBUTING.md) |
 
 ## Documentation status
@@ -60,3 +61,7 @@ See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) fo
 - [Measured security and refactoring benchmarks](development-benchmarks.md)
 
 Planned security architecture: [Provider/tool credential separation](provider-tool-separation.md) — design and acceptance gates; not yet implemented.
+
+- [Scoped tool audit callbacks](tool-audit-callbacks.md): mandatory metadata protocol, authorization, historical compatibility and integration limits.
+
+- [P0 execution progress — 15 October 2026](p0-execution-progress-2026-10-15.md): verified build/audit changes and remaining runtime gates.

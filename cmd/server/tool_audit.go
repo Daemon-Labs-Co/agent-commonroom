@@ -5,6 +5,7 @@ import (
 	"agentroom/internal/toolbroker"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"time"
 )
@@ -21,6 +22,21 @@ type controllerToolAuditor struct {
 	connection          room.Connection
 	companyID           string
 	repository          func() (string, error)
+}
+
+// serveToolAudit is the controller assembly point for a registered supervisor
+// stream, not a public handler. SSH/peer authentication and engine/control-stream
+// separation are required before calling it. An absent identity never means owner.
+func (s *server) serveToolAudit(ctx context.Context, scope toolbroker.Scope, channel io.ReadWriteCloser) error {
+	if channel == nil {
+		return toolbroker.ErrAudit
+	}
+	auditor, err := s.toolAuditor(ctx, scope)
+	if err != nil {
+		_ = channel.Close()
+		return toolbroker.ErrAudit
+	}
+	return toolbroker.ServeAudit(ctx, channel, scope, auditor)
 }
 
 func (s *server) toolAuditor(ctx context.Context, scope toolbroker.Scope) (toolbroker.Auditor, error) {
@@ -66,7 +82,7 @@ func (a *controllerToolAuditor) check(ctx context.Context, bound bool) (room.Sta
 	}
 	repository, err := a.repository()
 	job, exists := st.ManagedJobs[a.scope.JobID]
-	if ctx.Err() != nil || err != nil || repository == "" || repository != a.scope.RepositoryDigest || !exists || job.Status != "submitted" || job.ShutdownConfirmed || job.RoomID != a.scope.Room || job.ParticipantID != a.scope.Participant || job.ConnectionID != a.scope.Connection || job.Provider != a.scope.Provider || !job.Deadline.Equal(a.scope.Deadline) || !a.scope.Deadline.After(time.Now()) || a.server.agentsBlockedLocked(st, a.scope.Room) {
+	if ctx.Err() != nil || err != nil || repository == "" || repository != a.scope.RepositoryDigest || !exists || job.InitiatorID != a.actorID || job.CompanyID != st.Company.ID || job.Status != "submitted" || job.ShutdownConfirmed || job.RoomID != a.scope.Room || job.ParticipantID != a.scope.Participant || job.ConnectionID != a.scope.Connection || job.Provider != a.scope.Provider || !job.Deadline.Equal(a.scope.Deadline) || !a.scope.Deadline.After(time.Now()) || a.server.agentsBlockedLocked(st, a.scope.Room) {
 		return st, principal, participant, connection, toolbroker.ErrAudit
 	}
 	principal, exists = member(st, a.actorID)
@@ -118,6 +134,9 @@ func (a *controllerToolAuditor) RecordIntent(ctx context.Context, intent toolbro
 	count := 0
 	for _, call := range st.ToolAudits {
 		if call.JobID == a.scope.JobID {
+			if call.Status == "pending" {
+				return toolbroker.ErrAudit
+			}
 			count++
 		}
 	}

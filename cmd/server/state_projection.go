@@ -88,6 +88,13 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			if st.ManagedJobs == nil {
 				st.ManagedJobs = map[string]room.ManagedJob{}
 			}
+			if prior, exists := st.ManagedJobs[job.JobID]; exists {
+				binding := job
+				binding.Status, binding.DiagnosticCode, binding.UpdatedAt, binding.ShutdownConfirmed = prior.Status, prior.DiagnosticCode, prior.UpdatedAt, prior.ShutdownConfirmed
+				if binding != prior || prior.ShutdownConfirmed && !job.ShutdownConfirmed {
+					return st, errors.New("managed job binding changed")
+				}
+			}
 			st.ManagedJobs[job.JobID] = job
 		case "actor.help.updated":
 			var v struct {

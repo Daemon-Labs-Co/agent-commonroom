@@ -15,6 +15,7 @@ import (
 
 const MaxAuditFrameBytes = 4096
 
+// ValidAuditScope validates trusted admission metadata against a trusted clock.
 func ValidAuditScope(scope Scope, now time.Time) bool { return validScope(scope, now) }
 
 // AuditFrame belongs to the authenticated supervisor/controller channel, never
@@ -22,6 +23,7 @@ func ValidAuditScope(scope Scope, now time.Time) bool { return validScope(scope,
 type AuditFrame struct {
 	Version  int      `json:"version"`
 	Sequence int      `json:"sequence"`
+	Session  string   `json:"session"`
 	Stage    string   `json:"stage"`
 	Intent   Intent   `json:"intent"`
 	Outcome  *Outcome `json:"outcome,omitempty"`
@@ -39,6 +41,7 @@ func ValidAuditIntent(intent Intent, now time.Time) bool {
 	return validScope(intent.Scope, now) && identifier(intent.CallID) && operation(intent.Operation) && digest(intent.PayloadDigest, 32)
 }
 
+// ValidAuditOutcome bounds evidence metadata; hashes are not filesystem attestation.
 func ValidAuditOutcome(outcome Outcome) bool {
 	if outcome.OutputBytes < 0 || outcome.OutputBytes > MaxOutputBytes || !digest(outcome.OutputDigest, 32) {
 		return false

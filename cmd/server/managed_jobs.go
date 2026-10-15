@@ -23,6 +23,7 @@ type managedJobRegistration struct {
 // stores prompts, provider output, command arguments or credentials.
 func (s *server) managedJobContext(ctx context.Context, p room.Participant) context.Context {
 	job := room.ManagedJob{Version: 2, JobID: id(), RoomID: p.RoomID, ParticipantID: p.ID, ConnectionID: p.ConnectionID, Status: "allocated", AllocatedAt: time.Now().UTC()}
+	job.InitiatorID, _ = ctx.Value(actorContextKey{}).(string)
 	job.Deadline, _ = ctx.Deadline()
 	if job.Deadline.IsZero() {
 		job.Deadline = job.AllocatedAt.Add(3 * time.Minute)
@@ -42,6 +43,13 @@ func (s *server) managedJobContext(ctx context.Context, p room.Participant) cont
 		if s.agentsBlockedLocked(latest, p.RoomID) {
 			return errors.New("managed execution is stopped")
 		}
+		if job.InitiatorID != "" {
+			actor, ok := member(latest, job.InitiatorID)
+			if !ok || actor.Kind != "human" || !canAccess(latest, job.InitiatorID, p.RoomID) {
+				return errors.New("managed initiator access changed")
+			}
+		}
+		job.CompanyID = latest.Company.ID
 		found := false
 		for _, member := range latest.Participants {
 			if member.ID == p.ID && member.RoomID == p.RoomID && member.ConnectionID == p.ConnectionID {
@@ -83,6 +91,9 @@ func (s *server) managedJobContext(ctx context.Context, p room.Participant) cont
 		job.DiagnosticCode = "intent_recorded"
 		auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		if job.InitiatorID != "" {
+			auditCtx = context.WithValue(auditCtx, actorContextKey{}, job.InitiatorID)
+		}
 		if err = s.append(context.WithValue(auditCtx, expectedEventCountKey{}, latest.EventCount), "worker.job.updated", job); err != nil {
 			s.tripIntegrityLocked()
 			return errors.New("managed job allocation audit failed; launch refused")
@@ -151,6 +162,9 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 }
 
 func validManagedJob(v room.ManagedJob) bool {
+	if v.InitiatorID != "" && !membershipPartPattern.MatchString(v.InitiatorID) || v.CompanyID != "" && !membershipPartPattern.MatchString(v.CompanyID) {
+		return false
+	}
 	if v.Version != 2 || !validWorkerJobID(v.JobID) || !membershipPartPattern.MatchString(v.RoomID) || !membershipPartPattern.MatchString(v.ParticipantID) || !membershipPartPattern.MatchString(v.ConnectionID) || !workerAliasPattern.MatchString(v.Worker) || (v.Provider != "codex" && v.Provider != "claude") || v.AllocatedAt.IsZero() || v.UpdatedAt.IsZero() || v.Deadline.IsZero() {
 		return false
 	}

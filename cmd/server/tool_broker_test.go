@@ -1,47 +1,51 @@
 package main
 
 import (
-	"agentroom/internal/room"
+	"agentroom/internal/toolbroker"
 	"context"
 	"errors"
 	"io"
+	"net"
 	"strings"
 	"testing"
 	"time"
-
-	"agentroom/internal/toolbroker"
 )
 
-func TestToolSeparationEnabledDefaultsOff(t *testing.T) {
+func TestNewToolDispatcherRequiresWorkerAndAuditChannel(t *testing.T) {
 	t.Parallel()
-	st := room.State{}
-	if toolSeparationEnabled(st) {
-		t.Fatal("expected default off")
-	}
-	st.FeatureFlags = map[string]bool{"toolSeparation": true}
-	if !toolSeparationEnabled(st) {
-		t.Fatal("expected enabled once set")
-	}
-}
-
-func TestNewToolDispatcherAssemblesWithoutTouchingDocker(t *testing.T) {
-	t.Parallel()
-	db := newMockDB(t)
-	s := &server{db: db}
-	now := time.Now()
 	scope := sampleToolScope(t)
 	image := "ghcr.io/example/commonroom-tool@sha256:" + strings.Repeat("a", 64)
-	// NewContainerExecutor only validates inputs; it does not invoke docker
-	// until Dispatch actually calls Execute. Construction must stay real-Docker-free.
-	dispatcher, token, err := s.newToolDispatcher(scope, []string{"read"}, image, "/var/lib/docker", now)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if dispatcher == nil {
-		t.Fatal("expected a non-nil dispatcher")
-	}
-	if len(token) != 64 {
-		t.Fatalf("expected a 64-hex-char capability token, got %q", token)
+	for _, mode := range []string{"missing worker", "wrong job", "missing channel", "cancelled", "valid"} {
+		t.Run(mode, func(t *testing.T) {
+			client, peer := net.Pipe()
+			defer client.Close()
+			defer peer.Close()
+			var channel io.ReadWriteCloser = client
+			ctx := context.WithValue(t.Context(), workerLocalJobContextKey{}, scope.JobID)
+			switch mode {
+			case "missing worker":
+				ctx = t.Context()
+			case "wrong job":
+				ctx = context.WithValue(ctx, workerLocalJobContextKey{}, strings.Repeat("c", 32))
+			case "missing channel":
+				channel = nil
+			case "cancelled":
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			}
+			dispatcher, token, cleanup, err := newToolDispatcher(ctx, scope, []string{"read"}, image, "/var/lib/docker", time.Now(), channel)
+			if cleanup != nil {
+				defer cleanup()
+			}
+			if mode == "valid" {
+				if err != nil || dispatcher == nil || len(token) != 64 || cleanup == nil {
+					t.Fatal("assembly failed", err)
+				}
+			} else if err == nil || dispatcher != nil || token != "" || cleanup != nil {
+				t.Fatal("unbound assembly accepted")
+			}
+		})
 	}
 }
 
@@ -55,53 +59,114 @@ func (f fakeToolExecutor) Execute(ctx context.Context, scope toolbroker.Scope, a
 	return err
 }
 
-// This proves the real Auditor round-trips intent -> outcome through an
-// actual Dispatcher.Dispatch call (not just called directly, as in
-// tool_broker_audit_test.go), using toolbroker's own Executor interface with a
-// trusted in-test fake standing in for real Docker/container execution —
-// exactly as the plan called for, and consistent with how
-// internal/toolbroker's own tests stub DockerRunner rather than shelling out.
-func TestDispatchRoundTripsThroughRealAuditor(t *testing.T) {
+func TestDispatchRoundTripsThroughScopedControllerChannel(t *testing.T) {
 	t.Parallel()
-	for _, tc := range []struct {
-		name           string
-		fail           bool
-		wantErr        bool
-		wantFinalState string
-	}{
-		{"success", false, false, "succeeded"},
-		{"executor failure", true, true, "failed"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, failed := range []bool{false, true} {
+		t.Run(map[bool]string{false: "success", true: "executor failure"}[failed], func(t *testing.T) {
 			t.Parallel()
-			db := newMockDB(t)
-			s := &server{db: db}
-			now := time.Now()
-			scope := sampleToolScope(t)
-			authority, token, err := toolbroker.New(scope, []string{"read"}, now)
+			s, _, auditor, intent := scopedAuditFixture(t)
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			client, peer := net.Pipe()
+			defer client.Close()
+			done := make(chan error, 1)
+			go func() { done <- toolbroker.ServeAudit(ctx, peer, intent.Scope, auditor) }()
+			audit, err := toolbroker.NewAuditClient(client, intent.Scope)
 			if err != nil {
 				t.Fatal(err)
 			}
-			dispatcher, err := toolbroker.NewDispatcher(authority, &storedToolAuditor{s: s}, fakeToolExecutor{fail: tc.fail})
+			authority, token, err := toolbroker.New(intent.Scope, []string{"read"}, time.Now())
 			if err != nil {
 				t.Fatal(err)
 			}
-			req := toolbroker.Request{Scope: scope, Capability: token, CallID: "call-dispatch", Operation: "read", Path: "notes.txt"}
-			_, dispatchErr := dispatcher.Dispatch(t.Context(), req)
-			if tc.wantErr != (dispatchErr != nil) {
-				t.Fatalf("Dispatch error = %v, wantErr = %v", dispatchErr, tc.wantErr)
-			}
-			st, err := s.load(t.Context())
+			dispatcher, err := toolbroker.NewDispatcher(authority, audit, fakeToolExecutor{fail: failed})
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, ok := st.ToolCalls[req.CallID]
-			if !ok {
-				t.Fatal("expected the call's audit record to be replayed")
+			req := toolbroker.Request{Scope: intent.Scope, Capability: token, CallID: "roundtrip", Operation: "read", Path: "notes.txt"}
+			_, dispatchErr := dispatcher.Dispatch(ctx, req)
+			if failed != (dispatchErr != nil) {
+				t.Fatal("unexpected dispatch result", dispatchErr)
 			}
-			if got.Status != tc.wantFinalState {
-				t.Fatalf("Status = %q, want %q", got.Status, tc.wantFinalState)
+			st, err := s.load(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := "succeeded"
+			if failed {
+				want = "failed"
+			}
+			got := st.ToolAudits[toolAuditKey(intent.Scope.JobID, req.CallID)]
+			if got.Status != want || got.ActorID != auditor.actorID {
+				t.Fatal("scoped result/attribution lost", got)
+			}
+			if len(st.ToolCalls) != 0 {
+				t.Fatal("new action used legacy unscoped projection")
+			}
+			cancel()
+			client.Close()
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+				t.Fatal("audit stream did not close")
 			}
 		})
 	}
+}
+
+// Credential separation and durable audit are mandatory, not rollout toggles.
+func TestToolSeparationFlagCannotGrantOrDisableAudit(t *testing.T) {
+	t.Parallel()
+	for _, enabled := range []string{"true", "false"} {
+		t.Run(enabled, func(t *testing.T) {
+			_, db, h := mockServer(t)
+			before := len(db.snapshot())
+			response := mockRequest(h, "POST", "/api/events", `{"kind":"feature.flag.updated","payload":{"name":"toolSeparation","enabled":`+enabled+`}}`)
+			if response.Code != 400 || len(db.snapshot()) != before {
+				t.Fatal("mandatory audit exposed as product toggle", response.Code)
+			}
+		})
+	}
+}
+
+func TestWorkerCancellationClosesAuditDespiteFreshDispatchContext(t *testing.T) {
+	t.Parallel()
+	scope := sampleToolScope(t)
+	worker, cancel := context.WithCancel(context.WithValue(t.Context(), workerLocalJobContextKey{}, scope.JobID))
+	defer cancel()
+	client, peer := net.Pipe()
+	defer peer.Close()
+	image := "ghcr.io/example/commonroom-tool@sha256:" + strings.Repeat("a", 64)
+	dispatcher, token, cleanup, err := newToolDispatcher(worker, scope, []string{"read"}, image, "/var/lib/docker", time.Now(), client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	entered := make(chan struct{})
+	go func() { var first [1]byte; _, _ = peer.Read(first[:]); close(entered) }()
+	result := make(chan error, 1)
+	go func() {
+		_, err := dispatcher.Dispatch(context.Background(), toolbroker.Request{Scope: scope, Capability: token, CallID: "cancelled", Operation: "read", Path: "file"})
+		result <- err
+	}()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("audit never started")
+	}
+	cancel()
+	select {
+	case err := <-result:
+		if err == nil {
+			t.Fatal("cancelled worker admitted action")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("worker cancellation failed to interrupt audit")
+	}
+	// Replacing the Dispatch context cannot resurrect the revoked authority.
+	if _, err := dispatcher.Dispatch(context.Background(), toolbroker.Request{Scope: scope, Capability: token, CallID: "again", Operation: "read", Path: "file"}); err == nil {
+		t.Fatal("cancelled worker authority survived")
+	}
+	cleanup()
+	cleanup()
 }
