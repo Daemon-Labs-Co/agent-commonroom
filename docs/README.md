@@ -98,3 +98,6 @@ subscription-only process, pinned recipe and outstanding live integration.
 
 See [reviewed engine-container runtime](engine-container-runtime.md) for
 fresh creation, reported policy verification and remaining production integration.
+
+[Remaining P0 acceptance tests](p0-acceptance-tests.md) lists pending behavioral
+contracts, strict readiness checks and separate live deployment acceptance.

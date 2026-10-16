@@ -1,4 +1,4 @@
-.PHONY: run build test test-race coverage check secrets
+.PHONY: run build test test-race test-p0-plan test-p0-ready coverage check secrets
 
 run:
 	go run ./cmd/server
@@ -13,6 +13,14 @@ test:
 
 test-race:
 	go test -race -parallel $(TEST_PARALLEL) -timeout 30s ./...
+
+# Pending cases are visible here; this does not prove release readiness.
+test-p0-plan:
+	go test -v -count=1 -timeout 30s ./cmd/server -run '^TestP0RemainingAcceptance$$'
+
+# Intentionally fails until every remaining scenario has a real hermetic driver.
+test-p0-ready:
+	COMMONROOM_REQUIRE_P0_ACCEPTANCE=1 go test -count=1 -timeout 30s ./cmd/server -run '^TestP0RemainingAcceptance$$'
 
 coverage:
 	@mkdir -p coverage

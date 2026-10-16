@@ -1,0 +1,7 @@
+# Deny repository, credential, history and private build context by default.
+**
+!docker/
+!docker/engine/
+!docker/engine/Dockerfile
+!docker/engine/Dockerfile.dockerignore
+!docker/engine/entrypoint.cjs
