@@ -19,6 +19,15 @@ type ToolSession struct {
 	Runtime    *ToolContainerRuntime
 	Dispatcher *Dispatcher
 	close      func()
+	scope      Scope
+}
+
+// Scope returns immutable nonsecret registration metadata, never the capability.
+func (s *ToolSession) Scope() Scope {
+	if s == nil {
+		return Scope{}
+	}
+	return s.scope
 }
 
 func (s *ToolSession) Close() {
@@ -62,6 +71,9 @@ func NewToolSession(ctx context.Context, scope Scope, allowed []string, image, d
 	if err != nil {
 		return nil, "", err
 	}
+	// Retain the original caller context as well as the deadline child: parent
+	// Done closes before cancellation necessarily reaches all derived contexts.
+	runtime.original = ctx
 	audit, err := NewAuditClient(channel, scope)
 	if err != nil {
 		return nil, "", err
@@ -79,7 +91,7 @@ func NewToolSession(ctx context.Context, scope Scope, allowed []string, image, d
 		return nil, "", ErrRejected
 	}
 	failed = false
-	return &ToolSession{Runtime: runtime, Dispatcher: dispatcher, close: cleanup}, token, nil
+	return &ToolSession{Runtime: runtime, Dispatcher: dispatcher, close: cleanup, scope: scope}, token, nil
 }
 
 // WorkspaceIntent is a lifetime-bound request for the supervisor to journal.

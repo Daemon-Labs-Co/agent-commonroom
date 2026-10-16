@@ -59,10 +59,10 @@ func (r *ToolContainerRuntime) Bootstrap(ctx context.Context, input io.ReadClose
 	if err = r.verify(child, r.id, true); err != nil {
 		return workspacebootstrap.Receipt{}, err
 	}
-	if child.Err() != nil || r.lifetime.Err() != nil {
+	if child.Err() != nil || r.lifetime.Err() != nil || r.original.Err() != nil {
 		return workspacebootstrap.Receipt{}, ErrExecution
 	}
-	p.workspace.Store(&workspaceReadiness{lifetime: r.lifetime, containerID: r.id})
+	p.workspace.Store(&workspaceReadiness{lifetime: r.lifetime, original: r.original, containerID: r.id})
 	return receipt, nil
 }
 func validReceiptJSON(raw []byte, receipt *workspacebootstrap.Receipt) bool {

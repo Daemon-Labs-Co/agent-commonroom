@@ -128,10 +128,15 @@ func (p *ToolContainerPlan) CreateArgs(now time.Time) ([]string, error) {
 // A fresh per-call context must never revive a cancelled workspace authority.
 type workspaceReadiness struct {
 	lifetime    context.Context
+	original    context.Context
 	containerID string
 }
 
 func (p *ToolContainerPlan) workspaceReady() bool {
 	ready := p.workspace.Load()
-	return ready != nil && ready.lifetime.Err() == nil && digest(ready.containerID, 32)
+	return ready.active() && digest(ready.containerID, 32)
+}
+
+func (ready *workspaceReadiness) active() bool {
+	return ready != nil && ready.lifetime != nil && ready.original != nil && ready.lifetime.Err() == nil && ready.original.Err() == nil
 }

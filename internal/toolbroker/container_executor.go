@@ -62,7 +62,7 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	ready := e.plan.workspace.Load()
 	stop := context.AfterFunc(ready.lifetime, cancelAuthority)
 	defer stop()
-	if ready.lifetime.Err() != nil || ctx.Err() != nil {
+	if !ready.active() || ctx.Err() != nil {
 		return ErrRejected
 	}
 
@@ -97,12 +97,12 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	defer cancel()
 	output := &boundedOutput{cancel: cancel}
 	args := []string{"exec", "-i", "--user", "1000:1000", "--workdir", "/workspace/repository", id, "/usr/local/bin/node", "/opt/commonroom/tool-call.cjs"}
-	if execCtx.Err() != nil || ready.lifetime.Err() != nil {
+	if execCtx.Err() != nil || !ready.active() {
 		return e.failed(id, false)
 	}
 	runErr := e.runner.Run(execCtx, args, input, output)
 	raw, overflow := output.snapshot()
-	if runErr != nil || execCtx.Err() != nil || ready.lifetime.Err() != nil || overflow {
+	if runErr != nil || execCtx.Err() != nil || !ready.active() || overflow {
 		return e.failed(id, overflow)
 	}
 	if !validHelperResult(raw, action) {

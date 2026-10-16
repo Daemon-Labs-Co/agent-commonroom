@@ -111,14 +111,22 @@ func pairRoleSettled(c workerPairContainer) bool { return !c.CreationStarted || 
 // No production launch adapter or public entry point is wired.
 // Its caller must authenticate the controller and validate image/mount policy.
 type workerPairSupervisor struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	startup sync.Mutex
-	mu      sync.Mutex
-	dir     string
-	record  workerJobRecord
-	leases  *workerJobLeases
-	closed  bool
+	ctx              context.Context
+	cancel           context.CancelFunc
+	startup          sync.Mutex
+	turn             sync.Mutex
+	reconcile        sync.Mutex
+	mu               sync.Mutex
+	dir              string
+	record           workerJobRecord
+	leases           *workerJobLeases
+	closed           bool
+	assembled        bool
+	auditListener    *workerAuditListener
+	toolSession      *toolbroker.ToolSession
+	codexTurnStarted bool
+	engineCredential *workerEngineCredential
+	codexRunStarted  bool
 }
 
 // admitWorkerPair is an internal worker seam, not a new run-v2 variant or public
@@ -146,14 +154,16 @@ func admitWorkerPair(ctx context.Context, dir string, request workerRunRequest, 
 	return &workerPairSupervisor{ctx: lifetime, cancel: cancel, dir: dir, record: record, leases: leases}, nil
 }
 
-// Close cancels first, then retains ownership until in-flight adapter work has
-// returned. Cancellation alone cannot prove a create/start operation has ended.
+// Close cancels first, then retains ownership until the active model turn and
+// in-flight adapter work have returned. Cancellation alone cannot prove a create/start operation has ended.
 // Every concurrent Close waits too; none can report released ownership early.
 func (s *workerPairSupervisor) Close() {
 	s.mu.Lock()
 	s.closed = true
 	s.cancel()
 	s.mu.Unlock()
+	s.turn.Lock()
+	defer s.turn.Unlock()
 	s.startup.Lock()
 	defer s.startup.Unlock()
 	s.mu.Lock()

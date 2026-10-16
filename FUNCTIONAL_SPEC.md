@@ -27,7 +27,7 @@ history to enforce product packaging. Security foundations remain free.
 
 ## Connections and agents
 
-FR-03: v0.1 requires Claude CLI, Codex CLI and llama.cpp connections. CLI
+FR-03: v0.1 requires Claude CLI, Codex CLI, Gemini CLI, GitHub Copilot CLI and llama.cpp connections. CLI
 subscription authentication remains supported; do not silently substitute
 separately billed API access. A connection uses a supported CLI/model interface,
 not automation of a desktop application's windows or a chat website URL.
@@ -230,3 +230,40 @@ Mandatory security boundaries and the single-human free distribution invariant
 have no bypass toggle. Run `make test` during development and `make check` before
 completion. Never launch real providers or connect to databases in automated tests.
 Never claim synthetic tests establish live provider/runtime compatibility.
+
+## Owner additions: P0 execution requirements
+
+Confirmed 15 October 2026. These requirements extend the baseline above; they
+are not claims of delivered functionality.
+
+FR-29: Provider adapters must permit eventual integration of arbitrary models
+through explicit capability contracts. Gemini and GitHub Copilot join the P0
+provider list. Preserve each provider's supported authentication and billing;
+unsupported capabilities fail closed rather than escaping isolation.
+
+FR-30: Check for provider-harness upgrades on agent instantiation. Install updates
+only through a reviewed compatibility and image publication path; launch a fresh
+container from the resulting approved immutable image. Never mutate a running
+reviewed engine or silently admit an unreviewed upstream version. Record version
+and upgrade outcome without credentials. Failed or incompatible upgrades block
+new execution with an actionable explanation.
+
+FR-31: Shut down agents after an owner-configurable interval without new work,
+default five minutes. Active work is not idle. Use the normal fenced shutdown and
+retention path; idle expiry must not authorize workspace deletion or erase audit
+history. Subsequent work starts fresh containers, never restarts a used one.
+
+FR-32: Free accounts have a hard aggregate storage ceiling of 5 GB (5,000,000,000
+bytes) and four managed containers, including both engine and tool containers.
+Reserve capacity atomically before allocation across rooms and workers. Retained
+workspaces, staged bundles and artifacts consume storage; unresolved jobs retain
+container reservations until absence is proven. Deny allocation when capacity
+cannot be established. Paid limits remain undecided; do not infer unlimited use.
+Limits are mandatory admission safeguards without a bypass feature flag.
+
+FR-33: Every new agent execution uses newly created containers and a fresh
+workspace. Never adopt or restart previously used containers. Cleanup must prove
+container absence and obey explicit workspace retention/discard authority; a
+cleanup failure blocks replacement admission rather than reusing remnants.
+Rigorous synthetic failure tests and separately documented live acceptance are
+required before production admission is opened.

@@ -209,7 +209,7 @@ func TestExecutorSuppressesSuccessWhenWorkspaceJobEndsDuringAction(t *testing.T)
 	p, c, raw, vol, root, scope, action := executorFixture(t)
 	lifetime, endJob := context.WithCancel(t.Context())
 	defer endJob()
-	p.workspace.Store(&workspaceReadiness{lifetime: lifetime, containerID: c.ID})
+	p.workspace.Store(&workspaceReadiness{lifetime: lifetime, original: lifetime, containerID: c.ID})
 	response := syntheticReadResult(t, "synthetic result")
 	runner := runtimeMock(t, raw, vol, func(_ context.Context, _ []string, _ []byte, out io.Writer) error {
 		endJob()

@@ -21,6 +21,17 @@ import (
 
 const workerLifecycleVersion = 2
 
+// Reserve physical container slots before creation, including unresolved jobs.
+// This worker-local ceiling cannot replace account-wide multi-worker admission.
+const workerContainerLimit = managedContainerLimit
+
+func workerContainerSlots(record workerJobRecord) int {
+	if record.Pair != nil {
+		return 2
+	}
+	return 1
+}
+
 type workerLocalJobContextKey struct{}
 
 var membershipPartPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
@@ -151,7 +162,7 @@ func workerJobSettled(v workerJobRecord) bool {
 // workerAdmission checks durable records and live containers under the shared
 // admission lock. Scope locks serialize a membership across connections/providers.
 func workerAdmission(records []workerJobRecord, containers []string, next workerJobRecord) error {
-	count, roomCount := 0, 0
+	count, roomCount, containerSlots := 0, 0, 0
 	byJob := map[string]workerJobRecord{}
 	for _, record := range records {
 		byJob[record.JobID] = record
@@ -168,6 +179,7 @@ func workerAdmission(records []workerJobRecord, containers []string, next worker
 			return errors.New("membership has unresolved worker work")
 		}
 		count++
+		containerSlots += workerContainerSlots(record)
 		if record.RoomID == next.RoomID {
 			roomCount++
 		}
@@ -189,6 +201,9 @@ func workerAdmission(records []workerJobRecord, containers []string, next worker
 		if record.Scope == next.Scope {
 			return errors.New("membership container still exists")
 		}
+	}
+	if containerSlots+workerContainerSlots(next) > workerContainerLimit {
+		return errors.New("worker container capacity reached")
 	}
 	if count >= 8 || roomCount >= 4 {
 		return errors.New("worker concurrency capacity reached")

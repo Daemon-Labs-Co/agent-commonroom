@@ -48,3 +48,15 @@ reviewed engine driver/images and actual production pair adapter remain P0 work.
 See [worker pairs](worker-pairs.md), [workspace volumes](workspace-volumes.md) and
 [bootstrap](workspace-bootstrap.md). A source fork can replace trusted assembly,
 but then invalidates isolation and durable-audit guarantees.
+
+See the [private worker audit transport](worker-audit-transport.md) for
+SSH separation, single-use socket ownership and remaining production integration.
+
+See [worker pair assembly](worker-pair-assembly.md) for exact session/runtime
+binding, snapshot ownership, startup ordering and remaining engine integration.
+
+The supervisor-owned `AcceptToolSession` attachment now watches the private link
+for idle EOF and cancels the original lifetime on loss. See
+[audit session supervision](worker-audit-transport.md#session-attachment-and-disconnect-supervision).
+Cancellation still requires explicit fenced container cleanup before shutdown
+or quota release can be confirmed.

@@ -254,12 +254,12 @@ func TestWorkerPairRefusesDaemonFailureAndNameReplacement(t *testing.T) {
 		})
 	}
 }
-func TestWorkerPairAdmissionCountsLogicalJobsAndRejectsOrphans(t *testing.T) {
+func TestWorkerPairAdmissionReservesContainerSlotsAndRejectsOrphans(t *testing.T) {
 	t.Parallel()
 	next := fakeWorkerRecord(t, strings.Repeat("f", 32), "another/new/connection/worker")
 	records := []workerJobRecord{}
 	names := []string{}
-	for _, suffix := range []string{"a", "b", "c", "d", "e", "1", "2"} {
+	for _, suffix := range []string{"a"} {
 		r := fakeWorkerRecord(t, strings.Repeat(suffix, 32), "room/agent"+suffix+"/connection/worker")
 		r.Version = workerPairLifecycleVersion
 		r.Execution = workerPairExecution
@@ -268,15 +268,18 @@ func TestWorkerPairAdmissionCountsLogicalJobsAndRejectsOrphans(t *testing.T) {
 		names = append(names, pairContainerName(r.JobID, "engine"), pairContainerName(r.JobID, "tool"))
 	}
 	if err := workerAdmission(records, names, next); err != nil {
-		t.Fatal("two containers counted as two logical jobs", err)
+		t.Fatal("available container slots rejected", err)
 	}
 	if err := workerAdmission(records, append(names, "commonroom-tool-"+strings.Repeat("9", 32)), next); err == nil {
 		t.Fatal("orphan admitted")
 	}
 	r := fakeWorkerRecord(t, strings.Repeat("8", 32), "room/agent8/connection/worker")
 	records = append(records, r)
+	next.Version = workerPairLifecycleVersion
+	next.Execution = workerPairExecution
+	next.Pair = &workerPairRecord{Version: 1, Repository: strings.Repeat("b", 64)}
 	if err := workerAdmission(records, names, next); err == nil {
-		t.Fatal("aggregate job limit bypassed")
+		t.Fatal("container limit bypassed")
 	}
 }
 func TestWorkerPairCannotForgeTerminalOrCrossRoleEvidence(t *testing.T) {

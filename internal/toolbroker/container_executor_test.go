@@ -25,7 +25,7 @@ func executorFixture(t *testing.T) (*ToolContainerPlan, toolInspection, []byte, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.workspace.Store(&workspaceReadiness{lifetime: context.Background(), containerID: c.ID}) // Synthetic initialized workspace.
+	p.workspace.Store(&workspaceReadiness{lifetime: context.Background(), original: context.Background(), containerID: c.ID}) // Synthetic initialized workspace.
 	return p, c, inspectJSON(t, c), inspectJSON(t, v), root, a.scope, Action{Operation: "read", Path: r.Path}
 }
 func runtimeMock(t *testing.T, c, volume []byte, exec func(context.Context, []string, []byte, io.Writer) error, cleanup func([]string, io.Writer) error) DockerRunner {
@@ -324,7 +324,7 @@ func TestDispatcherUsesContainerExecutorAfterAudit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.workspace.Store(&workspaceReadiness{lifetime: context.Background(), containerID: c.ID}) // Synthetic completed bootstrap.
+	p.workspace.Store(&workspaceReadiness{lifetime: context.Background(), original: context.Background(), containerID: c.ID}) // Synthetic completed bootstrap.
 	e := containerExecutor(t, p, runner, root)
 	d := dispatcher(t, a, audit, e)
 	r := Request{Scope: scope, Capability: token, CallID: "call", Operation: "read", Path: "file.go"}

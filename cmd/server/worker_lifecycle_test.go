@@ -227,3 +227,46 @@ func TestWorkerProtocolRejectsExpiredReplayAndExtendedDeadline(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkerContainerReservationsIncludeUncreatedAndUnresolvedPairs(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name               string
+		existing, incoming int
+		wantBlocked        bool
+	}{
+		{"two pairs fit", 2, 2, false},
+		{"third pair refused", 4, 2, true},
+		{"mixed jobs fit", 3, 1, false},
+		{"mixed jobs overflow", 3, 2, true},
+		{"legacy fifth refused", 4, 1, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			records := []workerJobRecord{}
+			remaining := tc.existing
+			for i := 0; remaining > 0; i++ {
+				r := fakeWorkerRecord(t, fmt.Sprintf("%032x", i+1), fmt.Sprintf("room%d/agent/connection/worker", i))
+				if remaining >= 2 {
+					r.Version = workerPairLifecycleVersion
+					r.Execution = workerPairExecution
+					r.Pair = &workerPairRecord{Version: 1, Repository: strings.Repeat("b", 64)}
+					// A terminal label without shutdown evidence must still reserve both slots.
+					r.Status = "failed"
+					remaining -= 2
+				} else {
+					remaining--
+				}
+				records = append(records, r)
+			}
+			next := fakeWorkerRecord(t, strings.Repeat("f", 32), "target/new/connection/worker")
+			if tc.incoming == 2 {
+				next.Version = workerPairLifecycleVersion
+				next.Execution = workerPairExecution
+				next.Pair = &workerPairRecord{Version: 1, Repository: strings.Repeat("b", 64)}
+			}
+			if blocked := workerAdmission(records, nil, next) != nil; blocked != tc.wantBlocked {
+				t.Fatalf("blocked=%v, want %v", blocked, tc.wantBlocked)
+			}
+		})
+	}
+}

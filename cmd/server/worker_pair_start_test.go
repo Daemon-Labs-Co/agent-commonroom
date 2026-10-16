@@ -254,3 +254,8 @@ func TestWorkerPairCloseRetainsLeaseUntilStartupReturns(t *testing.T) {
 		})
 	}
 }
+
+func (f *pairLaunchFake) Scope() toolbroker.Scope {
+	r := f.supervisor.record
+	return toolbroker.Scope{Version: 1, JobID: r.JobID, Room: r.RoomID, Participant: r.ParticipantID, Connection: r.ConnectionID, Provider: r.Provider, RepositoryDigest: r.Pair.Repository, Deadline: r.Deadline.UTC().Round(0)}
+}

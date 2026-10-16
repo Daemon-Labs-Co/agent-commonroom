@@ -290,3 +290,34 @@ func TestToolCreateArgsAndCreatedState(t *testing.T) {
 		t.Fatal("revoked creation plan accepted")
 	}
 }
+
+func TestToolRuntimeOriginalCancellationPrecedesDerivedPropagation(t *testing.T) {
+	t.Parallel()
+	plan, container, raw, volume, root, scope, action := executorFixture(t)
+	calls := 0
+	response := syntheticReadResult(t, "synthetic")
+	base := runtimeMock(t, raw, volume, func(_ context.Context, _ []string, _ []byte, out io.Writer) error {
+		_, err := out.Write(response)
+		return err
+	}, func([]string, io.Writer) error { return nil })
+	runner := mockDocker(func(ctx context.Context, args []string, in []byte, out io.Writer) error {
+		calls++
+		return base.Run(ctx, args, in, out)
+	})
+	runtime, err := NewToolContainerRuntime(context.Background(), plan, runner, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, cancel := context.WithCancel(t.Context())
+	runtime.original = original
+	cancel()
+	if _, err = runtime.WorkspaceIntent(context.Background()); err != ErrRejected {
+		t.Fatal("uncancelled child revived workspace intent")
+	}
+	plan.workspace.Store(&workspaceReadiness{lifetime: context.Background(), original: original, containerID: container.ID})
+	callCtx, done := context.WithDeadline(context.Background(), scope.Deadline)
+	defer done()
+	if err = runtime.executor.Execute(callCtx, scope, action, io.Discard); err != ErrRejected || calls != 0 {
+		t.Fatal("uncancelled child revived tool dispatch", err, calls)
+	}
+}
