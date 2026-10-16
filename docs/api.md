@@ -1,42 +1,5 @@
 # HTTP API overview
 
-### Agent session recovery
-
-Owner-only, authenticated, CSRF-protected `POST /api/agent-recovery?room=ROOM`
-accepts `{"action":"check|resume|fresh","participantId":"ID"}`. Default-on
-`agentRecovery` is enforced server-side. The participant must belong to the room.
-Check returns `{idle,recovered:false,detail}` and changes no history. Mutations
-recheck shared-worker quiescence at action time, then atomically append one
-`agent.recovered` event containing the resulting participant snapshot, action and
-authenticated actor. Replay applies the Idle state and optional session reset.
-There is no model launch, task replay or audit rewrite. Busy worker returns
-`idle:false`; active controller work/stops/incidents/invalid resume return 409;
-unknown worker state returns 503; disabled flag/non-owner/invalid CSRF return 403.
-
-### Background work telemetry
-
-With `agentBackgroundWork` on (default), room-authorized participant state includes
-up to 64 `background` observations: `turnId`, optional `jobId`, trusted stage/label,
-room/participant IDs and `observedAt`. These are controller observation times, not
-worker heartbeats or exact command timestamps. Flag off omits the property and
-blocks telemetry collection; existing audit history remains. Only the owner may
-toggle the flag. The internal `agent.background` event cannot be submitted through
-public event ingestion. Stop all reuses authenticated owner-only, CSRF-protected
-`POST /api/agent-safety`, independent of cosmetic safety button visibility.
-
-### Execution capacity and long-running status
-
-Agent chat dispatch returns HTTP 429 when its entire eligible target batch would
-exceed eight active model turns overall or four in the requested room. That
-rejection launches none of the batch and appends no chat message. Workflows use
-the same admission check; overload becomes an explicit failed run for owner
-inspection/resume. Limits are single-controller safeguards, not durable queues.
-
-When default-on `agentStatusDetails` is enabled, Working participants may include
-`statusDetails.elapsedSeconds` and `statusDetails.longRunning` (true at 120
-seconds). Values derive from recorded dispatch time, not worker telemetry.
-Disabled delivery omits the entire details object; room access protections apply.
-
 [Documentation index](README.md)
 
 This describes the current internal browser API, not a versioned public SDK contract. Route implementations and tests remain authoritative. There is no API-key or bot service-account authentication yet.
@@ -66,7 +29,52 @@ Pass `?room=<room-id>` to room-sensitive state/events/agent operations. Omitting
 | GET /api/integrity | Verify current chain and record a detected incident. | Owner; this GET can append an incident record. |
 | POST /api/members | Create/edit an invited human account. | Owner and CSRF. |
 | POST /api/agents | Create/attach/remove participants or request turns/history. | Currently owner and CSRF; room access. |
-| POST /api/provider-auth | Check or launch local Claude authentication. | Owner and CSRF; registered local Claude only. |
+| POST /api/provider-auth | Inspect saved worker credentials, launch worker sign-in or sign out. | Owner and CSRF; registered approved Codex/Claude worker connection. |
+| POST /api/connections/test | Run a fixed isolated readiness check. | Owner, CSRF and enabled connection testing. |
+| POST /api/task-dispatch | Work, review or reconcile a task. | Owner, room/revision checks and taskDispatch. |
+| GET/POST /api/workflow-runs | Inspect or control sequential runs. | Owner; mutations require CSRF and current revision. |
+| POST /api/agent-safety | Stop or explicitly resume agent admission. | Owner and CSRF; core enforcement cannot be disabled. |
+| POST /api/agent-recovery | Check, resume or reset an idle session. | Owner, CSRF, feature and verified worker quiescence. |
+| GET /api/job-diagnostics | Read bounded job/worker observations. | Owner and jobDiagnostics. |
+| POST /api/job-recovery | Cancel or reconcile a managed job. | Owner, CSRF and verified identity/cleanup. |
+| GET /api/company/organization | Read reporting chart metadata. | Owner and companyOrgChart. |
+
+## Agent session recovery
+
+Owner-only, authenticated, CSRF-protected `POST /api/agent-recovery?room=ROOM`
+accepts `{"action":"check|resume|fresh","participantId":"ID"}`. Default-on
+`agentRecovery` is enforced server-side. The participant must belong to the room.
+Check returns `{idle,recovered:false,detail}` and changes no history. Mutations
+recheck shared-worker quiescence at action time, then atomically append one
+`agent.recovered` event containing the resulting participant snapshot, action and
+authenticated actor. Replay applies the Idle state and optional session reset.
+There is no model launch, task replay or audit rewrite. Busy worker returns
+`idle:false`; active controller work/stops/incidents/invalid resume return 409;
+unknown worker state returns 503; disabled flag/non-owner/invalid CSRF return 403.
+
+## Background work telemetry
+
+With `agentBackgroundWork` on (default), room-authorized participant state includes
+up to 64 `background` observations: `turnId`, optional `jobId`, trusted stage/label,
+room/participant IDs and `observedAt`. These are controller observation times, not
+worker heartbeats or exact command timestamps. Flag off omits the property and
+blocks telemetry collection; existing audit history remains. Only the owner may
+toggle the flag. The internal `agent.background` event cannot be submitted through
+public event ingestion. Stop all reuses authenticated owner-only, CSRF-protected
+`POST /api/agent-safety`, independent of cosmetic safety button visibility.
+
+## Execution capacity and long-running status
+
+Agent chat dispatch returns HTTP 429 when its entire eligible target batch would
+exceed eight active model turns overall or four in the requested room. That
+rejection launches none of the batch and appends no chat message. Workflows use
+the same admission check; overload becomes an explicit failed run for owner
+inspection/resume. Limits are single-controller safeguards, not durable queues.
+
+When default-on `agentStatusDetails` is enabled, Working participants may include
+`statusDetails.elapsedSeconds` and `statusDetails.longRunning` (true at 120
+seconds). Values derive from recorded dispatch time, not worker telemetry.
+Disabled delivery omits the entire details object; room access protections apply.
 
 ## Event mutations
 
@@ -88,8 +96,8 @@ For an existing revisioned object, submit its current revision. Memory revisions
 
 | Action | Main fields | Behavior |
 | --- | --- | --- |
-| create | action | Create a fresh ChatGPT-authenticated Codex participant/connection; requires valid local login. |
-| attach | threadId, mode, name, optional additionalContext/contextSource | Copy (`fork`) or resume a saved local Codex conversation. |
+| create | action | Legacy participant metadata helper; checks a local ChatGPT-authenticated Codex login. It does not configure an isolated worker. |
+| attach | threadId, mode, name, optional additionalContext/contextSource | Legacy host-history copy (`fork`) or resume; does not convert it into an isolated worker session. |
 | list-conversations | optional search, cursor | List supported local saved Codex conversations. |
 | read-context | threadId | Read reference context from a supported saved conversation. |
 | send | participantId, text | Request one available supported participant's turn. |
@@ -98,23 +106,23 @@ For an existing revisioned object, submit its current revision. Memory revisions
 
 send/broadcast return HTTP 202 with queued count and skipped reasons. This confirms dispatch acceptance, not successful completion or durable queuing. Later state includes the reply, or Blocked status and an agent.error event. No response-token streaming API exists.
 
-provider-auth accepts `{"action":"status","connectionId":"<id>"}` or action login. Status returns loggedIn. Login returns launched and opens the official local Claude flow on macOS; launched is not logged-in confirmation. Other platforms do not support that login launcher.
+`POST /api/provider-auth` accepts `{"action":"status|login|logout","connectionId":"ID"}` for a registered approved worker connection. Status returns `credentialPresent` and `provider`; a saved file is not proof of valid provider authentication. Login returns `launched:true` after opening a macOS Terminal for the worker sign-in command. Other controllers use the documented manual command. Logout returns `signedOut:true` only after scoped local credential removal and completion audit. See [connection sign-in](connection-sign-in.md).
 
 ## Failure handling and limits
 
 Expect 400 for malformed/unsupported operations, 401 for missing/expired sessions, 403 for access/token/host checks, 404 for missing objects where the handler uses it, 409 for conflicts or unavailable participants, 429 for login/challenge limits, and 5xx for storage/provider failures. Exact statuses vary by handler. Bodies are usually plain text rather than a stable structured error schema.
 
-There is no API versioning, OpenAPI schema, idempotency-key support, durable workflow execution API, or complete per-actor capability model. Do not retry arbitrary mutations automatically: an interrupted multi-record operation may already have applied part of its work. Read state and review history first.
+There is no versioned public SDK or complete OpenAPI schema. Selected compound operations support `Idempotency-Key` and revision checks; see [atomic operations](atomic-operations.md) for supported routes and exact replay rules. A receipt proves prior admission, not current completion. Do not retry an uncertain provider effect merely because its HTTP response was lost.
 
 ### Applying workflow templates
 
-`POST /api/events?room=<id>` accepts top-level `templateId` for a `workflow.revised` request. The templates flag must be enabled, the ID must be known, and the caller must be an owner or authorized Developer with room access. A new payload without `id` creates a workflow; the response includes `workflowId`. Ordinary manual saves remain available when the catalog flag is off. See [template usage and configuration](concepts.md#workflow-templates).
+`POST /api/events?room=<id>` accepts top-level `templateId` for a `workflow.revised` request. The templates flag must be enabled, the ID must be known, and the caller must be an owner or authorized Developer with room access. A new payload without `id` creates a workflow; the response includes `workflowId`. Ordinary manual saves remain available when the catalog flag is off. See [template usage and configuration](workflow-templates.md).
 
 ### Emergency agent safety
 
 `POST /api/agent-safety?room=<id>` requires an authenticated owner session and `X-CSRF-Token`. The body is `{ "action": "stop", "scope": "application", "reason": "optional explanation" }`. Actions are `stop`/`resume`; scopes are `application`/`room`. Reasons are limited to 500 characters. Scope `room` requires an existing room; application stop does not depend on a database read.
 
-Success returns `action`, `scope`, `recorded: true`, and `remoteTerminationConfirmed: false`. A resume conflicting with an integrity incident or global stop returns 409. Audit failure returns 503 and leaves local stop latches active. Event kinds `agents.stop` and `agents.resume` preserve the decision. State exposes `agentsStopped` and `agentRoomStopped`; internal stopped-room IDs are not included in state JSON. The backend remains active even when its optional UI flag is disabled. See [cutoff limitations](concepts.md#emergency-agent-cutoff).
+Success returns `action`, `scope`, `recorded: true`, and `remoteTerminationConfirmed: false`. A resume conflicting with an integrity incident or global stop returns 409. Audit failure returns 503, cancels managed work and attempts to persist the private integrity-stop marker. Owner integrity recovery is required; an unwritable marker is an operator fault. Event kinds `agents.stop` and `agents.resume` preserve the decision. State exposes `agentsStopped` and `agentRoomStopped`; internal stopped-room IDs are not included in state JSON. The backend remains active even when its optional UI flag is disabled. See [cutoff limitations](agent-activity.md#emergency-agent-cutoff).
 
 ### Profile photos and saved feature flags
 
@@ -132,7 +140,7 @@ Owner-only saved flags use:
 {"kind":"feature.flag.updated","payload":{"name":"humanProfileImages","enabled":false}}
 ```
 
-Only `humanProfileImages` and `agentSafetyControls` are supported, and an explicit boolean is required. Unsupported names/missing values return 400; nonowners return 403. `/api/state` includes effective `featureFlags`. Photo default is true. The emergency flag overrides `COMMONROOM_AGENT_SAFETY_UI`; hiding it never resumes dispatch. `/agent-safety.js` serves no content when disabled, and returns 503 if its saved settings cannot be loaded. Protected emergency APIs remain enabled. Environment-only flags continue to follow the configuration table in the README.
+An explicit boolean and a recognized server allowlisted flag name are required. The allowlist includes workflow, security, connection and presentation features; use the relevant guide for defaults and disabled behavior. Unsupported names/missing values return 400; nonowners return 403. `/api/state` includes effective `featureFlags`. Photo default is true. The emergency flag overrides `COMMONROOM_AGENT_SAFETY_UI`; hiding it never resumes dispatch. `/agent-safety.js` serves no content when disabled, and returns 503 if its saved settings cannot be loaded. Protected emergency APIs remain enabled. Environment-only controls require restart; see [operations](operations.md) and the relevant feature guide.
 
 ## Connection readiness
 
@@ -152,7 +160,7 @@ Connection tests optionally accept `Accept: application/x-ndjson`. Each newline-
 
 Owner-authenticated `GET /api/events?page=true` returns `{events,nextBefore}` with at most 100 summaries. Pass the previous `nextBefore` as `before` for the next older page. Optional `from`/`until` timestamps use RFC3339 and an inclusive/exclusive date window; malformed cursors/ranges return 400. The server uses parameterized keyset queries and a fixed 101-record lookahead. Raw payloads remain private. The legacy unpaged endpoint still returns its latest-200 array. Reads never alter checksums, history, retention or authorization.
 
-Cosmetic flag events also accept owner-only `roomViewportFit` and `featureFlagSwitches`, both defaulting on. Their presentation modules are gated through `/room-viewport.js` and `/feature-switches.js`; disabled modules return 204 with no-store caching. Disabling these flags does not relax room permissions or security enforcement. See [room viewport and feature switches](concepts.md#room-viewport-and-feature-switches) for usage and defaults.
+Cosmetic flag events also accept owner-only `roomViewportFit` and `featureFlagSwitches`, both defaulting on. Their presentation modules are gated through `/room-viewport.js` and `/feature-switches.js`; disabled modules return 204 with no-store caching. Disabling these flags does not relax room permissions or security enforcement. See [room viewport and feature switches](interface.md#room-viewport-and-feature-switches) for usage and defaults.
 
 ## Workflow execution
 

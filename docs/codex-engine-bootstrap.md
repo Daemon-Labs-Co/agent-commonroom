@@ -3,7 +3,8 @@
 The engine bootstrap and Docker recipe prepare a credential-bearing app-server
 process for the reviewed callback driver. This is internal mandatory isolation
 infrastructure, with no bypass flag or public connection option. It is not a
-completed engine launcher, approved release image or live provider acceptance.
+public production provider path or an approved release image. Internal creation,
+attachment and callback execution exist; live acceptance remains outstanding.
 
 ## Image construction
 
@@ -60,10 +61,8 @@ non-null `OPENAI_API_KEY`. Credentials stay in the engine and trusted worker,
 never the controller, tool image, source volume, model callback, audit or logs.
 No API-key billing fallback exists. A partial frame is never retried.
 
-This framing replaces the earlier host credential-file mount contract. Publish
-a newly reviewed immutable image with the matching entrypoint before deployment;
-old entrypoints expecting `/run/provider-auth.json` are incompatible. There is
-no automatic fallback to mounting a credential file or relaxing permissions.
+Deploy only a reviewed immutable image supporting this framing. There is no
+credential-file mount fallback or permission-relaxation path.
 
 The fixed executable is `/opt/commonroom/bin/codex`. Its arguments force file
 credential storage and ChatGPT login, disable hooks/plugins/recommended plugins,
@@ -90,10 +89,11 @@ child, and listeners are removed on exit. Neither signal forwarding nor stream
 closure proves descendant or container absence. The paired supervisor must run
 its fenced shutdown and retain unresolved evidence after any ambiguity.
 
-The internal engine launcher, immutable-image inspection, private credential
-framing and stdio attachment have synthetic tests. Approved production assembly,
-gateway custody and live image/transport acceptance remain incomplete. Refreshed-token custody must also be integrated before claiming a
-reliable subscription lifecycle: credentials modified in the temporary engine home
+The internal launcher, immutable-image inspection, private stdin provisioning,
+owned gateway and combined callback operation have synthetic tests. Public
+production dispatch and live image/transport acceptance remain incomplete.
+Refreshed-token custody must also be integrated before claiming a reliable
+subscription lifecycle: credentials modified in the temporary engine home
 are not currently synchronized back to the worker's official credential store.
 Never export them through model output or silently substitute an API key after
 an authentication failure. Concurrent refresh handling needs separate binding.

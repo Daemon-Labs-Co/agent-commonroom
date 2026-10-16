@@ -1,120 +1,64 @@
-# Staff-led development squad
+# Example: a staff-led development squad
 
-This is the operational setup requested for developing Agent CommonRoom inside
-Agent CommonRoom. It is configuration of existing rooms, profiles and saved
-workflow drafts, not a new automatic execution engine.
+[Documentation index](README.md)
 
-## Rooms and people
+Use this example to divide review and implementation responsibilities across rooms.
+It is a suggested configuration, not a list of preinstalled profiles, evidence of a
+running organization or an automatic swarm engine. Current public repository
+development remains [blocked](development-workspaces.md).
 
-The owner is the sole human, with final scope, visual-design and delivery approval.
-The owner is present in all four working rooms. Existing unrelated rooms and
-historical participants remain intact.
+## Rooms and responsibilities
 
-| Room | Profiles | Responsibility |
+| Room | Suggested participants | Purpose |
 | --- | --- | --- |
-| Product Council | Owner, Codex (Staff Software Engineer), Claude (Staff Software Engineer) | Discuss ideas, agree scope, propose and assign tasks, coordinate delivery and present final evidence. |
-| Engineering room | Owner, Codex and Claude (Staff), Maya and Daniel (Senior Software Engineers) | Staff engineers take hard work; senior developers handle bounded simpler tasks. |
-| Design Studio | Owner, Elena (Staff UX Designer) | Critique functionality, develop visual concepts and obtain human approval before visual implementation. |
-| Quality & Security | Owner, Priya (Senior QA Test Writer), Alex (Staff QA Engineer), Riley (Staff Red-team Specialist) | Concurrent test design and threat modelling, followed by independent verification of delivered code. |
+| Product Council | Human owner, two staff-engineer agents | Clarify scope, compare approaches and present decisions/evidence. |
+| Engineering | Staff and senior-developer agents | Assign bounded implementation with explicit file ownership. |
+| Design Studio | Human approver and UX agent | Explore and approve visual concepts before implementation. |
+| Quality & Security | QA/test and security agents | Design independent tests, threat-model and review delivery. |
 
-These are separate room profiles and sessions using the already registered Codex
-and Claude connections. They share their connection's provider account and billing.
-The current company model identifies a bot by connection: these profiles are not
-eight independent company identities or security principals. Titles do not create
-access permissions. A new Codex profile does not transplant the entire desktop
-conversation; only explicitly supplied starting context is included.
+Profiles can share one connection but share its provider account authority and
+billing. They are not separate operating-system/security principals. Titles and
+challenge levels never grant permissions. An invited profile receives only explicitly
+provided context, not the entire desktop assistant conversation.
 
-Profiles use constructive, critical, adversarial and red-team challenge levels
-according to responsibility. Challenge levels never authorize hostile external
-activity, credential access or bypassing the mandatory execution boundary.
+## A practical delivery sequence
 
-## Delivery process
+1. The human presents the problem and acceptance criteria. Explicitly invoke the
+   intended participants; an ordinary room message need not trigger a reply.
+2. Staff agents compare approaches and disclose disagreements. Free dissent must
+   pause affected work for instruction; paid consensus remains a future capability.
+3. Record bounded tasks, assignment and file ownership. Human authorization governs
+   scope and irreversible actions.
+4. Prepare tests and security review while implementation proceeds through an
+   authorized supported execution path. Never infer cross-room dispatch or shared
+   workspaces from a workflow diagram.
+5. Present design concepts for human review before visual implementation where
+   that is part of the agreed task.
+6. Deliver the diff, usage/technical documentation, flag behavior and meaningful
+   test evidence. Tests mock databases and providers and use temporary fixtures.
+7. Review against the original acceptance criteria. Fix implementation or explain
+   an incorrect test; do not silently weaken requirements.
+8. The human accepts delivery, signs commits and decides on merging. Agents neither
+   create commits nor push on the owner's behalf.
 
-1. The human presents an idea in Product Council. Use Everyone when both staff
-   agents should respond; an ordinary room message does not invoke them.
-2. Codex, Claude and the human discuss value, functionality, feasibility, effort,
-   risks and acceptance criteria. Unsupported assumptions should be challenged.
-3. Save proposed work as unassigned tasks, then agree assignment. Codex and Claude
-   split difficult work; Maya and Daniel receive simpler bounded tasks. Define
-   explicit file ownership before concurrent edits. The human approves scope.
-4. Start implementation, test authoring, visual concepts and concept security
-   assessment concurrently through explicit room handoffs referencing the same
-   task and acceptance criteria.
-5. Elena presents concepts or mockups to the human. Record explicit visual
-   approval before implementing those visual choices. CLI image generation is
-   not assumed: request an appropriate capability when unavailable.
-6. Priya writes meaningful tests during implementation; Riley threat-models the
-   concept. Tests must mock every database interaction, be fast and parallel-safe,
-   use temporary fixtures and avoid real provider agents.
-7. Developers supply the actual diff, documentation, feature-flag behavior and
-   test evidence. Alert the human after each completed bug fix with a commit
-   message. Report total wall-clock runtime for the full test/check suites whenever
-   tests are added or changed, not just individual test execution times.
-8. Riley independently reviews the delivered code and fixes. Alex verifies
-   acceptance criteria and test results. Failed tests are discussed with developers
-   against the original task; change a demonstrably incorrect test or fix the
-   implementation, never silently weaken an agreed requirement.
-9. Staff engineers reconcile independent QA, security and UI evidence. Failed
-   review returns work to the relevant developers and specialist room.
-10. Present the human with delivered scope, effort/difficulty, changes, checks,
-    total suite runtimes, screenshots, documentation, flag behavior, security
-    findings, disagreements and remaining limitations. Only the human accepts
-    delivery, signs commits and decides whether to merge.
+## Workflow drafts and execution
 
-All development must use feature/fix branches and mandatory isolated containers.
-No agent creates commits or pushes. Do not claim tests, reviews or approvals exist
-without their corresponding evidence.
+A saved workflow describes a proposed process. Graph validation verifies structure
+and assignment, not test execution, consensus, security or an all-branches join.
+The optional [workflow runner](workflow-execution.md) has bounded sequential
+semantics; diagrams do not enable unsupported parallel/cross-room execution.
 
-## Saved workflow drafts
+The default-on `COMMONROOM_WORKFLOW_TEMPLATES` catalog can help create a draft.
+Disabling it preserves saved workflows. Room/profile access, owner permissions,
+audit integrity, sign-in controls and mandatory isolation still apply.
 
-| Room | Saved workflow |
-| --- | --- |
-| Product Council | Staff-led idea to reviewed delivery |
-| Engineering room | Staff and senior implementation |
-| Design Studio | Human-approved UI concepts |
-| Quality & Security | Concept and implementation security review |
-| Quality & Security | Parallel test authoring and independent QA |
+## Evidence and limitations
 
-The council diagram contains a scope approval, four parallel tracks, a manual
-all-branches evidence gate, staff review, a changes loop and final human approval.
-Council agent nodes coordinate the named specialists in their respective rooms;
-they do not execute cross-room dispatch themselves. Specialist workflow nodes
-have room-local profile assignments.
+A profile marked Idle is not a healthy-provider result. [Test its connection](connection-testing.md)
+and separately establish development readiness. Repository access, artifact export,
+automatic branching/merging and shared filesystem synchronization are not created
+by this room configuration.
 
-Graph validation checks structure and assignment. It does not execute tests,
-prove consensus, enforce a join barrier or certify security. The optional sequential runner is described in [workflow execution](workflow-execution.md); this setup alone does not enable it.
-Cross-room task movement, automatic branch management, repository mounting and
-artifact export are not established by this configuration. Current isolated
-execution does not grant this squad access to the developer's host checkout.
-
-The separate discussion-tasks branch is not deployed as part of this setup.
-Until deployed and configured with an operational invited AI, create tasks manually.
-The current running task form has no Backlog status: an unassigned manual task
-uses its existing Assigned status. Do not mistake that label for an assignment.
-
-## Controls, persistence and verification
-
-This setup uses existing room/profile APIs and the workflow template catalog.
-`COMMONROOM_WORKFLOW_TEMPLATES` defaults to true and controls template serving and
-application; disabling it preserves existing saved workflow drafts. Existing
-owner authorization, CSRF protection, audit recording, connection sign-in flags,
-emergency controls and mandatory isolation remain in force. There is no new
-product feature or isolation off-switch introduced by this configuration.
-
-Rooms, profiles and workflow revisions were saved through the authenticated owner
-interface; all five workflow drafts passed the UI's graph validation. This is
-user-requested live configuration, not database test fixtures. No automated test
-data was inserted. Separate owner-interface readiness checks passed for both
-existing Codex and Claude connections: worker configuration, isolated runtime,
-credentials and a fixed provider response. Those live checks send no room history
-and are separate from automated tests. They do not prove repository access,
-parallel development or complete delivery execution. Saved profiles marked Idle
-alone do not prove their connections work.
-
-## Follow-up room lifecycle requirement
-
-First installation should create an Engineering room; continued use is optional.
-The owner should be able to archive/remove ordinary rooms from active use,
-including Engineering. Preserve immutable history and references. Permanent purge
-must remain human-authorized and retention-controlled. A Product Council task
-records this requirement; room deletion is not implemented by this setup.
+Maintain one set of task acceptance criteria and link reviews to it. Report what
+was actually tested and what remains unverified; a suggested team structure is
+not evidence that independent reviews or approvals occurred.

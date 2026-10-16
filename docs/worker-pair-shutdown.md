@@ -5,7 +5,8 @@ finishes normally, fails startup, returns a driver error, loses audit access,
 is cancelled or panics. `workerPairSupervisor.Run` now owns that internal lifecycle:
 it invokes startup, runs the trusted reviewed-engine turn driver and defers
 `Shutdown`. This is mandatory isolation infrastructure without an off switch.
-It does not enable a public launch or supply the missing production engine.
+The internal Codex operation uses this lifecycle; public launch and live engine
+acceptance remain unfinished.
 
 ## Stop behavior
 
@@ -58,8 +59,8 @@ unwinds. Creator leases remain held until work returns. Synthetic successful
 absence observations are not evidence of actual workspace deletion or retention
 in a deployed system.
 
-The production worker runner must use this lifecycle around a reviewed callback
-engine and authenticated session assembly. Live rootless/SSH/provider shutdown,
+`RunCodex` already uses this lifecycle around the internal engine and audited
+session. Public worker dispatch must preserve the same ownership and ordering. Live rootless/SSH/provider shutdown,
 artifact retention and approved discard remain P0 work. The development admission
 barrier stays enforced until those requirements and the other P0 blockers are
 verified.

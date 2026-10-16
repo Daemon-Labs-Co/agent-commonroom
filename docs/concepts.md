@@ -1,10 +1,16 @@
-# Product concepts and usage
+# Product guide
 
-[Documentation index](README.md)
+[Documentation home](README.md)
+
+Use rooms to keep a goal, its participants, context and evidence together. Start
+with a small authorized task and make its review criteria visible before asking
+for agent work. [Release readiness](release-readiness.md) distinguishes the current
+prototype from the intended agent-development harness.
 
 ## Company, humans, and rooms
 
-With `companyOrgChart` enabled (the default), [company reporting relationships](#company-organization-and-decision-authority) replace numbered decision seniority. Older seniority descriptions refer to the retained legacy mode used when this feature is disabled.
+The [organization chart](organization.md) records reporting relationships. Titles,
+reporting lines and retained seniority fields do not grant account permissions.
 
 An installation currently has one company. Rooms organize discussion, participants, tasks, evidence, and workflows. Create a shared room using the + beside Rooms. A room is not yet a complete filesystem or network security boundary.
 
@@ -12,23 +18,23 @@ The initial human is the owner. Other humans can only join through invitations i
 
 Each human and registered bot identity has a personal room. Humans can access their own room and assigned shared rooms; the owner can access all rooms. Owner reads of another person's personal room are recorded. Bot identities currently follow connection registrations and do not have independent API credentials.
 
-Humans appear in the squad. The owner's room presence defaults to enabled and can be removed from shared rooms. Presence does not remove the owner's account permissions. Human seniority defaults to 11 and can be lowered through room settings. Higher numbers express greater decision authority; automated consensus and conflict arbitration are still planned.
+Humans appear in the squad. The owner's room presence defaults to enabled and can be removed from shared rooms. Presence does not remove the owner's account permissions. Legacy seniority fields remain for compatibility; they are not authority. Structured disagreement and governing-agent delegation remain unfinished.
 
 ## Connections versus participants
 
 A connection describes an agent provider, transport, location, and endpoint. A participant is that connection's membership in a room, with its own name, title, instructions, seniority, challenge level, and native conversation session.
 
-Register connections before inviting participants. One connection can support distinct room profiles; changing a room profile does not create a new provider account. Local means the computer running the server, including when that computer is a remote Debian machine.
+Register connections before inviting participants. One connection can support distinct room profiles; changing a room profile does not create a new provider account. A location label describes configuration; it does not enable native host execution.
 
 See [SSH agent setup](agent-ssh.md) for concrete remote-host configuration and tests.
 
-Working adapters are CLI Codex and Claude, locally or over SSH. HTTP, WebSocket, and MCP registrations are placeholders. Website addresses for ChatGPT or Claude are not adapter endpoints. Agent provider authentication is separate from human sign-in.
+Current chat adapters are Codex and Claude through the approved isolated worker. HTTP, WebSocket, and MCP registrations are placeholders. Website addresses for ChatGPT or Claude are not adapter endpoints. Agent provider authentication is separate from human sign-in.
 
 ### Guided connection editor
 
 Choose **Connections → Plug in agent** to open **New connection**. Give it a name, select the provider icon and connection method, then choose where it runs:
 
-- **This computer:** the computer running the CommonRoom server. CLI examples are `codex` or `claude`; no port is needed.
+- **This computer:** a UI location label; saving a local command does not bypass the required isolated worker.
 - **Internal network:** a reachable machine on your LAN. CLI endpoints refer to an SSH alias configured for the server account.
 - **Remote / internet:** a service outside the internal network. Remote CLI agents still use SSH aliases; URL registrations need the complete documented service URL.
 
@@ -60,9 +66,9 @@ The composer defaults to Room only. Select an agent or mention it to request a t
 
 An agent turn includes profile guidance, optional reference context, available shared memory, and the latest 12 previously stored room messages, plus the new request. Its native session also retains provider-side conversation continuity. This does not promise every historical room message is included in every prompt.
 
-Existing supported local Codex conversations can be copied into independent sessions or resumed. Resuming changes the original conversation; copying keeps future turns separate. Importing optional reference text is not a live attachment to a browser chat or interactive terminal.
+Saved-conversation metadata and optional reference text can provide context where supported. Host conversation IDs do not automatically become isolated worker sessions. Importing text does not attach to a browser chat or terminal.
 
-Remove an agent through its squad menu to stop its participation. Application history is retained. Cancellation of remote processes is not yet guaranteed.
+Remove an agent through its squad menu to stop its participation. Application history is retained. Confirm worker shutdown through job diagnostics; a cancellation request alone is not proof.
 
 ## Shared memory
 
@@ -72,7 +78,7 @@ Memory entries have a title, body, scope, and revision. Editing a stale revision
 - Project: currently shared across the installation's single project.
 - Application: shared across the installation.
 
-Separate projects and complete project permissions do not exist yet. Non-owner memory writes are currently restricted to Room scope. Automatic squad discussion, human decision timeouts, and senior-agent resolution of conflicts remain planned.
+Separate projects and complete project permissions do not exist yet. Non-owner memory writes are currently restricted to Room scope. Automated memory discussion is unfinished. Free disagreements require human resolution; voting and escalation timeouts belong to later paid capabilities.
 
 ## Tasks, evidence, and workflows
 
@@ -82,465 +88,14 @@ Workflows belong to rooms. Add nodes, connect outputs to inputs, edit properties
 
 Human overrides, acceptance authority, and immutable history remain product requirements with incomplete enforcement. Consult the security review before treating the prototype as a production policy system.
 
-## Workflow templates
 
-Open **Workflow templates** in the main menu (or **Browse templates** inside the editor). The catalog offers:
+## More workspace guides
 
-| Template | Intended outcome |
+| You want to… | Read |
 | --- | --- |
-| Idea assessment | A human idea reviewed for value, functionality, feasibility, and estimated effort |
-| Feature development | Implementation with tests, documentation, a feature flag, evidence, and independent QA |
-| UI refinement | Interaction design, implementation, browser checks, visual evidence, and human review |
-| Bug investigation | Reproduction, root cause, fix, regression test, and verified resolution |
-| Security review | Authorized threat review, prioritized findings, remediation evidence, and residual-risk decisions |
-| Documenter | Documentation audit, complete guides/source comments, verified examples, and independent accuracy review |
-| Disaster planning | Failure scenarios, recovery objectives, a recovery runbook, rehearsal planning, and readiness review |
-| Cooperative adversarial review | Builder proposal, evidence-based challenge, reconciliation, independent review, and human resolution |
+| Apply a process template | [Workflow templates](workflow-templates.md) |
+| Interpret status, stop or recover work | [Agent activity](agent-activity.md) |
+| Find recorded decisions | [History](history.md) |
+| Edit reporting relationships | [Organization](organization.md) |
+| Adjust profiles, layout and display preferences | [Interface preferences](interface.md) |
 
-Choose **Apply to room**, select a room you can access, and confirm **Apply template**. This creates a new saved workflow and opens that room’s editor. Reapplying creates another copy; it does not overwrite an existing workflow. An unsaved editor draft requires confirmation before it is left. Each copy has fresh node/edge IDs, detailed instructions, an evidence step, an independent review with a changes loop, and human acceptance. The default revision limit is three iterations; node timeouts default to 300 seconds with no retries.
-
-Assign actual room agents to task and review nodes, adapt their instructions and evidence requirements, then Validate and Save. Templates describe suggested roles; they do not invite agents, assign authority, execute tests, or automatically gather evidence. Validation initially reports unassigned agents. **Execution is off by default**. The sequential runner supports isolated agent steps, review loops and human evidence/approval gates. Assign independent implementation and review agents and use timeouts no greater than 180 seconds. Parallel nodes and automatic retries remain unsupported. See [workflow execution](workflow-execution.md).
-
-Owners and Developers may apply templates to rooms they can access. QA members may browse the catalog but cannot apply templates. Room authorization and workflow validation remain server-enforced. Templates cannot override access, immutable history, or other security rules. Shared catalog availability does not expose another room’s workflows.
-
-### Configuration and technical contract
-
-`COMMONROOM_WORKFLOW_TEMPLATES` defaults to `true`. An operator can set it to `false` and restart to hide the catalog and restore the previous single-template editor. Existing saved workflows, history, room membership, and ordinary workflow editing are retained. The flag is managed through the server environment, not a browser control; invalid boolean values prevent startup. The server serves no catalog script when disabled and rejects explicit template-application requests.
-
-The catalog and graph factory are in `web/workflow-templates.js`. The server gates the script and validates known template IDs. Applying calls `POST /api/events?room=<id>` with `kind: "workflow.revised"`, top-level `templateId`, and a new workflow payload. The API returns `workflowId` so the client opens the exact created workflow, rather than choosing whichever workflow was saved most recently by another actor. Room scoping, permissions, revision rules, and append-only event storage remain unchanged. Subsequent edits use the ordinary workflow API without template metadata.
-
-Automated tests cover graph structure, valid output ports, review loops, room-agent assignments, fresh IDs, independent copies, delivery guidance, new-workflow persistence, room access, role restrictions, unknown IDs, and both flag states. All persistence tests use an in-memory mock. Live workflow execution is neither tested nor enabled.
-
-### Documenter and disaster planning
-
-**Documenter** starts by defining the audience and scope. Agents audit the existing guides against source, write missing user/technical documentation and appropriate source comments, check links/examples, gather evidence, and request independent accuracy/usability review before human acceptance. Its output is documented behavior with links and a verification record, not a claim that untested setup instructions work.
-
-**Disaster planning** identifies critical systems, acceptable downtime/data loss, dependencies, failure scenarios and responsible people. Agents define recovery time objectives (how quickly service should return) and recovery point objectives (how much data loss is acceptable), then prepare backup/restore procedures, escalation responsibilities, rollback criteria and a recovery runbook. The rehearsal step plans a tabletop exercise or separately authorized isolated verification. It does not authorize production restores, deletion, failover, or changes to immutable history. Evidence must distinguish completed checks from untested assumptions. An independent reviewer challenges readiness before the human accepts residual risks and follow-up priorities.
-
-Both use the same **Apply to room** flow, three-iteration default, fresh-copy behavior, unassigned agent slots, room permissions and `COMMONROOM_WORKFLOW_TEMPLATES` flag described above. Neither template schedules rehearsals. Optional sequential execution dispatches assigned steps; rehearsal instructions do not authorize production operations. Graph/copy tests and mock-only API tests cover both new template IDs, including disabled-flag rejection.
-
-### Cooperative adversarial review
-
-This template uses cooperation to define the common goal and adversarial review to stress-test the proposed work. Its sequence is **Human goal → Builder proposal → Challenger critique → Reconciliation → Evidence → Independent review → Human decision → Finish**. The review’s changes output returns to the builder; the default maximum revision count is three, as with other templates.
-
-Assign different agents to the Builder and Challenger steps, ideally with another independent reviewer. Constructive challenge level 1 is suggested for the builder; critical level 2 or adversarial level 3 is suggested for the challenger. These are prompt/profile suggestions, not enforced permissions or automatic profile changes. The reconciliation step may go to the builder or a neutral facilitator. A human decides unresolved tradeoffs; agents should record disagreement instead of inventing consensus.
-
-Criticisms must identify evidence, risks or concrete alternatives. The evidence step records the original proposal, critique, revised outcome, accepted/rejected criticisms and unresolved issues. Critique targets the work, never the participants. Titles, challenge levels and persuasive arguments confer no extra authority or tool access.
-
-Apply it through **Workflow templates → Apply to room**. It uses the existing catalog flag and room permissions, creates a fresh saved copy, and leaves agents unassigned. Tests cover its connected graph, review loop, fresh copies, builder/challenger/reconciliation sequence, guidance, application and disabled-flag rejection through an in-memory database mock. The optional sequential runner can dispatch these steps and follow review feedback. Review agents must be distinct from implementation agents. Consensus and escalation are not automated.
-
-## Emergency agent cutoff
-
-The owner can choose **Stop all agents** in the header or **Stop room agents** in a room. Confirm the scope and optionally record a reason. New agent dispatch and session creation/invitation in the stopped scope are blocked; managed turns receive cancellation requests. Human access, saved messages, memory, evidence and workflows are preserved. Per-agent **Remove** remains available and also requests cancellation.
-
-Use **Resume all agents** or **Resume room agents** explicitly to allow new requests. Resuming application dispatch does not clear separately stopped rooms, and resuming a room cannot bypass an application stop or integrity incident. Cancelled work is not restarted. A cancelled turn’s result is discarded even if dispatch has since resumed. Completed effects and already recorded messages cannot be undone.
-
-A successfully recorded stop is replayed from event history on restart. Application stop cancels registered managed turns before recording its audit event and does not require a successful database state read. An audit failure returns an error but retains an in-memory stop latch. **That unrecorded latch does not survive restart**; investigate and successfully record the stop before restarting. Room stop requires state loading to identify its participants; use the application stop when database reads are unavailable. Stop requests serialize with other agent operations; the server must be running and reachable, and an operation holding the server lock can delay a stop.
-
-Cancellation kills the directly managed local CLI/SSH command on a best-effort basis. It is not proof that remote processes, child processes, provider-side operations or tools already launched elsewhere have terminated. CLI agents have no independently authenticated CommonRoom credentials to revoke. This is a dispatch cutoff, not operating-system containment or continuous detection of policy violations. For a suspected rogue agent, verify shutdown on its host and isolate/revoke host or provider access separately where needed. Automatic policy monitoring and complete integrity-triggered process shutdown remain future work.
-
-`COMMONROOM_AGENT_SAFETY_UI` defaults to `true` and sets the initial visibility. The owner can override it in **Settings → Feature flags → Security → Emergency agent controls**. The saved setting survives restarts; changing it reloads the page. **Backend stop enforcement and the protected API cannot be disabled by this UI flag**; an active stop stays active, and the emergency banner remains visible. Owner permissions and CSRF/Host/Origin protection remain mandatory. See the operations/API guides for access when controls are hidden.
-
-Tests use mocked database interactions to verify scoped cancellation, persistent replay, explicit resume, role/CSRF restrictions, database-read outages, audit failures, flag states, and rejection of late cancelled results. No real provider processes or database fixtures are launched by these tests.
-
-## Human profile photos and feature flags
-
-In Settings, choose **Edit profile → Change profile photo**. The same option is available from your own squad profile. Upload a JPEG or PNG up to 5 MB, inspect the preview, and save. The browser reduces it to a maximum of 160 pixels per side; the server validates bounded raster data and re-encodes it as JPEG without original metadata. SVG, GIF and remote image URLs are rejected. Initials remain the fallback when no photo is set.
-
-The photo belongs to the human account, rather than a room or role. It appears in each room's squad and beside messages identified by that human's account ID. Earlier messages display the current profile photo; their stored text, authors and immutable records are not rewritten. Legacy messages without an account identity retain initials unless explicitly identified as the original “You” owner. Members can change only their own image; they cannot change their roles or another account's photo. Owner access edits preserve the person's photo.
-
-Photo revisions are append-only audit events. Removing a photo clears the current display, but earlier image records remain subject to the configured retention window and human-authorized purge. Do not upload images you need immediately erased from all historical records.
-
-Owners see grouped flags under **Settings → Feature flags**:
-
-| Group | Flag | Default | Management |
-|---|---|---|---|
-| Cosmetic | Human profile photos (`humanProfileImages`) | On | Settings; disabled blocks uploads and hides photos, but permits self-removal |
-| Security | Emergency agent controls (`agentSafetyControls`) | On | Settings override; environment supplies initial default |
-| Connections | Guided connection editor | On | `COMMONROOM_CONNECTION_EDITOR`; restart required |
-| Workflows | Workflow templates | On | `COMMONROOM_WORKFLOW_TEMPLATES`; restart required |
-
-Saved flags are immutable events and survive restarts. Re-enabling photos restores any retained current photos. Cosmetic settings grant no permissions. Emergency controls visibility never disables stop enforcement, clears an active stop, or bypasses an integrity incident.
-
-## Squad profiles and invitations
-
-Click a person's or agent's **name in the Squad** to open their profile. Name controls support keyboard focus and activation. Your human row no longer needs separate Edit and Leave buttons. **Leave room** appears in your own room-profile overlay when you are the owner in a shared room. Leaving removes your presence from the squad; it preserves your account, access and chat history. Use **Join room** to return. Personal rooms cannot be left. Invited humans retain owner-assigned access; they cannot use this presentation change to revoke or change it.
-
-You can edit your own allowed profile fields. The owner can open another invited human's membership editor; other viewers see a read-only human profile. Clicking an agent name opens its existing profile editor; saving still requires the existing server permissions. Names, roles and room access retain their existing authorization rules.
-
-**Invite agent** opens a wider overlay with **Agent**, **Role**, and **Context** tabs. One section is shown at a time so the primary action stays easy to find. Role fields use two columns on larger screens. Starting context is optional. Choose an existing connection, edit the suggested name, and set the room role. Engineering title and challenge settings are expanded for easier access. Notes and conversation excerpts remain optional. Select **Invite agent** to save or use Cancel/the top-right X to dismiss. At narrow screen widths fields stack into one column. Arrow keys, Home and End navigate the section tabs. Overlays aim to fit normal desktop windows; very small viewports or enlarged text retain overflow access rather than hiding controls. New agents retain seniority 1 and cannot accept work until their profile is changed. When no connection is registered, plug one in first.
-
-### Cosmetic feature flags
-
-The owner can toggle these in **Settings → Feature flags → Cosmetic**:
-
-| Flag | Default | Disabled behavior |
-| --- | --- | --- |
-| `squadProfileActions` | On | Restores the previous squad Edit/Leave controls. |
-| `agentInvitationLayout` | On | Restores the previous compact invitation form. |
-| `standardHelpIcons` | On | Restores the previous contextual-help text buttons. |
-| `featureFlagTabs` | On | Restores the previous separate feature cards. |
-| `historyDateGroups` | On | Restores the original ungrouped activity list. |
-
-Saving reloads the browser; no server restart is required. Finish or cancel unsaved forms before changing settings. Flags affect presentation only and never clear profiles, room memberships, photos or history. Only the owner may change flags; API authorization and immutable-history protections apply in both states.
-
-The server gates `/squad-profiles.js` and `/agent-invitation.js` against persisted flags, returning HTTP 204 when disabled, with no-store caching. The modules also check the visible state before applying layouts. Existing event endpoints perform all edits and leave actions; no new privilege or agent execution path is introduced. Regression tests use synthetic UI fixtures and mocked database interactions to cover flag delivery, owner permissions, name activation, leave eligibility and invocation, read-only profiles, invitation escaping, and disabled fallbacks. No live database or provider is used in automated tests.
-
-Contextual help uses the same question-mark icon with a descriptive tooltip and accessible label. Overlay help sits beside the close X; field-specific help sits beside its label. These controls retain the existing help-window preference and destinations. Navigation keeps its readable Help & documentation label. The `standardHelpIcons` flag uses the same owner-only, server-gated cosmetic delivery contract at `/help-icons.js`; disabled presentation never disables access to documentation.
-
-### Feature-category tabs
-
-Feature category tabs supply the category context: a card inside Security is titled "Connection sign-in", rather than "Security · Connection sign-in". The same applies to Cosmetic, Connections and Workflows, and repeated category-only subheadings are omitted. This presentation is part of the existing `featureFlagTabs` flag; disabling tabs retains the category prefixes in the legacy list. Controls, flag names and permissions are unchanged.
-
-**Settings → Feature flags** brings Security, Cosmetic, Connections and Workflows into one tabbed section. Click a tab or use Left/Right, Home and End while focused on a tab. The selected category stays selected while settings rerenders. Controls retain their existing actions and permissions; unrelated profile/company settings remain outside this section. The owner-only `featureFlagTabs` cosmetic flag defaults on and can be changed in the Cosmetic tab. Turning it off restores the previous grouped cards after reloading. The server gates `/feature-flag-tabs.js`; toggling never disables authentication or safety enforcement. Environment-configured features still require a server restart and are labelled accordingly.
-
-Field explanations are placed to the right of their field in the standardized-help presentation. Question-mark field help remains beside the label. The `standardHelpIcons` flag also controls this presentation; it changes no saved values or validation. With the tabbed invitation, changing sections preserves entered values. Required-field validation opens the relevant tab so errors are reachable.
-
-### Human login persistence
-
-After signing in with your PEM, refreshing the page retains the authenticated session. Server restarts also retain unexpired sessions when `COMMONROOM_PERSISTENT_SESSIONS=true` (the default). You do not need to provide the PEM again until the existing eight-hour session expires or you sign out. The PEM is never placed in browser storage or this server session file. Cookie protections, origin checks, CSRF and actor permissions remain enforced.
-
-The server stores only opaque cookie-token hashes, actor identities, CSRF values and fixed expiry times in the owner-key directory's private `human-sessions.json` file (normally `.data/human-sessions.json`). Protect this directory and its backups. The file has mode 0600, bounded content, atomic replacement and binding to the owner public key. Missing files start with no sessions; unsafe permissions, symlinks or invalid data fail startup closed. Bootstrap/setup sessions are not restored. Changing the owner key invalidates saved sessions. This file is not served by the web server or included in immutable room history.
-
-Set `COMMONROOM_PERSISTENT_SESSIONS=false` and restart to use memory-only sessions. Disabling removes the saved session store so re-enabling cannot resurrect earlier sessions. Authentication remains required in both states; this flag does not weaken verification or extend expiry. The Security tab describes this deployment flag; it cannot be changed by an invited human or an agent through the application. Logout saves revocation before reporting success; storage failure reports an error so you can retry. This private-file store supports one server process and local/private deployment, not shared sessions across multiple instances. Automated temporary-file tests cover reload/restart, expiry, identity changes, durable logout, failures and both flag states. Real browser cookie restoration and host-reboot behavior remain deployment checks.
-
-### History date tabs
-
-History & retention separates activity into tabs across the top: **All activity**, **Today**, **Yesterday**, **Earlier this week**, **Last week**, and month/year tabs for older records. Empty date buckets are omitted. Calendar dates use your browser's local timezone; weeks start Monday. Future timestamps and invalid dates receive explicit Future dates/Unknown date tabs rather than misleading labels. Search filters the selected period, keeping date navigation available when no result matches. Left/Right, Home and End navigate tabs; the selected period is retained during rerenders and falls back to All activity if its bucket disappears.
-
-History opens on Today, including when today has no records. Records load asynchronously in pages of at most 100; other date periods and All activity are fetched only when selected. Load more fetches the next page without downloading the whole history. Search applies to loaded records; load more to search additional records. Earlier months appear as tabs when discovered in Older activity or All activity. Loading, retry and empty states remain visible, and responses to a closed view are discarded. This is a read-only projection of the event history. It does not rewrite timestamps, descriptions, checksums or immutable events, and it uses exclusive sequence cursors for historical pagination. The owner-only Cosmetic flag `historyDateGroups` defaults on, applies after saving/reloading without restart, and restores an ungrouped, asynchronously paged activity list when off. The server gates `/history-date-groups.js`; record access, retention and integrity enforcement remain unchanged. Tests cover local date boundaries, daylight-saving changes, Monday/week transitions, month/year rollover, search, empty periods, tab isolation, and both delivery states with mocked database interactions.
-
-### Settings sections and retention
-
-The Settings page uses **Profile**, **Company**, **Features**, **Retention**, **Help**, and **About** tabs. Tabs appear only when there is content the current human is permitted to see. The Features section contains its own Security/Cosmetic/Connections/Workflows tabs. Your own allowed profile fields and help-window preference remain editable; invited humans do not gain company, membership, feature-management or retention permissions. Existing button actions are preserved when controls move between sections. The selected settings section is retained during rerenders; Arrow keys, Home and End provide keyboard navigation.
-
-The sidebar now calls the activity page **History**. The existing retention-policy notice moves to **Settings → Retention**. The minimum remains 30 days; disposal and purge are still disabled pending storage enforcement and protected receipts. This layout change does not implement deletion or weaken immutable history. The owner-only `settingsTabs` cosmetic flag defaults on; saving reloads the browser without requiring a restart. Disabled presentation restores the original Settings cards and History & retention layout. The server gates `/settings-tabs.js`, while all underlying authorization and retention protections remain enforced in both states.
-
-### Public and private room groups
-
-The sidebar groups shared company rooms under **Public rooms** and personal rooms under **Private rooms**. These labels describe the existing room types, not internet exposure or a new access policy. Only rooms already visible to the signed-in human are listed; room permissions and the owner's audited personal-room access remain unchanged. New room creation remains with Public rooms; each invited human's personal room appears under Private rooms. Arbitrary shared/private visibility switching is not introduced.
-
-The owner-only `roomSections` Cosmetic flag defaults on. Saving reloads the browser without a server restart; disabling restores the single Rooms list. The server gates `/room-sections.js`. Grouping moves existing navigation controls and preserves their handlers, selected state and creation permissions. Tests cover personal/shared classification, movement, retained handlers, disabled fallback and server flag permissions without live database interactions.
-
-Settings content is anchored to the top-left of the main area. Its heading and tab bar keep a stable position when sections have different amounts of content or the viewport changes; this basic layout correction applies in both settings-layout flag states.
-
-Click either Public rooms or Private rooms heading to collapse/expand that list independently. Both start expanded. The browser remembers your choice per human account on that browser; it does not change membership, permissions or the selected room. The shared-room creation button remains accessible while Public rooms is collapsed. Heading buttons support keyboard activation and expose expanded/collapsed state to assistive technology. Unavailable or malformed browser storage falls back to expanded lists. This behavior is part of the existing `roomSections` flag.
-
-Settings help is anchored at the far right of the section tab bar, separate from the tabs, retaining its existing destination and same/separate-window preference.
-
-Room section headings use larger, bold text in the main button text color with cobalt disclosure arrows. This makes Public rooms and Private rooms distinguishable from individual room links while preserving keyboard activation and collapsed-state indicators. This refinement uses the existing `roomSections` flag.
-
-### Human account and room details
-
-Settings → Profile and human squad-name overlays show read-only company, assigned role, account status, account ID, personal room and shared room access. A room profile also shows the current room, presence and decision seniority. For example, an invited Developer sees their own personal room and visible assigned shared rooms. No new bio, contact email or timezone is collected. Only rooms already in the authorized state are displayed; keys, provider credentials and connection endpoints are never included. The owner still controls assigned roles and access; showing a profile does not grant editing permission.
-
-The owner-controlled Cosmetic flag `humanProfileDetails` defaults on. Save it under Settings → Features and reload; no restart is required. Turning it off removes the extra read-only details while keeping the existing profile editing and membership controls. The server gates `/human-profile-details.js`; the module projects existing authorized state without adding API mutations or changing authorization. Tests cover escaping, room filtering, key omission, human seniority, existing actions, both delivery states and owner-only flag changes, with mocked database interactions.
-
-### Page alignment and compact profile overlays
-
-Application pages start at the top-left of their content area regardless of how much content they contain. This includes conversation, connections, tasks, templates, workflows, memory, history, Settings and the sign-in page. Existing content width limits, responsive padding and independent chat/squad scrolling remain in place. The owner-controlled Cosmetic flag `topAlignedViews` defaults on, is enforced by server delivery of `/viewport-alignment.js`, and applies after saving/reloading without a restart. Turning it off restores the previous page positioning, while the earlier Settings anchoring fix remains active.
-
-Agent profile editing now uses **Agent**, **Role**, **Behaviour** and **Context** tabs. Existing title/challenge fields appear in a two-column Role panel; instructions, seniority and work-acceptance permission appear under Behaviour. Context remains optional. Human profiles use **Profile** and **Account & rooms** tabs when read-only account information is enabled. Short forms without extra information stay as a single panel. Save, Cancel and room Leave actions remain outside the changing panels. Arrow keys, Home and End navigate tabs, and browser validation reveals the panel containing an invalid required field before correction.
-
-The owner-controlled Cosmetic flag `compactProfileOverlays` defaults on. The server gates `/overlay-layout.js`; switching it off and reloading restores the existing profile form layout without losing field values or profile data. It does not change who may edit roles, access or work acceptance. This module moves existing controls rather than copying them, preserving handlers and FormData, and works independently of invitation and squad-name presentation flags. No restart is needed. Automated tests verify control preservation, validation, keyboard navigation, flag combinations and permission checks with mocked database interactions.
-
-Tabs reduce normal desktop scrolling in profile overlays; small viewports, increased text size, long room lists or expanded conversation results may still require scrolling to keep information accessible. Other long overlays, such as member access lists and evidence, have not yet received a full layout redesign. Modal dialogs retain their dialog placement; the page alignment flag applies to page content.
-
-### Company organization and decision authority
-
-Open **Settings → Company → Organization chart** as the owner. The workflow-style screen lists all registered human and agent company identities, including disabled accounts, and shows reporting connectors on a dotted canvas. Select an identity in the roster, canvas or list view to see its properties. Agents show their room-specific names and roles separately: one registered connection has one company identity even when several room profiles use it. A removed identity is omitted from the live projection; references to a removed manager become unassigned until the owner saves a new chart. Company identity metadata is visible only to the owner through this editor; no conversation, instructions, credentials, keys or endpoints are exposed by its API.
-
-Double-click an identity on the canvas, roster or list to edit it: agents open **Edit connection**, your owner identity opens **Your profile**, and other humans open the existing member profile/access editor. The properties panel also has **Edit connection** or **Edit profile** for keyboard access. These owner-only shortcuts use the existing authorized editors; they do not grant new permissions. The chart stays open behind the editor, retaining unsaved reporting lines and positions. After the editor closes, identity names and room-profile details reload; chart changes still require **Save chart**. Missing or removed connections show an explanatory message. This interaction uses the same default-on, server-gated `companyOrgChart` flag described below.
-
-Use **Reports to** to choose a manager. Drag nodes, or focus a canvas node and use arrow keys (Shift for a larger step). Use zoom, canvas scrolling, **Auto-arrange** or the keyboard-accessible **List view**. Save explicitly; closing with an unsaved draft asks whether to discard it. Changes are appended to immutable history. Concurrent edits return a revision conflict; close/discard and reopen to load the current chart before reapplying changes. Only the owner may save reporting relationships. Up to 500 chart identities and bounded finite positions are supported.
-
-Reporting hierarchy replaces numbered decision seniority while this feature is enabled. A manager outranks direct and indirect reports. Same-level peers, unrelated reporting branches and multiple room profiles of one company identity do not outrank one another; disagreement requires consensus. An absent manager cannot decide a room conflict. Explicit human directions retain the final override, but do not bypass authorization, work-acceptance permission, mandatory container isolation or immutable history. Job titles and adversarialness remain independent. For example, a Staff agent reporting to a Principal agent defers to that Principal, while an unrelated QA lead must reach agreement rather than winning through a number.
-
-The implementation provides ancestry comparison and available-decision-peer calculation, supplies room-scoped authority guidance to managed agent turns, and removes numbered seniority controls/displays. Legacy rank fields remain in saved records and hidden form inputs for compatibility; they have no role in the hierarchy comparison. Existing history is not rewritten and ranks are not automatically converted into reporting relationships. New identities start without a manager. Automatic conflict arbitration, consensus tracking and escalation timers are still unimplemented; guidance is not a security enforcement mechanism or proof that models will obey it.
-
-The owner-controlled `companyOrgChart` flag appears under Settings → Features → Cosmetic and defaults on. Disabling and reloading hides the editor, restores legacy seniority presentation, blocks organization reads/writes on the server and omits hierarchy guidance from subsequent agent turns. Existing chart records remain preserved; active turns are not recalled. No restart is required for flag changes. Tests use mocked databases and synthetic fixtures for persistence/projection, revisions, cycle and position validation, owner/CSRF authentication boundaries, enabled/disabled behavior, secret omission, room-scoped guidance and authority comparisons. Browser checks use a synthetic chart; real authenticated saving and live provider behavior remain manual integration checks.
-
-History API: authenticated owner-only `GET /api/events?page=true&before=SEQUENCE&from=RFC3339&until=RFC3339` returns `{events,nextBefore}`. Date bounds are inclusive from/exclusive until and are calculated in the browser local timezone. The server validates dates/cursors, uses parameterized SQL and reads at most 101 records to provide a 100-record page plus continuation. The legacy request without `page=true` retains its latest-200 array response. Pagination is a mandatory bounded-read implementation safeguard, not an optional bypass of record permissions, retention or integrity. The existing owner-controlled `historyDateGroups` Cosmetic flag (on by default, no restart) controls Today/date-tab presentation; its script remains server-gated, and both enabled/disabled views use bounded async pages.
-
-## Room message order
-
-In **Settings → Feature flags → Cosmetic**, the owner can enable **Newest room messages at top** (`newestMessagesFirst`). It defaults **off**: rooms keep older messages above newer messages, with new messages at the bottom. When enabled, newest messages appear at the top. Receiving or sending a message scrolls to the selected edge; ordinary refreshes preserve the current reading position. Switching rooms opens at the newest edge. The composer stays below the conversation in either mode.
-
-The setting applies across this company installation, not separately per human/room. It takes effect after saving and automatic page reload; no server restart is required. Disabling restores bottom-first placement without deleting or rewriting any records. Server-side owner permissions protect flag changes, and module delivery is gated off by default (`/room-message-order.js` returns 204 when disabled). A stale loaded module also checks the current flag before changing display order.
-
-Technically, `arrangeNewestRoomMessages` moves existing rendered article nodes only after provider icons and human photos are applied. `state.messages`, API chronological order, provider prompts, timestamps, audit checksums and retention stay unchanged. The wrapper remembers the room/newest-message identity so background refreshes preserve scroll position. The normal send handler and new-message scrolling choose the same edge. Automated tests cover both flag states, default-off delivery, owner/non-owner permissions, nonmutation, avatar identity, incoming messages, refresh position, room changes and empty/non-room views, using synthetic fixtures and mocked database interactions.
-
-## Room viewport and feature switches
-
-Two owner-controlled Cosmetic flags default **on**: `roomViewportFit` (**Room fits visible window**) and `featureFlagSwitches` (**Feature on/off switches**). Their modules are gated by the server and also check current state. Turning either off restores the preceding presentation, without changing room access, records, retention or security policy. Save/reload is automatic; no server restart is required.
-
-Room fitting keeps the desktop page header, room controls and message composer inside the visible window. At widths of 600 pixels or more, the room uses a bounded dynamic viewport height: messages and an overflowing squad scroll within their panels. Entering a room resets document scroll to the top; background renders preserve inner conversation reading position. At narrower widths, normal document scrolling remains available. Workflow/task views and Settings retain their own layouts.
-
-Feature flags appear as rounded on/off switches in Settings → Features, with labels, visible On/Off state, keyboard-operable native buttons and `role="switch"`/`aria-checked`. Cobalt indicates on; gray indicates off. Saving temporarily disables that flag's switch to prevent duplicate requests. Errors restore its preceding state and show the reason; successful saves reload and return to the same feature category. Only the owner can save flag changes, through the existing authenticated event API. Existing emergency stops remain enforced when their controls are hidden. Deployment-only settings that require configuration/restart remain informational rather than presenting switches that cannot change them.
-
-Technical modules: `room-viewport.js` applies/removes the scoped body class only for an active room conversation; CSS uses flex/grid with `min-height:0` and preserves a nonshrinking composer. `feature-switches.js` replaces identified flag controls after settings/category layout, manages per-flag pending saves, and preserves the category through a short-lived session-storage UI preference consumed by `features.js`. Labels use text nodes. Reduced-motion preferences disable knob animation. Tests cover both feature flags and server delivery/permissions with mocked database interactions; synthetic UI tests cover defaults, accessible attributes, duplicate-click prevention, save rollback, unauthorized callers, view transitions and disabled fallbacks.
-
-### Safe session recovery
-
-The owner opens an agent's **three-dot actions menu** and chooses **Recover session**, then uses:
-
-- **Check worker**: read-only verification of the approved worker. It must report
-  no managed containers and no starting/running/unknown job records. A busy shared
-  worker does not prove this particular agent is running; wait or inspect Background
-  work. An unavailable worker never counts as stopped.
-- **Resume session**: after another check at action time, return the agent to Idle
-  while preserving its saved isolated provider session. A missing, legacy or
-  workspace-mismatched session must use Start fresh instead.
-- **Start fresh session**: return to Idle and clear the provider session binding.
-  Room history, profile, credentials and private workspace files remain. This does
-  not undo partial changes or erase conversation records.
-
-No option automatically invokes the model or replays an old task. After recovery,
-the composer selects the agent and preserves your unsent draft; inspect partial
-work and explicitly send the next request. Workflow runs remain separate and
-require their own explicit recovery. Integrity incidents, emergency stops and any
-controller-active model turn block session recovery.
-
-The owner-controlled Security flag **Agent session recovery** (`agentRecovery`)
-defaults **on**. Off rejects recovery server-side and hides controls/gates the
-script. Stored sessions and history remain. Reload when enabling optional scripts;
-no controller restart is needed for flag changes. Recovery is single-controller,
-remote-worker-only, and deliberately requires the entire shared worker to be idle.
-Unknown/stale nonterminal records require administrator reconciliation; there is no
-force override. Other controllers must not share this worker concurrently.
-
-Install the updated `commonroom-worker-bin` before using recovery. Its new
-`idle-v1` protocol is a bounded read-only probe; older workers reject it, and the
-app reports that verification is unavailable. Follow the existing worker binary
-installation in [connection sign-in](connection-sign-in.md). No image rebuild or
-credential migration is required for this protocol change.
-
-### Background work
-
-Open an agent's **three-dot actions menu** and choose **Background work** for its expandable
-operational timeline. Remote workers are polled through the approved SSH transport
-every five seconds; unchanged states are recorded at most every fifteen seconds.
-The view shows worker startup/running/terminal observations, controller completion
-and timeout, and Codex-reported command/tool start and finish. Claude currently
-provides worker lifecycle only, because its adapter returns a final JSON result.
-This is not a complete OS process trace or the model's private reasoning. Command
-contents, outputs, credentials and arbitrary provider text are intentionally omitted.
-
-The timeline updates while it is open; older reading positions are preserved.
-Its independently scrollable feed shows the latest 64 observations; earlier audit
-records remain in History. Each turn records at most 64 observations, reserving
-space for shutdown and completion. A heartbeat or running job does not prove useful
-progress and never extends the existing three-minute hard turn maximum.
-
-The owner can select **Stop all agents** inside the view. This immediately requests
-the existing application-wide emergency stop without relying on the cosmetic safety
-button flag. “Cancellation requested” does not mean “shutdown confirmed”: confirmed
-shutdown appears only after the remote worker acknowledges the matching job's
-container is absent and its record terminal. Failed confirmation is displayed.
-Agents cannot stop/resume the application. Resuming permits new requests and does
-not replay cancelled work. No monitor automatically changes permissions or retries.
-
-Settings → Features → Cosmetic includes **Agent background work** (`agentBackgroundWork`),
-default **on**, owner-controlled. Off blocks new telemetry collection and omits
-timelines server-side, gates the script, and preserves existing audit history.
-Existing monitoring loops may finish their bounded polling until their current turn
-ends. No restart is required for the flag; reload to fetch optional scripts when
-enabling it. Monitoring is single-controller and does not reconcile jobs after restart.
-
-### Agent status explanations
-
-**Click a squad status** (or press Enter/Space when focused) to open an agent
-diagnosis panel. It shows the last activity, a safe explanation and the next step.
-The owner can check whether credentials are saved, explicitly test a fixed provider
-reply, or open History. Saved credentials do not prove an OAuth session is valid.
-Connection tests may consume provider quota and send no room history. If sign-in
-is required, use Connections to complete official provider authentication.
-
-**Compose smaller request** selects that agent and focuses the message box while
-preserving an existing unsent draft. It sends nothing. Inspect partial file changes
-before sending; retries can repeat side effects. Emergency stops and integrity
-incidents disable this action until owner recovery. There is no one-click reset
-that erases the failure or automatically replays a failed workflow. Workflow recovery
-uses its existing explicit Resume control. Close X and the help icon appear at the
-top right. These actions reuse existing server-authorized APIs and their respective
-flags; `agentStatusDetails` off removes this panel as well as the status explanations.
-
-Hover over an agent's squad status, focus it with Tab, or tap it to see **Doing**,
-**Why** and **Next**. Escape, pointer exit, loss of focus, scrolling or navigation
-closes the tooltip. Room chat turns record “Replying to a room message”; workflow
-turns record their workflow/step title. Historical turns without activity or error
-records explicitly show that information as unavailable. Recognized failures have
-safe explanations for time limits, sandbox namespaces, read-only workspaces,
-worker/provider connectivity, sign-in, review format and workflow limits. Unknown
-failures direct the owner to History rather than exposing raw stderr.
-
-Chat turns currently have a three-minute hard limit, including worker startup;
-workflow steps have an explicit limit of at most 180 seconds. A deadline is
-reported as a time-limit failure even when stopping the process produces
-`signal: killed`. Older killed-process records remain unchanged: they do not
-prove a timeout, because resource exhaustion or another termination can also
-kill a process. Inspect partial work before retrying, and split long tasks into
-smaller steps. Expired provider sessions require connection sign-in and a
-connection test. Process progress monitoring is not yet implemented.
-
-New turns record a controller dispatch timestamp. With `agentStatusDetails` on,
-Working turns at least 120 seconds old display **Working · taking longer** and
-elapsed seconds in their status help. This is an age warning, not a heartbeat,
-proof of model progress, or automatic timeout extension. Legacy events without a
-timestamp do not invent elapsed time. Disabling the flag omits these fields and
-warnings server-side; it never changes execution budgets or containment.
-
-Managed chat and workflow turns share mandatory single-controller concurrency
-limits: **eight active model turns overall, four per room**. An oversized chat
-broadcast returns HTTP 429 before recording its message or launching any member
-of that broadcast. Workflow capacity failures preserve the failed run for
-explicit resume; there is no automatic queue or retry. Wait for current turns to
-finish or request a smaller group. These resource safeguards have no off switch;
-presentation flags do not bypass them. Multi-controller quotas, spend budgets,
-durable leases and confirmed process callbacks remain planned.
-
-The owner-controlled Cosmetic flag `agentStatusDetails` defaults **on** under
-Settings → Features. It changes immediately after save/reload without restart.
-Off removes details from server state and gates `/agent-status.js`; it never changes
-execution, stop enforcement or recorded audit events. Existing room access controls
-also apply to these explanations. The tooltip omits raw credentials, paths, prompts
-and provider output. An output report of being blocked is not itself a recorded
-execution failure; this feature reports application status and recorded errors.
-
-### Squad action menus
-
-Only one squad action menu stays open. Opening another closes the first; clicking
-outside, pressing Escape, scrolling its surrounding area, resizing or navigation
-closes it. Escape returns focus to the menu trigger; Arrow Down opens and focuses
-the first enabled action. Menus open above the trigger when space below is limited
-and remain inside the browser viewport. The scrollable squad no longer adds artificial
-bottom padding for an open menu. Existing Message, Edit profile and Remove actions
-and their permissions remain unchanged.
-
-The owner-controlled Cosmetic flag `squadMenuLayout` (**Contained squad action
-menus**) defaults on. Save/reload applies changes without restart; off restores
-native menus and blocks `/squad-menus.js` delivery server-side. No agent execution,
-audit, retention or access policy changes. Technical module: `web/squad-menus.js`;
-synthetic tests cover exclusivity, edge positioning, dismissal, keyboard focus and
-both states, with mocked server tests for flag authorization and script delivery.
-
-### Stable conversation scrolling
-
-With **Room fits visible window** (`roomViewportFit`, default on) enabled,
-conversation scroll position is restored after room tabs, task cards, avatars and
-message ordering finish rendering. Status-only refreshes keep the current message
-edge when within 24 pixels of it, or retain the first visible message and its offset
-when reading older material. New messages, room changes or display-order changes
-still follow the configured newest-message edge. Both bottom-first and top-first
-presentation are supported. Browser scroll anchoring is disabled only for this
-explicitly managed message panel to prevent a second correction.
-
-Disabling the existing owner-controlled flag restores the previous render-time
-scroll behavior; no extra setting is required. The server continues gating
-`/room-viewport.js`, and message history/order/prompts remain unchanged. Technical
-helpers `captureRoomScroll`/`restoreRoomScroll` in `web/room-viewport.js` use stable
-`data-message-id` attributes and visible-row offsets. Synthetic tests reproduce the
-intermediate larger-panel clamp, verify older-message anchoring and both message
-orders, and cover disabled behavior. Tests use no database or real messages.
-
-Manual browser regression: `COMMONROOM_BROWSER_SCROLL_TEST=1 go test ./cmd/server
--run '^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v` serves a 60-second,
-localhost-only fixture on port 8794. Its messages and periodic status refreshes
-exist only in the in-memory mock; no provider runs and no PostgreSQL writes occur.
-
-### Messages needing human attention
-
-Agent messages requiring approval, a decision, clarification or missing information
-can start with `[HUMAN ACTION REQUIRED]`. New managed **chat** prompts request this
-convention when **Human attention requests** is enabled. Explicit requests receive
-a **Needs your attention** badge, a cobalt accent and pale background. The protocol marker is hidden from the displayed message body while its original text remains in history. A room banner
-counts outstanding requests and **View request** moves to the oldest one. Sidebar
-room counts expose outstanding requests only for rooms the signed-in human can
-access. Counts persist across reloads because they derive from retained events.
-
-A small set of direct request phrases in older agent messages produces **May need
-your attention** instead. This is a suggestion, not proof: quoted phrases may be
-false positives, and indirect requests may be missed. A question mark alone does
-not trigger an alert. Agents should use the explicit first-line convention for
-reliable detection. Human-authored messages cannot impersonate agent requests.
-
-**Acknowledge** records who saw the request and clears its outstanding alert; it
-**does not** accept work, approve a workflow, grant permissions or resolve the
-underlying question. Any authenticated human with room access may acknowledge;
-agent accounts may not. The original message remains immutable. An acknowledged
-badge stays visible, and later messages can create new requests independently.
-
-The owner-controlled Cosmetic flag `humanAttention` defaults **on**, changes with
-save/reload and requires no restart to toggle. Off hides highlighting/counts, omits
-attention metadata from API state, gates `/human-attention.js`, blocks acknowledgment
-and stops adding the convention to new chat prompts. Prior message/acknowledgment
-records remain; already-running prompts are not recalled. Re-enabling restores the
-projection, including previous acknowledgments. Workflow approval nodes keep their
-separate execution contract; this feature does not pause or drive workflow nodes.
-No sounds, desktop notifications or external transmissions are added.
-
-Manual attention UI verification uses the 60-second in-memory fixture:
-`COMMONROOM_BROWSER_ATTENTION_TEST=1 go test ./cmd/server -run
-'^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v`. It contains synthetic explicit,
-suggested and routine agent messages. Acknowledgment affects only the mock store.
-
-### Organized History
-
-History opens **Today** and keeps asynchronous 100-record pages and **Load more**.
-The refined view groups visible events by calendar day, labels their category and
-outcome, and shows actor/room/subject context only when recorded or resolvable from
-the authorized state. A workflow run's creator is labelled **Run owner** rather
-than being presented as the agent executing each step. Missing historical actor or
-scope information is not invented. Original summaries, timestamps, sequences and
-checksums remain available under **Technical details**.
-
-Search covers **loaded** descriptions, event types and displayed context, not the
-entire database. Category and outcome filters distinguish Messages, Agents,
-Workflows, Tasks & evidence, Memory, Connections, People & company, Rooms,
-Security, Settings and Other. The default view hides routine session/activity and
-running-workflow updates; **Show routine updates** exposes them. Failed/blocked/
-interrupted updates are never classified as routine. Loaded-record statistics
-explicitly show loaded, shown, error/attention and routine counts; they are not
-installation-wide totals. Filters persist during this History visit, including
-background renders, and reset on a new visit.
-
-Agent failures include allowlisted explanations and a next step without exposing
-raw provider errors. Event payloads, private message bodies, endpoints, credentials
-and instructions are not returned by this presentation. History remains owner-only.
-
-The owner-controlled Cosmetic flag `historyRefinement` (**Organized event history**)
-defaults **on**. Saving/reloading applies it without restart. Off restores the earlier
-layout, blocks `/history-presentation.js`, and omits enriched metadata from history
-responses while keeping bounded pagination and audit protections. Date tabs remain
-controlled separately by `historyDateGroups`. Neither flag rewrites, deletes or
-changes verification of stored events.
-
-**Refresh activity** fetches a fresh first page for the selected period, using the
-current calendar boundaries and retaining filters. It resets loaded continuation
-pages. Agent-status polling does not replace the refined History page while you
-are reading, filtering or opening technical details; use this explicit refresh to
-see new records. The manual synthetic fixture is
-`COMMONROOM_BROWSER_HISTORY_TEST=1 go test ./cmd/server -run
-'^TestWorkflowBrowserHarness$' -count=1 -timeout 2m -v` (60 seconds, in-memory only).
-
-### Squad action placement
-
-Background work and Recover session live in each agent's three-dot menu, before
-the destructive Remove action. They do not add rows beneath the agent's status.
-Opening an action closes the menu before showing its overlay. Background work
-uses the existing `agentBackgroundWork` flag; recovery uses `agentRecovery`, is
-owner-only and is omitted while the agent is Working. Server flags/permissions
-and worker checks remain enforced. Turning off `squadMenuLayout` restores native
-menu positioning but keeps these actions within the menu. Repeated rendering
-does not duplicate items. Automated UI regressions cover placement, dismissal,
-permissions, both feature states, active agents and the native-menu fallback.
-
-## Free durable job safety
-
-See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
-
-### Squad membership count
-
-The badge beside **Squad** counts the humans and agents currently displayed in that room. Inviting or removing an agent, joining or leaving as a human, and switching rooms update it with the rendered membership. Background status and profile changes do not affect the total. Membership changes made elsewhere become visible when room state next refreshes; this fix does not introduce idle-room polling.
-
-Technical contract: `trackSquadCount` in `web/features.js` counts direct `.participant` children of `.squad-members`, updates an accessible member-count label, and observes direct membership changes. Each render disconnects the previous observer, including when leaving the room view. It does not count nested menus or conversation authors. This is a correction to existing membership presentation, always active with no new feature flag or permission changes. Regression tests in `tests/squad-count.test.cjs` use synthetic DOM membership only.

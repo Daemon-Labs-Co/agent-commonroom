@@ -6,6 +6,10 @@ The server reads the current task, criteria and same-room evidence. The browser
 cannot substitute the recipient or supply a different prompt. Accepted tasks
 cannot be dispatched. Only the owner can accept work; an agent reply never does.
 
+Repository-bound development is still blocked by the mandatory credential
+separation gate. The send/review controls do not grant a missing execution path.
+See [release readiness](release-readiness.md).
+
 ## What happens
 
 The controller checks your login, request token, room access, task revision,

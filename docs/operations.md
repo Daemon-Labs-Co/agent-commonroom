@@ -1,119 +1,176 @@
 # Operations guide
 
-> Managed agent execution now requires the [Linux/rootless-Docker worker](container-isolation.md). Direct SSH model dispatch is blocked until a remote isolated worker is implemented. Earlier SSH endpoint setup in this guide does not bypass that restriction.
-
-
-[Documentation index](README.md)
+[Documentation index](README.md) · [Installation](installation.md) · [Release readiness](release-readiness.md)
 
 ## Supported installations
 
-Run privately on loopback on your computer, or on a Debian server accessed through SSH forwarding. See the main README and deployment/debian.md for installation. Public reverse-proxy/internet hosting is not currently supported. The same browser and server port is required by host/origin checks.
+Run privately on numeric loopback, either on your computer or on a Debian controller
+accessed through SSH forwarding. Browser and server ports must match the Host/Origin
+checks. Public internet/reverse-proxy hosting remains unsupported. Managed execution
+requires an approved [Linux/rootless-Docker worker](container-isolation.md).
 
 ## Configuration and assets
 
 | Item | Behavior |
 | --- | --- |
-| DATABASE_URL | Overrides local config; otherwise falls back to .data/local-config.json and the development default. |
-| LISTEN_ADDR | Defaults to 127.0.0.1:8787; numeric loopback only. |
-| OWNER_KEY_FILE | Defaults to .data/owner-key; companion public/private files use suffixes. |
-| web/ and migrations/ | Required alongside the executable; run from repository root. |
-| .env.example | Documents environment variables; the server does not load .env automatically. |
+| `DATABASE_URL` | Runtime restricted-role connection; overrides local config/development default. |
+| `LISTEN_ADDR` | Defaults to `127.0.0.1:8787`; numeric loopback only. |
+| `OWNER_KEY_FILE` | Defaults to `.data/owner-key`; companion RSA files use suffixes. |
+| `.data/local-config.json` | Optional private controller configuration; strict schema/permissions. |
+| `web/`, `docs/`, root documentation and `migrations/` | Deploy beside executable; run from repository root. |
+| `.env.example` | Reference only; the server does not automatically load `.env`. |
 
-The server applies migration DDL on startup. Review schema changes before upgrading; a versioned migration runner and separate runtime database role are not implemented.
+Run reviewed migrations explicitly with `--migrate` and a separate owner account.
+Serving validates restricted runtime privileges and never applies migration DDL.
+See [database security](database-security.md). Keep migration credentials inaccessible
+to the service.
 
 ## Sign-in and keys
 
-First installation creates a setup code and an RSA key pair. The owner downloads the private key and proves possession through browser signature login; successful key login removes pending private material and the setup code from the server. The retained public key is needed for future sign-in.
+First setup creates a code and RSA key pair. Download and protect the owner private
+key; successful signature login removes the server's pending private material and
+setup code. Keep the public-key file. General key recovery/rotation and encrypted-PEM
+import are not implemented.
 
-Sessions expire after eight hours and are lost on restart. Member access and enabled status are checked on requests. Only the owner invites/disables humans or changes their roles and room access. There is no self-registration, general key recovery, rotation, or encrypted-PEM import.
-
-Keep downloaded owner/member credentials in protected storage with backups. Do not include them in bug reports. Deleting a file is not a guarantee of physical erasure from storage or backups.
-
-## Agent health
-
-A participant's application status is normally Idle, Working, or Blocked. Working indicates an in-memory turn; Blocked can indicate provider/process errors. Native provider login and executable availability are separate from a saved connection's presence.
-
-Investigate connection protocol/endpoint, service PATH and HOME, CLI login, SSH host verification/authentication, and agent.error events. A successful SSH login by your own account does not prove the application service account can connect.
-
-Turns have a three-minute context deadline; native session IDs persist, but the work queue and cancellation handles do not. Before maintenance, finish or cancel active work and inspect remote jobs. Restarting the server or removing a participant is not a guaranteed remote-process cutoff.
-
-## Integrity and history
-
-The owner’s **History & retention** screen shows plain-language descriptions and timestamps for the latest 200 audit records. Search filters these recent descriptions and event types. Expand **Verification details** for the sequence number, original event type, and checksum. Descriptions are derived from the original event payload without rewriting it; message text, agent instructions, endpoints, and raw provider errors are not included. Older events that lack names use a generic description. This view is not a replacement for provider diagnostics or a complete searchable archive.
-
-The history screen inspects recent event metadata and can request chain verification. Verification failure records an incident and blocks some agent operations. Startup/periodic detection and complete active-process shutdown are incomplete. Do not treat an incident flag as proof every agent has disconnected.
-
-The checksum chain and database trigger provide local protection, not administrator-resistant immutability. No independent rollback anchor, external WORM archive, or complete metadata protection exists. Preserve evidence and backups; do not edit/delete/re-hash history to make a failed check pass. There is no complete recovery runbook implemented yet.
-
-Retention, trash, and human-authorized purge are product requirements, not implemented operational features. Do not schedule database deletion on the assumption that the application's retention UI enforces it.
-
-## Backup and update procedure
-
-1. Choose a maintenance window and finish/cancel active work; inspect remote processes separately.
-2. Stop Agent CommonRoom.
-3. Back up PostgreSQL, local configuration/public-key/state files, and the deployed source version. Protect provider credentials separately and maintain the human-held private key backup.
-4. Keep private backups outside the repository, with encrypted off-machine copies.
-5. Deploy a reviewed commit/release and build with its required Go version.
-6. Review startup migrations, start the service, sign in, and check rooms/history/provider status.
-
-The Debian guide provides concrete commands. Test restore in an isolated installation. Do not overwrite a newer live event log with an older backup as a routine rollback; that loses authoritative history and the current chain may not detect it. Backups do not substitute for the planned independent immutable archive.
-
-## Troubleshooting and escalation
-
-Start with installation troubleshooting in the main README, then Debian service/tunnel checks if applicable. Share error summaries, application version, and redacted diagnostics; avoid raw private transcripts and credentials. Follow SECURITY.md for vulnerabilities and SECURITY_REVIEW.md for known limitations. No production service-level guarantees or automated recovery tools exist yet.
-
-## Guided connection editor flag
-
-`COMMONROOM_CONNECTION_EDITOR=true` (default) serves the compact editor. An operator can set it to `false` and restart to restore the previous form. This is a presentation flag: connection data, running agents, the API, and security checks remain unchanged. See [usage and technical behavior](concepts.md#guided-connection-editor). Invalid boolean values prevent startup.
-
-## Workflow template catalog flag
-
-`COMMONROOM_WORKFLOW_TEMPLATES=true` enables the main-menu catalog by default. Set `false` and restart to disable catalog serving and explicit template application. Existing workflows and ordinary editing remain available; no records are removed and no agent work is stopped. Only the server operator can change this environment setting. See [workflow templates](concepts.md#workflow-templates).
-
-## Emergency stop procedure
-
-1. As owner, select **Stop all agents**, or **Stop room agents** for a scoped stop. Confirm the action and optional reason.
-2. Verify the emergency banner and readable stop event. Cancellation is requested; do not infer remote termination from the banner.
-3. Inspect affected hosts, processes and provider/tool access. Use host/network containment where the application alone cannot stop ongoing effects.
-4. If audit recording fails, the current process remains stopped locally. Do not restart until the failure is investigated and the stop is recorded successfully; an unrecorded latch is not durable.
-5. Resume explicitly after investigation. Application resume retains separate room stops; cancelled turns are not restarted. Integrity incidents block resume.
-
-The server must be reachable; serialized operations can delay the stop. Use host-level controls if it is unavailable. The owner can hide controls in **Settings → Feature flags → Security**. `COMMONROOM_AGENT_SAFETY_UI` supplies the initial default; a saved setting overrides it. Neither disables backend enforcement. With controls hidden, use an existing owner session’s protected [agent-safety API](api.md#emergency-agent-safety); do not expose credentials in URLs or shared scripts. These controls do not provide automatic rogue-behavior detection or guaranteed remote/child-process termination.
-
-Profile photos use bounded immutable event storage. Revisions increase audit storage and remain until eligible human-authorized purge. Disable new uploads and display through Settings → Feature flags → Cosmetic; this is a presentation option, not historical erasure. No filesystem upload directory or additional image service is required.
+Human sessions expire after eight hours and persist across restart by default.
+Account enablement/access is checked on requests. Only the owner administers invited
+humans and their access. Keep private keys backed up outside the repository; deleting
+a file does not prove physical erasure from storage or backups.
 
 ### Private human session store
 
-Unexpired human sessions are stored in `human-sessions.json` beside `OWNER_KEY_FILE` (normally `.data/`). Keep it owner-only; never copy it into the web directory, commit it, or include it in troubleshooting output. Corrupt/unsafe stores block startup. To force fresh login, stop the application, remove this private session file, then restart; this does not alter immutable history. Restart persistence is enabled by default via `COMMONROOM_PERSISTENT_SESSIONS`; set false and restart to clear the saved store and use memory-only sessions. Only one application process may use a store. See [the session contract](concepts.md#human-login-persistence) for expiry, revocation and verification limits.
+`human-sessions.json` lives beside `OWNER_KEY_FILE`. Keep it private and never share
+it as diagnostics. Unsafe/corrupt files block startup. To force fresh login, stop
+the application, remove only this operational session file and restart. Audit history
+and RSA keys remain separate.
 
-## Workflow execution and controller recovery
+`COMMONROOM_PERSISTENT_SESSIONS=false` selects memory-only sessions and clears the
+saved store; it does not weaken login proofs, authorization or session limits.
+Only one controller may use the store. See [session renewal](login-availability.md).
 
-Workflow execution is optional and off by default. Enable it as the owner under Settings → Features → Workflows after testing isolated connections and provisioning approved development workspaces where required. Operate **one controller process** per event store; there are no distributed worker leases. The process continues work when the browser closes, but does not silently replay work after a controller restart. Open the workflow view to reconcile running records into interrupted records, inspect the current workspace, then explicitly Resume or Cancel. Resuming repeats the current node and can repeat partial side effects. Do not resume an exhausted iteration budget; cancel and revise the workflow instead.
+## Installation diagnostics
 
-Disabling the flag cancels live drivers and rejects further execution/gate actions, preserving outputs and history; Cancel and owner-only inspection remain available. Emergency stop cancels matching workflow drivers as well as active managed turns. Provider cancellation confirmation is bounded by the existing isolated-worker contract; do not promise external account revocation. If event writes fail, stop work and investigate; an incomplete audit may require explicit recovery. See [workflow execution](workflow-execution.md) for unsupported parallel/retry/handoff semantics and evidence limitations.
+Run `python3 scripts/check-installation.py` from the checkout as the controller
+service account, with the same runtime configuration in that shell. Use `--hybrid`
+on a Linux host with nginx/Docker, or `--url` for a different numeric-loopback port.
+See [checks and repair guidance](installation-check.md). It never repairs state,
+applies migrations or launches agents; incomplete checks remain visible.
 
-## Security hardening
+## Agent health
 
-See [security hardening](security-hardening.md) and [restricted database setup](database-security.md) for required migration/runtime role separation, integrity shutdown/recovery, identity and request/context budgets. These boundaries have no off switch.
+A saved connection or an Idle profile is not evidence of provider availability.
+Use [Test connection](connection-testing.md) for a fixed isolated provider reply.
+For failures, inspect the approved alias, controller service-account SSH identity,
+worker readiness, saved credential presence and safe job diagnostics.
+
+Turns have bounded deadlines, but elapsed time or cancelled SSH is never shutdown
+proof. [Durable jobs](worker-jobs.md) preserve unresolved intent across restart and
+require reconciliation. Do not replay uncertain work or delete records to make
+readiness pass. Public development execution is still [blocked](development-workspaces.md).
+
+## Integrity and history
+
+The history view presents readable immutable-event descriptions with verification
+details. Use its available filtering/pagination for investigation; do not confuse
+a displayed subset with a complete independent archive. Message text, instructions,
+endpoints and raw provider errors are excluded from readable audit descriptions.
+
+Integrity verification runs at startup, every thirty seconds and before managed
+execution. Failure cancels controller work and latches execution off, including a
+private durable marker when database incident recording is unavailable. Follow
+[owner recovery requirements](database-security.md#integrity-and-recovery); do not
+edit, delete or re-hash evidence to clear an incident.
+
+Unkeyed checksums and restricted database privileges are not administrator-resistant
+immutability. Independent external anchoring/WORM archives remain unfinished.
+Retention/purge policy is not permission to schedule database deletion, and approved
+workspace disposal remains pending.
+
+## Backup and update procedure
+
+1. Schedule maintenance. Finish/cancel work and confirm worker idle plus settled
+   controller jobs; investigate uncertainty before replacement.
+2. Stop the controller. Preserve private state, PostgreSQL history and deployed
+   source/image identifiers. Back up provider storage separately and protect the
+   human-held private-key backup.
+3. Store encrypted off-machine copies outside the repository. Test restoration in a
+   separate installation.
+4. Build a reviewed revision and matching worker binaries/images. Run reviewed
+   migrations explicitly with the migration identity and restricted grants intact.
+5. Start one controller, sign in, check history/integrity and verify worker/provider
+   readiness before resuming authorized work.
+
+The [Debian guide](deployment/debian.md#operations-updates-and-backups) has concrete
+service/backup commands. Do not restore an older event log as routine code rollback:
+that loses authoritative history and may evade the current local chain checks.
+
+## Emergency stop procedure
+
+1. As owner, choose **Stop all agents** or **Stop room agents** and confirm a reason.
+2. Check the stop banner/event, then inspect worker job shutdown evidence. A banner
+   confirms a cancellation request, not every remote process's termination.
+3. If the application/worker is unreachable or effects continue, use trusted host
+   and network controls. Preserve records for reconciliation.
+4. If audit/marker persistence fails, repair storage and record the stop durably
+   before restart. Do not assume an unrecorded local latch survives failure.
+5. Reconcile uncertainty and resume explicitly after investigation. Cancelled work
+   does not automatically restart; room stops and integrity incidents remain separate.
+
+`COMMONROOM_AGENT_SAFETY_UI` sets the initial presentation default; saved owner
+settings override it. Hiding controls never disables backend stops. An authenticated
+owner can use the protected [agent-safety API](api.md#emergency-agent-safety).
+No stop control provides provider-wide token revocation or automatic rogue detection.
 
 ## Free durable job safety
 
-See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+[Worker diagnostics](worker-jobs.md) explains durable intent, protocol-v2 chat jobs,
+crash reconciliation and owner recovery. Internal development pairs use a separate
+versioned contract. `jobDiagnostics` defaults on and controls optional detailed UI;
+the lifecycle journal and fencing remain mandatory when it is off.
 
 ## Single-controller startup lease
 
-Run one controller per installation. Startup takes an exclusive nonblocking kernel
-lease on `.data/controller.lock` before loading identity, connecting to the DB or
-checking workers. A second controller in the same working directory stops with a
-clear startup error. The empty 0600 lock file stays in place; process exit releases
-the kernel lease. **Do not delete or replace this file while any controller may
-be running.** Stop the existing service, then start its replacement. Do not retry
-by choosing another data directory against the same database.
+Run one controller per event store. Startup takes a nonblocking exclusive kernel
+lease on `.data/controller.lock` before identity/database/worker initialization.
+A second controller in that working directory refuses startup. The private empty
+file remains after exit; the process releases its kernel lease.
 
-Stop old controller versions before upgrading: they do not participate in this
-lease. This mandatory local safeguard has no feature flag. It does not coordinate
-separate working directories, hosts or network filesystems, nor establish a
-distributed DB lease. Multi-controller deployment remains unsupported. Migration
-and the isolated worker entry point do not take the controller lease; operators
-must still coordinate migrations separately. Tests use temporary local directories
-and verify exclusion, release, inode preservation and linked-lock rejection.
+**Never delete or replace the lock while a controller may be running.** Stop the
+old service before replacement, including versions predating the lease. Another
+working directory/host is not a supported workaround against the same database.
+The lock does not implement distributed DB coordination or network-filesystem
+leases. Migration and worker entry points do not take it; coordinate migrations
+separately.
+
+## Workflow execution and controller recovery
+
+Workflow execution is optional and off by default. Enable only after checking
+its [supported semantics](workflow-execution.md) and operational connections. Browser
+closure does not stop its controller driver; controller restart does not silently
+replay it. Inspect interrupted work before explicit Resume/Cancel. Resume can repeat
+the current node and partial side effects; never use it to bypass an exhausted budget.
+
+Disabling execution cancels live drivers and rejects further execution/gates while
+preserving outputs/history. Cancel and authorized inspection remain available.
+Emergency stop also cancels matching workflow drivers. Configuration never grants
+public development admission or repository access by itself.
+
+## Presentation and catalog flags
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `COMMONROOM_CONNECTION_EDITOR` | true | Guided editor layout; false restores basic presentation. |
+| `COMMONROOM_WORKFLOW_TEMPLATES` | true | Catalog serving/explicit template application; saved workflows remain. |
+
+Operator environment changes require restart; invalid booleans refuse startup.
+Neither flag changes connection authorization, running-job safety or isolation.
+Profile-photo flags control new uploads/display; historical immutable revisions
+remain stored rather than erased by disabling a cosmetic feature.
+
+## Troubleshooting and escalation
+
+Start with [installation](installation.md), then [Debian](deployment/debian.md) or
+[worker](agent-ssh.md) checks. Share the revision and redacted error summaries rather
+than private transcripts, raw logs or credentials. Follow [security reporting](../SECURITY.md)
+for vulnerabilities and [security hardening](security-hardening.md) for required
+boundaries. Live acceptance and release gates are tracked in [release readiness](release-readiness.md).

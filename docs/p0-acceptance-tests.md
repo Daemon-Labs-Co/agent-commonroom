@@ -24,33 +24,11 @@ wrong decisions, reordered audit/execution, unsafe effects and stale revisions.
 Catalog checks reject duplicate cases, absent requirement references, contradictory
 expectations and missing positive/refusal coverage.
 
-## Surface gap snapshot
+## Current implementation status
 
-This is a filename/call-site/guard inspection of the current checkout on
-16 October, not a deep code/security review or deployment verification. The older
-15 October assessment records an earlier snapshot and is not current completion
-evidence. No completion percentage is inferred from searches or passing tests.
-
-| Area | Surface evidence | Remaining gap |
-| --- | --- | --- |
-| Production execution | `worker_codex_run.go` implements RunCodex; observed callers are tests. `credential_boundary.go` still rejects repository-bound execution. | Connect authorized production dispatch and controller/worker audit startup without removing the barrier prematurely. |
-| Provider scope | Codex has the new synthetic path; `agents.go` has Claude/Codex adapters. Gemini appears in UI registration. | Reviewed isolated Claude/Gemini/Copilot/llama.cpp development paths are not demonstrated; UI labels are not execution support. |
-| Credentials | Private framing, connection locks and journal checks exist. | Persist/serialize refreshed engine credentials and verify actual provider authentication. |
-| Quotas | `container_quota.go` and worker admission reserve four physical slots. | No aggregate 5 GB storage admission/accounting path identified. Storage-deadline helpers are not storage quotas. |
-| Harness upgrades | Reviewed immutable image inputs exist. | No instantiation-time upgrade catalog/check/compatibility/publication flow identified. |
-| Idle shutdown | `worker_idle.go` probes whether work is idle. | No owner-configurable default-five-minute agent idle timer identified. A probe is not a shutdown policy. |
-| Commands/artifacts | `worker_codex_turn.go` admits only read/write callbacks. | Bounded builds/tests and trusted revision-bound artifact delivery remain unfinished. |
-| Disposal | Paired shutdown retains workspace data; low-level removal supports a discard input. | A public, exact-approval-bound disposal workflow and verified storage credit release are not demonstrated. |
-| Live acceptance | Combined synthetic worker tests exist. | No live image/rootless/SSH/provider acceptance established by this scan. |
-
-The table identifies visible seams and missing evidence, not proof that every
-similarly named feature is absent. Full extension execution, paid consensus and
-enterprise features remain deferred; they are not added to the P0 readiness gate.
-
-All 74 behavioral scenarios currently lack production-backed adapters. They are
-explicitly **pending/skipped**, not passing acceptance tests. The existing concrete
-runtime/audit/quota/bridge regression tests remain separate and runnable. No stub
-adapter copies expected output or pretends to verify an absent implementation.
+Use [release readiness](release-readiness.md) for the current gap matrix. The
+scenario catalog is a future acceptance contract, not a second implementation
+status report.
 
 ## Running and completing them
 

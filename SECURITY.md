@@ -10,9 +10,9 @@ Once a private channel is available, include the affected version, reproduction 
 
 ## Protect local data
 
-Keep `.data/`, downloaded owner/member keys, provider credentials, local configuration, and database backups private. Use independent credentials and a disposable database for tests. Do not expose the server through a tunnel or proxy; loopback-only binding is a development boundary, not production authentication or transport security.
+Keep `.data/`, downloaded owner/member keys, provider credentials, local configuration, and database backups private. Automated tests must use synthetic credentials and mocked database interactions; never connect them to a database or launch real provider agents. Do not expose the server through a tunnel or proxy; loopback-only binding is a development boundary, not production authentication or transport security.
 
-PostgreSQL append-only triggers and the local checksum chain do not resist a privileged database administrator. External immutable storage, rollback anchors, complete metadata hashing, guaranteed incident cancellation, and secure retention/purge are still pending.
+PostgreSQL append-only triggers and the local checksum chain do not resist a privileged database administrator. New records protect identity, sequence and commit-time metadata, but external immutable storage and rollback anchors remain pending. Incident cancellation is implemented; verified physical shutdown under failures, approved disposal and complete secure retention/purge still need acceptance.
 
 ## Repository secret checks
 

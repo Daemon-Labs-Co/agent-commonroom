@@ -1,169 +1,172 @@
 # Architecture
 
-## Session recovery safety contract
-
-`agentRecovery` validates owner identity, CSRF, room membership, the default-on
-`agentRecovery` flag and audit/emergency controls. It requires no active controller
-turns, then calls approved SSH `idle-v1`; the worker validates rootless Docker,
-checks managed containers including stopped leftovers, and scans at most 4096
-job-record directory entries. Nonterminal, malformed or unreadable records fail
-closed. No cleanup or record deletion occurs. The controller mutex serializes
-local dispatch/mutations throughout the bounded ten-second check; this can delay
-other requests and is not a multi-controller lease.
-
-Resume validates execution mode/workspace compatibility. Fresh resets only the
-provider binding. A single append-only `agent.recovered` snapshot makes audit and
-state transition atomic; presentation metadata is omitted from that snapshot.
-Checks are never cached as permission for a later action. This conservative
-whole-worker contract supports legacy failures without pretending their job IDs
-were recorded. It does not reconcile orphaned jobs or resume workflow graphs.
-
-## Background operational telemetry
-
-`backgroundContext` attaches an internal context callback to managed chat/workflow
-turns. The callback allows only fixed stage labels, binds membership/room/connection,
-uses a controller turn ID, caps recording at 64 events and rejects post-completion
-callbacks. Worker observations must match the controller-allocated job and provider;
-polling uses the approved alias and existing `status-v1` protocol with a three-second
-query deadline. No new inbound callback port or public agent credential is exposed.
-Codex structured events produce only allowlisted command/tool start/end labels.
-
-`agent.background` is internal append-only audit data. Replay substitutes trusted
-labels, bounds room-scoped participant delivery, and omits telemetry with the
-default-on `agentBackgroundWork` flag off. Public event ingestion cannot forge it.
-Polling failures are observations of unknown liveness, never automatic cancellation,
-retry or permission. Cleanup acknowledgements report confirmed/unconfirmed shutdown.
-This does not implement durable leases, restart reconciliation, exhaustive tool
-tracing, per-process resource statistics or progress-based timeout extensions.
-
-## Model turn admission and age diagnostics
-
-`openAgentDiagnosis` renders only the safe room-scoped status projection. Opening
-it makes no network or model request. Owner-only status/test actions reuse
-`provider-auth` and connection-testing authorization and flags; neither clears an
-agent failure. Preparing a message performs no mutation or dispatch and preserves
-the draft. The browser does not infer an expired credential from a killed process.
-
-`server.agentAdmission` runs under the controller mutex against complete company
-state before either chat or workflow reservation. It counts all active entries,
-including removed participants awaiting cleanup, against an eight-turn global
-bound, and known room memberships against a four-turn room bound. Broadcasts
-preflight the full eligible batch before appending a message or starting turns.
-Workflow overload records an explicit failed run and requires owner resume.
-There is no durable queue, multi-controller coordination or spend accounting.
-Mandatory limits cannot be disabled through product flags.
-
-New `agent.activity` events include server-generated `startedAt`. Replay derives
-elapsed seconds only for Working participants with a known timestamp. The
-existing default-on `agentStatusDetails` flag gates both elapsed metadata and
-warnings. `projectAgentElapsed` preserves integrity/emergency-stop explanations;
-it makes no claim about worker heartbeat or meaningful progress. Context deadline
-errors take precedence over killed-process exits in both adapters and completion
-recording. Historical audit events are never rewritten.
-
-[Documentation index](README.md)
+Agent CommonRoom is a Go HTTP controller, a PostgreSQL append-only event store,
+a plain JavaScript browser UI and a mandatory Linux rootless-Docker execution
+worker. The supported control plane is one controller; it is not a distributed
+queue, public multi-tenant service or enterprise compliance claim.
 
 ## Runtime shape
 
-Agent CommonRoom is a Go HTTP server with a PostgreSQL event store and a browser UI written in plain JavaScript. It is one process, not a microservice deployment. There is no frontend build system or durable background queue.
-
 ```mermaid
 flowchart LR
-    Browser[Browser UI] --> Guards[Host, session and actor checks]
-    Guards --> Handlers[HTTP handlers]
-    Handlers --> Store[PostgreSQL event log]
-    Store --> Projection[Replayed state and room views]
-    Projection --> Browser
-    Handlers --> Jobs[In-memory agent goroutines]
-    Jobs --> CLI[Mandatory Linux Docker worker]
-    CLI --> Store
+    Browser[Browser UI] --> Guards[Session, actor and room checks]
+    Guards --> Controller[HTTP controller]
+    Controller --> Store[PostgreSQL event transactions]
+    Store --> State[Replayed state and room views]
+    State --> Browser
+    Controller --> Worker[Approved isolated worker]
+    Worker --> Containers[Fresh managed containers]
+    Worker --> Audit[Private scoped audit channel]
+    Audit --> Controller
 ```
 
-The server runs from the repository root because it loads migrations and serves web assets from relative paths. Listening is restricted to numeric loopback addresses. Debian access uses an SSH tunnel rather than public HTTP hosting.
+The controller serves relative repository assets and runs from the repository
+root. HTTP binds numeric loopback addresses; documented remote access uses an
+SSH tunnel. A remote execution worker uses a separate approved SSH alias and
+worker protocol. SSH transport alone never makes a provider process isolated.
 
-## Startup and request flow
+## Startup and requests
 
-Startup selects DATABASE_URL, falling back to private local configuration and then the development default. It connects to PostgreSQL, applies migrations/001.sql, prepares owner authentication, registers handlers, and starts HTTP serving.
+Startup acquires the local controller lease, validates private configuration,
+connects with the restricted runtime database role and restores safety state.
+Database schema changes use the explicit `--migrate` entry point with separate
+migration credentials; normal startup performs no DDL. The database URL comes
+from the environment, private local configuration or the development default.
+See [database setup](database-security.md) before changing roles or transport.
 
-API requests pass through host/origin and session checks, then actor/account and room checks. Individual handlers validate methods, mutation tokens, and payloads. Authorization is server-side; frontend controls are only presentation. The current owner/member policy is described in the API overview and security review.
+Requests pass host/origin, authenticated-session, actor/account and room checks.
+Mutation handlers additionally enforce CSRF, payload budgets, permissions,
+revisions and supported retry keys. Frontend controls only present authority;
+server checks enforce it. Missing identity never implies owner authority.
 
-## State and events
+## State, transactions and integrity
 
-PostgreSQL `events` contains sequence, ID, kind, JSON payload, commit timestamp, previous hash, and hash. append serializes writers with a PostgreSQL advisory transaction lock. load replays the log into room.State, after which visibility helpers filter room and actor views.
+The `events` table stores sequence, ID, kind, JSON payload, commit timestamp,
+previous hash and hash. `appendBatch` commits related events under a PostgreSQL
+advisory transaction lock, canonicalizes JSON, stamps actor/protected metadata
+and optionally writes an idempotency receipt in the same transaction. Supported
+operations persist intent before dispatch; failures roll back the batch.
 
-This is event-sourced state reconstruction without cached projections or general pagination. Reading state repeatedly replays history; this is a known scaling concern. Some business operations append multiple separate records and are not atomic as a whole. Memory, member, task, and workflow updates use revision checks where implemented; there is no universal concurrency or lease model.
+`load` replays retained history into `room.State`; room/actor projections filter
+what the browser receives. Whole-state replay remains a scaling concern, despite
+bounded waits and history paging. Supported mutable aggregates use revision
+checks, while expected event counts conservatively reject stale operations.
+[Atomic operations](atomic-operations.md) describe retry and conflict semantics.
 
-The trigger rejects normal UPDATE/DELETE/TRUNCATE operations. Hashes currently cover previous hash, event kind, and PostgreSQL's payload text. They omit some metadata and have no independent rollback anchor. A privileged database administrator can bypass protections; absolute immutability is not achieved.
+The database trigger rejects ordinary mutation of events. New records protect
+ID, sequence and time inside their hashed metadata; legacy metadata is not
+retroactively protected. Integrity failure cancels contexts and latches execution
+off. A privileged administrator can still rewrite or roll back a valid chain:
+independent immutable storage and externally anchored heads remain required.
+See [security hardening](security-hardening.md).
 
-## Agent execution
+## Agent admission and lifecycle
 
-A mutex protects process-local active/cancel maps and parts of mutation handling. Accepted agent work starts a goroutine with a three-minute context deadline. Each participant is limited to one active turn by the in-memory map. Provider session identifiers are saved through participant.session events.
+The controller reserves process-local active/cancel slots for chat and workflows.
+Mandatory logical limits are eight active turns overall and four per room;
+broadcasts preflight the whole eligible batch. Durable physical container
+reservations additionally cap accounts at four managed containers, counting a
+pair as two and retaining uncertain jobs. Paid limits are not implicitly unlimited.
+See [container quotas](container-quotas.md).
 
-Managed adapters invoke executables through a mandatory Linux rootless-Docker worker; prompts travel over stdin. Other platforms and direct SSH endpoints are blocked. Codex uses a read-only sandbox. Claude disables tools, MCP servers, and slash commands for the conversational trial. History browsing uses a separate Codex app-server RPC process.
+Worker version-2 chat jobs have durable intent and shutdown records. Version-4
+development pairs bind both role identities and a fresh source workspace;
+version-3 pairs are recovery-only. Creator leases, tombstone fencing and exact-ID
+absence checks distinguish cancellation from confirmed shutdown. Existing used
+containers/workspaces cannot be adopted or restarted. Failed/unknown cleanup
+retains evidence and capacity. There is no automatic replay of ambiguous work.
 
-Jobs do not survive application restart as durable work items. Process-group cleanup, remote cancellation, global resource limits, workspace confinement, and policy-controlled tool execution are incomplete. Application monitoring alone cannot reliably contain an unrestricted process.
-
-## Source responsibilities
-
-| Area | Responsibility |
-| --- | --- |
-| cmd/server/main.go | Startup configuration, dependency wiring and HTTP registration. See [server structure](server-structure.md) for storage, replay, handlers and mutation validators. |
-| cmd/server/auth.go and owner_rsa.go | Sessions, request checks, first-owner setup, challenges, signatures, and key download. |
-| cmd/server/members.go | Human invitations, actor projection, permissions, personal rooms, and visibility. |
-| cmd/server/agents.go and history.go | CLI turns, SSH commands, session continuation, and saved-history RPC. |
-| cmd/server/provider_auth.go | Local Claude status and macOS login launch. |
-| cmd/server/rooms.go and workflows.go | Room filtering, profile guidance, and graph validation. |
-| internal/room/model.go | Domain structs and adapter capability declarations. |
-| migrations/001.sql | Event-store schema and mutation-rejection trigger. |
-| web/app.js | Base UI, connection/profile forms, API calls, messages, and sign-in. |
-| web/features.js | Room navigation, tasks/evidence, profile extensions, provider icons, and member UI. |
-| web/workflows.js | Visual graph editor, connections, properties, validation, and undo/redo. |
-| web/provider-auth.js | Claude authentication dialog and connection-screen action. |
-| cmd/server/documentation.go and web/help*.js/html/css | Allowlisted documentation serving, safe reader, and contextual overlays. |
-| web/index.html and style.css | Page entry, script order, styling, and layout. |
-
-Frontend scripts share global state and wrap existing functions. Script order matters. This structure is an acknowledged maintenance concern, not a prescribed long-term modular architecture.
-
-## Intended evolution
-
-The backlog calls for stronger authorization, a controlled execution gateway with OS/process isolation, durable jobs and workflow state, typed adapter transports, stronger event integrity, independent immutable storage, explicit project permissions, structured evidence, and operational observability. These are planned improvements. Consult SECURITY_REVIEW.md before changing boundaries or claiming enforcement guarantees.
+Internal Codex development now connects audited session, source bootstrap,
+engine/tool assembly, credential lease, private gateway, callback turn and fenced
+cleanup. Public production admission remains blocked pending acceptance. See
+[provider/tool separation](provider-tool-separation.md) and
+[release readiness](release-readiness.md). A source-level internal method is not
+an enabled provider feature.
 
 ## Mandatory container isolation design contract
 
-**Decision:** container isolation is a mandatory boundary for managed agent development, not an optional feature. The supported application will have no Security toggle, per-connection exemption, environment switch or automatic direct-execution fallback. If isolation cannot be established, new managed work must be blocked. Existing external conversations may be imported as context; importing a session does not make its externally launched process contained.
+**Decision:** container isolation is mandatory for managed agent development.
+There is no Security toggle, per-connection exemption, environment switch or
+automatic direct-execution fallback. If isolation cannot be established, refuse
+new managed work. Importing external conversations supplies untrusted context;
+it does not contain an externally launched process.
 
-**Implementation status:** `codexAdapter.Run` and `claudeAdapter.Run` now call `isolatedAgentCommand`; direct model-turn launch commands have been removed. The initial worker provides private volumes, restricted provider egress, resource limits and bounded forced cleanup. It currently supports local Linux/rootless Docker only. Approved host directory mounts, remote workers and startup reconciliation remain open. Live Docker/provider verification was unavailable on the development machine, so SEC-04 is not declared closed. See [setup, policy and verification limits](container-isolation.md).
+Managed `codexAdapter.Run` and `claudeAdapter.Run` use `isolatedAgentCommand`.
+Supported execution requires the Linux rootless worker, locally or through the
+approved remote-worker protocol. Host home, Docker socket, SSH agent and
+application database/owner credentials must never reach agent containers.
+Worker/host/kernel and reviewed image provenance remain trusted boundaries.
+Containers do not prove resistance to every escape.
 
-The intended trusted worker creates an isolated execution unit per agent/task. Rooms may approve multiple directories, each with explicit read/write access; agents receive separate working copies where appropriate. Workers enforce approved mounts, private session storage, restricted networking, minimal credentials, resource limits and confirmed shutdown. Agent containers receive no Docker socket, host home directory, SSH agent or application database/owner credentials. Remote agents need a worker enforcing the same contract on the remote machine; SSH transport alone is insufficient.
+Development requires a credential-bearing engine separated from a credential-free
+tool workspace, authenticated scoped broker calls and durable controller audit
+acknowledgements. Legacy credential-bearing native development remains refused.
+The tool role uses a fresh verified bundle and private volume; the engine gets
+no repository/tool volume or native development-tool authority. See the
+[separation contract](provider-tool-separation.md).
 
-Human-authorized native-history import and provider sign-in are separate trusted administrative capabilities. They must not expose the whole host history/credential store to agents or become alternate model execution paths. Container configuration and the runtime remain part of the trusted security boundary; containers are not proof against every possible escape.
+Human-authorized history import and provider sign-in are trusted administrative
+capabilities. They cannot become alternate model-turn launch paths or expose
+whole credential/history stores to agents. Current automated coverage is
+synthetic; live image/provider/rootless acceptance remains incomplete.
 
 ### Source-level bypass warning
 
-Because the project is open source, you **CAN** fork it and circumvent the isolation contract by substituting direct local/SSH execution. **BUT this is a bad idea:** a compromised agent or malicious prompt can operate with the account's accessible files, provider credentials and network reach; unintended writes or external tools can affect the host; and stopping a launcher may leave descendants or remote work running. Room permissions and application monitoring cannot reliably contain a process given broader OS access. Removing isolation also invalidates the containment assumptions documented for the supported design.
+An open-source fork CAN replace the worker or adapter with direct host/SSH
+execution, BUT doing so exposes accessible host files, credentials and network
+authority to malicious repositories or model output. Stopping a launcher may
+leave descendants or remote work running. Room permissions and application
+monitoring cannot contain broader OS authority. Such a fork invalidates the
+supported containment assumptions and must not be described as isolated.
 
-That remains a source modification at the fork operator's risk, not a supported configuration. Do not represent a modified direct-execution adapter as isolated. Document this warning at adapter types, turn methods and command construction functions when introducing or changing execution paths.
-
-See the [remote worker requirements](container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Remote-worker transport is planned; current direct SSH dispatch remains blocked.
+Document this risk at adapter types, launch methods and command builders.
+A source modification is not a supported configuration or exception.
 
 ### Development workspace admission
 
-[Development workspaces](development-workspaces.md) add an explicit off-by-default operator capability, not an isolation exception. The controller and worker each enforce room/snapshot allowlists. Provider development tools use the outer hardened container as their execution backend, avoiding nested bubblewrap namespace requirements. The worker mounts a verified Git bundle read-only; bootstrap clones it into private writable storage and verifies shell, Git, feature branch and file/.git writes before starting a provider. No host-execution fallback, privileged container or writable host repository is supported. Source forks CAN bypass this contract, BUT doing so exposes host authority to provider tools.
+Development opt-in and controller/worker room/snapshot allowlists do not waive
+security prerequisites. The current legacy-development barrier still refuses
+execution. The separated implementation streams an approved bundle into the
+credential-free tool volume, verifies digest/freshness/branch and bootstrap
+receipt before the engine starts, and never mounts a writable host worktree.
+Ordinary shutdown retains source; disposal needs its own explicit approval.
 
-## Sequential workflow execution
+## Sequential workflows and evidence
 
-`cmd/server/workflow_runner.go` implements graph validation, owner-only run commands, pinned append-only run projections, a single-controller sequential driver, human gates and recovery. `internal/room/model.go` defines WorkflowRun/WorkflowStep. Runs are projected from workflow.run.updated events by server.load and filtered to their room; non-owner state omits outputs. The existing executeAgentTurn method performs both chat and workflow model turns through the mandatory isolated worker; there is no second host launcher or weaker permissions path.
+`workflow_runner.go` validates/pins the definition, stores append-only run
+revisions and drives one sequential step at a time using the same managed-turn
+path as chat. It records intent before execution, releases the controller mutex
+during provider work and rechecks policy, membership, cancellation and integrity
+before saving outcomes. Failed result persistence prevents the next dispatch.
 
-The driver reserves the same participant active/cancel slot as chat dispatch, records intent before execution, releases the server mutex during provider work/waits, and rechecks flag, membership, cancellation, emergency stop and audit integrity before committing results. Failures are never automatically retried. An owner-approved resume may repeat partial side effects and is bounded by per-node visit counts. Graph edits do not alter active snapshots. Controller restart reconciles missing drivers to interrupted on the owner run-list API; it does not resurrect containers or execute work automatically. This is not a distributed durable queue or an exactly-once side-effect guarantee.
+There is no automatic retry of ambiguous side effects. Owner-approved resume
+can repeat partial effects and remains bounded by node visits. Restart exposes
+interrupted runs rather than silently resurrecting work. This is not distributed
+exactly-once execution, a general parallel swarm or paid consensus.
 
-Output SHA256 identifies provider-reported text. It does not attest repository content, command success, an independent test run or reviewer filesystem access. Reviewer output must be explicit JSON, and code in another private workspace remains unavailable without a separate artifact-transfer mechanism. Gate rationale is human-supplied. Automatic patch export and trusted evidence collection remain required for fully automated development delivery. See [technical execution contract](workflow-execution.md#technical-contract).
+Provider output hashes identify reported text, not repository contents or
+successful tests. Reviewer output is not independent filesystem evidence.
+Bounded commands, revision-bound artifacts and trusted observed checks remain
+unfinished. See [workflow execution](workflow-execution.md).
 
-## Required audit database boundary
+## Diagnostics and recovery
 
-See [security hardening](security-hardening.md) and [restricted database setup](database-security.md) for required migration/runtime role separation, integrity shutdown/recovery, identity and request/context budgets. These boundaries have no off switch.
+Background telemetry uses allowlisted stage labels, controller/job binding,
+bounded polling and internal-only append events. Optional presentation flags
+can hide it but cannot authorize work. Elapsed age is dispatch age, not progress
+or a worker heartbeat. Failed polling means unknown liveness, not permission to
+retry, extend deadlines or release reservations.
 
-## Free durable job safety
+Owner recovery checks authentication, CSRF, room access, flags and safety state,
+requires no local turns and freshly queries approved-worker `idle-v1`. Malformed,
+nonterminal or unreadable journals fail closed; the bounded check does not delete
+records, adopt jobs or resume workflow graphs. It runs under the controller lock
+and can delay requests. It is not a distributed ownership lease.
 
-See [worker lifecycle, shutdown verification and diagnostics](worker-jobs.md) for mandatory protocol-v2 execution, durable intent, crash reconciliation, owner diagnostics and the `jobDiagnostics` flag (default on). Shutdown uncertainty never counts as success; no task is replayed automatically.
+## Source navigation
 
-The [server structure reference](server-structure.md) documents the focused controller files and Go interface boundaries.
+Use [server structure](server-structure.md) for controller responsibilities,
+[worker jobs](worker-jobs.md) for lifecycle/recovery and
+[security hardening](security-hardening.md) for required identity, database,
+transport and deadline controls. The UI remains order-sensitive shared plain
+JavaScript; a module split alone does not establish stronger trust boundaries.

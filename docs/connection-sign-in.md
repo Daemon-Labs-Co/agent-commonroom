@@ -1,119 +1,179 @@
 # Isolated connection sign-in
 
-[Documentation home](README.md)
+[Documentation index](README.md) · [SSH setup](agent-ssh.md) · [Connection testing](connection-testing.md)
+
+Sign-in stores provider credentials on the approved Linux worker, scoped to one
+connection and provider. The controller and worker host do not need native provider
+CLIs: the reviewed chat/login image supplies them. Provider authentication is separate
+from the CommonRoom owner's RSA sign-in.
 
 ## Use it
 
-The macOS controller opens a Terminal window for sign-in on an approved Linux worker. Neither Codex nor Claude needs to be installed on the controller or directly on the worker. Both CLIs come from the pinned agent image.
+1. Complete the worker configuration below and approve its SSH alias on the controller.
+2. Register `ssh://commonroom-worker` for Codex or
+   `ssh://commonroom-worker/claude` for Claude.
+3. On a locally viewed macOS controller, choose **Connections → Sign in → Open sign-in**.
+   Terminal opens a verified SSH connection. Follow the provider's authorization
+   link and enter requested codes in Terminal, never in a room message.
+4. Wait for **Connection sign-in saved**. A provider's own success message does not
+   prove that the worker exported and persisted its credential.
+5. Select **Check sign-in**, then **Test connection**. These check saved-file presence
+   and a real fixed provider reply respectively; the latter may consume quota.
 
-1. Configure rootless Docker and the worker wrapper as described below.
-2. Configure the controller with `COMMONROOM_REMOTE_WORKER=true` and `COMMONROOM_REMOTE_WORKER_ALIAS=commonroom-worker`.
-3. Register a CLI connection with endpoint `ssh://commonroom-worker` for Codex or `ssh://commonroom-worker/claude` for Claude. Use distinct connections for separate provider logins.
-4. Open **Connections → Sign in → Open sign-in**. Terminal connects with verified SSH host keys. Codex uses device authentication; Claude uses its subscription login flow. Follow the provider link and enter any requested authorization code in Terminal, never in room messages.
-5. Wait for the worker message **Connection sign-in saved**, then select **Check sign-in**. A provider-only **Successfully logged in** message is not sufficient: the worker must finish exporting and saving the credential. This confirms a private credential file was saved, not that an account is currently valid; the next provider turn checks account validity.
-6. Invite fresh agents using that connection. Each agent retains its own session/work volumes. Legacy host sessions are not automatically resumed.
+Login is bounded to fifteen minutes. Interrupt the Terminal flow to cancel. Failed
+validation preserves the previous credential; a storage error after publication can
+be ambiguous, as explained below. There is no host CLI or unrestricted-network fallback.
 
-Login is limited to fifteen minutes. Close or interrupt the Terminal flow to cancel. Existing credentials are replaced atomically only after successful login and bounded JSON validation. If the provider's login/proxy behavior is incompatible, sign-in fails; the application never falls back to a host CLI or unrestricted networking. Provider MFA and account policies still apply. Reauthenticate if a provider credential expires or is revoked.
-
-Automatic Terminal launch currently requires macOS and a locally viewed controller. For a Linux/remote web deployment, run the worker login command through an interactive trusted SSH session; automatic browser-based terminal streaming is not implemented.
+Automatic Terminal launch requires macOS and a locally viewed controller. On a
+Linux/remote web deployment, use the manual trusted SSH operation below. Browser
+terminal streaming is not implemented. Development execution remains separately
+[blocked pending acceptance](development-workspaces.md).
 
 ## Worker configuration
 
-Build the Linux worker from the same source revision as the controller:
+### Install a matching binary
+
+Build the worker from the same reviewed revision as the controller:
 
 ```sh
 GOOS=linux GOARCH=amd64 go build -o /tmp/commonroom-worker-linux ./cmd/server
 ```
 
-Install it as `~/.local/bin/commonroom-worker-bin` under the dedicated worker account. The `~/.local/bin/commonroom-worker` wrapper must set the rootless Docker PATH and `XDG_RUNTIME_DIR=/run/user/$(id -u)`, unset Docker environment overrides, and invoke the binary with `--agent-worker`.
+Choose the architecture matching the worker. Install as
+`~/.local/bin/commonroom-worker-bin` under its dedicated account. The wrapper at
+`~/.local/bin/commonroom-worker` must set the rootless Docker PATH and
+`XDG_RUNTIME_DIR=/run/user/$(id -u)`, unset Docker environment overrides and invoke
+the binary with `--agent-worker`. The wrapper is trusted administrator configuration,
+not a model-selected executable.
 
-The session recovery feature also requires the current worker binary. Check its
-read-only protocol with `ssh commonroom-worker '~/.local/bin/commonroom-worker idle-v1'`.
-It returns `{"version":1,"idle":true}` only when the managed worker is quiescent.
-False means managed containers or nonterminal records remain; an error means state
-cannot be confirmed. Do not delete job records to force a positive result. Updating
-this protocol requires no image rebuild or provider credential replacement.
+### Configure image and private storage
 
-Create a regular owner-only `~/.config/commonroom-worker/config.json`:
+Create an owner-only regular `~/.config/commonroom-worker/config.json`:
 
 ```json
-{"image":"sha256:REPLACE_WITH_LOCAL_IMAGE_ID","authDir":"/home/commonroom-worker/.local/share/commonroom-worker/auth"}
+{"image":"sha256:REVIEWED_LOCAL_IMAGE_ID","authDir":"/home/commonroom-worker/.local/share/commonroom-worker/auth"}
 ```
 
-Replace the image placeholder with the immutable ID of the reviewed, locally built image. Alternatively use a registry name pinned by SHA-256 digest. Build the image from `docker/agent/Dockerfile` with a reviewed Node digest and explicit Codex/Claude versions. The recipe installs the system CA certificate bundle required by native provider clients; Node's bundled TLS roots alone are insufficient. Never disable TLS verification to work around a missing trust store. Never use a floating tag in worker configuration. `authDir` must be an absolute private directory; protect configuration and credentials with modes 0600 and directories 0700. No credentials are copied from existing host accounts.
+Replace the image and path placeholders. Use a reviewed immutable image built from
+`docker/agent/Dockerfile`, with digest-pinned base and explicit provider versions.
+See [image prerequisites](container-isolation.md#set-up-a-linux-worker). Never
+substitute the separate development-engine image or a floating tag.
 
-Run `ssh commonroom-worker '~/.local/bin/commonroom-worker ready-v1'` to check runtime readiness. Connection credentials are checked separately by the connection sign-in screen.
+Keep directories mode 0700 and configuration/credentials mode 0600, owned by the
+worker account. `authDir` must be absolute. Do not copy another account's provider
+home or host credentials. The image includes system CA certificates; never disable
+TLS verification to work around trust-store failures.
 
-For manual sign-in, produce a URL-safe, unpadded Base64 JSON envelope containing exactly `version:1`, `connection:<registered connection ID>`, and `provider:codex` or `claude`. Use `ssh -tt commonroom-worker '~/.local/bin/commonroom-worker auth-login-v1 ENCODED_ENVELOPE'`. The envelope contains no credentials. Use `auth-status-v1` for a noninteractive credential-presence check. Unknown fields, unsupported providers and unsafe connection IDs are rejected.
+### Check readiness
+
+```sh
+ssh commonroom-worker '~/.local/bin/commonroom-worker ready-v1'
+ssh commonroom-worker '~/.local/bin/commonroom-worker idle-v1'
+```
+
+Readiness checks runtime configuration; idle returns `{"version":1,"idle":true}`
+only when managed state is quiescent. False or an error is not proof of shutdown.
+Do not delete records to force success. Credential presence is checked separately.
+
+### Manual login protocol
+
+Under an interactive trusted SSH session, invoke `auth-login-v1` with a URL-safe,
+unpadded Base64 JSON envelope containing exactly `version:1`,
+`connection:<registered ID>` and `provider:codex` or `claude`:
+
+```text
+ssh -tt commonroom-worker '~/.local/bin/commonroom-worker auth-login-v1 ENCODED_ENVELOPE'
+```
+
+The envelope contains no secrets. Use the exact registered connection ID;
+`auth-status-v1` uses the same scope for a noninteractive presence check. Unknown
+fields, unsafe IDs and unsupported providers are rejected. Do not paste raw
+credential JSON into command lines or issue reports.
 
 ## Security and storage
 
-The connection is the authentication boundary. Files live beneath `authDir/<SHA-256 of connection ID>/<provider>/`, with owner-only permissions. A login container has an independent temporary home/work volume and receives no old credentials. The launcher fixes `HOME=/home/agent`, `CODEX_HOME=/home/agent/.codex` for Codex, and `CLAUDE_CONFIG_DIR=/home/agent/.claude` for Claude. Codex is explicitly configured with `cli_auth_credentials_store="file"`, rather than an OS keyring. Login and subsequent turns use the same locations. The launcher verifies a regular bounded credential file before reporting successful completion. Only its known provider credential file is exported after successful sign-in; temporary containers and volumes are then removed. Concurrent sign-in for the same connection is rejected by container-name uniqueness.
+Credentials live below `authDir/<SHA-256 of connection ID>/<provider>/`. Connections
+sharing one provider account share its authority and billing, while keeping separate
+stored files. Per-connection locks serialize login/export, sign-out and engine use.
+Busy or unresolved work blocks reuse rather than silently sharing credentials.
 
-Login uses non-root containers, a read-only root filesystem, dropped capabilities, seccomp, no privilege escalation, resource limits, and a network-disabled container. The provider-only HTTPS gateway supplies approved connectivity. For Codex, platform proxy discovery and fallback are disabled so the fixed loopback proxy is used; this does not enable direct networking or disable Docker isolation. Login URLs and codes remain in the human's Terminal, outside CommonRoom audit records. Audit records contain actor, connection and provider identity only.
-
-Execution copies only the matching connection credential into each agent's separate private session volume. Agents sharing a connection share provider-account authority and billing. Per-connection revocation/removal of copied credentials in existing volumes and credential refresh synchronization are not implemented. Treat Docker storage and backups as sensitive. This implementation does not introduce a shared execution container or per-agent Linux users.
-
-You **CAN** modify these classes and launch methods to bypass isolation, **BUT** doing so exposes host files, credentials and network access and invalidates the supported security boundary.
-
-## Feature flag and verification
-
-**Settings → Security → Connection sign-in** controls the optional login/status UI and API. Its stored name is `connectionSignIn`; default is enabled. Owner permission, CSRF, registered-connection validation, incident checks and approved-worker enforcement apply regardless. Disabling it does not revoke saved provider credentials or disable mandatory isolation. Remote execution separately requires the explicit controller remote-worker configuration.
-
-Fast parallel tests use private temporary file fixtures and mocked database events, never PostgreSQL or real provider accounts. They cover protocol rejection, connection credential separation, private-file validation, feature disabling and verified SSH launch. Regression tests also run a mocked CLI against temporary files to exercise the launch environment and login-to-export path, including missing/oversized/symlink files. Worker persistence tests verify private atomic replacement and preservation of the previous login on invalid exports. Provider browser authentication requires a human deployment check; automated tests do not sign in or launch real model turns.
-
-After authentication, use **Connections → Test connection** to check worker, connection credentials and an actual fixed provider response (which may consume a small amount of quota). See [Testing connections](connection-testing.md) for the limits of this check.
-
-## Troubleshooting credential persistence
-
-If OpenAI accepts a login but the worker cannot save it, do not consider the connection signed in. Rebuild the reviewed agent image and Linux worker from the corrected source, update the worker configuration to the new immutable image ID, and start a fresh sign-in. Existing images do not receive launcher fixes automatically. The tested Codex version is 0.159.3; review compatibility before changing pinned provider versions.
-
-The supported export files are `/home/agent/.codex/auth.json` and `/home/agent/.claude/.credentials.json`. A provider storing credentials under another home/config directory or in a keyring cannot be exported by this protocol. Do not copy another user's credentials, weaken container isolation, or paste credentials into room messages to work around a failure. Failed login/export keeps previously saved connection credentials intact. Temporary login containers and their volumes are removed, so a failed first login requires a fresh human authorization.
-
-Verify **Connection sign-in saved**, then **Check sign-in**, then **Test connection**. These separately confirm persistence, presence, and actual provider access. Until all required checks succeed, do not start unattended agent work.
+Login uses a fresh temporary home/work volume, non-root execution, read-only root,
+dropped capabilities, resource limits and network-disabled containers. The fixed
+provider HTTPS gateway supplies approved connectivity. Authorization URLs/codes stay
+in the human Terminal; audit records contain safe actor/connection/provider metadata.
 
 ### Private credential export boundary
 
-After provider login exits successfully, the worker reads the known credential file through a separate non-root container with networking disabled and only the login home volume mounted read-only. This avoids Docker file-copy failures against stopped login containers. The exporter rejects missing files, symlinks, directories, invalid JSON and files over 64 KB. Its output stays in bounded private worker memory and a mode-0600 temporary file; neither output stream is forwarded to diagnostics. Atomic installation preserves existing connection credentials on failure. Login and export containers and temporary volumes are removed afterward. This remains under the existing owner-only `connectionSignIn` feature flag (enabled by default); it introduces no isolation bypass or additional toggle.
+The image fixes Codex storage at `/home/agent/.codex/auth.json` with file-based
+credential storage and Claude at `/home/agent/.claude/.credentials.json`. After login,
+a separate non-root, network-disabled exporter mounts only the login volume read-only
+and reads the known file. It rejects missing, symlinked, nonregular, oversized or
+invalid JSON files. Export is bounded to 64 KiB and never forwarded as diagnostics.
+Temporary login/export containers and volumes are then removed.
 
-Regression tests exercise the actual fixed exporter script with synthetic temporary files, its Docker isolation arguments, output limits, and atomic persistence. Automated tests do not access a database or launch Docker/provider agents. A successful browser login followed by status from a fresh worker process is still required to verify a deployment.
+Chat turns copy the matching credential into their private session storage. The
+internal separated Codex engine receives a bounded private stdin frame instead of
+a host credential mount. Refreshed-token persistence from that engine remains open;
+initial sign-in does not establish reliable unattended refresh.
 
-Isolated model turns keep standard input open (`docker run -i`) so the adapter can deliver its bounded prompt. They do not allocate a terminal, preserving machine-readable responses. Interactive human login separately uses a terminal. A saved credential and a successful live connection check are separate states.
+You **CAN** alter source launchers to bypass these rules, **BUT** doing so exposes
+host files, credentials and network authority and invalidates mandatory isolation.
+
+## Feature flag and verification
+
+**Settings → Security → Connection sign-in** controls `connectionSignIn`, enabled
+by default. The server enforces owner permission, CSRF, registered connection,
+incident and approved-worker checks. Off rejects login/status/sign-out requests;
+it neither revokes stored credentials nor weakens mandatory isolation.
+
+Tests use synthetic temporary credentials, mocked processes and database events.
+They cover both flag states, scope, private-file rules, export, persistence and
+verified SSH arguments. They do not authenticate a real provider. Complete browser
+login and a fresh-process status/provider check when accepting a deployment.
+
+## Troubleshooting credential persistence
+
+Follow this order: **Connection sign-in saved → Check sign-in → Test connection**.
+If export fails, verify the reviewed image's exact home/config paths and matching
+worker version. Keyring-only or changed provider storage is not supported by this
+file export protocol. Rebuild, review and repin an incompatible image; existing
+images do not acquire source fixes automatically.
+
+Do not weaken permissions, copy another user's credential or reuse expired login
+codes. A failed first login requires fresh human authorization. Preserve raw
+credentials outside logs and room messages.
 
 ## Claude login: proxy refused the connection
 
-Claude’s current authentication flow uses `claude.com` for browser authorization and `platform.claude.com` for OAuth token exchange/refresh, including subscription login. See [Anthropic network requirements](https://code.claude.com/docs/en/network-config#network-access-requirements). Earlier CommonRoom workers allowed only the legacy Claude/Console hosts, so login could open its browser link but fail at token exchange with **proxy refused the connection**. The provider gateway now permits these two exact HTTPS hosts in addition to the existing Claude API/authentication hosts. Wildcards, private IPs, arbitrary destinations and direct networking remain blocked.
-
-Rebuild and replace the **Linux worker binary** from the corrected source; this gateway change does not require rebuilding the pinned agent image. Start a fresh login from Connections, follow the newly generated provider link, and wait for **Connection sign-in saved**. Then check sign-in and test the connection. Existing credentials remain preserved after failed login. Do not reuse an expired authorization URL or code. The existing `connectionSignIn` flag (default on) and owner authorization still control sign-in; mandatory container/network isolation has no off switch. Regression tests check the exact approved domains and reject suffix spoofs, unexpected subdomains and cross-provider access. Successful browser authorization and credential persistence require a human integration test.
+The gateway permits `claude.com` and `platform.claude.com` alongside the exact
+Claude API/auth hosts listed in [network policy](container-isolation.md#provider-only-network-gateway).
+An older worker missing those hosts can fail during token exchange even if the
+browser opens. Update the reviewed worker binary, start a fresh login and wait for
+worker persistence confirmation. Unknown destinations still fail closed. Successful
+browser authorization and persistence require live human verification.
 
 ## Connection sign-in state and sign-out
 
-Every visit or render of **Connections** checks credential presence for supported SSH CLI connections, with at most four concurrent checks. Rows initially show **Checking sign-in…**, then **Sign in** if no valid saved credential file exists or **Sign out** if one is present. Errors or unreachable workers show **Retry sign-in check**, never an assumed signed-in/out state. Checking the login dialog after completing authentication also updates the Connections rows and hides its launch button once credentials are saved. These checks do not send model prompts or validate provider account/token freshness; use **Test connection** for that.
+Connections checks at most four credential-presence queries concurrently. It shows
+**Checking sign-in…**, then **Sign in** or **Sign out**. An unreachable worker shows
+**Retry sign-in check**, never an assumed authenticated state. Presence does not
+validate token freshness; use **Test connection**.
 
-The owner may select **Sign out** and confirm clearing that connection/provider’s saved worker credential. Other connections, conversation history and session volumes remain. Provider-wide token revocation is separate; historical credential copies in existing agent session volumes are not erased by this action. Subsequent managed turns require a newly saved credential from the private connection store. Active agents using the connection must finish or be stopped before sign-out. The worker serializes sign-in/export and sign-out with an exclusive per-connection/provider file lock; a busy login is rejected rather than cleared mid-flow. Update both controller and Linux worker binaries for the `auth-logout-v1` protocol.
-
-This uses the existing default-on, owner-only, server-enforced `connectionSignIn` flag; disabling it hides status and sign-out controls and rejects requests without altering stored credentials or mandatory isolation. Sign-out intent and completion are readable immutable audit events, without secrets. A transport failure leaves completion unknown; recheck status before retrying. Automated tests use synthetic temporary credentials and mocked database events, covering scope, concurrent authentication, active-turn rejection, permissions/flags and UI state selection. Live provider token revocation is neither implemented nor tested.
+The owner can confirm **Sign out** to remove the selected connection/provider's
+saved file. Active work must finish or be stopped and reconciled first. This does
+not revoke the provider token, erase old session-volume copies or remove history.
+After transport failure, completion is unknown: check status before retrying.
+Sign-out intent/completion is audited without credential contents.
 
 ## Durable local credential publication and sign-out
 
-Successful worker sign-out now requires syncing the credential store's directory
-after unlinking the selected connection/provider file. If synchronization fails,
-the worker does not acknowledge signedOut. Retrying an already-absent file still
-syncs the directory: prior removal may be visible but not durably acknowledged.
-Repair storage and retry/recheck rather than assuming a failed request completed.
-Unsupported provider identifiers are refused, never mapped to Codex by default.
+Publication writes and syncs a complete private temporary file, atomically renames
+it, then syncs the parent directory before acknowledging success. Invalid exports
+preserve the prior login. A post-rename sync failure may leave the replacement
+visible with unconfirmed durability; an error does not prove nothing changed.
 
-Saved login publication uses a complete synced temporary file, atomic rename and
-parent-directory sync before reporting success. A post-rename sync error is
-ambiguous: the replacement may be visible, but its durability is unconfirmed.
-Invalid exports still preserve the previous login; do not assume all I/O failures
-leave the prior file unchanged. These required storage controls have no off switch
-and apply under the existing default-on owner-only connectionSignIn feature.
-Disabling that feature continues to reject the administrative API without changing
-credentials or weakening isolation/audit requirements.
-
-This is local forgetting, not provider-wide token revocation, secure physical
-erasure or cleanup of historical credential copies in session volumes. Those
-limitations remain. Synthetic sync-failure/retry/provider tests and private-file
-publication tests use no real credentials or provider accounts. Filesystem/hardware
-power-loss guarantees have not been verified live.
+Sign-out syncs the directory after unlinking. Retrying an already-absent file still
+syncs it before acknowledgment. Repair storage before retrying. These mandatory
+controls have no off switch and do not promise physical erasure, provider-wide
+revocation or hardware power-loss guarantees. Tests inject sync failures; live
+filesystem/hardware durability remains deployment-specific.

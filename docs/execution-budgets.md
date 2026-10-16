@@ -85,16 +85,8 @@ and live provider acceptance are not established by these checks.
 
 ## Free container capacity
 
-Worker admission now reserves at most four physical managed container slots.
-An engine/tool pair reserves two slots before either container exists, including
-unresolved and partially created jobs. Thus at most two development pairs fit
-on a worker. Existing eight-job/four-room bounds are additional ceilings, not
-permission to exceed four containers. Changing rooms or omitting containers from
-inventory does not release durable reservations. Unknown containers block launch.
-There is no toggle or owner override for this safety ceiling.
-
-Controller registration also enforces four physical slots across workers and
-rooms using durable reservations and an expected-revision allocation append.
-See [managed container quotas](container-quotas.md) for account scope and recovery.
-The hard 5 GB storage ceiling remains pending. Paid limits have not been
-established and cannot bypass the current guard.
+Accounts and workers each enforce a four-container reservation ceiling. A pair
+reserves two slots before creation; unresolved work retains capacity. The
+[container quota contract](container-quotas.md) explains durable admission,
+proof-based release and account scope. The separate hard 5 GB storage limit is
+not yet implemented.

@@ -32,9 +32,9 @@ revision, connection binding/revision, repository policy or stop state prevents
 subsequent acknowledgement. Jobs without explicit human/company provenance remain
 readable, but cannot be silently upgraded into tool authority.
 
-Legacy credential-bearing development remains blocked. Paired engine/tool
-supervision, authenticated channel wiring and application dispatch integration
-are still required before agent development can use this component.
+Legacy credential-bearing development remains blocked. Internal paired Codex
+execution and private audit transport are implemented; public application dispatch
+and live acceptance remain required before enabling managed development.
 
 ## Wire and integration contract
 
@@ -99,12 +99,12 @@ flags off/on, real human attribution, commit failure, revocation, immutable
 bindings, replay, malformed input, blocked-I/O cancellation and exclusion of raw
 payloads/tokens. They launch no provider agents, Docker containers or DB connections.
 
-The hardened component is now integrated into the shared development checkout.
-Its tests exercise in-memory transport and mocked persistence/execution; they
-do not establish production runtime integration.
-Actual supervisor transport, paired execution, live-provider compatibility,
-crash recovery and artifact delivery remain open. This channel is not permission
-to remove the legacy admission barrier.
+Combined internal Codex tests exercise real session/runtime/bridge code with
+mocked Docker and local protocol peers, including refused intent/outcome and
+independent container cleanup. Private SSH transport and supervisor attachment
+also have component tests. Public dispatch, live-provider/SSH compatibility,
+operational recovery and artifact delivery remain open. Keep the development
+admission barrier in place.
 
 ## Runner integration acceptance contract
 
@@ -117,16 +117,20 @@ readable for historical compatibility; new actions use scoped `worker.tool.*`
 records. The supervisor must still authenticate and wire the channel before any
 production development admission changes. A constructor is not proof of that wiring.
 
-| Boundary | Required integration behavior | Evidence still needed |
-| --- | --- | --- |
-| Human provenance | Carry the initiating human and managed-job registration through asynchronous dispatch; persist initiator/company at registration. Reject missing provenance. | Runner-to-controller tests for a member using an owner-owned connection, missing identity and changed membership. |
-| Trusted scope | Construct scope from controller-approved registration and repository policy, never model arguments or a callback frame. | Tests rejecting changed job, company, participant, connection, digest and deadline bindings. |
-| Callback assembly | Pair `AuditClient` with `serveToolAudit` over a peer-authenticated supervisor channel separate from engine stdout. The controller uses `controllerToolAuditor`. | Authentication/stream-routing tests and an isolated callback round trip through the actual runner assembly. |
-| Execution ordering | The tool-side dispatcher waits for durable intent before execution and durable outcome before releasing results. | Runner tests proving neither execution nor result release occurs after a refused, stale or lost acknowledgement. |
-| Cancellation and shutdown | Fence authority on channel failure; cancel both isolated containers and prove absence by immutable IDs. A closed stream or exhausted frame budget is insufficient. | Pair-supervisor cancellation, crash and shutdown tests; isolated worker verification. |
-| Recovery | Retain unresolved durable intents for explicit reconciliation. Do not replay an uncertain action or reopen authority automatically. | Crash/restart reconciliation policy and tests for intent committed before acknowledgement loss. |
+The implementation contracts are:
 
-These are acceptance requirements, not implemented runtime guarantees. Component tests already exercise scoped store
-checks and transport failure behavior; they do not substitute for the runner
-assembly and live-runtime evidence listed here. Keep the legacy admission barrier
-and production separation status open until the complete path is verified.
+- **Human provenance and scope:** controller checks bind the initiating human,
+  company, membership, connection, repository and deadline on every phase.
+- **Separated transport:** private SSH/Unix attachment carries the audit channel;
+  engine stdout is exclusively provider protocol traffic.
+- **Ordered execution:** dispatcher waits for durable intent before execution and
+  durable outcome before releasing results.
+- **Cancellation:** transport loss revokes authority; the internal supervisor
+  fences both role containers and retains unresolved evidence.
+- **Recovery:** uncertain intents are preserved, never automatically replayed.
+
+These contracts have component and synthetic combined-path coverage. Public
+production dispatch, real SSH/container/provider behavior and deployment crash
+recovery still need acceptance. See [private transport](worker-audit-transport.md),
+[paired shutdown](worker-pair-shutdown.md) and
+[release readiness](release-readiness.md) for the remaining gates.

@@ -67,8 +67,10 @@ configuration/customization suppression and the full callback loop still need
 acceptance using dedicated synthetic fixtures/accounts. Unexpected notifications
 currently fail closed; compatibility is not claimed from schema inspection alone.
 
-A reviewed engine image/launcher, process attach stream, fixed gateway/auth mounts,
-controlled home/configuration and production worker entry point remain required.
+The internal engine launcher, process attachment, controlled home, private gateway
+and stdin credential provisioning are implemented. Credentials are not host-mounted.
+Reviewed release images, refreshed-token persistence and the public production
+worker entry point remain required.
 Claude, Gemini, GitHub Copilot and llama.cpp adapters remain separate P0 work.
 Production development admission stays blocked; installing a newer stock CLI or
 substituting `codex exec` does not satisfy this reviewed engine contract.

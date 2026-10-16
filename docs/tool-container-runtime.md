@@ -5,8 +5,8 @@
 The internal `toolbroker.ToolContainerRuntime` implements the tool half of the
 paired worker launcher. It performs fixed Docker creation, full reported-policy
 inspection, immutable-ID startup and credential-free snapshot bootstrap. It
-does not launch a model, authenticate a controller or enable managed development. No paired
-launch endpoint or production pair adapter calls it yet.
+does not launch a model, authenticate a controller or enable managed development. The internal Codex operation calls it through pair assembly; public production
+dispatch remains gated.
 
 Users have no new configuration or button. Existing development settings cannot
 bypass the credential-separation admission block. This is mandatory security
@@ -61,8 +61,8 @@ case where Docker created a container but its reply was lost. The runtime never
 blindly removes a name or declares a whole pair stopped. Existing fixed-name
 identity discovery, immutable-ID cleanup, both-role inventory and released
 supervisor ownership remain required. See [paired lifecycle](worker-pairs.md).
-Volume allocation/cleanup and bootstrap are internally implemented. Production
-adapter assembly and live verification remain unfinished P0 work. See
+Volume allocation/cleanup and bootstrap are internally implemented. Public production
+dispatch and live verification remain unfinished P0 work. See
 [workspace volumes](workspace-volumes.md) for version-4 identity and cleanup.
 
 ## Tests and verification limits
@@ -79,10 +79,10 @@ an explicit expected state. Existing inspection tests continue covering unwanted
 mounts, credentials, environment, driver options, namespaces and resources.
 
 No live rootless runtime or reviewed tool image has been verified for this change.
-The reviewed engine driver, live bootstrap verification, authenticated audit transport,
-production pair integration and runtime acceptance gates remain open. This module
+The Codex driver, private audit transport and internal pair integration are
+implemented. Live bootstrap, reviewed image and runtime acceptance remain open. This module
 is an implementation step toward P0 closure, not evidence that managed development
-is ready. See [execution progress](p0-execution-progress-2026-10-15.md).
+is ready. See [release readiness](release-readiness.md).
 
 A source fork **CAN** call the runtime outside the paired supervisor, substitute
 an unsafe runner or skip inspection. **BUT** that invalidates the admission,
@@ -98,7 +98,7 @@ metadata. A matching receipt and fresh full policy inspection unlock tool action
 on that same plan. An independently constructed plan starts unready and cannot
 run tools. The shared audited-session constructor now provides the runtime and dispatcher
 with the same plan; callers using only the legacy dispatcher wrapper still
-cannot bootstrap or enable execution. Production pair assembly remains open.
+cannot bootstrap or enable execution. Public production dispatch remains gated.
 
 The paired supervisor starts the idle tool, checks bootstrap receipt binding, then
 starts the engine. Missing, forged or failed readiness leaves the engine stopped.

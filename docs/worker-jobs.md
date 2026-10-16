@@ -13,8 +13,9 @@ and timestamps: no prompts, commands, provider output, credentials or reasoning.
 Allocation/update audit failure prevents launch or stops execution. Journal updates
 are independent of the background-work and diagnostics presentation flags.
 
-The worker uses protocol **v2**, durable private outcome files and kernel file
-leases. A membership lease covers a room member across connection/provider
+Public managed chat dispatch uses protocol **v2**, durable private outcome files
+and kernel file leases. Internal development pairs use lifecycle **v4**, with
+historical v3 records retained for recovery; see [paired lifecycle](worker-pairs.md). A membership lease covers a room member across connection/provider
 changes; an exclusive job lease covers the supervisor's lifetime. A shared
 admission lease serializes worker admission. Duplicate job IDs are refused,
 unsettled member work prevents replacement, and the worker enforces eight
@@ -91,7 +92,8 @@ an idle maintenance window. The controller refuses old worker lifecycle versions
 there is no `run-v1` fallback and controller-local model launching is unsupported.
 A local Linux worker must be reached through the approved SSH worker transport.
 Containers, pinned images, credentials, session volumes and approved development
-snapshots retain the existing mandatory isolation contract.
+snapshots retain the mandatory isolation contract. Internal paired development
+is not enabled by installing these binaries; its public admission remains gated.
 
 The wrapper still invokes `commonroom-worker-bin --agent-worker`. Replace that
 binary, not provider credentials or session volumes. See [worker installation](connection-sign-in.md).
@@ -110,7 +112,8 @@ request with version, issue time, deadline, job identity, membership key, provid
 exact allowed arguments and optional approved repository digest. `cancel-v2`
 uses a strict version/job/provider/membership binding and returns a verified
 version-2 acknowledgment. `status-v1` remains a read-only per-job transport;
-modern job records inside it carry version 2.
+records inside it retain their lifecycle version (v2 chat, historical v3 pair or
+v4 workspace-aware pair).
 
 Job files are in the worker's private `~/.local/state/commonroom-worker/jobs`.
 Use a reliable local filesystem supporting file locks, atomic rename and fsync.

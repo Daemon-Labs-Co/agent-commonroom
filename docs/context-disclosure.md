@@ -36,7 +36,8 @@ after changing the editor flag. Memory export grants remain owner-only. Ordinary
 room edits cannot reset disclosure policy. Disabling any UI flag cannot bypass
 prompt filtering or mandatory container isolation.
 
-Native sessions created before these controls start fresh on their next managed turn.
+Legacy native session bindings without the required disclosure-policy provenance
+start fresh on their next managed turn.
 Existing rooms allow supported OpenAI/Claude destinations and room-local context.
 Existing cross-room Application memory has no explicit export approval and is
 therefore excluded. Review required shared notes before running existing agents.

@@ -2,11 +2,14 @@
 
 ## Status and purpose
 
-The worker now journals a logical engine/tool pair and can reconcile or cancel
-its containers using immutable IDs. This is mandatory free/core safety
-infrastructure. It does **not** launch a provider pair, initialize a workspace,
-install an engine, enable commands, or authenticate the future audit transport.
-Development admission remains blocked by the existing credential boundary.
+The internal Codex path joins a fresh engine/tool pair, credential-free workspace
+bootstrap, private audit transport and callback execution. The supervisor journals
+both roles and reconciles them by immutable ID after every turn. Synthetic tests
+exercise this combined path; public production dispatch remains gated and live
+provider acceptance is outstanding.
+
+This is mandatory free/core safety infrastructure. It has no isolation-off switch,
+host fallback or paid exemption. Commands and trusted artifacts remain unfinished.
 
 No operator action or product flag enables paired development through this
 component. Existing chat execution and legacy worker journals retain their
@@ -60,7 +63,7 @@ launch adapter:
 
 Both identities are journalled before either container starts. Adapter errors,
 cancellation or a durable cancellation latch stop the sequence without retries;
-uncertain creation remains available to fenced recovery. Only successful starts
+uncertain creation remains available to fenced recovery. Only successful starts,
 a matching bootstrap receipt and final journal persistence publish `running`. Closing the supervisor cancels
 its original lifetime, then waits for any in-flight creation/start adapter call
 to return before releasing leases. Concurrent close callers all wait for this
@@ -69,9 +72,8 @@ ownership barrier. A cancellation signal alone is never shutdown proof.
 The adapter receives fixed job, role and repository identity, never model launch
 arguments. It must create without starting, inspect full image/mount/credential
 and aggregate resource policy, and start only the supplied immutable ID with
-cancellation. No production adapter is wired, so this is an internal tested
-module, not an enabled runtime. A
-source fork **CAN** skip journalling or start before identity publication, **BUT**
+cancellation. The internal Codex operation supplies that adapter; public production dispatch
+is not wired. A source fork **CAN** skip journalling or start before identity publication, **BUT**
 then crash recovery and the mandatory credential boundary are no longer proven.
 
 ## Cancellation and crash reconciliation
@@ -136,45 +138,39 @@ or database is used.
 There is no pair-safety-off flag, owner exemption, paid bypass or uncontained
 fallback. Optional diagnostics flags do not disable journal/fencing checks.
 
-Live rootless pair creation/shutdown has not been verified for these changes.
-Production pair startup wiring, fresh controlled provider configuration, live credential-free
-workspace bootstrap verification, aggregate runtime resource verification, authenticated audit
-substreams, callback-only provider drivers, command execution and artifacts remain
-open P0 integration work. See [the execution progress](p0-execution-progress-2026-10-15.md)
+Live rootless pair creation/shutdown and resource enforcement remain unverified.
+The Codex engine, controlled configuration, workspace bootstrap, private audit
+transport and callback driver are implemented internally. Public dispatch,
+refreshed-token persistence, other provider drivers, commands/artifacts and live
+acceptance remain P0 work. See [release readiness](release-readiness.md)
 and [provider/tool separation](provider-tool-separation.md).
 
 The startup tests cross this same interface and verify durable ordering, failure
 at creation/inspection/start, no uncertain replay, context cancellation and the
 durable cancellation latch. Pair cleanup shares immutable-ID shutdown mechanics
 with the tool executor while retaining pair-specific name, label and lease proof.
-This concentrates lifecycle knowledge for locality and gives later callers
-leverage without exposing Docker ordering.
+This keeps lifecycle ordering in one module instead of duplicating Docker
+sequencing in callers.
 
 The [constrained tool runtime](tool-container-runtime.md) now supplies the fixed
 tool-side Docker create/inspect/start implementation for later adapter assembly.
-It does not supply the engine half or bootstrap the volume, and no production
-pair adapter is enabled. Both role IDs must still be durably bound and aggregate
+It supplies workspace bootstrap; the separate Codex engine runtime supplies the
+engine role. Public production dispatch remains gated. Both role IDs must still be durably bound and aggregate
 policy verified before startup.
 
-[Workspace bootstrap](workspace-bootstrap.md) now implements the streamed, credential-free initialization step. Volume lifecycle is internally implemented; production adapter assembly remains open.
+[Workspace bootstrap](workspace-bootstrap.md) explains streamed, credential-free
+initialization. [Worker pair assembly](worker-pair-assembly.md) explains how the
+internal Codex operation connects both roles.
 
 [Fresh workspace volumes and cleanup](workspace-volumes.md) specifies version-4 creation, creator-lease ownership and remaining daemon limitations.
 
 ## Free container capacity
 
-Worker admission now reserves at most four physical managed container slots.
-An engine/tool pair reserves two slots before either container exists, including
-unresolved and partially created jobs. Thus at most two development pairs fit
-on a worker. Existing eight-job/four-room bounds are additional ceilings, not
-permission to exceed four containers. Changing rooms or omitting containers from
-inventory does not release durable reservations. Unknown containers block launch.
-There is no toggle or owner override for this safety ceiling.
-
-Controller registration also enforces four physical slots across workers and
-rooms using durable reservations and an expected-revision allocation append.
-See [managed container quotas](container-quotas.md) for account scope and recovery.
-The hard 5 GB storage ceiling remains pending. Paid limits have not been
-established and cannot bypass the current guard.
+Accounts and workers each enforce a four-container reservation ceiling. A pair
+reserves two slots before creation; unresolved work retains capacity. The
+[container quota contract](container-quotas.md) explains durable admission,
+proof-based release and account scope. The separate hard 5 GB storage limit is
+not yet implemented.
 
 See [worker pair assembly](worker-pair-assembly.md) for exact session/runtime
 binding, snapshot ownership, startup ordering and remaining engine integration.

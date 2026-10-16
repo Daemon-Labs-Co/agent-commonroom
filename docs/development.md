@@ -4,7 +4,7 @@
 
 ## Get running
 
-Use the main README for dependencies, database setup, owner sign-in, and local startup. Runtime needs Go, PostgreSQL, and a browser; Node.js is needed for JavaScript checks and Python 3.8+ for offline engine build-policy tests (standard library only). Gitleaks is needed for secret checks. Provider CLIs and SSH are optional until working on those integrations.
+Use [installation](installation.md) for dependencies, database setup, owner sign-in and local startup. Runtime needs Go, PostgreSQL, and a browser; Node.js is needed for JavaScript checks and Python 3.8+ for offline engine build-policy tests (standard library only). Gitleaks is needed for secret checks. SSH is needed for approved remote-worker integration. Provider CLIs run inside reviewed images; installing them on the controller is not required.
 
 ## Branch and commit policy
 
@@ -26,7 +26,7 @@ make secrets
 make build
 ```
 
-`make test` runs fast Go tests; `make check` includes race detection, Go vet, browser-script syntax checks, and help-reader security tests. `make coverage` writes an ignored `coverage/go.out` report. Go tests run in parallel with a 30-second timeout; `TEST_PARALLEL` defaults to 8. Use `go test -count=1 -shuffle=on ./...` to check test-order independence.
+`make test` runs fast Go tests. `make check` adds race detection, Go vet, Python build-policy tests and JavaScript/bootstrap/UI/Help tests. `make coverage` writes an ignored `coverage/go.out` report. Go tests run in parallel with a 30-second timeout; `TEST_PARALLEL` defaults to 8. Use `go test -count=1 -shuffle=on ./...` to check test-order independence.
 
 All database interactions in tests are mocked in memory through `eventDatabase`. Tests never connect to PostgreSQL, create schemas, or insert database records; database environment settings are ignored. The mock covers query/scan/stream errors, transaction failures, rollback, serialization of concurrent audit appends, state projection, and HTTP authorization/validation. The invitation flow now runs on every test invocation rather than skipping behind an integration setting.
 
@@ -52,15 +52,18 @@ Do not describe a syntax check as end-to-end validation. Document unverified dat
 
 ## Definition of complete
 
-New features need accompanying automated tests, full usage/configuration/technical documentation, and a documented on/off feature flag with server enforcement and tests in both states. See [Feature completion rule](../CONTRIBUTING.md#feature-completion-rule). Existing unflagged features remain a follow-up; this policy does not imply a feature-flag control panel has been implemented.
+New features need accompanying automated tests, full usage/configuration/technical documentation, and a documented on/off feature flag with server enforcement and tests in both states. See [Feature completion rule](../CONTRIBUTING.md#feature-completion-rule). Mandatory isolation and infrastructure/test verification are exempt from optional product toggles. Feature flags must never weaken authentication, authorization, audit integrity, retention or the execution boundary.
 
-## Documentation conventions and next passes
+## Documentation conventions
 
-This foundation does not add blanket source comments or a generated technical API reference. The planned next passes should follow the language actually used:
+Keep guides focused on one reader task and separate usage from implementation
+contracts. Explain current support before showing setup steps; identify pending
+acceptance instead of presenting a historical deployment as proof of current support.
 
-1. Go: document package responsibilities, exported structs/interfaces/functions, receiver methods, and important internal boundaries. Describe errors, side effects, concurrency, persistence, and security requirements where meaningful.
-2. JavaScript: use JSDoc for callable entry points and shared state; document dependencies between scripts and wrappers. Do not invent classes where the code uses functions and globals.
-3. Technical file reference: for each file record purpose/scope, dependencies, entry points, relevant methods/functions, variables/properties and their lifetimes, side effects, tests, and known limitations.
-4. SQL/config/build assets: document their operational effects, ownership/permissions, and safe change procedure.
+Document Go and JavaScript boundaries where contracts matter: errors, side effects,
+concurrency, persistence, authorization and ownership. Prefer explanations of decisions
+over comments that restate code. Keep SQL/config/build ownership and safe-change
+procedures alongside the relevant operational guide.
 
-Prefer comments explaining contracts and decisions over restating obvious code. Keep source references and guides current with implementation changes. CONTRIBUTING.md and SECURITY_REVIEW.md provide additional constraints and backlog context.
+For the current release gates and pending acceptance cases, see
+[release readiness](release-readiness.md) and [P0 acceptance tests](p0-acceptance-tests.md).

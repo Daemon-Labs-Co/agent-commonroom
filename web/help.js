@@ -1,7 +1,41 @@
 "use strict";
 function helpWindowChoiceEnabled(){return typeof state!=='undefined'&&state?.featureFlags?.helpWindowChoice!==false;}
 function helpDisplayMode(){if(!helpWindowChoiceEnabled())return 'same-window';return state.actors?.find(a=>a.id===state.currentActorId)?.helpDisplay==='separate-window'?'separate-window':'same-window';}
-function helpURL(topic,section){return '/help/?doc='+encodeURIComponent(topic)+(section?'#'+encodeURIComponent(section):'');}
+const helpSectionTopics=Object.freeze({
+  "workflow-templates": "workflow-templates",
+  "configuration-and-technical-contract": "workflow-templates",
+  "documenter-and-disaster-planning": "workflow-templates",
+  "cooperative-adversarial-review": "workflow-templates",
+  "emergency-agent-cutoff": "agent-activity",
+  "human-profile-photos-and-feature-flags": "interface",
+  "squad-profiles-and-invitations": "interface",
+  "cosmetic-feature-flags": "interface",
+  "feature-category-tabs": "interface",
+  "human-login-persistence": "interface",
+  "history-date-tabs": "history",
+  "settings-sections-and-retention": "history",
+  "public-and-private-room-groups": "interface",
+  "human-account-and-room-details": "interface",
+  "page-alignment-and-compact-profile-overlays": "interface",
+  "company-organization-and-decision-authority": "organization",
+  "room-message-order": "interface",
+  "room-viewport-and-feature-switches": "interface",
+  "safe-session-recovery": "agent-activity",
+  "background-work": "agent-activity",
+  "agent-status-explanations": "agent-activity",
+  "squad-action-menus": "interface",
+  "stable-conversation-scrolling": "interface",
+  "messages-needing-human-attention": "agent-activity",
+  "organized-history": "history",
+  "squad-action-placement": "agent-activity",
+  "free-durable-job-safety": "agent-activity",
+  "squad-membership-count": "interface"
+});
+function helpURL(topic,section){
+ if(topic==='concepts'&&Object.hasOwn(helpSectionTopics,section))topic=helpSectionTopics[section];
+ if(topic==='installation'&&section==='connect-agents'){topic='connection-sign-in';section='';}
+ return '/help/?doc='+encodeURIComponent(topic)+(section?'#'+encodeURIComponent(section):'');
+}
 function openHelpWindow(url){const popup=window.open(url,'commonroom-help','popup,width=1100,height=800');if(popup){try{popup.opener=null;}catch(e){}return true;}note('The browser blocked the help window. Allow pop-ups for CommonRoom, or use same-window help.');return false;}
 function openDocumentation(topic='index',section='',forceSame=false){
  const url=helpURL(topic,section);
@@ -14,7 +48,7 @@ function openDocumentation(topic='index',section='',forceSame=false){
 }
 function helpButton(topic,section,label='Help'){const b=document.createElement('button');b.type='button';b.className='context-help';b.textContent=label;b.setAttribute('aria-label',label);b.onclick=()=>openDocumentation(topic,section);return b}
 const helpRender=render;render=function(){helpRender();const settings=document.querySelector('#nav .nav-settings');if(settings){const button=helpButton('index','','Help & documentation');button.classList.add('nav-help');settings.before(button)}
- const guides={'Room':['concepts','messages-and-context'],'Connections':['installation','connect-agents'],'Tasks':['concepts','tasks-evidence-and-workflows'],'Workflow templates':['concepts','workflow-templates'],'Workflows':['workflow-execution',''],'Shared memory':['concepts','shared-memory'],'History & retention':['operations','integrity-and-history'],'Settings':['concepts','company-humans-and-rooms']};
+ const guides={'Room':['concepts','messages-and-context'],'Connections':['connection-sign-in',''],'Tasks':['concepts','tasks-evidence-and-workflows'],'Workflow templates':['concepts','workflow-templates'],'Workflows':['workflow-execution',''],'Shared memory':['concepts','shared-memory'],'History & retention':['operations','integrity-and-history'],'Settings':['concepts','company-humans-and-rooms']};
  const entry=guides[view];if(entry){const bar=document.querySelector('.wf-toolbar .actions, #main .toolbar .actions');const button=helpButton(...entry);if(bar)bar.append(button);else document.querySelector('#main').prepend(button)}
 };
 const helpForm=form;form=function(title,fields,save){helpForm(title,fields,save);let section='';if(/workflow|interrupted work/i.test(title)){const heading=document.querySelector('#modal h2');heading.after(helpButton('workflow-execution','','Workflow help'));return}if(title==='Invite agent')section='squad-profiles-and-invitations';else if(/stop|resume|emergency agent controls/i.test(title))section='emergency-agent-cutoff';else if(/template/i.test(title))section='workflow-templates';else if(/connection|plug in agent/i.test(title))section='connections-versus-participants';else if(/memory/i.test(title))section='shared-memory';else if(/profile|agent/i.test(title))section='profiles-and-challenge-levels';else if(/task|evidence|reviewer/i.test(title))section='tasks-evidence-and-workflows';else if(/room|member|human|company/i.test(title))section='company-humans-and-rooms';if(section){const heading=document.querySelector('#modal h2');heading.after(helpButton('concepts',section,'Help with this form'))}};

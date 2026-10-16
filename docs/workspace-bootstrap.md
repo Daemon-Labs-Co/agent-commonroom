@@ -5,8 +5,9 @@
 The internal tool runtime can initialize a fresh isolated workspace from the
 worker-approved Git bundle. It verifies the snapshot, checks checkout limits and
 creates a job-specific feature branch before the engine starts. Users have no new
-setting or launch path: production pair assembly and live verification remain
-unfinished, and development admission is still blocked.
+setting or launch path: the internal Codex operation uses this bootstrap, but
+public dispatch and live verification remain unfinished. Development admission
+is still blocked.
 
 This is mandatory free/core execution infrastructure. There is no off switch,
 owner exemption, paid bypass or direct host-execution alternative. Existing
@@ -32,7 +33,7 @@ unready plans before talking to Docker. A new plan or matching volume labels do
 not establish readiness. Readiness retains the original job lifetime; fresh call
 contexts cannot revive it after cancellation, and an action ending after that
 lifetime cannot return success output. The shared audited-session constructor supplies that one plan to runtime and
-dispatcher; full production pair assembly remains blocked.
+dispatcher. Internal pair assembly preserves it through startup and execution.
 
 ## Snapshot and Git contract
 
@@ -104,7 +105,7 @@ receipts, blocked-input cancellation, readiness and engine-start ordering.
 No real Git clone, provider, Docker workload or database is launched by those
 tests. Real Git/bundle compatibility, image contents and rootless startup require
 separate live verification before enabling managed development. See
-[execution progress](p0-execution-progress-2026-10-15.md).
+[release readiness](release-readiness.md).
 
 A source fork **CAN** call the helper on a host, substitute Git/runner code or skip
 receipt checks. **BUT** doing so invalidates isolation, snapshot and recovery

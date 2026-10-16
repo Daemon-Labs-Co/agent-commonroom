@@ -1,10 +1,9 @@
 # Shared audited tool session
 
-The worker's internal tool session now constructs its runtime and dispatcher from
+The worker's internal tool session constructs its runtime and dispatcher from
 one authority and one plan. Successful bootstrap opens readiness on that exact
-plan, bound to the original job lifetime and immutable container ID. This removes
-the previous assembly gap where bootstrap and dispatcher could hold independent
-plans and never share readiness.
+plan, bound to the original job lifetime and immutable container ID. A replacement
+plan or container cannot inherit permission to execute tools.
 
 There is no user setting, product toggle or enabled development endpoint. This
 is mandatory free/core infrastructure. Existing worker-job context, original
@@ -15,7 +14,7 @@ a peer or turn missing human provenance into owner permissions.
 constructor accepts an explicit approved Docker adapter and private authenticated
 audit channel, creates the per-job authority/capability, tool plan/runtime,
 AuditClient and dispatcher, and binds all of them to the original deadline.
-The capability is returned once for protected supervisor-to-engine delivery; it
+The capability is returned once to trusted supervisor code for callback dispatch; it
 is not a serialized session field or an audit/history value. The worker must
 authenticate and separate the audit channel from model stdout before construction.
 
@@ -42,8 +41,9 @@ Tests use real framed local audit channels and mocked Docker responses across
 allocation, creation, bootstrap and dispatch. They verify intent-before-execution,
 failed audit/receipt refusal, suppression of unaudited output, cancellation,
 capability serialization exclusion and replacement-ID refusal. No live provider,
-Docker workload or database is used. The private authenticated SSH audit transport,
-reviewed engine driver/images and actual production pair adapter remain P0 work.
+Docker workload or database is used. The private SSH audit transport and internal
+Codex driver/assembly are implemented. Public dispatch, reviewed release images
+and live acceptance remain P0 work.
 
 See [worker pairs](worker-pairs.md), [workspace volumes](workspace-volumes.md) and
 [bootstrap](workspace-bootstrap.md). A source fork can replace trusted assembly,

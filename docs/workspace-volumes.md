@@ -95,8 +95,9 @@ version downgrade, explicit owner recovery and disabled diagnostics. No live Doc
 volume, provider or database is used. Actual rootless creation/removal and daemon
 metadata compatibility remain unverified.
 
-Production adapter/dispatcher assembly, authenticated audit transport, reviewed
-engine/images, commands/artifacts, disk quotas and live acceptance remain P0 work.
+Internal Codex assembly and private audit transport are implemented. Public
+dispatch, reviewed release images, commands/artifacts, storage quotas, approved
+disposal and live acceptance remain P0 work.
 The credential-separation admission block remains enforced. See
 [paired lifecycle](worker-pairs.md) and [bootstrap](workspace-bootstrap.md).
 

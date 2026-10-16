@@ -9,8 +9,9 @@ step, not a complete automatic software release pipeline.
 1. As the owner, open **Settings → Features → Workflows → Execution**. The
    `workflowExecution` flag defaults **off**. Enabling/disabling takes effect on
    the server immediately; the settings page reloads without a server restart.
-2. Test the assigned connections and provision [development workspaces](development-workspaces.md)
-   for any step that needs to edit files. Execution does not grant tools or access.
+2. Test assigned connections. Repository-editing steps remain blocked while the
+   [development runtime](release-readiness.md) is not publicly admitted; do not
+   use the workspace configuration as a bypass.
 3. In a room, create or apply a template, assign implementation agents and an
    independent reviewer, then save. Existing drafts with 300-second timeouts must
    be edited to 180 or less. New nodes/templates default to 180 seconds.
@@ -25,9 +26,9 @@ step, not a complete automatic software release pipeline.
    At Human approval, accept with a rationale or **Request changes** to return to
    the latest implementation step. The independent review executes again.
 
-Example input: “Add a bounded search filter, including empty-input and failure-path
-tests, user/technical documentation and an owner-controlled server feature flag.
-Do not commit, push or deploy.” An agent's “tests passed” statement is not enough
+For an available chat/review step, start with: “Review this proposed change and
+list the evidence needed before implementation.” Code-development requests must
+wait for production admission. An agent's “tests passed” statement is not enough
 for acceptance; inspect its patch and actual results separately.
 
 ## Supported nodes and limits

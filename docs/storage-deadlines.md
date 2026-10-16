@@ -15,7 +15,7 @@ Existing caller-specific storage-failure handling remains in force. Integrity
 verification timeout latches the execution stop and cancels active contexts.
 
 Application emergency stop cancels contexts before auditing its own stop. It may
-still wait for the controller mutex, but cooperative storage work now releases
+still wait for the controller mutex, but cooperative storage work releases
 that mutex on deadline. The regression test stalls a mocked state query while it
 owns the mutex, then verifies that the authenticated application stop completes
 and cancels the synthetic turn. Worker shutdown still requires separate fencing
@@ -53,7 +53,7 @@ and actual driver/network outage acceptance are not claimed by unit tests.
 
 ## History reads
 
-History endpoints now share the same maximum five-second storage deadline across
+History endpoints share the same maximum five-second storage deadline across
 latest history-setting lookup and the event query/row scan. The setting helper
 also applies the cap when called directly and preserves an earlier caller
 deadline. Paged and legacy bounded-history responses fail rather than returning

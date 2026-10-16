@@ -8,3 +8,10 @@ popup=null;vm.runInContext(`openDocumentation('index')`,context);assert.equal(di
 context.state.featureFlags.helpWindowChoice=false;calls=[];vm.runInContext(`openDocumentation('index')`,context);assert.equal(calls.length,0);assert.equal(control.hidden,true);assert.equal(vm.runInContext('helpDisplayMode()',context),'same-window');
 context.state.featureFlags.helpWindowChoice=true;context.state.currentActorId='new-human';assert.equal(vm.runInContext('helpDisplayMode()',context),'same-window');
 console.log('Per-human help choice, URL encoding, popup isolation, blocked-popup fallback and disabled/default behavior passed.');
+assert.equal(vm.runInContext(`helpURL('concepts','background-work')`,context),'/help/?doc=agent-activity#background-work');
+assert.equal(vm.runInContext(`helpURL('concepts','company-organization-and-decision-authority')`,context),'/help/?doc=organization#company-organization-and-decision-authority');
+assert.equal(vm.runInContext(`helpURL('concepts','human-profile-photos-and-feature-flags')`,context),'/help/?doc=interface#human-profile-photos-and-feature-flags');
+assert.equal(vm.runInContext(`helpURL('concepts','organized-history')`,context),'/help/?doc=history#organized-history');
+assert.equal(vm.runInContext(`helpURL('concepts','messages-and-context')`,context),'/help/?doc=concepts#messages-and-context');
+assert.equal(vm.runInContext(`helpURL('concepts','__proto__')`,context),'/help/?doc=concepts#__proto__');
+assert.equal(vm.runInContext(`helpURL('installation','connect-agents')`,context),'/help/?doc=connection-sign-in');

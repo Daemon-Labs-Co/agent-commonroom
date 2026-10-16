@@ -1,7 +1,7 @@
 # Atomic operations and safe retries (Free)
 
 A business operation must either save every related event or save none of them.
-The event store now supports a checksummed `appendBatch` transaction under its
+The event store supports a checksummed `appendBatch` transaction under its
 existing PostgreSQL advisory lock. No model dispatch starts before its entire
 intent operation commits.
 
@@ -14,7 +14,7 @@ intent operation commits.
 - Disclosure policies/memory revisions and native session resets.
 - User event writes and workflow start/gate/cancel requests with retry receipts.
 
-Company, room, connection and participant profile updates now require the current
+Company, room, connection and participant profile updates require the current
 `revision`; successful edits increment it. Tasks, memory, workflows and the
 organization chart retain their existing revision checks. Legacy objects begin
 at revision zero. The UI sends the saved revision; API clients must do the same.
@@ -38,7 +38,9 @@ The browser assigns a UUID per API invocation and reuses it across its existing
 CSRF refresh retry. A separate click is a new operation. There is no automatic
 network retry or hidden replay of agent work. External clients should retain the
 key when a response is lost. Receipts remain effective while their immutable
-history records are retained; authorized retention purge can remove old receipts.
+history records are retained. Any future authorized retention/purge mechanism
+must account for removing old retry receipts; this is not permission to delete
+current audit history.
 
 ## Concurrency and limits
 
@@ -109,6 +111,6 @@ No database connection or live provider is used.
 
 ## Task dispatch
 
-[Task dispatch](task-dispatch.md) now commits task state, dispatch message, agent
+[Task dispatch](task-dispatch.md) commits task state, dispatch message, agent
 activity/session and retry receipt before launch, and task/agent outcomes together.
 Pending intents require verified worker quiescence for explicit owner reconciliation.

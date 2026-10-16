@@ -5,7 +5,7 @@ Version 3 · 15 October 2026 · owner-confirmed product baseline
 This specification supersedes version 2 and conflicting requirements in older
 planning notes, demo copy and development history. It records the owner's
 confirmed interview decisions. A requirement is not a claim of implementation.
-See [the gap assessment](docs/v0.1-gap-assessment-2026-10-15.md) and subsequent
+See [the gap assessment](docs/release-readiness.md) and subsequent
 verification records for actual delivery. Complete P0 before P1.
 
 ## Purpose and distribution
@@ -220,7 +220,7 @@ Demonstrate two agents with different personas discussing a task, bounded
 governing delegation, isolated implementation, an objection/approval pause,
 human resolution, reviewable artifacts and observed checks, and an inspectable
 instruction/decision/action history. Demonstrate disconnect recovery without
-duplicate effects. Cover Claude CLI, Codex CLI, llama.cpp and the supported
+duplicate effects. Cover Claude CLI, Codex CLI, Gemini CLI, GitHub Copilot CLI, llama.cpp and the supported
 local/remote topology explicitly. Hosted release remains separately gated.
 
 Every implementation requires meaningful fast parallel-safe tests with mocked

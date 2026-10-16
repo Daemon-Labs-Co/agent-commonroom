@@ -11,7 +11,11 @@ import (
 func TestDocumentationAllowlist(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if e := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Public guide"), 0600); e != nil {
+	if e := os.Mkdir(filepath.Join(root, "docs"), 0700); e != nil {
+		t.Fatal(e)
+	}
+	guide := filepath.Join(root, "docs", "installation.md")
+	if e := os.WriteFile(guide, []byte("# Public guide"), 0600); e != nil {
 		t.Fatal(e)
 	}
 	if e := os.Mkdir(filepath.Join(root, ".data"), 0700); e != nil {
@@ -37,10 +41,10 @@ func TestDocumentationAllowlist(t *testing.T) {
 			t.Fatal("HEAD returned body")
 		}
 	}
-	if e := os.Remove(filepath.Join(root, "README.md")); e != nil {
+	if e := os.Remove(guide); e != nil {
 		t.Fatal(e)
 	}
-	if e := os.Symlink(filepath.Join(root, ".data", "owner-key"), filepath.Join(root, "README.md")); e != nil {
+	if e := os.Symlink(filepath.Join(root, ".data", "owner-key"), guide); e != nil {
 		t.Fatal(e)
 	}
 	w := httptest.NewRecorder()
@@ -51,6 +55,12 @@ func TestDocumentationAllowlist(t *testing.T) {
 	if e := os.WriteFile(filepath.Join(root, ".data", "README.md"), []byte("private fixture"), 0600); e != nil {
 		t.Fatal(e)
 	}
+	if e := os.Remove(guide); e != nil {
+		t.Fatal(e)
+	}
+	if e := os.Remove(filepath.Join(root, "docs")); e != nil {
+		t.Fatal(e)
+	}
 	if e := os.Symlink(filepath.Join(root, ".data"), filepath.Join(root, "docs")); e != nil {
 		t.Fatal(e)
 	}
@@ -58,5 +68,22 @@ func TestDocumentationAllowlist(t *testing.T) {
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/help/document/index", nil))
 	if w.Code != 404 {
 		t.Fatal("symlinked docs directory served")
+	}
+}
+
+// Catalog changes must keep contextual Help destinations available and unique.
+func TestDocumentationCatalogTargets(t *testing.T) {
+	t.Parallel()
+	seen := map[string]bool{}
+	for _, entry := range documentationCatalog {
+		if entry.ID == "" || entry.Title == "" || seen[entry.ID] {
+			t.Fatalf("invalid/duplicate Help entry %q", entry.ID)
+		}
+		seen[entry.ID] = true
+		w := httptest.NewRecorder()
+		documentationHandler("../..").ServeHTTP(w, httptest.NewRequest("GET", "/help/document/"+entry.ID, nil))
+		if w.Code != 200 {
+			t.Errorf("Help %s (%s): HTTP %d", entry.ID, entry.Path, w.Code)
+		}
 	}
 }

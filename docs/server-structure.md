@@ -27,13 +27,13 @@ Mutation preparation methods return a typed payload and success indicator. On
 rejection they write the existing HTTP error and return false; they do not append
 events or invoke providers. The orchestration handler performs the commit only
 after successful preparation. Export policies and native-session resets commit
-together. Existing public routes, event kinds and authorization boundaries are
-preserved by the structural refactor.
+together. Public handlers remain responsible for route-specific authorization; file
+organization does not grant or weaken permissions.
 
 `load` still performs whole-history replay. The `server` struct still coordinates
 one controller, and event validation helpers remain in the same package. Domain
 services, incremental projections and distributed workflow ownership would be
-further architectural work; this extraction does not claim to implement them.
+further architectural work; these are not implemented by file organization.
 
 Verification uses the existing behavioral suite for authenticated event handling,
 permission failures, state replay, integrity, cancellation, lifecycle, revisions

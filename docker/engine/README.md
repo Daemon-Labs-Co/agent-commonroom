@@ -60,16 +60,17 @@ Mode routes are not registered. An existing host tool ceiling can narrow access,
 never broaden it. Missing or broader restored tool lists fail; there is no fallback.
 
 This removes model tool routes in the reviewed factory, but does not independently
-disable every client customization or lifecycle hook. The eventual engine must
-have a fresh controlled home/settings, no development repository mount, no
-untrusted plugin/config discovery and only the supervisor-controlled broker link.
+disable every client customization or lifecycle hook. The engine bootstrap enforces a fresh controlled home/settings, no development
+repository mount, no untrusted plugin/config discovery and only the
+supervisor-controlled broker link.
 The broker must authorize and durably audit each action before a credential-free
 tool container performs it. Pair cancellation, quotas, receipts and absence proof
 remain mandatory.
 
 Before enabling managed development, verify the actual pinned Linux binary's
 callback behavior and native-route refusal, bind its artifact digest/provenance to
-supervisor admission, and finish paired runtime/audit integration. Never accept a
+supervisor admission, and complete public dispatch and live runtime/audit
+acceptance. Never accept a
 stock binary merely because it reports the same version. OAuth compatibility and
 end-to-end execution have not been verified. No runtime is deployed by preparation.
 
@@ -81,22 +82,11 @@ broader/native/deferred-list rejection and preservation of a stricter host ceili
 They require the pinned upstream source and compiler, so are separate from the
 fast CommonRoom suite. No DB or credential fixtures are used.
 
-On 14 October 2026 the pinned Linux/amd64 factory compiled and all three selected
-library tests passed. The successful retry took 3m 45s including container startup,
-with Cargo reporting 3m 39s compilation and under 0.01s test execution. Dependencies
-were cached from preceding failed/cancelled attempts; this is not a clean-build
-benchmark. Removed native registrations leave unused-code warnings in upstream
-code; no automatic `cargo fix` was applied. This result verifies router construction,
-not OAuth or a production broker callback round trip.
-
-The unoptimized verification CLI subsequently built with `cargo build -p codex-cli
---bin codex --locked` (7m 52s including startup; Cargo reported 7m 49s). Its
-SHA-256 is `7f3faeeb218b04340d972ba3df3bad7f188e9203fa4e61f4710d961536076f88`.
-Network-disabled, read-only containers with temporary empty homes successfully
-reported `codex-cli 0.162.1` and generated the experimental app-server schemas.
-These are metadata commands, not provider turns. The artifact is a development
-verification build, not a release image; no production configuration was changed.
-Release packaging and a real broker callback round trip still need verification.
+The pinned Linux/amd64 factory and three selected router tests were verified on
+14 October 2026. An unoptimized development CLI also built and ran version/schema
+metadata commands in a network-disabled, read-only container with an empty home.
+Those checks establish source/router and metadata compatibility, not OAuth or a
+production callback turn. They do not identify an approved release image.
 
 There is no product toggle for credential isolation. Existing optional development
 flags cannot enable the legacy credential-bearing native-tool path. A source fork

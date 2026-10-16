@@ -7,10 +7,11 @@ This is mandatory security infrastructure without a bypass flag.
 
 ## Current status
 
-Implemented internal transport primitives and the constrained `audit-link-v1`
-worker action. Production pair launch is still gated: the provider supervisor
-must open the listener, coordinate the dedicated controller connection and fence
-both containers on failure. This is not a working public launch workflow.
+Internal transport primitives, supervisor session attachment and the constrained
+`audit-link-v1` worker action are implemented. Internal Codex execution uses the
+audited session and fences both containers on failure. Public dispatch still must
+coordinate listener creation and the dedicated controller connection; it remains
+gated.
 Synthetic tests exercise real local Unix sockets, framed audit exchanges,
 job-scope checks, cancellation and a harmless dedicated child-process substitute.
 No live SSH, provider account, Docker workload or database has been exercised.
@@ -65,7 +66,7 @@ remain in `internal/toolbroker`; transport does not replace those checks.
 
 ## Required production integration and acceptance
 
-The future launcher must order listener creation before the controller's attach,
+Public dispatch must order listener creation before the controller's attach,
 keep the original supervisor lease throughout execution, and start no tools until
 registration and authenticated attachment are established. Failure to attach,
 expiry, cancellation, controller loss and pending-outcome ambiguity must fence
@@ -99,9 +100,9 @@ fresh contexts cannot revive it. Pipe and socket closure joins the read pump.
 Cancellation revokes tool access and interrupts in-flight launch operations. It
 does not itself stop already running Docker containers, release the creator
 lease, prove shutdown, release account reservations or authorize workspace
-removal. The eventual production worker runner must always perform fenced
-shutdown/reconciliation of both roles after the session ends. Current production
-admission remains blocked until that runner and reviewed engines are integrated.
+removal. The internal `RunCodex` operation performs fenced shutdown of both roles after
+the session ends. Public dispatch must retain that behavior. Production admission
+remains blocked pending dispatch integration, reviewed images and live acceptance.
 
 Additional tests exercise framed intent/outcome acknowledgement without frame
 loss, idle EOF, blocked forwarding cancellation, foreign-listener refusal, invalid

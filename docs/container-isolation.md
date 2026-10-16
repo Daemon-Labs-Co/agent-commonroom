@@ -1,181 +1,181 @@
 # Mandatory agent container execution
 
-[Documentation index](README.md)
+[Documentation index](README.md) · [SSH worker setup](agent-ssh.md)
 
 ## Current support
 
-Managed Codex and Claude turns now use a mandatory rootless Docker worker on Linux. There is no enable/disable flag and no direct-process fallback. Direct macOS/Windows execution remains blocked. Approved SSH worker transport is implemented; see [connection sign-in](connection-sign-in.md). CommonRoom's UI and database can still be used without an execution worker.
+Managed turns require a Linux worker with local rootless Docker. CommonRoom can
+run on a Mac or a private Debian controller; the execution worker remains Linux.
+There is no direct host/SSH provider launch, Docker Desktop execution path,
+uncontained fallback or isolation off switch.
 
-The default worker uses private Docker volumes and chat-only provider policies. Operators can explicitly configure room-scoped [development workspaces](development-workspaces.md): a reviewed, checksummed Git bundle is mounted read-only and cloned into a writable private feature branch before the provider starts. No host working directory is mounted writable. Room directory-selection UI, task-specific worktrees, patch export and merge automation remain follow-up work.
+| Capability | Current status |
+| --- | --- |
+| Isolated Codex/Claude chat and connection testing | Implemented through the approved SSH worker. |
+| Provider sign-in | Isolated interactive login and connection-scoped credential storage. |
+| Repository development | Public dispatch blocked; replacement separated Codex pipeline exists internally. |
+| Other provider execution | Required adapters remain unfinished or unverified; icons are not support claims. |
+| Hard storage quota | Required, not yet implemented. |
+
+See [development workspaces](development-workspaces.md) before attempting repository
+work. Historical single-container development checks do not validate the replacement.
 
 ## Set up a Linux worker
 
-1. Install [rootless Docker](https://docs.docker.com/engine/security/rootless/) on the Linux account running CommonRoom. Select that local rootless context. The daemon must report rootless mode, seccomp, and support memory/swap, PID and CPU limits. Do not set `DOCKER_HOST` or `DOCKER_CONTEXT`; remote Docker endpoints are rejected.
-2. Build and publish a trusted agent image from `docker/agent/Dockerfile`. Supply a reviewed Node base image by digest and explicit installed-provider versions:
+1. Provision a dedicated Linux account and a local [rootless Docker daemon](https://docs.docker.com/engine/security/rootless/).
+   Readiness requires seccomp and enforceable memory/swap, CPU and PID limits.
+   Remote Docker contexts and environment overrides are rejected.
+2. Build the reviewed chat/login image from `docker/agent/Dockerfile`, supplying a
+   digest-pinned Node base and explicit Codex/Claude versions. Review dependencies
+   and licenses. Pull the final immutable image into the worker daemon; launches
+   do not pull automatically. An example build is:
 
    ```sh
    docker build -f docker/agent/Dockerfile \
-     --build-arg NODE_IMAGE='node:24-bookworm-slim@sha256:REPLACE_WITH_REVIEWED_DIGEST' \
-     --build-arg CODEX_VERSION='REPLACE_WITH_REVIEWED_VERSION' \
-     --build-arg CLAUDE_VERSION='REPLACE_WITH_REVIEWED_VERSION' \
-     -t YOUR_REGISTRY/commonroom-agent:reviewed .
-   docker push YOUR_REGISTRY/commonroom-agent:reviewed
+     --build-arg NODE_IMAGE='node:24-bookworm-slim@sha256:REVIEWED_DIGEST' \
+     --build-arg CODEX_VERSION='REVIEWED_VERSION' \
+     --build-arg CLAUDE_VERSION='REVIEWED_VERSION' \
+     -t commonroom-agent:reviewed .
+   docker image inspect commonroom-agent:reviewed --format '{{.Id}}'
    ```
 
-   These placeholders must be replaced; no provider versions or image digest have been verified by this change. Resolve the published digest, pull that exact image into the local rootless daemon, then configure `COMMONROOM_AGENT_IMAGE=YOUR_REGISTRY/commonroom-agent@sha256:ACTUAL_64_HEX_DIGEST`. Launches never pull automatically. Registry publication and installation are human/operator steps, not agent capabilities. The build context allowlist excludes application secrets and local data.
-3. Export `COMMONROOM_AGENT_AUTH_DIR` to a private credential directory (default `.data/agent-auth`). Provide only `codex/auth.json` and/or `claude/.credentials.json` from the provider's authorized authentication setup. Each must be a regular JSON file, no larger than 64 KB, with owner-only permissions (`chmod 600`). Do not copy the entire provider home, SSH files or CommonRoom keys. Provider authentication may use keychains or different mechanisms; if the required file is unavailable, this worker cannot use that account yet. The current host-side Claude sign-in action does not automatically provision container credentials.
-4. Restart CommonRoom with those environment values. Invite a **fresh** local Codex/Claude participant. Existing host-session bindings cannot automatically resume: they are explicitly blocked to avoid silently dropping context or crossing storage boundaries. Preserve old conversation history and import selected context into the new participant instead.
+   Replace every placeholder. A local build tag is not an acceptable worker image
+   setting: configure its immutable ID or registry digest. No release image is
+   established by this example.
+3. Follow [worker configuration and sign-in](connection-sign-in.md#worker-configuration)
+   to install the matching binary, wrapper and private configuration.
+4. Approve the alias on the controller, register a connection, sign in, then run
+   [Test connection](connection-testing.md). Invite fresh participants afterward.
 
-The worker must run on the same Linux machine as the selected Docker daemon. Unix socket mounts are not currently supported through Docker Desktop's VM or remote Docker contexts. Follow [Debian installation](deployment/debian.md) to run CommonRoom there and reach its browser UI through the documented SSH tunnel.
+The daemon, volumes and Unix provider sockets live on the worker. Controller paths
+are not remote Docker mounts. Existing desktop conversations are not attached by
+registering a connection; approved history import is a separate operation.
 
 ## Enforced launch policy
 
-- No external container network (`--network=none`), no host networking, exposed ports, Docker socket or host home-directory mount.
-- Non-root UID/GID 1000, read-only root filesystem, all capabilities dropped, no privilege escalation, Docker's default seccomp, and an init process.
-- 1 CPU, 1 GB memory including swap, 128 processes and a three-minute turn deadline. Temporary storage is bounded. Persistent volume disk quotas are not implemented.
-- Membership/room/connection/endpoint-specific home and work volumes, named from a hash of those identifiers. Provider auth is copied into a per-turn protected host temporary directory; only that file is mounted read-only. The bootstrap copies it into the agent's private home. A provider credential is intentionally accessible to that provider process; containers do not hide necessary credentials from the agent using them.
-- At most 4 MB each of captured stdout/stderr. Docker log capture is disabled for these containers.
-- A per-turn Unix-socket HTTPS CONNECT gateway supplies provider access. The socket is not the Docker control socket. The bootstrap bridges it to container loopback. Exact hosts only: Codex uses `api.openai.com`, `chatgpt.com`, `auth.openai.com`; Claude uses `api.anthropic.com`, `console.anthropic.com`, `claude.ai`, `claude.com`, `platform.claude.com`. Only port 443 is accepted; private/reserved DNS results are rejected, and a validated IP is dialed directly. Other downloads, external tools and dependency registries are blocked. Unsupported provider proxy behavior fails connectivity rather than restoring unrestricted networking.
-- The gateway limits concurrent tunnels, time and bytes. TLS remains end-to-end. Context can still be sent to permitted providers, including through misuse of their APIs; this is an egress boundary, not content-loss prevention.
+Chat/login execution uses non-root UID/GID 1000, read-only root, dropped
+capabilities, no privilege escalation, default seccomp, an init process and
+`--network=none`. It mounts neither the Docker socket nor the host home/checkout.
+A turn is bounded to three minutes, 1 CPU, 1 GiB memory including swap and 128 PIDs;
+captured stdout/stderr are each bounded to 4 MiB and Docker logging is disabled.
 
-## Cancellation and recovery
+The replacement development pair divides its aggregate budget between roles and
+uses fresh workspace/container identities. See [paired execution](worker-pairs.md)
+and [container quotas](container-quotas.md). Four physical managed containers is
+the current account/worker ceiling; unresolved reservations remain counted.
+Persistent storage is not yet protected by the required aggregate 5 GB quota.
 
-After a turn ends or its context is cancelled, the gateway is closed and Docker receives a bounded forced container-removal request. Unlike killing the client alone, this targets the container's processes. If removal fails, the server prints the container name and reports that cleanup could not be confirmed. Independently check the daemon's containers carrying `commonroom.managed=true`. Daemon outages, worker crashes and create/cancel races remain recovery risks; startup reconciliation is not yet implemented. Do not infer confirmed termination from the cancellation request alone.
+Chat session volumes can contain provider credentials and session data. The provider
+necessarily receives its own credential; this is why model-controlled development
+tools must run separately. The internal replacement engine receives credentials
+through private stdin, not a host credential-file mount. See
+[engine bootstrap](codex-engine-bootstrap.md) and [private files](private-file-security.md).
 
-Named volumes persist after turns and can contain credentials, sessions and work. Protect the Docker storage and its backups. Volume lifecycle, export and secure deletion are not automated. Host-side human-authorized history import and provider setup remain trusted administrative operations, not isolated model turns.
+## Provider-only network gateway
 
-## Bypass and verification limits
+Containers reach approved provider HTTPS endpoints through a per-turn Unix-socket
+CONNECT gateway bridged to loopback. It is not the Docker control socket.
 
-You **CAN** modify the source to restore direct host execution, **BUT** that exposes account files, credentials and network access, removes OS-enforced room confinement and weakens cancellation. The supported application provides no switch for this. Containers also depend on a trusted runtime, reviewed image and worker host; runtime vulnerabilities or a malicious administrator remain outside this containment guarantee.
+| Provider | Exact permitted hosts, port 443 only |
+| --- | --- |
+| Codex | `api.openai.com`, `chatgpt.com`, `auth.openai.com` |
+| Claude | `api.anthropic.com`, `console.anthropic.com`, `claude.ai`, `claude.com`, `platform.claude.com` |
 
-Automated tests inspect launch policy, pinned-image requirements, unsupported endpoints, daemon prerequisites, egress denial, private addresses, output bounds and legacy-session blocking. All database interactions are mocked. No real provider is used. Live rootless-Docker confinement, allowed provider connectivity and descendant termination still require isolated deployment verification; Docker was unavailable on the development machine when this implementation was prepared. SEC-04 is mitigated for the new launch path, not declared fully closed.
-
-## Remote worker requirements
-
-**Required deployment:** CommonRoom may run on a Mac or another controller machine while all managed agent containers run on an external Linux worker, such as Debian. Container isolation is mandatory regardless of location. SSH is authenticated transport to the worker, not permission to invoke Codex or Claude directly on the remote host. Docker does not need to be installed on the controller.
-
-**Current status:** constrained SSH worker transport and connection-specific sign-in are implemented. Direct SSH model launches remain blocked. Worker leases, restart reconciliation and a full registration lifecycle remain follow-up work. See [connection sign-in](connection-sign-in.md) for the current deployment procedure.
-
-### Observed Debian prerequisites — 11 October 2026
-
-Read-only checks through the existing `jerry` and `claude` SSH aliases found Linux and `/usr/bin/docker` for both accounts. Both configured Docker contexts pointed at `unix:///var/run/docker.sock`; both accounts received permission denied when contacting that daemon. Installing the Docker CLI alone does not establish worker readiness. No accounts, permissions, containers or provider sessions were changed by these checks.
-
-Configure an appropriate rootless worker account and verify daemon access under the exact identity running the worker. Jerry and Claude can use separate workers/accounts, or a dedicated CommonRoom worker can manage distinct private provider sessions; provider credentials must be deliberately provisioned, never inferred or copied wholesale from another user's home. Merely adding the accounts to the system Docker group is not the recommended fix: access to a privileged Docker daemon broadens host authority and does not satisfy the rootless worker contract.
-
-### Required boundaries
-
-| Area | Requirement |
-|---|---|
-| Controller | Keep the web UI, authorization and orchestration separate from the execution host. Send authenticated, authorized requests; do not forward owner keys or database credentials to agents. |
-| Transport | Start with SSH using a dedicated worker identity and verified host keys. No public Docker TCP endpoint, unauthenticated worker API or agent-accessible SSH credentials. |
-| Worker entry point | Use a constrained, versioned worker protocol with validated operations and bounded payloads. Requests cannot supply arbitrary shell commands, Docker arguments, host mounts or environment variables. |
-| Readiness | Verify Linux, reachable rootless Docker, seccomp, enforceable resource limits, reviewed digest-pinned image, provider credentials and gateway prerequisites before admitting a job. An unreachable/unready worker blocks execution. |
-| Execution | The remote worker creates containers and enforces the same user, capability, filesystem, network and resource restrictions as the local worker. No direct-execution fallback. |
-| Credentials and gateway | Provider credential files and Unix gateway sockets are created on the worker host and mounted locally there. They are not paths on the Mac mapped into a remote daemon. Keep provider credentials out of transport logs and audit payloads. |
-| Storage | Keep private session/work volumes scoped to company, room, agent membership, connection and endpoint. Validate any future approved repository mounts on the worker; do not accept arbitrary controller-supplied host paths. |
-| Job identity | Use durable job/attempt IDs, idempotent submission and worker ownership/leases. Reconnection must not silently duplicate work or resume a session belonging to another worker/account. |
-| Results | Bound and correlate status/output to the authenticated worker and original attempt. Persist meaningful audit events without recording secrets. |
-| Cancellation | Send cancellation to the worker, terminate the execution container and its gateway there, and return an acknowledgement with the observed outcome. Closing SSH alone does not prove container termination. |
-| Failure and recovery | On connection loss show status as unknown, preserve job identity, and apply worker-side deadlines/lease expiry. Reconcile running containers after worker/controller restart; do not silently resubmit uncertain work. |
-
-### Completion criteria
-
-Remote support is complete only after mocked protocol tests cover identity/scope denial, invalid launch requests, readiness failures, duplicate submissions, disconnect/reconnect, output bounds and cancellation outcomes. Database interactions remain mocked; no test data may be inserted into PostgreSQL. A separate controlled deployment check must verify Linux/rootless-Docker containment, provider connectivity, denied filesystem/network access and descendant shutdown using harmless fixtures before relying on the worker for live development. No supported feature flag may disable isolation or restore direct execution.
-
-### Provider credential location contract
-
-`docker/agent/entrypoint.cjs` supplies a fixed provider launch environment for login and execution. Codex uses `CODEX_HOME=/home/agent/.codex` and file-based credential storage; Claude uses `CLAUDE_CONFIG_DIR=/home/agent/.claude`. A successful login must create a regular credential file at the worker's expected export path. The image explicitly installs the entrypoint with readable file permissions and a traversable parent directory for its non-root user. It also installs the system CA certificate bundle used by native provider clients, without disabling TLS verification. `persistWorkerCredential` validates the exported JSON and atomically installs it with mode 0600, preserving the old login when export validation fails.
-
-Codex uses the existing loopback proxy environment with platform proxy discovery/fallback disabled. The mandatory Docker/network gateway boundary is unchanged. Regression tests mock provider processes and use temporary files; no database or live-provider calls are made. Rebuild and repin the image after changing this contract; a source-only controller update cannot repair an older worker image.
-
-### Private credential export boundary
-
-After provider login exits successfully, the worker reads the known credential file through a separate non-root container with networking disabled and only the login home volume mounted read-only. This avoids Docker file-copy failures against stopped login containers. The exporter rejects missing files, symlinks, directories, invalid JSON and files over 64 KB. Its output stays in bounded private worker memory and a mode-0600 temporary file; neither output stream is forwarded to diagnostics. Atomic installation preserves existing connection credentials on failure. Login and export containers and temporary volumes are removed afterward. This remains under the existing owner-only `connectionSignIn` feature flag (enabled by default); it introduces no isolation bypass or additional toggle.
-
-Regression tests exercise the actual fixed exporter script with synthetic temporary files, its Docker isolation arguments, output limits, and atomic persistence. Automated tests do not access a database or launch Docker/provider agents. A successful browser login followed by status from a fresh worker process is still required to verify a deployment.
-
-Isolated model turns keep standard input open (`docker run -i`) so the adapter can deliver its bounded prompt. They do not allocate a terminal, preserving machine-readable responses. Interactive human login separately uses a terminal. A saved credential and a successful live connection check are separate states.
+Every DNS answer is checked and a validated address is dialed directly. Private and
+special-use addresses are refused. Arbitrary downloads and package registries are
+blocked. TLS remains end-to-end. Permitted provider APIs can still receive context;
+this boundary does not provide content-loss prevention.
 
 ## Native public provider address policy
 
-The mandatory CONNECT gateway rejects special-use/reserved IPv4 destinations
-and permits only ordinary native IPv6 global-unicast addresses in `2000::/3`,
-excluding protocol assignments, transition mechanisms, documentation and retired
-blocks. NAT64/translation, 6to4, Teredo and other special-use routes are denied
-even if a platform classifies them as global unicast. IPv4-mapped IPv6 is checked
-as IPv4. Exact provider hostname/443 checks, validation of every resolved answer
-and dialing the validated address directly remain required. No optional flag or
-uncontained network fallback exists.
-
-This conservative policy may reject a provider on a NAT64-only network. Configure
-ordinary native public IPv4/IPv6 connectivity; do not relax the denial to reach
-private addresses. Future allocation changes need an explicit policy review.
-Synthetic address tests perform no DNS queries or provider connections. Trusted
-resolver/host routing compromise remains outside this address classifier; this
-does not fix the separate provider credential/tool co-location issue.
-
-Policy references: [IANA IPv6 special-purpose registry](https://www.iana.org/assignments/iana-ipv6-special-registry),
-[IANA IPv6 address space](https://www.iana.org/assignments/ipv6-address-space), and
-[IANA IPv4 special-purpose registry](https://www.iana.org/assignments/iana-ipv4-special-registry).
+IPv4 special-use/reserved destinations are denied. IPv6 permits ordinary native
+global-unicast addresses in `2000::/3` while excluding special assignments,
+translation/transition, documentation and retired blocks. IPv4-mapped IPv6 is
+checked as IPv4. NAT64-only connectivity may fail; use ordinary public connectivity
+rather than weakening address checks. Resolver/host-routing compromise remains a
+trusted-host risk. Allocation changes require policy review.
 
 ## Gateway shutdown and pre-tunnel limits
 
-Each provider gateway owns a cancellable context derived from its turn. Closing
-the gateway cancels in-flight DNS resolution and dialing, closes established
-tunnels and stops the listener. Requests reaching a closed gateway are refused
-before resolution. The pre-tunnel HTTP server bounds headers to 8 KiB with a
-five-second header timeout and fifteen-second read/write/idle timeouts. Hijacked
-provider tunnels retain their separate three-minute deadline and byte limits.
-These mandatory limits have no product toggle and do not relax hostname/IP policy.
+Closing the gateway cancels DNS/dial operations, closes tunnels and stops its
+listener. New work is refused after close. Cooperative resolver/dial cancellation
+is required; gateway closure alone is not physical container shutdown proof.
 
-Synthetic tests use a temporary Unix socket and injected blocking resolver; they
-verify prompt cancellation and refusal of new work without any DNS/provider/DB
-access. Cooperative resolver/dial cancellation is required. This narrows leftover
-network work during shutdown; it does not prove physical container termination
-or fix readable provider credentials in development tools. Worker shutdown proof
-and integrity recovery requirements remain unchanged.
-
-### Development snapshot substitution protection
-
-Development launches mount a private per-turn checksum-verified bundle copy.
-They do not mount the original operator source path after a prior hash check.
-Descriptor checks and bounded reads also reject special files and growing-input
-overreads. See [snapshot staging and capacity requirements](development-workspaces.md#per-turn-verified-snapshot-staging).
-These mandatory checks have no isolation bypass; development credential/tool
-co-location is still an open separate issue.
-
-### Credential staging permissions
-
-Per-turn credential staging requires exclusive file creation in a worker-owned
-0700 directory and explicitly normalizes file mode 0444 for the mapped container
-UID. Existing/aliased targets are refused. See [staging contract and limits](private-file-security.md#exclusive-per-turn-credential-staging).
-The read-only bind does not prevent development tools from reading credentials;
-credential/tool separation remains open.
+| Limit | Value |
+| --- | --- |
+| Live client sockets, including pre-header clients | 16 |
+| Concurrent CONNECT slots | 8 |
+| Header size / timeout | 8 KiB / 5 seconds |
+| HTTP read, write and idle timeouts | 15 seconds |
+| Established tunnel deadline | 3 minutes, with separate byte limits |
 
 ### Gateway connection admission
 
-Each provider gateway accepts at most **16 live client connections**, including
-clients that have not sent HTTP headers yet. Its existing **8 CONNECT slots**
-continue to bound DNS/dial/tunnel work. Excess accepted sockets are immediately
-closed before HTTP parsing or DNS; callers may see a connection reset/EOF rather
-than an HTTP error. A slot remains held for the full connection/tunnel lifetime
-and is released once when cleanup closes it. Header/read/write/idle deadlines
-and shutdown cancellation remain independently enforced.
+Excess sockets close before HTTP parsing or DNS and may report reset/EOF. Admission
+slots are held through connection cleanup and released once. These mandatory limits
+have no product toggle. They do not establish cross-job bandwidth/spend quotas or
+volumetric denial-of-service protection. See [gateway ownership](engine-container-runtime.md)
+for the internal engine's job-bound socket checks.
 
-This is a required free/core availability safeguard, with no optional feature
-flag, paid entitlement or supported limit-disable option. It takes effect when
-the updated worker binary is deployed; this source change does not deploy it.
-Do not loosen it to work around agent loops. Investigate repeated reconnects and
-provider/client behavior instead. This bounds live HTTP connection state, not
-socket backlog, accept-loop CPU, bandwidth, cross-job quotas or provider spend.
+## Cancellation and recovery
 
-Technical contract: `gatewayListener.Accept` admits into a fixed buffered slot
-channel before handing a client to `net/http`, closing excess clients. Its
-`gatewayClient.Close` uses `sync.Once` to release admission after underlying
-connection cleanup, including concurrent/double closes. `newProviderGateway`
-uses this wrapper for both its listener record and HTTP serving. A source fork
-CAN remove the cap, BUT exposes the worker to untrusted pre-header connections.
-Synthetic pipe-listener and ephemeral local Unix-socket tests cover saturation,
-release, concurrent close, pre-header admission and shutdown without contacting
-DNS/providers, reading credentials or using a database. Pinned-provider/runtime
-integration and volumetric protection remain unverified.
+Managed jobs record intent before dispatch and keep private worker records and
+leases. Cancellation latches the job, fences creation, removes only matching
+container identities and observes absence. An unreachable daemon or lost SSH
+connection is uncertainty, never proof of termination. Startup and owner-driven
+reconciliation inspect unresolved jobs; they do not replay them.
+
+Use [worker diagnostics](worker-jobs.md) for exact recovery steps. Named session
+volumes persist, and normal pair shutdown retains source. Do not delete worker
+records, locks or volumes to make readiness pass. Explicit approved workspace
+disposal remains unfinished.
+
+## Remote worker requirements
+
+SSH is authenticated transport to the versioned worker protocol, with a dedicated
+identity, verified host keys and bounded payloads. It does not grant arbitrary
+shell/Docker argument execution. The controller binds authorization, connection,
+room, participant, job and deadline before dispatch. The worker validates those
+bindings and independently enforces isolation and durable lifecycle limits.
+
+No public Docker TCP endpoint, agent-accessible SSH key or controller database/
+owner credential belongs in a container. Run one controller per event store;
+local startup locking does not support a distributed controller deployment.
+
+### Provider credential location contract
+
+The chat/login image fixes Codex file storage at `/home/agent/.codex/auth.json`
+and Claude at `/home/agent/.claude/.credentials.json`. Login and export validate
+bounded regular files, then atomically publish private connection credentials.
+The separated Codex engine has a different private-home contract; do not mix its
+image or bootstrap protocol with the chat/login image.
+
+### Private credential export boundary
+
+A separate network-disabled exporter reads only the known login credential file
+from a read-only volume. Output is bounded and never diagnostic content. Publication
+must sync before success. See [sign-in storage](connection-sign-in.md#security-and-storage).
+
+### Development snapshot substitution protection
+
+[Snapshot preparation](development-workspaces.md#per-turn-verified-snapshot-staging)
+and [workspace bootstrap](workspace-bootstrap.md) define checked snapshot handling.
+Neither permits the retired co-located provider/tool development path.
+
+### Credential staging permissions
+
+Legacy chat staging uses an exclusive file in a worker-owned private directory.
+The replacement engine instead consumes a private stdin frame. See
+[private credential staging](private-file-security.md#exclusive-per-turn-credential-staging).
+
+## Bypass and verification limits
+
+Source changes **CAN** remove these boundaries, **BUT** expose host files,
+credentials and network authority and invalidate the supported contract. No
+supported feature flag may do so. The host, daemon, deployment account and reviewed
+images remain trusted; containers do not eliminate runtime vulnerabilities.
+
+Tests use mocked Docker/database boundaries and synthetic temporary files/socket
+peers. Live rootless containment, image compatibility, provider access and complete
+descendant termination require separate deployment evidence. Synthetic success is
+not production acceptance. Follow the [P0 acceptance plan](p0-acceptance-tests.md).

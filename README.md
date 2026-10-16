@@ -1,284 +1,171 @@
 # Agent CommonRoom
 
-A workspace where humans and AI agents collaborate in rooms, discuss ideas,
-assign tasks, share context and review evidence.
+## Introduction
 
-Built with **Go, PostgreSQL and browser JavaScript**. Codex and Claude agent turns
-run through an approved **Linux worker with rootless Docker**. CommonRoom can run
-on your Mac while the worker runs on a Debian server. Host execution has no
-supported fallback or isolation-disable switch.
+Bring humans and different AI agents into one workspace: discuss ideas, challenge
+proposals, assign work and review the evidence behind decisions. A connection can
+supply several agents with different roles, so a staff engineer, reviewer and
+specialist can contribute distinct perspectives while the human keeps authority.
+The record should explain who asked for what, what was decided and what happened.
 
-**Status:** working prototype, supported with one controller. Legacy native code-development turns are blocked until a verified credential-separated bridge is available. Public
-internet hosting and hostile multi-tenant deployment are not production-ready.
+CommonRoom is an open-source AI harness from **Daemon Labs**, licensed under
+[GPL-3.0-only](LICENSE). Use it when a single assistant conversation is too narrow
+and you want collaboration with accountable handoffs. Run the controller locally
+or on your own private Linux server and use the browser interface from your laptop.
+A hosted service and paid enterprise capabilities are planned, not current offers.
 
-The [paired worker lifecycle](docs/worker-pairs.md) now journals both container
-identities and supports exact-ID cancellation. Pair launching and provider
-callback integration remain unavailable; this does not remove the development barrier.
+**Current stage: early prototype.** Human collaboration, tasks, memory and workflow
+foundations exist. Isolated Codex/Claude chat paths require an approved Linux worker.
+The new Codex development components have synthetic tests but no production
+repository-development dispatch or live provider acceptance. Repository-bound
+agent development remains blocked. Public internet and hostile multi-tenant
+hosting are unsupported. Check [release readiness](docs/release-readiness.md)
+before choosing this for a deployment.
 
-Task assignment uses [atomic server-owned dispatch](docs/task-dispatch.md), with
-visible pending/completed/failed outcomes and explicit recovery for interrupted
-work. The owner-controlled `taskDispatch` feature defaults on.
+## Quick start guide
 
-Managed execution defaults to 200 journalled launches per UTC day. Operators can
-configure `COMMONROOM_DAILY_TURN_LIMIT` (1–100000); see [execution budgets](docs/execution-budgets.md).
+Get the human workspace running first; add an isolated worker when you need agents.
+You need a trusted source checkout, **Go 1.26+**, PostgreSQL and a current browser.
+Node and Python are needed only for development checks. The scripts build the
+controller; database roles and authentication are an explicit one-time setup.
 
-## What works
+| Environment | Setup script | Walkthrough |
+| --- | --- | --- |
+| macOS | `bash scripts/setup-macos.sh` | [Local setup](docs/quick-start.md) |
+| Linux | `bash scripts/setup-linux.sh` | [Local or server setup](docs/quick-start.md) |
+| Windows / WSL2 | `powershell -File scripts/setup-windows.ps1 -LinuxRepoPath /home/YOU/agent-commonroom` | [Windows prerequisites](docs/quick-start.md#1-choose-your-platform) |
+| Linux + nginx + Docker + existing/separate PostgreSQL | `bash scripts/setup-hybrid.sh` | [Hybrid walkthrough](docs/quick-start.md#4-hybrid-linux-controller-nginx-docker-and-separate-postgresql) |
 
-- Rooms, invitation-only human accounts, personal rooms and owner-controlled access.
-- Independent agent connections and room-specific names, profiles, engineering
-  roles and challenge levels. A visual organization chart provides authority guidance.
-- Persistent room conversations, direct agent requests and `@room` broadcasts.
-  Existing isolated sessions can continue; imported notes or selected conversation
-  excerpts can provide starting context.
-- Revision-controlled shared memory, provider disclosure controls and human-only notes.
-- Tasks, reviewers, human-supplied evidence and reusable workflow templates.
-- A visual workflow builder with optional **sequential execution**: agent/review
-  steps, explicit human/evidence gates and waits. `workflowExecution` defaults off.
-- Isolated provider sign-in, connection tests, background activity, verified worker
-  shutdown and explicit owner recovery. Recovery never silently replays a task.
-- Checksummed append-only event history, human-readable activity and owner-managed
-  feature flags. Human login survives refresh and supported server restarts without
-  saving the PEM key in the browser.
-
-## Install locally
-
-### 1. Install the prerequisites and get the source
-
-You need **Go 1.26+**, **PostgreSQL** (17 has been exercised), and a current browser
-with JavaScript and Web Crypto. **Node.js and Python 3.8+** are needed for
-development checks. Python checks use only the standard library; no Python
-packages or provider credentials are required.
-There is no frontend package install or bundling step.
-
-On macOS with Homebrew:
-
-```sh
-brew install go postgresql@17 node
-brew services start postgresql@17
-export PATH="$(brew --prefix postgresql@17)/bin:$PATH"
-git clone https://github.com/Daemon-Labs-Co/agent-commonroom.git
-cd agent-commonroom
-go mod download
-```
-
-If Go/PostgreSQL are already installed, skip their installation. On Debian or
-other systems, use the [remote installation guide](docs/deployment/debian.md).
-Always run the server and migration from the repository root.
-
-### 2. Prepare a dedicated database
-
-CommonRoom requires **two separate database logins**:
-
-| Login | Purpose |
-| --- | --- |
-| `commonroom_migrator` | Owns the dedicated database/schema and runs explicit migrations. |
-| `commonroom_runtime` | Serves the application; can read and append events, but cannot rewrite or delete them. |
-
-Complete the [one-time administrator setup](docs/database-security.md#administrator-setup).
-It includes role/database creation, authentication and the exact restricted grants.
-Use an existing PostgreSQL installation if you have one; no separate server is
-required. Do not reuse another application's database or give the runtime login
-ownership, role memberships, DDL, UPDATE, DELETE or TRUNCATE privileges.
-
-For local TCP connections, configure SCRAM passwords and save them in a private
-[PostgreSQL password file](https://www.postgresql.org/docs/current/libpq-pgpass.html)
-with mode `0600`. Alternatively, use properly configured same-host peer
-authentication. Do not put passwords in Git, shell command arguments or a `trust`
-rule. The URLs below assume the documented local authentication is ready.
-
-### 3. Run the schema migration, then apply runtime grants
+After [creating the dedicated database and separate roles](docs/database-security.md#administrator-setup),
+use a private passfile or approved peer authentication. These local examples contain
+no passwords; a remote database needs verified TLS instead of `sslmode=disable`.
 
 ```sh
 export MIGRATION_DATABASE_URL='postgres://commonroom_migrator@localhost:5432/commonroom?sslmode=disable'
-go run ./cmd/server --migrate
+bash scripts/setup.sh --migrate
 unset MIGRATION_DATABASE_URL
-```
-
-Apply the runtime grants from [database security setup](docs/database-security.md#administrator-setup)
-**after** the migration creates the event table and sequence. Startup refuses an
-overprivileged runtime account. `sslmode=disable` is only for a same-machine
-local database; use verified TLS for a database reached across a network.
-
-### 4. Start CommonRoom
-
-```sh
+# Apply the runtime grants from the database guide before starting.
 export DATABASE_URL='postgres://commonroom_runtime@localhost:5432/commonroom?sslmode=disable'
-go run ./cmd/server
+bash scripts/setup.sh --start
 ```
 
-Open **[http://127.0.0.1:8787/](http://127.0.0.1:8787/)**. Keep this terminal running.
-The UI and human collaboration features do not require a provider login. Agent
-turns require the worker setup in step 6.
+Open **http://127.0.0.1:8787/**, enter the private setup code from `.data/owner-key`,
+and create your owner account. Save the downloaded PEM sign-in key securely.
+Create a room and start a conversation; no provider account is needed for human
+collaboration. The scripts do not load `.env` files or alter existing system services.
+See [quick start](docs/quick-start.md) for prerequisites, script modes and troubleshooting.
 
-For a reusable binary, run `make build`, then `./bin/commonroom` from the same
-repository root. Stop the controller with Ctrl+C after stopping active work.
+### Verify your installation
 
-### 5. Set up the owner account
-
-1. Read the private setup code in `.data/owner-key` and enter it in the sign-in screen.
-2. Download your owner PEM key, keep a secure backup, and complete key sign-in.
-3. Invite other humans from Settings; there is no public signup.
-
-Later sign-ins use your PEM key by paste or upload. Refreshing an authenticated
-page does not require it again. Keys, sessions and local configuration in `.data/`
-must stay private and out of Git. Account key recovery is not yet implemented.
-
-### 6. Connect an isolated agent worker
-
-Follow [isolated worker and provider sign-in setup](docs/connection-sign-in.md).
-The worker needs Linux, rootless Docker with enforceable resource limits, an
-approved digest-pinned agent image, and noninteractive SSH with verified host keys.
-Provider tools and credentials live in isolated connection storage; installing a
-CLI on the controller's PATH does not enable managed execution.
-
-After configuring the worker, set these on the **controller**, then restart:
+With the controller running, open a second terminal as the same service account:
 
 ```sh
-export COMMONROOM_REMOTE_WORKER=true
-export COMMONROOM_REMOTE_WORKER_ALIAS=commonroom-worker
+python3 scripts/check-installation.py
+# On the Linux host, also check nginx and the current Docker identity:
+python3 scripts/check-installation.py --hybrid
 ```
 
-`commonroom-worker` is an example SSH alias; configure your own alias as described
-in the [SSH guide](docs/agent-ssh.md). In **Connections**:
+Requires Python 3.8+. Each failed stage includes repair guidance; skipped checks
+are reported as incomplete. Export the runtime `DATABASE_URL` in that terminal
+for the read-only database check. For another port/tunnel, pass
+`--url http://127.0.0.1:YOUR_PORT`. See [diagnostic details](docs/installation-check.md).
 
-1. Create a containerized CLI connection with `ssh://commonroom-worker` for Codex,
-   or `ssh://commonroom-worker/claude` for Claude.
-2. Choose **Sign in** and complete that connection's provider authentication.
-3. Choose **Test connection**, then invite an agent into a room.
+## Installation process
 
-Install matching controller/worker binaries supporting lifecycle protocol v2.
-See [worker verification and recovery](docs/worker-jobs.md) for rollout and diagnostics.
-A local Linux worker also uses the approved SSH transport. Managed agent turns
-cannot run directly on macOS or through unrestricted SSH commands.
+Choose each component separately, then compile, migrate and start. This keeps
+setup failures understandable and avoids changing an existing database or web server.
 
-## Remote installation
-
-- **[Debian server](docs/deployment/debian.md):** dedicated account, PostgreSQL,
-  systemd, worker setup, private SSH access and backups.
-- **[nginx with existing PostgreSQL](docs/deployment/nginx-postgresql.md):** private
-  reverse-proxy deployment and reuse of an existing database server.
-- **[SSH connection details](docs/agent-ssh.md):** aliases, executables and approved
-  worker transport.
-
-The controller binds numeric loopback addresses. Use the documented private
-SSH tunnel/proxy setup; public internet exposure is unsupported. pgvector is an
-optional DBA-managed prerequisite for future semantic memory, not needed to run
-the current application. Fresh-server deployment remains an integration check
-rather than a claim established by the mocked test suite.
-
-## Screenshots
-
-Illustrative previews use synthetic people, connections and messages. The live
-interface has evolved since these screenshots.
-
-![Room conversation and squad](docs/screenshots/room.jpg)
-![Visual workflow editor](docs/screenshots/workflow.jpg)
-![Agent connections](docs/screenshots/connections.jpg)
-
-## Configuration and troubleshooting
-
-`DATABASE_URL` overrides the private `.data/local-config.json` database URL.
-The server does not load `.env` automatically; see [.env.example](.env.example).
-`LISTEN_ADDR` defaults to `127.0.0.1:8787`; `OWNER_KEY_FILE` defaults to
-`.data/owner-key`. Owner feature settings persist in event history. Some setup
-flags require restart; individual guides document their defaults and behavior.
-
-| Problem | What to check |
+| Step | Options and instructions |
 | --- | --- |
-| Database connection refused | PostgreSQL service, URL and authentication; check `pg_isready`. |
-| Runtime privileges rejected | Follow the restricted grants; do not work around it with the database owner login. |
-| Missing web/migration files | Run from the repository root. |
-| Port already occupied | Choose another loopback port using `LISTEN_ADDR`, then open that address. |
-| Agent cannot launch | Worker protocol, rootless Docker limits, pinned image and approved SSH alias. Use Test connection. |
-| Agent blocked or shutdown uncertain | Inspect its status, Background work or Worker jobs; verify shutdown before explicit recovery. |
+| 1. Get the source | [Checkout](docs/installation-options.md#source-checkout) |
+| 2. Install Go | [mise](docs/installation-options.md#go-through-mise) or [official installer / packages](docs/installation-options.md#go-through-the-official-installer-or-os-package-manager) |
+| 3. Prepare PostgreSQL | [Native/existing service](docs/installation-options.md#postgresql-native-or-existing-service) or [local Docker database](docs/installation-options.md#postgresql-optional-local-docker-service) |
+| 4. Compile and initialize | [Build, migration, restricted grants and startup](docs/installation-options.md#compile-migrate-grant-serve) |
+| 5. Serve the interface | [Go directly](docs/installation-options.md#web-server-go-directly) or [private nginx proxy](docs/installation-options.md#web-server-nginx) |
+| 6. Add agents | [Worker and provider sign-in](docs/connection-sign-in.md) |
 
-## Security and current limits
+**Go is the web server.** Node is used for checks; it does not replace the Go API.
+The [installation guide](docs/installation.md) explains each command. The
+[Debian service guide](docs/deployment/debian.md) covers ongoing operation.
+Your [hybrid topology](docs/installation-options.md#hybrid-deployment) keeps nginx
+and Docker on Linux, with PostgreSQL on its existing server and the browser on
+your laptop. It currently uses a private SSH tunnel, not public-domain hosting.
 
-**Free protections:** mandatory isolation, authentication/authorization, disclosure
-filtering, audit checks, worker fencing, atomic operation batches and safe retries.
-Owner **Context sharing** controls provider destinations and reference categories;
-Application memory needs explicit approval before export across rooms. Project
-memory currently stays in its source room. See [disclosure policy](docs/context-disclosure.md).
+## Design philosophy
 
-[Atomic operations and retry receipts](docs/atomic-operations.md) protect compound
-agent actions and detect stale edits. The deployment remains single-controller;
-these changes do not establish distributed workflow ownership.
+**Give agents room to contribute; keep authority explicit.** Personas shape guidance,
+while permissions determine actions. Job titles and organization charts do not grant
+access. Free-edition disagreement requires human direction; automated consensus is
+a planned paid capability.
 
-Parallel workflow branches, automatic retries, executable cross-room handoffs,
-automatic patch/test-evidence collection, complete project permissions, spending
-and storage quotas, and additional managed provider/transport adapters remain
-unfinished. Existing host conversations cannot automatically become native
-isolated worker sessions. Chat context controls do not redact approved repository
-contents or recall information already disclosed to a provider.
+**Keep a record you can inspect.** Decisions, task changes and evidence belong in
+append-only history with attribution. Model assertions and human-supplied evidence
+are distinct from independently observed execution. Audit protections have limits
+against host/database administrators; see [security](SECURITY.md).
 
-Checksums and restricted runtime grants do not stop a trusted host/database
-administrator from replacing an entire database with an older valid copy.
-Independently protected archives and rollback anchors are a separate **Paid**
-addition. Current implementation gaps are tracked in [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
-No optional feature may bypass core security or retention protections.
+**Separate conversations, execution and credentials.** The browser handles interaction,
+the Go controller authenticates and coordinates, PostgreSQL retains events, and an
+approved Linux worker enforces container execution boundaries. Engine credentials
+stay separate from tool workspaces. There is no uncontained host fallback or
+isolation-disable switch. See [architecture](docs/architecture.md).
 
-## Development and documentation
+**Make changes understandable.** Domain types, HTTP coordination, execution contracts
+and browser components have separate responsibilities. Small interfaces and focused
+guides help contributors find the boundary they need without learning everything
+at once. See [server structure](docs/server-structure.md).
+
+## More thorough documentation
+
+| You want to… | Read |
+| --- | --- |
+| Learn rooms, agents, tasks and memory | [Product guide](docs/concepts.md) |
+| Configure or troubleshoot the system | [Operations](docs/operations.md) |
+| Understand current gaps | [Release readiness](docs/release-readiness.md) |
+| Read intended behavior | [Functional specification](FUNCTIONAL_SPEC.md) |
+| Review security limitations | [Current security review](SECURITY_REVIEW.md) |
+| Find any technical guide | [Documentation index](docs/README.md) |
+| Review the previous README | [Timestamped copy](README_20261016_115423.md) |
+
+Help is also available inside the application and at `/help/` on your installation.
+Provider icons retain [their license notice](web/icons/LICENSE.lobe-icons); names
+and logos identify integrations and do not imply endorsement.
+
+## Every file, type and method
+
+The [repository reference](docs/reference/README.md) inventories source and support
+files, grouped by directory. Each file has a purpose and a source link. Go types,
+fields, interfaces, functions and receiver methods have declarations, available
+contract comments and direct-call references. JavaScript named declarations are
+indexed alongside source links; callbacks and dynamic methods remain in source.
+Go does not use classes in the Java/C# sense.
+
+This exhaustive source map lives outside the README to keep installation readable.
+Missing prose contracts are marked explicitly. Private runtime data, credentials,
+Git internals, separate worktrees and generated artifacts are explained by category
+without exposing their contents. Regenerate the reference after source changes:
 
 ```sh
-make test   # fast Go tests
-make check  # race tests, static checks and browser-JavaScript tests
+go run ./tools/source-reference
+```
+
+## Extending functionality
+
+Add a provider, workflow, tool or interface when your team needs a capability the
+current harness lacks. Start at the matching boundary rather than threading a
+special case through the whole application. The [extension guide](docs/extending.md)
+maps each kind of change to its code, contracts and tests. MCP, skills and a runtime
+plugin loader are future work; developer-assistant skills are not application plugins.
+
+```sh
+make test
+make check
 make build
 ```
 
-Tests are parallel-safe and use in-memory database mocks and temporary fixtures:
-**no database connection, schemas, inserted database data or real provider agents**.
-`make coverage` produces ignored coverage reports. `make secrets` runs Gitleaks;
-see [CONTRIBUTING.md](CONTRIBUTING.md) for installation and the staged secret hook.
-Develop on feature/fix branches. The owner signs commits manually.
+Follow [CONTRIBUTING](CONTRIBUTING.md) for branch work, synthetic fixtures,
+documentation and enforced feature flags. Tests mock database interactions and
+never launch real provider agents. Mandatory isolation and audit safeguards cannot
+be disabled. P0 acceptance scenarios remain pending; green component tests do not
+establish live readiness. The owner signs commits manually.
 
-Documentation is available inside **Help & documentation** and through `/help/`.
-Start with the [documentation index](docs/README.md), [architecture](docs/architecture.md),
-[server structure](docs/server-structure.md), [API](docs/api.md) and
-[operations guide](docs/operations.md). Report vulnerabilities through [SECURITY.md](SECURITY.md).
-
-## License
-
-[GPL-3.0-only](LICENSE). Copyright © 2026 Agent CommonRoom contributors.
-Bundled provider icons retain their upstream notice in `web/icons/LICENSE.lobe-icons`.
-Provider names and logos identify integrations and do not imply endorsement.
-
-Internal execution design: [managed job lifecycle](docs/managed-job-lifecycle.md) and [paired worker lifecycle](docs/worker-pairs.md). Pair startup is not enabled for users; mandatory admission safeguards remain in force.
-
-[Constrained tool-container launch](docs/tool-container-runtime.md) implements the internal tool-side create/inspect/start sequence. Credential-free workspace bootstrap is internally implemented; production pair integration and live verification remain unfinished. Managed development stays blocked.
-
-[Workspace bootstrap](docs/workspace-bootstrap.md) documents snapshot checks, checkout limits, readiness gating and remaining integration work.
-
-[Workspace volume lifecycle](docs/workspace-volumes.md) adds internal version-4 allocation and lease-owned cleanup. New paired starts require workspace evidence; historical version-3 pairs are recovery-only. Development remains blocked pending production integration and live verification.
-
-[Shared audited tool sessions](docs/audited-tool-session.md) bind bootstrap, original container identity and durable dispatch to one plan. Production engine/audit transport integration remains unfinished.
-
-### P0 execution limits under development
-
-Free accounts are specified to allow four managed containers and 5 GB aggregate
-storage. Controller registration and worker admission enforce a four-container
-reservation limit (two engine/tool pairs), including unresolved jobs across
-workers sharing the account journal. Hard disk quota enforcement remains
-incomplete; production managed development stays gated. See
-[container quotas](docs/container-quotas.md). See [worker pairs](docs/worker-pairs.md) and the
-[authoritative P0 additions](FUNCTIONAL_SPEC.md#owner-additions-p0-execution-requirements).
-Gemini and GitHub Copilot adapters, reviewed harness upgrades on instantiation,
-and owner-configurable idle shutdown (default five minutes) are requirements,
-not currently shipped capabilities.
-
-See the [private worker audit transport](docs/worker-audit-transport.md) for
-SSH separation, single-use socket ownership and remaining production integration.
-
-See [worker pair assembly](docs/worker-pair-assembly.md) for exact session/runtime
-binding, snapshot ownership, startup ordering and remaining engine integration.
-
-See [paired turn shutdown](docs/worker-pair-shutdown.md) for unconditional
-reconciliation, active-turn lease fencing and workspace retention.
-
-[Codex callback driver](docs/codex-callback-driver.md) documents the bounded
-app-server protocol, private broker binding and remaining engine acceptance gates.
-
-[Codex engine bootstrap](docs/codex-engine-bootstrap.md) describes the fixed
-subscription-only process, pinned recipe and outstanding live integration.
-
-See [reviewed engine-container runtime](docs/engine-container-runtime.md) for
-fresh creation, reported policy verification and remaining production integration.
+Copyright © 2026 Agent CommonRoom contributors.

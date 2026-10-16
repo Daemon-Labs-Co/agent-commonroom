@@ -108,6 +108,12 @@ been verified. These files are operational state, not independent audit archives
 
 ## Exclusive per-turn credential staging
 
+This section describes the existing chat/login credential staging path. The
+internal separated Codex engine instead provisions credentials through a bounded
+private stdin frame; see [engine bootstrap](codex-engine-bootstrap.md). Do not
+apply the host-bind mechanism to its tool container.
+
+
 The worker copies a bounded valid-JSON credential into a newly created per-turn
 file using exclusive creation. Existing files, symlinks and hardlinks are refused
 without overwriting/removing them. The staging parent must be a real directory
@@ -122,8 +128,8 @@ Existing per-turn cleanup removes the private directory. No credential contents
 are logged in errors. These mandatory controls have no product flag.
 
 This is secure staging, **not separation from tools inside the container**. Tools
-sharing the provider UID can still read the mounted/copied credential. That
-separate architecture issue remains open. Synthetic fixtures verify destination
+sharing the provider UID can still read the mounted/copied credential. Public development admission therefore remains blocked while the replacement
+separated engine/tool pipeline completes production acceptance. Synthetic fixtures verify destination
 non-overwrite, input bounds, parent privacy and resulting mode; live mapped-UID
 readability and crash-temp cleanup have not been verified.
 

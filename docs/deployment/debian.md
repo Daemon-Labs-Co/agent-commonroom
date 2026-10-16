@@ -1,8 +1,5 @@
 # Install Agent CommonRoom on a Debian server
 
-> Managed agent execution now requires the [Linux/rootless-Docker worker](../container-isolation.md). Direct SSH model dispatch is blocked until a remote isolated worker is implemented. Earlier SSH endpoint setup in this guide does not bypass that restriction.
-
-
 This guide runs Agent CommonRoom privately on Debian and reaches it from your computer through an SSH tunnel. It does not enable public HTTP/HTTPS hosting or remove the application's loopback-only request checks. The commands are intended for a fresh installation; adapt them rather than replacing an existing installation or database.
 
 The guide has been checked against the current application configuration and official dependency documentation, but has not yet been exercised end to end on a fresh Debian server.
@@ -81,6 +78,20 @@ Retain `web/`, `docs/`, the root documentation files, `migrations/`, and the lic
 
 ## 4. Configure the service
 
+### Run reviewed migrations before serving
+
+Follow [restricted database setup](../database-security.md#administrator-setup)
+using the `commonroom_migrator` account created above and the runtime role
+`commonroom`. Run `--migrate` as the migration owner, then apply its restricted
+runtime grants. Complete this before starting the service. Serving never runs
+migrations and rejects database-owner/DDL credentials.
+
+Keep migration credentials and access separate from the service. The Unix-socket
+recipe needs a DBA-approved peer-authenticated migration identity or private
+credential file; the service account must not be able to impersonate the owner.
+
+### Install service configuration
+
 Create the local environment file:
 
 ```sh
@@ -130,7 +141,11 @@ sudo systemctl enable --now agent-commonroom
 sudo systemctl status agent-commonroom --no-pager
 ```
 
-The service has explicit writable locations for its local state and CLI credentials. It does not give agents a complete security sandbox or enforce room workspace policies. If an agent or later feature needs additional filesystem access, review that requirement rather than disabling protections indiscriminately. CLI programs must be available on the service PATH, which is separate from your interactive shell's PATH.
+The service has explicit writable locations for its controller state and SSH
+configuration. This unit is not an execution-worker installation. Managed agents
+require the separate [Linux/rootless-Docker worker](../container-isolation.md).
+Do not add writable host checkout mounts or weaken this service to permit native
+provider execution.
 
 ## 5. Open an SSH tunnel from your computer
 
@@ -160,22 +175,24 @@ sudo -H -u commonroom cat /opt/agent-commonroom/.data/owner-key
 
 Paste it into the browser through the tunnel, download your owner private key, store it securely, and sign in with the downloaded key. Do not paste the setup code or private key into Git issues, chat rooms, logs, or commits.
 
-After successful RSA key sign-in, the server removes the setup code and pending private-key copy; the public-key file remains. Later sign-ins use your saved key. Restarting the service invalidates browser sessions but does not invalidate that saved key. Key recovery and rotation are not implemented.
+After successful RSA key sign-in, the server removes the setup code and pending private-key copy; the public-key file remains. Later sign-ins use your saved key. Unexpired browser sessions persist across restart by default; `COMMONROOM_PERSISTENT_SESSIONS=false` selects memory-only sessions. Restart does not invalidate the saved key. Key recovery and rotation are not implemented.
 
-## 7. Configure agent connections for the server
+## 7. Connect an isolated worker
 
-Use the [step-by-step SSH agent guide](../agent-ssh.md) for host aliases, remote usernames/ports, keys, host verification, and runtime-account connection tests.
+1. Install a dedicated Linux/rootless-Docker worker using
+   [container requirements](../container-isolation.md).
+2. Configure SSH for the controller's `commonroom` service account using the
+   [SSH guide](../agent-ssh.md). Laptop SSH configuration is not inherited.
+3. Approve the worker alias in the controller configuration, sign in through the
+   [worker sign-in protocol](../connection-sign-in.md), then test a provider reply.
 
-When Agent CommonRoom runs on Debian, **Local means the Debian server**, not your laptop.
+The worker may be on this Debian machine under its own suitable account or on
+another approved Linux host. Provider CLIs live in reviewed images, not the
+controller service's PATH. Local host CLI endpoints do not bypass isolation.
 
-- A local `codex` or `claude` connection runs as the `commonroom` Linux account and uses that account's provider credentials.
-- Install provider CLIs using their official instructions and ensure the executable is on the systemd service's PATH. Install/login under the intended account, not as root.
-- macOS Terminal-based Claude sign-in launch is unavailable on Debian. Authenticate the CLI through an interactive server terminal, for example `sudo -H -u commonroom /var/lib/commonroom/.local/bin/claude auth login --claudeai`, if installed at that path. Follow the CLI's displayed authentication instructions. Provider login is separate from the Agent CommonRoom owner key.
-- To use an existing agent account or another machine over SSH, use a LAN/Remote CLI endpoint such as `ssh://agent-host` for Codex or `ssh://agent-host/claude` for Claude. Configure the SSH alias, verified host keys, and noninteractive authentication for **the service account**; your laptop's SSH config does not automatically transfer to it.
-- Remote executables are currently expected at `~/.local/bin/codex` or `~/.local/bin/claude` on the agent host. Arbitrary executable paths are not supported.
-- Native interactive sessions are not attached merely by installing a connection. Supported saved-session import/resume and additional context are separate invitation options.
-
-Connecting multiple browsers through SSH does not turn this into a hardened internet service. Fine-grained multi-actor policy and process containment remain incomplete.
+Public repository-development admission remains blocked pending the separated
+engine/tool pipeline's production acceptance. See [current development status](../development-workspaces.md).
+This private installation does not establish enterprise/public hosting readiness.
 
 ## Operations, updates, and backups
 
@@ -187,7 +204,7 @@ sudo systemctl restart agent-commonroom
 sudo systemctl stop agent-commonroom
 ```
 
-Do not share raw logs without reviewing them for private data. For an update, finish/cancel active agent work, stop the service, back up the database and key/state files, deploy a reviewed commit/release, build again, and restart. Run reviewed migrations explicitly with the migration account before restarting; do not put migration credentials in the service environment. A stopped web service is not currently a guarantee that every remote agent process has terminated; inspect active remote jobs separately.
+Do not share raw logs without reviewing them for private data. For an update, finish/cancel active agent work, stop the service, back up the database and key/state files, deploy a reviewed commit/release, build again, and restart. Run reviewed migrations explicitly with the migration account before restarting; do not put migration credentials in the service environment. A stopped web service is not proof that remote containers terminated. Confirm worker idle and resolve unconfirmed jobs through [job diagnostics](../worker-jobs.md) before replacement.
 
 For a new backup, create a uniquely named private directory outside the repository and store a database dump there:
 
@@ -211,8 +228,8 @@ This guide does not implement backup automation, restoration tooling, external i
 | Permission denied writing state | `.data` ownership/mode and systemd `ReadWritePaths`. |
 | Browser gets an untrusted-host/request error | Browser uses localhost/127.0.0.1 and tunnel local port matches server `LISTEN_ADDR`. |
 | Local tunnel address already in use | Stop the conflicting local service or change both server and tunnel ports together. |
-| CLI works in your shell but not in the app | Service account, HOME, PATH, provider login, and executable permissions. |
-| SSH agent connection fails | Service-account SSH alias/host key, BatchMode authentication, and expected remote executable. |
+| Worker works in your shell but not the app | Controller service account SSH identity/config, approved alias and private worker configuration. |
+| SSH worker connection fails | Service-account alias/verified host key, BatchMode authentication and worker wrapper. |
 | Owner setup code missing | Setup may already be complete; use the saved private key and retain the public-key file. |
 
 ## Reference documentation
@@ -224,4 +241,4 @@ This guide does not implement backup automation, restoration tooling, external i
 - [systemd service units](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)
 - [systemd execution options](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)
 
-See the [remote worker requirements](../container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Remote-worker transport is planned; current direct SSH dispatch remains blocked.
+See the [remote worker requirements](../container-isolation.md#remote-worker-requirements) for keeping CommonRoom on one machine while running isolated agent containers on Debian. Approved worker transport is implemented; direct SSH provider execution remains blocked.

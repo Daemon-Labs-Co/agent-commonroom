@@ -3,8 +3,9 @@
 The admitted workspace-aware supervisor can now assemble its exact audited tool
 session with a separate reviewed engine launcher and approved snapshot stream.
 This connects the existing tool runtime, durable pair ordering and bootstrap
-readiness. It does not enable a public development launch or constitute review
-of an engine implementation.
+readiness. `RunCodex` uses this assembly for its owned internal lifecycle. Public
+development launch remains gated; synthetic assembly tests do not establish live
+image or provider compatibility.
 
 ## Ownership and startup
 
@@ -48,10 +49,10 @@ an adapter error alone.
 
 ## Engine trust boundary and status
 
-`workerEngineLaunch` is an internal trusted seam. Its eventual production
-implementation must create fresh stopped containers, verify the reviewed
-immutable image and credential/mount/network policy, start only by immutable ID,
-and honor cancellation. Source code could replace it with host execution, but
+`workerEngineLaunch` is an internal trusted seam. The Codex implementation creates
+fresh stopped containers, verifies the immutable image and mount/network policy,
+starts only by immutable ID and honors cancellation. Credentials arrive through
+private stdin rather than a host-file mount. Source code could replace it with host execution, but
 that would violate the mandatory isolation boundary. There is no automatic host
 or direct-SSH provider fallback.
 
@@ -59,13 +60,15 @@ Automated tests use injected synthetic role runtimes and temporary journals to
 exercise startup routing, ordering, one-shot failures and cancellation. A real
 `ToolSession` constructor test confirms exact runtime sharing and ownership
 cleanup. Existing toolbroker tests separately cover full tool inspection,
-bootstrap and audited dispatch; these are not a combined live provider run.
+bootstrap and audited dispatch. Combined `RunCodex` tests exercise the complete
+internal path with mocked Docker and synthetic protocol peers; no live provider
+run has been verified.
 
-Reviewed engine images and private mount staging, authenticated transport/startup
-coordination, bounded commands/artifacts, retention/discard workflow, hard disk
+Reviewed release images, public transport/startup coordination, refreshed-token
+persistence, bounded commands/artifacts, retention/discard workflow, hard disk
 quotas, provider coverage/upgrades/idle policy and live image/SSH/rootless/provider
 acceptance remain P0 work. Current turns end after work; no idle session pool has
-yet been introduced. The owner-configurable five-minute maximum idle policy must
+yet been introduced. The owner-configurable idle interval (default five minutes) must
 be wired at the production session boundary without treating active work as idle.
 
 This assembly is mandatory internal isolation infrastructure, with no product

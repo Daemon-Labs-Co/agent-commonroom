@@ -32,16 +32,12 @@ The domain is a placeholder. Supply credentials separately through a private ser
 
 Follow [database security setup](../database-security.md) before starting the service. Migrations run explicitly with a separate owner; the serving process rejects owner/DDL credentials and needs only SELECT/INSERT plus sequence USAGE. Do not grant cluster superuser access.
 
-## 2. pg_vector prerequisite
+## 2. Confirm database scope
 
-Assume the DBA has installed **pgvector** for the PostgreSQL server's actual major version. Package/build installation is outside this guide. Once available, a sufficiently privileged administrator can enable it in the dedicated database:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-SELECT extversion FROM pg_extension WHERE extname = 'vector';
-```
-
-The extension is named `vector`, even though the project is commonly called pgvector or pg_vector. See [upstream installation documentation](https://github.com/pgvector/pgvector). Agent CommonRoom currently does not store embeddings or query vector indexes; this extension is optional preparation and does not enable semantic memory by itself. Do not grant the application permanent superuser privileges just to install an extension.
+CommonRoom currently uses standard PostgreSQL event storage; pgvector is not a
+prerequisite. It neither stores embeddings nor queries vector indexes. Leave any
+existing extension managed by the DBA; installing one does not activate semantic
+memory or the future paid memory integration.
 
 ## 3. Private nginx configuration
 
@@ -112,4 +108,3 @@ Keep this listener private. No public DNS record, internet-facing listen directi
 
 - [nginx proxy directives](https://nginx.org/en/docs/http/ngx_http_proxy_module.html)
 - [PostgreSQL password files](https://www.postgresql.org/docs/current/libpq-pgpass.html)
-- [pgvector](https://github.com/pgvector/pgvector)

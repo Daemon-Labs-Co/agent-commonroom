@@ -15,9 +15,9 @@ daily limits, and repository approval remain enforced. Turning optional job
 diagnostics off does not disable recovery or lifecycle recording.
 
 This is an internal refactor of mandatory execution safeguards, with no product
-on/off flag. It enables no new execution path. Paired startup remains unavailable;
-the legacy dispatch interface rejects paired registrations instead of downgrading
-them. See [worker pairs](worker-pairs.md) for paired recovery and remaining work.
+on/off flag. The legacy public dispatch interface rejects paired registrations
+instead of downgrading them. Internal Codex pair startup exists separately;
+public production development dispatch remains gated. See [worker pairs](worker-pairs.md) for paired recovery and remaining work.
 
 ## Technical contract
 
@@ -58,7 +58,5 @@ idempotent cleanup. Existing mocked registration and HTTP recovery tests cover
 permission and provenance behavior. No database, provider agent or Docker workload
 is launched. Live SSH, provider and container verification remain separate P0 work.
 
-The module increases depth by concentrating lifecycle choreography. This gives
-callers leverage and maintainers locality: protocol submission and shutdown status
-ordering change in one place. Deleting the module would spread those requirements
-back into dispatch and recovery callers.
+Keep protocol submission and shutdown-status ordering in this module so dispatch
+and recovery callers cannot drift into different lifecycle rules.
