@@ -102,3 +102,8 @@ There is no product toggle for credential isolation. Existing optional developme
 flags cannot enable the legacy credential-bearing native-tool path. A source fork
 **CAN** restore native tools or bypass pins, **BUT** doing so lets tool execution
 read engine-held provider credentials and invalidates the security contract.
+
+The [engine bootstrap contract](../../docs/codex-engine-bootstrap.md) documents
+the new runtime recipe and fixed entrypoint. No release image or live acceptance
+is claimed. The trusted source-image exporter must include `/out/codex`,
+`/out/LICENSE` and `/out/notices/` with all required notices.

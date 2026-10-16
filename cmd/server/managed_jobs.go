@@ -137,6 +137,9 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 		if !validManagedJob(job) {
 			return errors.New("invalid managed job registration")
 		}
+		if err = admitManagedContainerQuota(latest, job); err != nil {
+			return err
+		}
 		auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if job.InitiatorID != "" {

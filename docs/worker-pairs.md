@@ -159,3 +159,22 @@ policy verified before startup.
 [Workspace bootstrap](workspace-bootstrap.md) now implements the streamed, credential-free initialization step. Volume lifecycle is internally implemented; production adapter assembly remains open.
 
 [Fresh workspace volumes and cleanup](workspace-volumes.md) specifies version-4 creation, creator-lease ownership and remaining daemon limitations.
+
+## Free container capacity
+
+Worker admission now reserves at most four physical managed container slots.
+An engine/tool pair reserves two slots before either container exists, including
+unresolved and partially created jobs. Thus at most two development pairs fit
+on a worker. Existing eight-job/four-room bounds are additional ceilings, not
+permission to exceed four containers. Changing rooms or omitting containers from
+inventory does not release durable reservations. Unknown containers block launch.
+There is no toggle or owner override for this safety ceiling.
+
+Controller registration also enforces four physical slots across workers and
+rooms using durable reservations and an expected-revision allocation append.
+See [managed container quotas](container-quotas.md) for account scope and recovery.
+The hard 5 GB storage ceiling remains pending. Paid limits have not been
+established and cannot bypass the current guard.
+
+See [worker pair assembly](worker-pair-assembly.md) for exact session/runtime
+binding, snapshot ownership, startup ordering and remaining engine integration.

@@ -251,3 +251,34 @@ Internal execution design: [managed job lifecycle](docs/managed-job-lifecycle.md
 [Workspace volume lifecycle](docs/workspace-volumes.md) adds internal version-4 allocation and lease-owned cleanup. New paired starts require workspace evidence; historical version-3 pairs are recovery-only. Development remains blocked pending production integration and live verification.
 
 [Shared audited tool sessions](docs/audited-tool-session.md) bind bootstrap, original container identity and durable dispatch to one plan. Production engine/audit transport integration remains unfinished.
+
+### P0 execution limits under development
+
+Free accounts are specified to allow four managed containers and 5 GB aggregate
+storage. Controller registration and worker admission enforce a four-container
+reservation limit (two engine/tool pairs), including unresolved jobs across
+workers sharing the account journal. Hard disk quota enforcement remains
+incomplete; production managed development stays gated. See
+[container quotas](docs/container-quotas.md). See [worker pairs](docs/worker-pairs.md) and the
+[authoritative P0 additions](FUNCTIONAL_SPEC.md#owner-additions-p0-execution-requirements).
+Gemini and GitHub Copilot adapters, reviewed harness upgrades on instantiation,
+and owner-configurable idle shutdown (default five minutes) are requirements,
+not currently shipped capabilities.
+
+See the [private worker audit transport](docs/worker-audit-transport.md) for
+SSH separation, single-use socket ownership and remaining production integration.
+
+See [worker pair assembly](docs/worker-pair-assembly.md) for exact session/runtime
+binding, snapshot ownership, startup ordering and remaining engine integration.
+
+See [paired turn shutdown](docs/worker-pair-shutdown.md) for unconditional
+reconciliation, active-turn lease fencing and workspace retention.
+
+[Codex callback driver](docs/codex-callback-driver.md) documents the bounded
+app-server protocol, private broker binding and remaining engine acceptance gates.
+
+[Codex engine bootstrap](docs/codex-engine-bootstrap.md) describes the fixed
+subscription-only process, pinned recipe and outstanding live integration.
+
+See [reviewed engine-container runtime](docs/engine-container-runtime.md) for
+fresh creation, reported policy verification and remaining production integration.

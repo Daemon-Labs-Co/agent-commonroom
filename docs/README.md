@@ -77,3 +77,24 @@ Planned security architecture: [Provider/tool credential separation](provider-to
 - [Fresh workspace volumes and cleanup](workspace-volumes.md): version-4 allocation, identity, explicit discard and reconciliation.
 
 - [Shared audited tool session](audited-tool-session.md): one bootstrapped plan, immutable execution identity and durable acknowledgements.
+
+See the [private worker audit transport](worker-audit-transport.md) for
+SSH separation, single-use socket ownership and remaining production integration.
+
+[Managed container quotas](container-quotas.md) documents account-wide reservations,
+transactional admission and pending storage enforcement.
+
+See [worker pair assembly](worker-pair-assembly.md) for exact session/runtime
+binding, snapshot ownership, startup ordering and remaining engine integration.
+
+See [paired turn shutdown](worker-pair-shutdown.md) for unconditional
+reconciliation, active-turn lease fencing and workspace retention.
+
+[Codex callback driver](codex-callback-driver.md) documents the bounded
+app-server protocol, private broker binding and remaining engine acceptance gates.
+
+[Codex engine bootstrap](codex-engine-bootstrap.md) describes the fixed
+subscription-only process, pinned recipe and outstanding live integration.
+
+See [reviewed engine-container runtime](engine-container-runtime.md) for
+fresh creation, reported policy verification and remaining production integration.

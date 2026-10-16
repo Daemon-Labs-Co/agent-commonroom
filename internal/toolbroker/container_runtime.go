@@ -18,6 +18,7 @@ import (
 type ToolContainerRuntime struct {
 	mu                 sync.Mutex
 	lifetime           context.Context
+	original           context.Context
 	executor           *ContainerExecutor
 	id                 string
 	attempted, started bool
@@ -39,16 +40,16 @@ func NewToolContainerRuntime(lifetime context.Context, plan *ToolContainerPlan, 
 	if _, err = plan.CreateArgs(time.Now()); err != nil {
 		return nil, err
 	}
-	return &ToolContainerRuntime{lifetime: lifetime, executor: executor}, nil
+	return &ToolContainerRuntime{lifetime: lifetime, original: lifetime, executor: executor}, nil
 }
 
 func (r *ToolContainerRuntime) context(ctx context.Context) (context.Context, func(), error) {
-	if ctx == nil || ctx.Err() != nil || r.lifetime.Err() != nil {
+	if ctx == nil || ctx.Err() != nil || r.lifetime.Err() != nil || r.original.Err() != nil {
 		return nil, nil, ErrRejected
 	}
 	child, cancel := r.executor.plan.authority.executionContext(ctx)
 	stop := context.AfterFunc(r.lifetime, cancel)
-	if r.lifetime.Err() != nil || child.Err() != nil {
+	if r.lifetime.Err() != nil || r.original.Err() != nil || child.Err() != nil {
 		stop()
 		cancel()
 		return nil, nil, ErrRejected

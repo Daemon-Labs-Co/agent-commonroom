@@ -59,13 +59,16 @@ type toolInspection struct {
 		Status                            string
 	}
 	Config struct {
-		Image, User, WorkingDir string
-		Env, Entrypoint, Cmd    []string
-		Labels                  map[string]string
-		Healthcheck             struct{ Test []string }
+		Image, User, WorkingDir   string
+		Tty, OpenStdin, StdinOnce *bool
+		Env, Entrypoint, Cmd      []string
+		Labels                    map[string]string
+		Healthcheck               struct{ Test []string }
 	}
 	HostConfig struct {
 		Privileged, ReadonlyRootfs, Init                        *bool
+		AutoRemove                                              *bool
+		RestartPolicy                                           struct{ Name string }
 		NetworkMode, PidMode, IpcMode, CgroupnsMode, UsernsMode string
 		Memory, MemorySwap, NanoCpus, PidsLimit                 *int64
 		CapDrop, CapAdd, SecurityOpt, Binds, VolumesFrom        []string

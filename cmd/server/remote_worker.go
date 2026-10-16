@@ -385,6 +385,25 @@ func agentWorkerMain(args []string, in io.Reader, out, diagnostics io.Writer) in
 		return fail(errors.New("Invalid worker request"))
 	}
 
+	if args[0] == "audit-link-v1" {
+		scope, err := decodeWorkerAuditScope(args[1])
+		if err != nil {
+			return fail(errors.New("Audit link refused"))
+		}
+		if err = configureWorker(); err != nil {
+			return fail(errors.New("Audit link unavailable"))
+		}
+		dir, err := workerStateDirectory()
+		if err != nil {
+			return fail(errors.New("Audit link unavailable"))
+		}
+		ctx, cancel := context.WithDeadline(context.Background(), scope.Deadline)
+		defer cancel()
+		if workerAttachAudit(ctx, dir, scope, in, out) != nil {
+			return fail(errors.New("Audit link failed"))
+		}
+		return 0
+	}
 	if args[0] == "status-v1" && validWorkerJobID(args[1]) {
 		dir, err := workerStateDirectory()
 		if err != nil {

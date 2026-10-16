@@ -22,6 +22,8 @@ coverage:
 check: test-race
 	go vet ./...
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p codex_bridge_build_test.py
+	node --check docker/engine/entrypoint.cjs
+	node --test tests/engine-entrypoint.test.cjs
 	node --check docker/agent/entrypoint.cjs
 	node --check docker/tools/tool-call.cjs
 	node --test tests/tool-call.test.cjs
