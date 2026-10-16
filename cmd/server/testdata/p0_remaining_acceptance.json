@@ -1,0 +1,1716 @@
+[
+  {
+    "id": "dispatch-approved",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-33"
+    ],
+    "given": {
+      "owner": "authorized",
+      "image": "reviewed",
+      "topology": "linux-rootless-ssh"
+    },
+    "action": "dispatch approved repository work",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "authenticated_audit",
+        "observed_result",
+        "fenced_pair"
+      ],
+      "forbidden": [],
+      "values": {
+        "same_job": "true",
+        "same_repository": "true"
+      }
+    }
+  },
+  {
+    "id": "dispatch-unauthorized",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "owner": "unauthorized"
+    },
+    "action": "dispatch development",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "engine_started",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "dispatch-feature-off",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "execution_feature": "off"
+    },
+    "action": "dispatch development",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "engine_started",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "dispatch-unreviewed-image",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "image": "unreviewed"
+    },
+    "action": "dispatch development",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "engine_started",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "dispatch-unapproved-worker",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "worker": "unapproved"
+    },
+    "action": "dispatch development",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "engine_started",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "dispatch-no-rootless",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "worker": "non-rootless"
+    },
+    "action": "dispatch development",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "engine_started",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "dispatch-audit-unavailable",
+    "area": "admission",
+    "requirements": [
+      "FR-13",
+      "FR-17"
+    ],
+    "given": {
+      "audit": "unavailable"
+    },
+    "action": "dispatch development",
+    "want": {
+      "state": "block",
+      "effects": [],
+      "forbidden": [
+        "tool_executed",
+        "success_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "browser-disconnect",
+    "area": "admission",
+    "requirements": [
+      "FR-16"
+    ],
+    "given": {
+      "job": "authorized-running",
+      "browser": "disconnected"
+    },
+    "action": "refresh browser and reconnect",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "same_job_recovered"
+      ],
+      "forbidden": [
+        "duplicate_dispatch"
+      ],
+      "values": {
+        "attempt_count": "1"
+      }
+    }
+  },
+  {
+    "id": "provider-codex",
+    "area": "providers",
+    "requirements": [
+      "FR-03",
+      "FR-29"
+    ],
+    "given": {
+      "provider": "codex",
+      "transport": "synthetic",
+      "auth": "supported-user-auth"
+    },
+    "action": "run isolated callback turn",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "silent_api_fallback"
+      ],
+      "values": {
+        "provider": "codex",
+        "host_launches": "0"
+      }
+    }
+  },
+  {
+    "id": "provider-claude",
+    "area": "providers",
+    "requirements": [
+      "FR-03",
+      "FR-29"
+    ],
+    "given": {
+      "provider": "claude",
+      "transport": "synthetic",
+      "auth": "supported-user-auth"
+    },
+    "action": "run isolated callback turn",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "silent_api_fallback"
+      ],
+      "values": {
+        "provider": "claude",
+        "host_launches": "0"
+      }
+    }
+  },
+  {
+    "id": "provider-gemini",
+    "area": "providers",
+    "requirements": [
+      "FR-03",
+      "FR-29"
+    ],
+    "given": {
+      "provider": "gemini",
+      "transport": "synthetic",
+      "auth": "supported-user-auth"
+    },
+    "action": "run isolated callback turn",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "silent_api_fallback"
+      ],
+      "values": {
+        "provider": "gemini",
+        "host_launches": "0"
+      }
+    }
+  },
+  {
+    "id": "provider-copilot",
+    "area": "providers",
+    "requirements": [
+      "FR-03",
+      "FR-29"
+    ],
+    "given": {
+      "provider": "copilot",
+      "transport": "synthetic",
+      "auth": "supported-user-auth"
+    },
+    "action": "run isolated callback turn",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "silent_api_fallback"
+      ],
+      "values": {
+        "provider": "copilot",
+        "host_launches": "0"
+      }
+    }
+  },
+  {
+    "id": "provider-llama-cpp",
+    "area": "providers",
+    "requirements": [
+      "FR-03",
+      "FR-29"
+    ],
+    "given": {
+      "provider": "llama.cpp",
+      "transport": "synthetic",
+      "auth": "supported-user-auth"
+    },
+    "action": "run isolated callback turn",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "silent_api_fallback"
+      ],
+      "values": {
+        "provider": "llama.cpp",
+        "host_launches": "0"
+      }
+    }
+  },
+  {
+    "id": "provider-missing-auth",
+    "area": "providers",
+    "requirements": [
+      "FR-03",
+      "FR-29"
+    ],
+    "given": {
+      "provider": "gemini",
+      "auth": "missing"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "block",
+      "effects": [],
+      "forbidden": [
+        "engine_started",
+        "silent_api_fallback"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "provider-unsupported-capability",
+    "area": "providers",
+    "requirements": [
+      "FR-29"
+    ],
+    "given": {
+      "provider": "synthetic-custom",
+      "capabilities": "chat-only"
+    },
+    "action": "request workspace command",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "host_execution",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "provider-custom-registration",
+    "area": "providers",
+    "requirements": [
+      "FR-29"
+    ],
+    "given": {
+      "provider": "synthetic-future-adapter",
+      "adapter": "test-only-capability-contract",
+      "capabilities": "read"
+    },
+    "action": "resolve declared adapter capabilities",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "capability_contract_resolved"
+      ],
+      "forbidden": [],
+      "values": {
+        "undeclared_capabilities_denied": "true"
+      }
+    }
+  },
+  {
+    "id": "provider-cancel",
+    "area": "providers",
+    "requirements": [
+      "FR-16",
+      "FR-33"
+    ],
+    "given": {
+      "provider": "copilot",
+      "job": "running"
+    },
+    "action": "cancel and reconcile",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "cancel_recorded",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "success_released"
+      ],
+      "values": {
+        "old_container_reusable": "false"
+      }
+    }
+  },
+  {
+    "id": "refresh-atomic",
+    "area": "credentials",
+    "requirements": [
+      "FR-03",
+      "FR-13"
+    ],
+    "given": {
+      "auth": "synthetic-subscription",
+      "refresh": "new-valid-token"
+    },
+    "action": "persist engine refresh after turn",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "private_refresh_validated",
+        "credential_persisted",
+        "credential_lease_released"
+      ],
+      "forbidden": [
+        "credential_in_audit"
+      ],
+      "values": {
+        "mode": "0600",
+        "connection": "original"
+      }
+    }
+  },
+  {
+    "id": "refresh-concurrent",
+    "area": "credentials",
+    "requirements": [
+      "FR-13"
+    ],
+    "given": {
+      "connection": "same",
+      "workers": "two",
+      "refresh": "concurrent"
+    },
+    "action": "refresh credentials concurrently",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "refresh_serialized"
+      ],
+      "forbidden": [],
+      "values": {
+        "overlapping_refreshes": "0",
+        "lost_updates": "0"
+      }
+    }
+  },
+  {
+    "id": "refresh-persist-fails",
+    "area": "credentials",
+    "requirements": [
+      "FR-03",
+      "FR-13"
+    ],
+    "given": {
+      "refresh": "valid",
+      "persistence": "fails"
+    },
+    "action": "save refreshed credentials",
+    "want": {
+      "state": "block",
+      "effects": [
+        "auth_recovery_required"
+      ],
+      "forbidden": [
+        "refresh_success_reported"
+      ],
+      "values": {
+        "prior_credential_preserved": "true"
+      }
+    }
+  },
+  {
+    "id": "refresh-foreign-connection",
+    "area": "credentials",
+    "requirements": [
+      "FR-13"
+    ],
+    "given": {
+      "refresh_connection": "foreign"
+    },
+    "action": "save refreshed credentials",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "credential_replaced"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "storage-exact-boundary",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "account_used_bytes": "4999999999",
+      "reserve_bytes": "1"
+    },
+    "action": "reserve storage",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "storage_reserved"
+      ],
+      "forbidden": [],
+      "values": {
+        "used_plus_reserved_bytes": "5000000000"
+      }
+    }
+  },
+  {
+    "id": "storage-one-byte-over",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "account_used_bytes": "5000000000",
+      "reserve_bytes": "1"
+    },
+    "action": "reserve storage",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "storage_allocated",
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "storage-concurrent-last-byte",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "account_used_bytes": "4999999999",
+      "workers": "two",
+      "each_reserves_bytes": "1"
+    },
+    "action": "reserve concurrently",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "reservation_serialized"
+      ],
+      "forbidden": [],
+      "values": {
+        "successful_reservations": "1",
+        "used_plus_reserved_bytes": "5000000000"
+      }
+    }
+  },
+  {
+    "id": "storage-count-retained",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "retained_workspace_bytes": "3000000000",
+      "staged_bundle_bytes": "1000000000",
+      "artifact_bytes": "1000000000",
+      "reserve_bytes": "1"
+    },
+    "action": "reserve additional storage",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "storage_allocated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "storage-metering-unknown",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "meter": "unavailable"
+    },
+    "action": "allocate workspace",
+    "want": {
+      "state": "block",
+      "effects": [],
+      "forbidden": [
+        "storage_allocated",
+        "engine_started"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "storage-negative",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "reserve_bytes": "-1"
+    },
+    "action": "reserve storage",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "storage_reserved"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "storage-overflow",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "reserve_bytes": "18446744073709551616"
+    },
+    "action": "reserve storage",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "storage_reserved"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "storage-retention-no-credit",
+    "area": "storage",
+    "requirements": [
+      "FR-32",
+      "FR-33"
+    ],
+    "given": {
+      "workspace": "retained",
+      "containers": "absent"
+    },
+    "action": "reconcile job",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "container_slots_released"
+      ],
+      "forbidden": [
+        "storage_reservation_released"
+      ],
+      "values": {
+        "workspace_bytes_counted": "true"
+      }
+    }
+  },
+  {
+    "id": "storage-cross-account",
+    "area": "storage",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "account_a_used_bytes": "5000000000",
+      "account_b_used_bytes": "0",
+      "account": "b",
+      "reserve_bytes": "1"
+    },
+    "action": "reserve storage",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "storage_reserved"
+      ],
+      "forbidden": [],
+      "values": {
+        "account_a_used_bytes": "5000000000",
+        "account_b_used_bytes": "1"
+      }
+    }
+  },
+  {
+    "id": "storage-no-paid-bypass",
+    "area": "storage",
+    "requirements": [
+      "FR-20",
+      "FR-32"
+    ],
+    "given": {
+      "account_used_bytes": "5000000000",
+      "reserve_bytes": "1",
+      "paid_limit": "unset",
+      "owner": "true",
+      "diagnostic_flags": "off"
+    },
+    "action": "reserve storage",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "storage_allocated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "upgrade-reviewed",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30"
+    ],
+    "given": {
+      "installed": "old-reviewed",
+      "available": "new-compatible-reviewed"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "upgrade_checked",
+        "compatibility_verified",
+        "reviewed_image_selected",
+        "fresh_pair"
+      ],
+      "forbidden": [],
+      "values": {
+        "running_version": "new-reviewed",
+        "version_audited": "true"
+      }
+    }
+  },
+  {
+    "id": "upgrade-already-current",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30"
+    ],
+    "given": {
+      "installed": "current-reviewed",
+      "available": "current-reviewed"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "upgrade_checked",
+        "reviewed_image_selected",
+        "fresh_pair"
+      ],
+      "forbidden": [
+        "running_container_mutated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "upgrade-incompatible",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30"
+    ],
+    "given": {
+      "available": "incompatible"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "block",
+      "effects": [
+        "upgrade_failure_reported"
+      ],
+      "forbidden": [
+        "engine_started",
+        "running_container_mutated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "upgrade-unreviewed",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30"
+    ],
+    "given": {
+      "available": "unreviewed"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "block",
+      "effects": [
+        "upgrade_failure_reported"
+      ],
+      "forbidden": [
+        "engine_started",
+        "running_container_mutated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "upgrade-unavailable",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30"
+    ],
+    "given": {
+      "available": "check-fails"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "block",
+      "effects": [
+        "upgrade_failure_reported"
+      ],
+      "forbidden": [
+        "engine_started",
+        "running_container_mutated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "upgrade-bad-digest",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30"
+    ],
+    "given": {
+      "available": "digest-mismatch"
+    },
+    "action": "instantiate agent",
+    "want": {
+      "state": "block",
+      "effects": [
+        "upgrade_failure_reported"
+      ],
+      "forbidden": [
+        "engine_started",
+        "running_container_mutated"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "upgrade-live-agent",
+    "area": "upgrades",
+    "requirements": [
+      "FR-30",
+      "FR-33"
+    ],
+    "given": {
+      "job": "active",
+      "available": "new-compatible-reviewed"
+    },
+    "action": "check next-instantiation upgrade",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "upgrade_checked"
+      ],
+      "forbidden": [
+        "running_container_mutated",
+        "old_container_restarted"
+      ],
+      "values": {
+        "active_version_unchanged": "true"
+      }
+    }
+  },
+  {
+    "id": "idle-before-default",
+    "area": "idle",
+    "requirements": [
+      "FR-31"
+    ],
+    "given": {
+      "clock": "fake",
+      "idle_seconds": "299",
+      "owner_config": "default"
+    },
+    "action": "tick idle timer",
+    "want": {
+      "state": "allow",
+      "effects": [],
+      "forbidden": [
+        "shutdown_started"
+      ],
+      "values": {
+        "running": "true"
+      }
+    }
+  },
+  {
+    "id": "idle-default-expiry",
+    "area": "idle",
+    "requirements": [
+      "FR-31",
+      "FR-33"
+    ],
+    "given": {
+      "clock": "fake",
+      "idle_seconds": "300",
+      "owner_config": "default"
+    },
+    "action": "tick idle timer",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "idle_announced",
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "workspace_discarded"
+      ],
+      "values": {
+        "history_preserved": "true"
+      }
+    }
+  },
+  {
+    "id": "idle-owner-interval",
+    "area": "idle",
+    "requirements": [
+      "FR-31"
+    ],
+    "given": {
+      "clock": "fake",
+      "owner_config_seconds": "120",
+      "idle_seconds": "120"
+    },
+    "action": "tick idle timer",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fenced_pair"
+      ],
+      "forbidden": [
+        "workspace_discarded"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "idle-active-work",
+    "area": "idle",
+    "requirements": [
+      "FR-31"
+    ],
+    "given": {
+      "clock": "fake",
+      "elapsed_seconds": "600",
+      "work": "active"
+    },
+    "action": "tick idle timer",
+    "want": {
+      "state": "allow",
+      "effects": [],
+      "forbidden": [
+        "idle_shutdown"
+      ],
+      "values": {
+        "running": "true"
+      }
+    }
+  },
+  {
+    "id": "idle-arriving-work",
+    "area": "idle",
+    "requirements": [
+      "FR-31"
+    ],
+    "given": {
+      "clock": "fake",
+      "idle_seconds": "299",
+      "arrival": "new-authorized-work"
+    },
+    "action": "deliver work then tick",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "idle_timer_reset"
+      ],
+      "forbidden": [
+        "idle_shutdown"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "idle-unauthorized-config",
+    "area": "idle",
+    "requirements": [
+      "FR-31",
+      "FR-20"
+    ],
+    "given": {
+      "actor": "non-owner",
+      "requested_seconds": "1"
+    },
+    "action": "change idle interval",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "idle_config_changed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "idle-feature-off",
+    "area": "idle",
+    "requirements": [
+      "FR-31"
+    ],
+    "given": {
+      "idle_feature": "off",
+      "idle_seconds": "600"
+    },
+    "action": "tick idle timer",
+    "want": {
+      "state": "allow",
+      "effects": [],
+      "forbidden": [
+        "idle_shutdown",
+        "history_deleted"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "idle-cleanup-uncertain",
+    "area": "idle",
+    "requirements": [
+      "FR-31",
+      "FR-33"
+    ],
+    "given": {
+      "clock": "fake",
+      "idle_seconds": "300",
+      "cleanup": "uncertain"
+    },
+    "action": "expire then request replacement",
+    "want": {
+      "state": "block",
+      "effects": [
+        "shutdown_unconfirmed"
+      ],
+      "forbidden": [
+        "replacement_started",
+        "container_slots_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "idle-new-work-fresh",
+    "area": "idle",
+    "requirements": [
+      "FR-31",
+      "FR-33"
+    ],
+    "given": {
+      "previous": "idle-stopped-proven",
+      "work": "new-authorized"
+    },
+    "action": "dispatch work",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fresh_pair",
+        "fresh_workspace"
+      ],
+      "forbidden": [
+        "old_container_restarted"
+      ],
+      "values": {
+        "reused_container_ids": "0"
+      }
+    }
+  },
+  {
+    "id": "command-approved",
+    "area": "commands",
+    "requirements": [
+      "FR-09",
+      "FR-13",
+      "FR-17"
+    ],
+    "given": {
+      "argv": "synthetic-compiler --check",
+      "permission": "granted",
+      "revision": "r1"
+    },
+    "action": "run bounded workspace command",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "intent_durable",
+        "isolated_command",
+        "outcome_durable",
+        "result_released"
+      ],
+      "forbidden": [],
+      "values": {
+        "revision": "r1",
+        "host_launches": "0"
+      }
+    }
+  },
+  {
+    "id": "command-no-permission",
+    "area": "commands",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "permission": "missing"
+    },
+    "action": "run workspace command",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-feature-off",
+    "area": "commands",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "command_feature": "off"
+    },
+    "action": "run workspace command",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "tool_executed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-timeout",
+    "area": "commands",
+    "requirements": [
+      "FR-13",
+      "FR-16"
+    ],
+    "given": {
+      "clock": "fake",
+      "command": "never-exits",
+      "timeout": "exceeded"
+    },
+    "action": "run command",
+    "want": {
+      "state": "block",
+      "effects": [
+        "command_cancelled",
+        "descendants_fenced"
+      ],
+      "forbidden": [
+        "success_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-output-limit",
+    "area": "commands",
+    "requirements": [
+      "FR-13"
+    ],
+    "given": {
+      "command": "synthetic-large-output",
+      "output": "over-bound"
+    },
+    "action": "run command",
+    "want": {
+      "state": "block",
+      "effects": [
+        "output_limit_reported"
+      ],
+      "forbidden": [
+        "unbounded_output",
+        "success_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-audit-intent-fails",
+    "area": "commands",
+    "requirements": [
+      "FR-17"
+    ],
+    "given": {
+      "audit_intent": "fails"
+    },
+    "action": "run command",
+    "want": {
+      "state": "block",
+      "effects": [],
+      "forbidden": [
+        "tool_executed",
+        "result_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-audit-outcome-fails",
+    "area": "commands",
+    "requirements": [
+      "FR-17"
+    ],
+    "given": {
+      "audit_outcome": "fails"
+    },
+    "action": "run command",
+    "want": {
+      "state": "block",
+      "effects": [
+        "isolated_command"
+      ],
+      "forbidden": [
+        "result_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-path-escape",
+    "area": "commands",
+    "requirements": [
+      "FR-13"
+    ],
+    "given": {
+      "cwd": "symlink-outside-workspace"
+    },
+    "action": "run command",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "tool_executed",
+        "host_execution"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-external-unapproved",
+    "area": "commands",
+    "requirements": [
+      "FR-14"
+    ],
+    "given": {
+      "action": "publish",
+      "approval": "absent"
+    },
+    "action": "perform external action",
+    "want": {
+      "state": "block",
+      "effects": [
+        "approval_requested"
+      ],
+      "forbidden": [
+        "external_effect"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "command-stale-approval",
+    "area": "commands",
+    "requirements": [
+      "FR-14"
+    ],
+    "given": {
+      "approval_revision": "r1",
+      "current_revision": "r2"
+    },
+    "action": "perform external action",
+    "want": {
+      "state": "block",
+      "effects": [
+        "approval_invalidated"
+      ],
+      "forbidden": [
+        "external_effect"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "artifact-observed",
+    "area": "artifacts",
+    "requirements": [
+      "FR-09",
+      "FR-17"
+    ],
+    "given": {
+      "check": "observed-pass",
+      "revision": "r1",
+      "authorized_human": "true"
+    },
+    "action": "export artifact",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "artifact_validated",
+        "artifact_audited",
+        "artifact_delivered"
+      ],
+      "forbidden": [],
+      "values": {
+        "observed": "true",
+        "revision": "r1"
+      }
+    }
+  },
+  {
+    "id": "artifact-model-claim",
+    "area": "artifacts",
+    "requirements": [
+      "FR-09"
+    ],
+    "given": {
+      "check": "model-says-pass",
+      "execution_receipt": "absent"
+    },
+    "action": "present check result",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "claim_labelled"
+      ],
+      "forbidden": [
+        "observed_pass_recorded"
+      ],
+      "values": {
+        "observed": "false"
+      }
+    }
+  },
+  {
+    "id": "artifact-revision-mismatch",
+    "area": "artifacts",
+    "requirements": [
+      "FR-09",
+      "FR-14"
+    ],
+    "given": {
+      "artifact_revision": "r1",
+      "current_revision": "r2"
+    },
+    "action": "accept artifact evidence",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "evidence_accepted"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "artifact-too-large",
+    "area": "artifacts",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "artifact_bytes": "over-export-bound"
+    },
+    "action": "export artifact",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "artifact_delivered"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "artifact-cross-room",
+    "area": "artifacts",
+    "requirements": [
+      "FR-13",
+      "FR-20"
+    ],
+    "given": {
+      "requester": "foreign-room"
+    },
+    "action": "export artifact",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "artifact_delivered"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "artifact-escape",
+    "area": "artifacts",
+    "requirements": [
+      "FR-13"
+    ],
+    "given": {
+      "path": "../outside"
+    },
+    "action": "export artifact",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "artifact_delivered"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "artifact-credential-isolation",
+    "area": "artifacts",
+    "requirements": [
+      "FR-13",
+      "FR-17"
+    ],
+    "given": {
+      "engine_credential": "synthetic-engine-only-canary",
+      "artifact_source": "tool-workspace"
+    },
+    "action": "export isolated workspace artifact",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "artifact_delivered"
+      ],
+      "forbidden": [
+        "secret_delivered",
+        "credential_in_audit"
+      ],
+      "values": {
+        "credential_canary_present": "false"
+      }
+    }
+  },
+  {
+    "id": "artifact-storage-fails",
+    "area": "artifacts",
+    "requirements": [
+      "FR-32"
+    ],
+    "given": {
+      "quota": "exhausted"
+    },
+    "action": "store artifact",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "artifact_delivered",
+        "unmetered_artifact"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-approved",
+    "area": "disposal",
+    "requirements": [
+      "FR-14",
+      "FR-33"
+    ],
+    "given": {
+      "approval": "explicit-current-owner",
+      "workspace": "exact-job-volume-nonce",
+      "roles": "absent"
+    },
+    "action": "discard retained workspace",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "discard_approval_checked",
+        "discard_intent_durable",
+        "workspace_removed",
+        "absence_proven",
+        "storage_reservation_released"
+      ],
+      "forbidden": [
+        "history_deleted"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-missing",
+    "area": "disposal",
+    "requirements": [
+      "FR-14",
+      "FR-33"
+    ],
+    "given": {
+      "approval": "absent",
+      "workspace": "retained"
+    },
+    "action": "discard workspace",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "workspace_removed",
+        "storage_reservation_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-stale",
+    "area": "disposal",
+    "requirements": [
+      "FR-14",
+      "FR-33"
+    ],
+    "given": {
+      "approval": "stale-revision",
+      "workspace": "retained"
+    },
+    "action": "discard workspace",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "workspace_removed",
+        "storage_reservation_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-wrong-actor",
+    "area": "disposal",
+    "requirements": [
+      "FR-14",
+      "FR-33"
+    ],
+    "given": {
+      "approval": "unauthorized-human",
+      "workspace": "retained"
+    },
+    "action": "discard workspace",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "workspace_removed",
+        "storage_reservation_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-wrong-volume",
+    "area": "disposal",
+    "requirements": [
+      "FR-14",
+      "FR-33"
+    ],
+    "given": {
+      "approval": "different-volume-nonce",
+      "workspace": "retained"
+    },
+    "action": "discard workspace",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "workspace_removed",
+        "storage_reservation_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-remove-fails",
+    "area": "disposal",
+    "requirements": [
+      "FR-33"
+    ],
+    "given": {
+      "approval": "explicit-current-owner",
+      "remove": "fails"
+    },
+    "action": "discard workspace",
+    "want": {
+      "state": "block",
+      "effects": [
+        "cleanup_unconfirmed"
+      ],
+      "forbidden": [
+        "storage_reservation_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-absence-unknown",
+    "area": "disposal",
+    "requirements": [
+      "FR-33"
+    ],
+    "given": {
+      "approval": "explicit-current-owner",
+      "remove": "reply-lost",
+      "inventory": "unavailable"
+    },
+    "action": "discard workspace",
+    "want": {
+      "state": "block",
+      "effects": [
+        "cleanup_unconfirmed"
+      ],
+      "forbidden": [
+        "storage_reservation_released"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "cancel-does-not-discard",
+    "area": "disposal",
+    "requirements": [
+      "FR-16",
+      "FR-33"
+    ],
+    "given": {
+      "job": "running",
+      "approval": "cancel-only"
+    },
+    "action": "cancel work",
+    "want": {
+      "state": "allow",
+      "effects": [
+        "fenced_pair",
+        "workspace_retained"
+      ],
+      "forbidden": [
+        "workspace_removed"
+      ],
+      "values": {}
+    }
+  },
+  {
+    "id": "discard-history-protected",
+    "area": "disposal",
+    "requirements": [
+      "FR-18",
+      "FR-20"
+    ],
+    "given": {
+      "actor": "owner",
+      "flags": "off",
+      "workspace_discard": "approved"
+    },
+    "action": "purge audit history",
+    "want": {
+      "state": "deny",
+      "effects": [],
+      "forbidden": [
+        "history_deleted",
+        "history_mutated"
+      ],
+      "values": {}
+    }
+  }
+]
