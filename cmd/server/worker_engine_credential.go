@@ -19,10 +19,12 @@ import (
 // Cancellation does NOT unlock: a still-running container may retain credentials.
 // The supervisor must fence both roles before releasing. A source fork can leak
 // these bytes or forge evidence; the worker account remains a trusted boundary.
-// No host credential mount is used. Refreshed-token persistence remains separate.
+// No host credential mount is used. A durable recovery marker blocks stale-token
+// reuse until explicit credential recovery; engine refresh export remains pending.
 type workerEngineCredential struct {
 	mu          sync.Mutex
 	scope       toolbroker.Scope
+	root        string
 	original    context.Context
 	raw         []byte
 	unlock      func()
@@ -52,7 +54,7 @@ func acquireWorkerEngineCredential(ctx context.Context, scope toolbroker.Scope, 
 	}()
 	// Check after taking the shared connection lock. A process crash releases
 	// flock, but cannot erase an unresolved creation intent in the journal.
-	if !workerCredentialJournalReady(journalDir, scope) {
+	if !workerCredentialJournalReady(journalDir, scope) || !workerCredentialReady(root) {
 		return nil, toolbroker.ErrRejected
 	}
 	raw, err := readPrivateBounded(filepath.Join(root, providerCredentialName(scope.Provider)), 65536)
@@ -64,7 +66,7 @@ func acquireWorkerEngineCredential(ctx context.Context, scope toolbroker.Scope, 
 		return nil, toolbroker.ErrRejected
 	}
 	accepted = true
-	return &workerEngineCredential{scope: scope, original: ctx, raw: raw, unlock: unlock}, nil
+	return &workerEngineCredential{scope: scope, root: root, original: ctx, raw: raw, unlock: unlock}, nil
 }
 
 func workerCredentialJournalReady(dir string, scope toolbroker.Scope) bool {
@@ -134,6 +136,10 @@ func (c *workerEngineCredential) Provision(ctx context.Context, out io.Writer) e
 		return toolbroker.ErrRejected
 	}
 	c.provisioned = true
+	// A crash or partial write must not make the original snapshot reusable.
+	if c.root == "" || markWorkerCredentialUncertain(c.root) != nil {
+		return toolbroker.ErrExecution
+	}
 	header := make([]byte, 4)
 	binary.BigEndian.PutUint32(header, uint32(len(c.raw)))
 	for _, data := range [][]byte{[]byte("COMMONROOM-AUTH-V1\n"), header, c.raw} {

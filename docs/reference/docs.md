@@ -302,6 +302,12 @@ Constrained tool-container launch — documentation.
 
 Private worker audit transport — documentation.
 
+## docs/worker-credential-recovery.md
+
+[Open source](../../docs/worker-credential-recovery.md)
+
+Recover uncertain worker credentials — documentation.
+
 ## docs/worker-jobs.md
 
 [Open source](../../docs/worker-jobs.md)

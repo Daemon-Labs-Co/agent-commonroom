@@ -106,7 +106,7 @@ For an existing revisioned object, submit its current revision. Memory revisions
 
 send/broadcast return HTTP 202 with queued count and skipped reasons. This confirms dispatch acceptance, not successful completion or durable queuing. Later state includes the reply, or Blocked status and an agent.error event. No response-token streaming API exists.
 
-`POST /api/provider-auth` accepts `{"action":"status|login|logout","connectionId":"ID"}` for a registered approved worker connection. Status returns `credentialPresent` and `provider`; a saved file is not proof of valid provider authentication. Login returns `launched:true` after opening a macOS Terminal for the worker sign-in command. Other controllers use the documented manual command. Logout returns `signedOut:true` only after scoped local credential removal and completion audit. See [connection sign-in](connection-sign-in.md).
+`POST /api/provider-auth` accepts `{"action":"status|login|logout","connectionId":"ID"}` for a registered approved worker connection. Status returns `credentialPresent`, `recoveryRequired` and `provider`; uncertain credential custody forces `credentialPresent:false`. A saved file is not proof of valid provider authentication. See [credential recovery](worker-credential-recovery.md). Login returns `launched:true` after opening a macOS Terminal for the worker sign-in command. Other controllers use the documented manual command. Logout returns `signedOut:true` only after scoped local credential removal and completion audit. See [connection sign-in](connection-sign-in.md).
 
 ## Failure handling and limits
 

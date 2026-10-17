@@ -381,6 +381,9 @@ func TestOwnedCodexSyntheticCallbackAndFencedRetention(t *testing.T) {
 			if s.engineCredential != nil {
 				t.Fatal("fenced engine retained credential lease")
 			}
+			if workerCredentialReady(private) || credentialPresent(filepath.Join(private, "auth.json")) {
+				t.Fatal("fenced callback turn reused credentials without refreshed-token custody")
+			}
 			unlock, err := lockWorkerCredential(private)
 			if err != nil {
 				t.Fatal(err)

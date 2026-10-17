@@ -163,6 +163,9 @@ func localIsolatedDevelopmentCommand(ctx context.Context, endpoint, key, jobID, 
 		return nil, nil, err
 	}
 	credentialPath := filepath.Join(authRoot, connectionAuthKey(connection), endpoint, filename)
+	if !workerCredentialReady(filepath.Dir(credentialPath)) {
+		return nil, nil, errors.New("Connection credential recovery required; fence prior execution and complete provider sign-in")
+	}
 	raw, err := readPrivateBounded(credentialPath, 65536)
 	if err != nil || len(raw) > 65536 || !json.Valid(raw) {
 		return nil, nil, errors.New("Provider credential file must contain bounded valid JSON")

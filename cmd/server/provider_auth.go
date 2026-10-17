@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -115,14 +116,12 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Worker unavailable or not configured; check remote worker setup", 503)
 			return
 		}
-		var result struct {
-			CredentialPresent *bool `json:"credentialPresent"`
-		}
-		if json.Unmarshal(out.Bytes(), &result) != nil || result.CredentialPresent == nil {
+		present, recovery, statusErr := decodeWorkerCredentialStatus(out.Bytes())
+		if statusErr != nil {
 			http.Error(w, "Worker returned invalid status", 502)
 			return
 		}
-		reply(w, map[string]any{"credentialPresent": *result.CredentialPresent, "provider": provider})
+		reply(w, map[string]any{"credentialPresent": present, "recoveryRequired": recovery, "provider": provider})
 	case "logout":
 		// Serialize against dispatch; already-running turns must finish or be stopped first.
 		s.mu.Lock()
@@ -210,4 +209,17 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Unsupported sign-in action", 400)
 	}
+}
+
+// decodeWorkerCredentialStatus never treats uncertain custody as a usable login,
+// including contradictory worker replies. Older workers omit the optional bit.
+func decodeWorkerCredentialStatus(raw []byte) (bool, bool, error) {
+	var status struct {
+		CredentialPresent *bool `json:"credentialPresent"`
+		RecoveryRequired  bool  `json:"recoveryRequired"`
+	}
+	if json.Unmarshal(raw, &status) != nil || status.CredentialPresent == nil {
+		return false, false, errors.New("Worker returned invalid status")
+	}
+	return *status.CredentialPresent && !status.RecoveryRequired, status.RecoveryRequired, nil
 }

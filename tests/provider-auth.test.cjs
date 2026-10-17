@@ -6,6 +6,8 @@ vm.runInContext(fs.readFileSync('web/provider-auth.js','utf8'),ctx);
  const called=[];ctx.connectionSignOut=c=>called.push('out:'+c.id);ctx.connectionSignIn=c=>called.push('in:'+c.id);
  const b={isConnected:true};await ctx.checkConnectionAuthButton({id:'c'},b);assert.equal(b.textContent,'Sign out');assert.equal(b.disabled,false);b.onclick();assert.deepEqual(called,['out:c']);
  ctx.api=async()=>({credentialPresent:false});await ctx.checkConnectionAuthButton({id:'c'},b);assert.equal(b.textContent,'Sign in');b.onclick();assert.equal(called[1],'in:c');
+ ctx.api=async()=>({credentialPresent:true,recoveryRequired:true});await ctx.checkConnectionAuthButton({id:'c'},b);assert.equal(b.textContent,'Sign in');assert.match(b.title,/recovery required/);b.onclick();assert.equal(called.at(-1),'in:c');
+ ctx.api=async()=>({credentialPresent:true,recoveryRequired:'invalid'});await ctx.checkConnectionAuthButton({id:'c'},b);assert.equal(b.textContent,'Retry sign-in check');
  ctx.api=async()=>{throw Error('Worker unavailable')};await ctx.checkConnectionAuthButton({id:'c'},b);assert.equal(b.textContent,'Retry sign-in check');assert.match(b.title,/unavailable/);assert.equal(b.disabled,false);
  ctx.api=async()=>({});await ctx.checkConnectionAuthButton({id:'c'},b);assert.equal(b.textContent,'Retry sign-in check');
  let calledAPI=0;ctx.api=async()=>{calledAPI++;return {credentialPresent:true}};const gone={isConnected:false};await ctx.checkConnectionAuthButton({id:'c'},gone);assert.equal(calledAPI,0);

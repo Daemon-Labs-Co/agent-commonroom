@@ -109,6 +109,9 @@ func lockWorkerCredential(root string) (func(), error) {
 	return func() { syscall.Flock(int(f.Fd()), syscall.LOCK_UN); f.Close() }, nil
 }
 func credentialPresent(path string) bool {
+	if !workerCredentialReady(filepath.Dir(path)) {
+		return false
+	}
 	raw, err := readPrivateBounded(path, 65536)
 	return err == nil && len(raw) > 2 && json.Valid(raw)
 }
@@ -132,7 +135,7 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 	root := filepath.Join(os.Getenv("COMMONROOM_AGENT_AUTH_DIR"), connectionAuthKey(v.Connection), v.Provider)
 	credential := filepath.Join(root, providerCredentialName(v.Provider))
 	if args[0] == "auth-status-v1" {
-		json.NewEncoder(out).Encode(map[string]bool{"credentialPresent": credentialPresent(credential)})
+		json.NewEncoder(out).Encode(map[string]bool{"credentialPresent": credentialPresent(credential), "recoveryRequired": !workerCredentialReady(root)})
 		return 0
 	}
 	if args[0] == "verify-v1" {
@@ -146,9 +149,16 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 		return fail(err)
 	}
 	defer unlock()
+	journal, journalErr := workerStateDirectory()
+	if journalErr != nil || !workerCredentialConnectionQuiescent(journal, v.Connection, v.Provider) {
+		return fail(errors.New("Connection execution must be fenced before changing authentication"))
+	}
 	if args[0] == "auth-logout-v1" {
 		if err = clearWorkerCredential(root, v.Provider); err != nil {
 			return fail(errors.New("Unable to clear connection credentials"))
+		}
+		if err = clearWorkerCredentialRecovery(root, syncParentDirectory); err != nil {
+			return fail(err)
 		}
 		json.NewEncoder(out).Encode(map[string]bool{"signedOut": true})
 		return 0
@@ -221,8 +231,13 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 	run.Stdin = in
 	run.Stdout = out
 	run.Stderr = diagnostics
+	// Login can rotate/invalidate existing subscription tokens before returning.
+	// Keep failed/interrupted recovery blocked rather than trust the old file.
+	if err = markWorkerCredentialUncertain(root); err != nil {
+		return fail(err)
+	}
 	if run.Run() != nil {
-		return fail(errors.New("Provider sign-in did not complete; existing credentials were preserved"))
+		return fail(errors.New("Provider sign-in did not complete; complete connection sign-in again before use"))
 	}
 	exportArgs, err := workerCredentialExportArgs(os.Getenv("COMMONROOM_AGENT_IMAGE"), volume, v.Provider)
 	if err != nil {
@@ -279,6 +294,9 @@ func workerCredentialExportArgs(image, volume, provider string) ([]string, error
 // exports leave the prior login untouched; post-rename sync failure is ambiguous
 // and must not be acknowledged as saved. No credential bytes enter diagnostics.
 func persistWorkerCredential(root, provider, source string) error {
+	return persistWorkerCredentialDurably(root, provider, source, syncParentDirectory)
+}
+func persistWorkerCredentialDurably(root, provider, source string, syncDirectory func(string) error) error {
 	if provider != "codex" && provider != "claude" {
 		return errors.New("Unsupported credential provider")
 	}
@@ -289,7 +307,10 @@ func persistWorkerCredential(root, provider, source string) error {
 	if err = os.MkdirAll(root, 0700); err != nil {
 		return err
 	}
-	return replacePrivateDurably(filepath.Join(root, providerCredentialName(provider)), raw, syncParentDirectory)
+	if err := replacePrivateDurably(filepath.Join(root, providerCredentialName(provider)), raw, syncDirectory); err != nil {
+		return errors.New("Private provider credential persistence unconfirmed")
+	}
+	return clearWorkerCredentialRecovery(root, syncDirectory)
 }
 
 // workerVerifyConnection rejects the legacy unjournalled verification launcher.

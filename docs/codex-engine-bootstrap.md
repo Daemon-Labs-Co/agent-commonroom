@@ -96,7 +96,11 @@ Refreshed-token custody must also be integrated before claiming a reliable
 subscription lifecycle: credentials modified in the temporary engine home
 are not currently synchronized back to the worker's official credential store.
 Never export them through model output or silently substitute an API key after
-an authentication failure. Concurrent refresh handling needs separate binding.
+an authentication failure. Concurrent refresh handling needs separate binding. The worker now durably marks
+credential custody uncertain before provisioning the frame. That marker survives
+process exit and both-role fencing, blocks status/execution reuse and requires
+explicit sign-in recovery. See [worker credential recovery](worker-credential-recovery.md).
+It is a safety gate, not an implementation of refreshed-token export.
 
 Tests inject synthetic filesystem, gateway and child-process adapters. They cover
 private exclusive home creation, fixed arguments/environment, unsafe or API

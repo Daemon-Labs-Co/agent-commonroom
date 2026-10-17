@@ -398,6 +398,7 @@ JavaScript implementation for profile images; named functions are indexed below.
 
 JavaScript implementation for provider auth; named functions are indexed below.
 
+- `connectionAuthUsable`: named function; inspect the source for parameters, callbacks and effects.
 - `connectionSignOut`: named function; inspect the source for parameters, callbacks and effects.
 - `checkConnectionAuthButton`: named function; inspect the source for parameters, callbacks and effects.
 - `refreshConnectionAuthButtons`: named function; inspect the source for parameters, callbacks and effects.

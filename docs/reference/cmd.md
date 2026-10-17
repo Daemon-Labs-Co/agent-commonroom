@@ -1200,6 +1200,22 @@ Automated regression checks for worker_codex_turn; read test names for individua
 
 [Types, methods and functions](cmd--server--worker_codex_turn_test-go.md)
 
+## cmd/server/worker_credential_recovery.go
+
+[Open source](../../cmd/server/worker_credential_recovery.go)
+
+Go implementation for worker credential recovery; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--worker_credential_recovery-go.md)
+
+## cmd/server/worker_credential_recovery_test.go
+
+[Open source](../../cmd/server/worker_credential_recovery_test.go)
+
+Automated regression checks for worker_credential_recovery; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--worker_credential_recovery_test-go.md)
+
 ## cmd/server/worker_engine.go
 
 [Open source](../../cmd/server/worker_engine.go)

@@ -96,6 +96,9 @@ Credentials live below `authDir/<SHA-256 of connection ID>/<provider>/`. Connect
 sharing one provider account share its authority and billing, while keeping separate
 stored files. Per-connection locks serialize login/export, sign-out and engine use.
 Busy or unresolved work blocks reuse rather than silently sharing credentials.
+A durable recovery marker also blocks credentials whose token custody is uncertain.
+See [credential recovery](worker-credential-recovery.md) for the repair sequence;
+container cleanup alone does not make a potentially stale token safe.
 
 Login uses a fresh temporary home/work volume, non-root execution, read-only root,
 dropped capabilities, resource limits and network-disabled containers. The fixed
@@ -114,7 +117,10 @@ Temporary login/export containers and volumes are then removed.
 Chat turns copy the matching credential into their private session storage. The
 internal separated Codex engine receives a bounded private stdin frame instead of
 a host credential mount. Refreshed-token persistence from that engine remains open;
-initial sign-in does not establish reliable unattended refresh.
+initial sign-in does not establish reliable unattended refresh. The worker marks
+custody uncertain before sending engine credentials and retains that marker after
+shutdown. Until reviewed refresh export is integrated, a completed internal engine
+turn requires explicit connection sign-in recovery before another use.
 
 You **CAN** alter source launchers to bypass these rules, **BUT** doing so exposes
 host files, credentials and network authority and invalidates mandatory isolation.

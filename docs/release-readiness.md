@@ -41,7 +41,7 @@ and [container quotas](container-quotas.md).
 | --- | --- |
 | Production dispatch | Authorized controller/worker assembly and live admission for repository-bound development. |
 | Required providers | Reviewed isolated development paths and acceptance for Claude, Gemini, GitHub Copilot and llama.cpp; live Codex acceptance. |
-| Credential renewal | Atomic, connection-scoped persistence of refreshed engine credentials and failure recovery. |
+| Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Engine refresh export, automatic connection-scoped persistence and live recovery acceptance remain. |
 | Storage | Hard aggregate 5,000,000,000-byte free-account enforcement across retained workspaces, staged bundles and artifacts. |
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
 | Idle agents | Owner-configurable shutdown after inactivity, default five minutes, without interrupting active work or discarding source. |
