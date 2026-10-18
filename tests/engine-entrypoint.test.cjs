@@ -17,7 +17,7 @@ function fixture(extra = Buffer.alloc(0)) {
   const length = Buffer.alloc(4); length.writeUInt32BE(raw.length);
   const framed = Buffer.concat([Buffer.from('COMMONROOM-AUTH-V1\n'), length, raw, extra]);
   let offset = 0;
-  return {proc, child, server, calls, writes, directories, logs, signals, listeners, raw, framed, readOffset: () => offset,
+  return {exportFactory: () => ({requested: () => false, complete: () => false, close() {}}), proc, child, server, calls, writes, directories, logs, signals, listeners, raw, framed, readOffset: () => offset,
     files: {existsSync: () => false,
       readSync: (fd, buffer, start, size) => {
         assert.equal(fd, 0);
@@ -147,4 +147,90 @@ test('credential frame short payload and invalid sizes fail without process laun
     assert.equal(f.calls.length, 0);
     assert.deepEqual(f.logs, ['Reviewed engine startup refused\n']);
   }
+});
+
+function exportFixture(mode='success') {
+ const {credentialExporter}=require('../docker/engine/entrypoint.cjs');
+ const raw=Buffer.from(JSON.stringify({auth_mode:mode==='API credential'?'apikey':'chatgpt',tokens:{access_token:'synthetic-refreshed'}}));
+ if(mode==='invalid JSON')raw.fill(120);
+ const server=new EventEmitter(),child=new EventEmitter(),client=new EventEmitter();
+ let accept,offset=0,failures=0,closed=0,output;
+ const signals=[];
+ server.listen=path=>assert.equal(path,'/tmp/commonroom-engine/credential-export.sock');
+ server.close=()=>{closed++};
+ child.kill=signal=>{signals.push(signal);return mode!=='kill failure'};
+ client.setTimeout=(ms,handler)=>{assert.equal(ms,10000);client.timeout=handler};
+ client.destroy=()=>{client.destroyed=true};
+ client.end=frame=>{output=frame};
+ const files={constants:{O_RDONLY:0,O_NOFOLLOW:1,O_NONBLOCK:2},
+  openSync:(path,flags)=>{assert.equal(path,'/tmp/commonroom-engine/.codex/auth.json');assert.equal(flags,3);return 7},
+  fstatSync:()=>({isFile:()=>mode!=='nonregular',uid:mode==='owner'?0:1000,nlink:mode==='hardlink'?2:1,mode:mode==='permissions'?0o644:0o600,size:mode==='oversize'?65537:raw.length}),
+  readSync:(fd,buffer,start,size)=>{assert.equal(fd,7);const n=Math.min(size,3,raw.length-offset);raw.copy(buffer,start,offset,offset+n);offset+=n;return n},closeSync:fd=>assert.equal(fd,7)};
+ const exporter=credentialExporter({files,network:{createServer:(options,handler)=>{assert.equal(options.allowHalfOpen,true);accept=handler;return server}},child,fail:()=>{failures++}});
+ accept(client);
+ return {exporter,child,client,raw,signals,files,server,accept,get output(){return output},get failures(){return failures},get closed(){return closed}};
+}
+test('private export stops the child before reading final private credentials',()=>{
+ const f=exportFixture(),magic=Buffer.from('COMMONROOM-CREDENTIAL-EXPORT-V1\n');
+ f.client.emit('data',magic.subarray(0,5));f.client.emit('data',magic.subarray(5));f.client.emit('end');
+ assert.deepEqual(f.signals,['SIGTERM']);assert.equal(f.output,undefined);assert.equal(f.exporter.requested(),true);
+ f.child.emit('close',null,'SIGTERM');
+ assert.equal(f.failures,0);assert.equal(f.exporter.complete(),true);
+ assert.deepEqual(f.output.subarray(0,magic.length),magic);
+ assert.equal(f.output.readUInt32BE(magic.length),f.raw.length);
+ assert.deepEqual(f.output.subarray(magic.length+4),f.raw);
+ const second=new EventEmitter();second.destroy=()=>{second.destroyed=true};f.accept(second);assert.equal(second.destroyed,true);
+ f.exporter.close();assert.equal(f.closed,1);
+});
+test('unsafe credential inode, invalid request, child refusal and timeout cannot export',()=>{
+ for(const mode of ['nonregular','owner','hardlink','permissions','oversize','kill failure','bad request','timeout','invalid JSON','API credential']){
+  const f=exportFixture(mode);
+  f.client.emit('data',Buffer.from(mode==='bad request'?'wrong request':'COMMONROOM-CREDENTIAL-EXPORT-V1\n'));
+  f.client.emit('end');
+  if(mode==='timeout')f.client.timeout();else if(mode!=='kill failure'&&mode!=='bad request')f.child.emit('close',null,'SIGTERM');
+  assert.ok(f.failures>0,mode);assert.equal(f.output,undefined,mode);f.exporter.close();
+ }
+});
+test('provider exit alone does not export credentials',()=>{
+ const f=exportFixture();f.child.emit('close',0,null);assert.equal(f.output,undefined);assert.equal(f.exporter.requested(),false);f.exporter.close();
+});
+
+test('bootstrap stays alive after private child export until supervised termination',async()=>{
+ const f=fixture();delete f.exportFactory;
+ const exportServer=new EventEmitter();let accept;
+ exportServer.listen=path=>assert.equal(path,'/tmp/commonroom-engine/credential-export.sock');exportServer.close=()=>{};
+ f.network.createServer=(options,handler)=>{if(typeof options==='function')return f.server;accept=handler;return exportServer};
+ f.child.kill=signal=>{f.signals.push(signal);return true};
+ const readAuth=f.files.readSync;let offset=0;
+ f.files.constants={O_RDONLY:0,O_NOFOLLOW:1,O_NONBLOCK:2};
+ f.files.openSync=()=>7;f.files.fstatSync=()=>({isFile:()=>true,uid:1000,nlink:1,mode:0o600,size:f.raw.length});
+ f.files.closeSync=()=>{};
+ f.files.readSync=(fd,buffer,start,size)=>{if(fd===0)return readAuth(fd,buffer,start,size);const n=Math.min(size,f.raw.length-offset);f.raw.copy(buffer,start,offset,offset+n);offset+=n;return n};
+ let resolved=false;const result=run(f).then(code=>{resolved=true;return code});
+ const client=new EventEmitter();client.setTimeout=()=>{};client.destroy=()=>{};client.end=frame=>{client.output=frame};accept(client);
+ client.emit('data',Buffer.from('COMMONROOM-CREDENTIAL-EXPORT-V1\n'));client.emit('end');f.child.emit('close',null,'SIGTERM');
+ await Promise.resolve();assert.equal(resolved,false);assert.ok(client.output.includes(f.raw));assert.equal(f.logs.length,0);
+ f.proc.emit('SIGTERM');assert.equal(await result,0);
+});
+
+test('private worker helper rejects truncated, oversized and replayed export frames',()=>{
+ const vm=require('node:vm'),fs=require('node:fs');
+ const source=fs.readFileSync(require('node:path').join(__dirname,'../internal/toolbroker/engine_credentials.go'),'utf8');
+ const script=source.match(/const engineCredentialExportScript = `([\s\S]*?)`/u)[1];
+ for(const mode of ['success','wrong magic','short','trailing','oversize','timeout','disconnect']){
+  const socket=new EventEmitter(),stdout=new EventEmitter(),chunks=[];let timeout;
+  socket.end=request=>assert.equal(request.toString(),'COMMONROOM-CREDENTIAL-EXPORT-V1\n');
+  socket.destroy=()=>socket.emit('close');stdout.write=(bytes,cb)=>{chunks.push(Buffer.from(bytes));cb()};
+  const proc={stdout};
+  vm.runInNewContext(script,{Buffer,process:proc,require:name=>{assert.equal(name,'node:net');return {createConnection:path=>{assert.equal(path,'/tmp/commonroom-engine/credential-export.sock');return socket}}},setTimeout:handler=>{timeout=handler;return 1},clearTimeout:()=>{}});
+  socket.emit('connect');
+  const raw=Buffer.from('{"synthetic":"credential"}'),size=Buffer.alloc(4);size.writeUInt32BE(raw.length);
+  let frame=Buffer.concat([Buffer.from('COMMONROOM-CREDENTIAL-EXPORT-V1\n'),size,raw]);
+  if(mode==='wrong magic')frame[0]=0;
+  if(mode==='short')frame=frame.subarray(0,frame.length-1);
+  if(mode==='trailing')frame=Buffer.concat([frame,Buffer.from('x')]);
+  if(mode==='oversize')frame=Buffer.alloc(70000);
+  if(mode==='timeout')timeout();else if(mode==='disconnect')socket.emit('close');else{socket.emit('data',frame);socket.emit('end')}
+  if(mode==='success'){assert.deepEqual(chunks,[raw]);assert.equal(proc.exitCode,undefined)}else{assert.equal(chunks.length,0,mode);assert.equal(proc.exitCode,78,mode)}
+ }
 });

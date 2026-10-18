@@ -3,7 +3,7 @@
 The internal Codex operation connects fresh container creation, private credential
 provisioning, provider networking and callback execution. Synthetic tests exercise
 the combined path. **Public production dispatch remains gated**; reviewed release
-images, refreshed-token persistence and live acceptance are still required.
+images and live refresh/transport acceptance are still required.
 
 This is mandatory isolation infrastructure. There is no off switch, default image,
 paid exemption or uncontained fallback.
@@ -62,10 +62,13 @@ tmpfs. **No host credential file is mounted.** See the
 
 Cancellation retains the connection lock until matching durable proof settles
 both roles as absent or never created. Retained source alone does not retain the
-credential lease once both roles settle. Release clears the owned buffer and is
-idempotent; it does not guarantee erasure of every runtime copy. Process recovery
-still relies on the journal checks above. Refreshed tokens are not yet persisted
-back to the official credential store.
+credential lease once both roles settle. After valid turn completion, a fixed private helper requests the final credential
+from the inspected engine bootstrap. The worker stages strict subscription bytes,
+then reads matching durable absence evidence before atomic persistence and marker
+clearance. No controller, model or audit sink receives these bytes. Release clears
+owned buffers and preserves persistence errors across retries; it does not
+guarantee erasure of every runtime copy. See [custody](engine-credential-custody.md).
+Process recovery still relies on the journal and uncertainty marker.
 
 ### Owned worker operation
 
@@ -160,5 +163,5 @@ A successful model turn still returns a lifecycle error while its workspace is
 retained; tests do not fabricate disposal to force success. Mocked metadata does
 not prove real resource enforcement, image contents, OAuth or Docker attachment.
 Live rootless/SSH/provider checks, public dispatch, reviewed release images,
-refreshed-token persistence, storage quotas, commands/artifacts and approved
+live refreshed-token custody, storage quotas, commands/artifacts and approved
 disposal remain P0 requirements.

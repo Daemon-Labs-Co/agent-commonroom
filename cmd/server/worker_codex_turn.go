@@ -76,6 +76,10 @@ func workerCodexToolRequest(scope toolbroker.Scope, token, callID string, argume
 // required boundaries. No codex exec, host tool, resume or API billing fallback
 // is offered. A source fork CAN substitute stream/dispatcher, BUT loses isolation.
 func (s *workerPairSupervisor) CodexTurn(ctx context.Context, session *toolbroker.ToolSession, token string, stream io.ReadWriteCloser, prompt, model string) (codexbridge.Result, error) {
+	return s.codexTurn(ctx, session, token, stream, prompt, model, nil)
+}
+
+func (s *workerPairSupervisor) codexTurn(ctx context.Context, session *toolbroker.ToolSession, token string, stream io.ReadWriteCloser, prompt, model string, finalize func(context.Context) error) (codexbridge.Result, error) {
 	s.mu.Lock()
 	if ctx == nil || s.available(ctx) != nil || s.record.Status != "running" || s.record.Provider != "codex" || session == nil || session.Dispatcher == nil || stream == nil || !repositoryDigestPattern.MatchString(token) || session != s.toolSession || s.codexTurnStarted || !validWorkerAuditScope(s.record, session.Scope()) {
 		s.mu.Unlock()
@@ -88,13 +92,13 @@ func (s *workerPairSupervisor) CodexTurn(ctx context.Context, session *toolbroke
 	defer cancel()
 	defer stop()
 	scope := session.Scope()
-	result, err := codexbridge.Run(lifetime, stream, prompt, model, func(ctx context.Context, callID string, arguments json.RawMessage) ([]byte, error) {
+	result, err := codexbridge.RunWithFinalizer(lifetime, stream, prompt, model, func(ctx context.Context, callID string, arguments json.RawMessage) ([]byte, error) {
 		request, err := workerCodexToolRequest(scope, token, callID, arguments)
 		if err != nil {
 			return nil, err
 		}
 		return session.Dispatcher.Dispatch(ctx, request)
-	})
+	}, finalize)
 	if err != nil {
 		s.cancel()
 	}

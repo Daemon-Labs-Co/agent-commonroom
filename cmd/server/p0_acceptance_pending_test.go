@@ -42,7 +42,12 @@ type pendingP0Driver func(*testing.T, pendingP0Case) pendingP0Observation
 // Register each scenario's production-backed hermetic driver here as it lands.
 // Leaving an absent implementation pending is intentional: there is no canned
 // passing driver. A strict release-readiness run fails every unbound scenario.
-var pendingP0Drivers = map[string]pendingP0Driver{}
+var pendingP0Drivers = map[string]pendingP0Driver{
+	"refresh-atomic":             driveP0CredentialRefresh,
+	"refresh-concurrent":         driveP0CredentialRefresh,
+	"refresh-persist-fails":      driveP0CredentialRefresh,
+	"refresh-foreign-connection": driveP0CredentialRefresh,
+}
 
 func loadPendingP0Cases(t *testing.T) []pendingP0Case {
 	t.Helper()

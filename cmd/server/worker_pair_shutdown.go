@@ -50,7 +50,10 @@ func (s *workerPairSupervisor) Shutdown(ctx context.Context, runner toolbroker.D
 	if credential != nil {
 		releaseErr := credential.Release(result)
 		err = errors.Join(err, releaseErr)
-		if releaseErr == nil {
+		credential.mu.Lock()
+		released := credential.released
+		credential.mu.Unlock()
+		if released {
 			s.mu.Lock()
 			if s.engineCredential == credential {
 				s.engineCredential = nil

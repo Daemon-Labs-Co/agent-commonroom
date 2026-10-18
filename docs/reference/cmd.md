@@ -842,6 +842,14 @@ Automated regression checks for p0_acceptance_pending; read test names for indiv
 
 [Types, methods and functions](cmd--server--p0_acceptance_pending_test-go.md)
 
+## cmd/server/p0_credential_acceptance_test.go
+
+[Open source](../../cmd/server/p0_credential_acceptance_test.go)
+
+Automated regression checks for p0_credential_acceptance; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_credential_acceptance_test-go.md)
+
 ## cmd/server/private_files.go
 
 [Open source](../../cmd/server/private_files.go)

@@ -116,11 +116,11 @@ Temporary login/export containers and volumes are then removed.
 
 Chat turns copy the matching credential into their private session storage. The
 internal separated Codex engine receives a bounded private stdin frame instead of
-a host credential mount. Refreshed-token persistence from that engine remains open;
-initial sign-in does not establish reliable unattended refresh. The worker marks
-custody uncertain before sending engine credentials and retains that marker after
-shutdown. Until reviewed refresh export is integrated, a completed internal engine
-turn requires explicit connection sign-in recovery before another use.
+a host credential mount. The internal separated engine now exports final credentials privately and
+persists them after matching durable pair fencing. Initial sign-in still does not
+establish live refresh compatibility. The worker marks custody uncertain before
+sending engine credentials; invalid/unavailable exports retain that marker and
+require explicit sign-in recovery. See the [custody protocol](engine-credential-custody.md).
 
 You **CAN** alter source launchers to bypass these rules, **BUT** doing so exposes
 host files, credentials and network authority and invalidates mandatory isolation.

@@ -20,16 +20,20 @@ import (
 // The supervisor must fence both roles before releasing. A source fork can leak
 // these bytes or forge evidence; the worker account remains a trusted boundary.
 // No host credential mount is used. A durable recovery marker blocks stale-token
-// reuse until explicit credential recovery; engine refresh export remains pending.
+// reuse unless a valid final snapshot is saved after durable fencing, or an
+// authorized human explicitly recovers the connection.
 type workerEngineCredential struct {
 	mu          sync.Mutex
 	scope       toolbroker.Scope
 	root        string
+	journal     string
+	refreshed   []byte
 	original    context.Context
 	raw         []byte
 	unlock      func()
 	released    bool
 	provisioned bool
+	releaseErr  error
 }
 
 // acquireWorkerEngineCredential takes a bounded private snapshot while holding
@@ -66,7 +70,7 @@ func acquireWorkerEngineCredential(ctx context.Context, scope toolbroker.Scope, 
 		return nil, toolbroker.ErrRejected
 	}
 	accepted = true
-	return &workerEngineCredential{scope: scope, root: root, original: ctx, raw: raw, unlock: unlock}, nil
+	return &workerEngineCredential{scope: scope, root: root, journal: journalDir, original: ctx, raw: raw, unlock: unlock}, nil
 }
 
 func workerCredentialJournalReady(dir string, scope toolbroker.Scope) bool {
@@ -113,10 +117,14 @@ func validEngineSubscriptionCredential(raw []byte) bool {
 	}
 
 	var auth struct {
-		Mode   string          `json:"auth_mode"`
-		APIKey json.RawMessage `json:"OPENAI_API_KEY"`
-		Tokens struct {
-			Access string `json:"access_token"`
+		Mode        string          `json:"auth_mode"`
+		APIKey      json.RawMessage `json:"OPENAI_API_KEY"`
+		LastRefresh *string         `json:"last_refresh"`
+		Tokens      struct {
+			Access  string `json:"access_token"`
+			Refresh string `json:"refresh_token"`
+			ID      string `json:"id_token"`
+			Account string `json:"account_id"`
 		} `json:"tokens"`
 	}
 	if json.Unmarshal(raw, &auth) != nil || auth.Mode != "chatgpt" || auth.Tokens.Access == "" {
@@ -151,23 +159,74 @@ func (c *workerEngineCredential) Provision(ctx context.Context, out io.Writer) e
 	return nil
 }
 
+// StageRefresh holds one strict subscription snapshot from the private engine
+// exporter. The lease, job, connection and account identity cannot be substituted.
+// It is not persisted or exposed until both roles have durable absence proof.
+func (c *workerEngineCredential) StageRefresh(scope toolbroker.Scope, raw []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.released || !c.provisioned || c.scope != scope || c.refreshed != nil || !validEngineSubscriptionCredential(raw) {
+		return toolbroker.ErrRejected
+	}
+	var before, after struct {
+		Tokens struct {
+			Account string `json:"account_id"`
+		} `json:"tokens"`
+	}
+	if json.Unmarshal(c.raw, &before) != nil || json.Unmarshal(raw, &after) != nil || before.Tokens.Account != after.Tokens.Account {
+		return toolbroker.ErrRejected
+	}
+	c.refreshed = append([]byte(nil), raw...)
+	return nil
+}
+
 // Release requires durable pair-fencing evidence for the original identity.
 // Retained source volumes do not require retaining provider credentials once
 // both execution roles are confirmed absent (or never began creation). No timer,
 // cancelled context or process exit can substitute this evidence.
 func (c *workerEngineCredential) Release(record workerJobRecord) error {
+	return c.releaseWithPersistence(record, func(path string, raw []byte) error { return replacePrivateDurably(path, raw, syncParentDirectory) })
+}
+
+// Dependency injection is hermetic fault-test infrastructure, never deployment
+// configuration or a model-selected persistence backend.
+func (c *workerEngineCredential) releaseWithPersistence(record workerJobRecord, persist func(string, []byte) error) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if !validWorkerRecord(record) || !matchesWorkerCredentialScope(record, c.scope) || record.Pair == nil || !pairRoleSettled(record.Pair.Engine) || !pairRoleSettled(record.Pair.Tool) {
+	if persist == nil || !validWorkerRecord(record) || !matchesWorkerCredentialScope(record, c.scope) || record.Pair == nil || !pairRoleSettled(record.Pair.Engine) || !pairRoleSettled(record.Pair.Tool) {
 		return toolbroker.ErrRejected
 	}
 	if !c.released {
+		if c.refreshed != nil {
+			durable, readErr := readWorkerRecord(c.journal, c.scope.JobID)
+			if readErr != nil || !validWorkerRecord(durable) || !matchesWorkerCredentialScope(durable, c.scope) || durable.Pair.Engine != record.Pair.Engine || durable.Pair.Tool != record.Pair.Tool {
+				return toolbroker.ErrRejected
+			}
+		}
+		// Persistence is attempted only after the original engine AND tool are
+		// settled. Marker retention protects every failed/ambiguous operation.
+		var custodyErr error
+		if c.refreshed != nil {
+			current, readErr := readPrivateBounded(filepath.Join(c.root, providerCredentialName(c.scope.Provider)), 65536)
+			if readErr != nil || !bytes.Equal(current, c.raw) || workerCredentialReady(c.root) {
+				custodyErr = toolbroker.ErrRejected
+			} else if persist(filepath.Join(c.root, providerCredentialName(c.scope.Provider)), c.refreshed) != nil {
+				custodyErr = toolbroker.ErrExecution
+			} else if clearWorkerCredentialRecovery(c.root, syncParentDirectory) != nil {
+				custodyErr = toolbroker.ErrExecution
+			}
+			clear(current)
+		}
+		clear(c.refreshed)
+		c.refreshed = nil
 		clear(c.raw)
 		c.raw = nil
 		c.released = true
+		c.releaseErr = custodyErr
 		c.unlock()
+		return custodyErr
 	}
-	return nil
+	return c.releaseErr
 }
 
 func matchesWorkerCredentialScope(record workerJobRecord, scope toolbroker.Scope) bool {

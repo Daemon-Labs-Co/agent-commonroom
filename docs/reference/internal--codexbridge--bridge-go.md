@@ -16,7 +16,10 @@ Package: `codexbridge`. Go uses types, structs, interfaces and receiver methods 
   Declaration: `struct { ctx context.Context stream io.ReadWriteCloser reader *bufio.Reader bytes, frames int pending []message result Result seen map[string]bool requests map[string]bool handler Handler }`.
 - **`Run`** — Run owns one fresh thread and one turn, never resume/fork/config/review methods. Close MUST interrupt both stream directions; container shutdown remains the supervisor's responsibility. Cancellation closes the stream without replay.
   Signature: `func(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler) (Result, error)`.
-  Calls: `bufio.NewReaderSize`, `context.AfterFunc`, `ctx.Err`, `d.handle`, `d.read`, `d.response`, `d.send`, `identifier.MatchString`, `json.Unmarshal`, `len`, `modelName.MatchString`, `readOnlySandbox`, `stop`, `stream.Close`, `utf8.ValidString`.
+  Calls: `RunWithFinalizer`.
+- **`RunWithFinalizer`** — RunWithFinalizer gives trusted worker custody one bounded post-turn operation before closing the attachment. It runs only after validated completion, never on a provider failure. No model selects this callback. Failure withholds text; cancellation still interrupts both stream directions and supervisor fencing remains mandatory. The finalizer must honor ctx and keep credentials private.
+  Signature: `func(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler, finalize func(context.Context) error) (Result, error)`.
+  Calls: `bufio.NewReaderSize`, `context.AfterFunc`, `ctx.Err`, `d.handle`, `d.read`, `d.response`, `d.send`, `finalize`, `identifier.MatchString`, `json.Unmarshal`, `len`, `modelName.MatchString`, `readOnlySandbox`, `stop`, `stream.Close`, `utf8.ValidString`.
 - **`(*driver).send`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(v any) error`.
   Calls: `append`, `d.ctx.Err`, `d.stream.Write`, `json.Marshal`, `len`.

@@ -2,7 +2,7 @@
 
 Prepared 16 October 2026 from FUNCTIONAL_SPEC.md and the current execution work.
 This is a test preparation inventory, not proof of implemented functionality.
-It covers remaining P0 execution work; P1 collaboration and the explicitly later
+It covers P0 execution work, including completed hermetic custody scenarios; P1 collaboration and the explicitly later
 FR-25–28 secrets-editor/detection feature are outside this suite's release scope.
 
 ## What is ready
@@ -26,6 +26,14 @@ expectations and missing positive/refusal coverage.
 
 ## Current implementation status
 
+The four credential scenarios (`refresh-atomic`, `refresh-concurrent`,
+`refresh-persist-fails`, `refresh-foreign-connection`) now call real worker lease,
+provisioning, validation and persistence methods with temporary credentials and a
+pre-write filesystem-failure dependency. Observations come from actual files,
+locks, errors and release state. Separate combined tests cover the private export
+and callback/fencing path. These drivers do not launch providers or establish live
+refresh compatibility. Seventy scenarios remain unbound.
+
 Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation
 status report.
@@ -40,9 +48,9 @@ status report.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 70 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
-is intentionally failing today and is not added to `make check` until the pending
+is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.
 
 As each feature lands, add a driver keyed by scenario ID to `pendingP0Drivers`.

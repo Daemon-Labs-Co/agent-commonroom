@@ -67,7 +67,11 @@ func (s *workerPairSupervisor) RunCodex(ctx context.Context, session *toolbroker
 			err = errors.Join(err, gateway.Close())
 		}
 		if credential != nil {
-			err = errors.Join(err, credential.Release(record))
+			custodyErr := credential.Release(record)
+			if custodyErr != nil {
+				result = codexbridge.Result{}
+			}
+			err = errors.Join(err, custodyErr)
 		}
 	}()
 	credential, err = acquireWorkerEngineCredential(setup, scope, config.AuthRoot, journal)

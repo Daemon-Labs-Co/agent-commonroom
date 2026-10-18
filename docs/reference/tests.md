@@ -96,6 +96,7 @@ Automated regression checks for engine-entrypoint; read test names for individua
 
 - `fixture`: named function; inspect the source for parameters, callbacks and effects.
 - `socket`: named function; inspect the source for parameters, callbacks and effects.
+- `exportFixture`: named function; inspect the source for parameters, callbacks and effects.
 
 ## tests/feature-flag-tabs.test.cjs
 

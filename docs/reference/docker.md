@@ -67,6 +67,8 @@ JavaScript implementation for entrypoint; named functions are indexed below.
 - `invocation`: named function; inspect the source for parameters, callbacks and effects.
 - `prepare`: named function; inspect the source for parameters, callbacks and effects.
 - `exact`: named function; inspect the source for parameters, callbacks and effects.
+- `finalCredential`: named function; inspect the source for parameters, callbacks and effects.
+- `credentialExporter`: named function; inspect the source for parameters, callbacks and effects.
 - `run`: named function; inspect the source for parameters, callbacks and effects.
 - `report`: named arrow function; inspect the source for parameters, callbacks and effects.
 - `remember`: named arrow function; inspect the source for parameters, callbacks and effects.

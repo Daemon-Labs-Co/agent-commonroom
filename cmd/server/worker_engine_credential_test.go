@@ -277,3 +277,111 @@ func TestEngineCredentialJournalBlocksCrashSurvivors(t *testing.T) {
 		})
 	}
 }
+
+func TestEngineRefreshCommitsOnlyAfterOriginalPairFenced(t *testing.T) {
+	t.Parallel()
+	ctx, _, scope, root, private, record, journal := credentialLeaseFixture(t)
+	lease, err := acquireWorkerEngineCredential(ctx, scope, root, journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lease.Release(record)
+	var out bytes.Buffer
+	if err = lease.Provision(ctx, &out); err != nil {
+		t.Fatal(err)
+	}
+	foreign := scope
+	foreign.Connection = "foreign"
+	if lease.StageRefresh(foreign, []byte(syntheticRefreshedCredential)) == nil {
+		t.Fatal("foreign snapshot accepted")
+	}
+	if lease.StageRefresh(scope, []byte(`{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic","account_id":"foreign"}}`)) == nil {
+		t.Fatal("different account accepted")
+	}
+	for _, invalid := range []string{
+		`{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic","refresh_token":123}}`,
+		`{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic","id_token":{}}}`,
+		`{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic"},"last_refresh":123}`,
+	} {
+		if lease.StageRefresh(scope, []byte(invalid)) == nil {
+			t.Fatal("malformed credential field accepted")
+		}
+	}
+	if err = lease.StageRefresh(scope, []byte(syntheticRefreshedCredential)); err != nil {
+		t.Fatal(err)
+	}
+	if lease.StageRefresh(scope, []byte(syntheticRefreshedCredential)) == nil {
+		t.Fatal("refresh snapshot replayed")
+	}
+	current, _ := os.ReadFile(filepath.Join(private, "auth.json"))
+	if string(current) != syntheticEngineCredential || workerCredentialReady(private) {
+		t.Fatal("staged credential published before fencing")
+	}
+	proof := record
+	pair := *record.Pair
+	proof.Pair = &pair
+	proof.Pair.Engine.CreationStarted = true
+	if lease.Release(proof) == nil {
+		t.Fatal("live engine released credential")
+	}
+	proof.Pair.Engine.Absent = true
+	proof.Pair.Tool.CreationStarted = true
+	if lease.Release(proof) == nil {
+		t.Fatal("live tool released credential")
+	}
+	proof.Pair.Tool.Absent = true
+	if err = lease.Release(proof); err == nil {
+		t.Fatal("unpublished absence evidence committed credentials")
+	}
+	if err = writeWorkerRecord(journal, proof, false); err != nil {
+		t.Fatal(err)
+	}
+	if err = lease.Release(proof); err != nil {
+		t.Fatal(err)
+	}
+	saved, err := readPrivateBounded(filepath.Join(private, "auth.json"), 65536)
+	if err != nil || string(saved) != syntheticRefreshedCredential || !workerCredentialReady(private) {
+		t.Fatal("fenced refresh not durably committed", err)
+	}
+	if len(lease.raw) != 0 || len(lease.refreshed) != 0 {
+		t.Fatal("released snapshots retained")
+	}
+	if err = lease.Release(proof); err != nil {
+		t.Fatal("successful release not idempotent", err)
+	}
+}
+
+func TestEngineRefreshNeverOverwritesChangedConnectionCredential(t *testing.T) {
+	t.Parallel()
+	ctx, _, scope, root, private, record, journal := credentialLeaseFixture(t)
+	lease, err := acquireWorkerEngineCredential(ctx, scope, root, journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err = lease.Provision(ctx, &out); err != nil {
+		t.Fatal(err)
+	}
+	if err = lease.StageRefresh(scope, []byte(syntheticRefreshedCredential)); err != nil {
+		t.Fatal(err)
+	}
+	replacement := []byte(`{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic-intervening-login"}}`)
+	if err = os.WriteFile(filepath.Join(private, "auth.json"), replacement, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if lease.Release(record) == nil {
+		t.Fatal("intervening credential overwritten")
+	}
+	if lease.Release(record) == nil {
+		t.Fatal("failed persistence later acknowledged")
+	}
+	saved, _ := os.ReadFile(filepath.Join(private, "auth.json"))
+	if !bytes.Equal(saved, replacement) || workerCredentialReady(private) {
+		t.Fatal("changed credential or recovery marker lost")
+	}
+	unlock, err := lockWorkerCredential(private)
+	if err != nil {
+		t.Fatal("fenced failure prevents explicit recovery", err)
+	}
+	unlock()
+}

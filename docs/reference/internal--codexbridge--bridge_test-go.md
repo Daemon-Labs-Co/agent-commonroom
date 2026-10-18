@@ -31,3 +31,11 @@ Package: `codexbridge`. Go uses types, structs, interfaces and receiver methods 
 - **`TestRunRefusesCallbackBeforeTurnSubmission`** — Regression contract: TestRunRefusesCallbackBeforeTurnSubmission.
   Signature: `func(t *testing.T)`.
   Calls: `Run`, `callback`, `cancel`, `close`, `context.WithTimeout`, `json.NewDecoder`, `json.NewDecoder(peer).Decode`, `json.NewEncoder`, `json.NewEncoder(peer).Encode`, `make`, `net.Pipe`, `peer.Close`, `peer.Read`, `peer.SetReadDeadline`, `t.Context`, `t.Error`, `t.Fatal`, `t.Parallel`, `time.Now`, `time.Now().Add`.
+- **Type `finalizerStream`**: Structured data type; fields are shown in the declaration.
+  Declaration: `struct { net.Conn closed atomic.Bool }`.
+- **`(*finalizerStream).Close`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
+  Signature: `func() error`.
+  Calls: `s.Conn.Close`, `s.closed.Store`.
+- **`TestFinalizerOwnsPostTurnBeforeStreamClose`** — Regression contract: TestFinalizerOwnsPostTurnBeforeStreamClose.
+  Signature: `func(t *testing.T)`.
+  Calls: `RunWithFinalizer`, `cancel`, `close`, `completed`, `context.WithTimeout`, `errors.New`, `json.NewEncoder`, `json.NewEncoder(server).Encode`, `make`, `net.Pipe`, `server.Close`, `serverSetup`, `stream.closed.Load`, `t.Context`, `t.Error`, `t.Fatal`, `t.Parallel`, `t.Run`.

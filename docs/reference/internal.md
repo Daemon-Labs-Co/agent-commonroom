@@ -202,6 +202,22 @@ Automated regression checks for encoding; read test names for individual contrac
 
 [Types, methods and functions](internal--toolbroker--encoding_test-go.md)
 
+## internal/toolbroker/engine_credentials.go
+
+[Open source](../../internal/toolbroker/engine_credentials.go)
+
+Go implementation for engine credentials; declarations and calls are listed below.
+
+[Types, methods and functions](internal--toolbroker--engine_credentials-go.md)
+
+## internal/toolbroker/engine_credentials_test.go
+
+[Open source](../../internal/toolbroker/engine_credentials_test.go)
+
+Automated regression checks for engine_credentials; read test names for individual contracts.
+
+[Types, methods and functions](internal--toolbroker--engine_credentials_test-go.md)
+
 ## internal/toolbroker/engine_runtime.go
 
 [Open source](../../internal/toolbroker/engine_runtime.go)

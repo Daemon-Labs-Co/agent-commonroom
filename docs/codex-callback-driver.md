@@ -69,8 +69,12 @@ currently fail closed; compatibility is not claimed from schema inspection alone
 
 The internal engine launcher, process attachment, controlled home, private gateway
 and stdin credential provisioning are implemented. Credentials are not host-mounted.
-Reviewed release images, refreshed-token persistence and the public production
-worker entry point remain required.
+The driver now supports a trusted post-completion finalizer before attachment
+closure. Worker custody uses it for private final-credential export; failure or
+cancellation withholds the model result. It runs only after valid completion and
+has no model-selected callback. See [credential custody](engine-credential-custody.md).
+Reviewed release images, live refresh acceptance and the public production worker
+entry point remain required.
 Claude, Gemini, GitHub Copilot and llama.cpp adapters remain separate P0 work.
 Production development admission stays blocked; installing a newer stock CLI or
 substituting `codex exec` does not satisfy this reviewed engine contract.

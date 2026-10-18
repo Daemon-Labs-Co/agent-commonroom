@@ -82,3 +82,5 @@ in a second set of setup instructions. Examples use synthetic data only.
 - [Check an installation and find setup failures](installation-check.md)
 
 - [Recover uncertain worker credentials](worker-credential-recovery.md)
+
+- [Private final-credential capture and fenced persistence](engine-credential-custody.md)

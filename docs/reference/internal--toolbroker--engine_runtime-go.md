@@ -7,7 +7,7 @@ Go implementation for engine runtime; declarations and calls are listed below.
 Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods rather than classes.
 
 - **Type `EngineContainerRuntime`**: EngineContainerRuntime creates only a fresh reviewed Codex engine, never a provider on the host. The gateway socket path is private worker policy, NOT model input. The worker must operate its approved private provider gateway before constructing this. Credentials enter only through the owned protocol stdin. A source fork CAN substitute image/runner/paths, BUT violates credential separation. No automatic image, provider, network or uncontained fallback exists.
-  Declaration: `struct { mu sync.Mutex ctx context.Context original context.Context cancel context.CancelFunc scope Scope image, gateway, imageID, id string runner DockerRunner attempted, verified, started, running bool attached bool }`.
+  Declaration: `struct { mu sync.Mutex ctx context.Context original context.Context cancel context.CancelFunc scope Scope image, gateway, imageID, id string runner DockerRunner attempted, verified, started, running bool attached bool credentialExported bool }`.
 - **`NewEngineContainerRuntime`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, scope Scope, image, gateway string, runner DockerRunner) (*EngineContainerRuntime, error)`.
   Calls: `ValidAuditScope`, `context.WithDeadline`, `ctx.Err`, `len`, `path.Clean`, `path.IsAbs`, `strings.ContainsAny`, `time.Now`, `validPath`, `validToolImage`.

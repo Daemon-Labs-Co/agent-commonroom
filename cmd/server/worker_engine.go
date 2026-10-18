@@ -99,5 +99,12 @@ func (e *workerCodexEngine) Turn(ctx context.Context, s *workerPairSupervisor, s
 		s.cancel()
 		return codexbridge.Result{}, err
 	}
-	return s.CodexTurn(ctx, session, token, stream, prompt, model)
+	return s.codexTurn(ctx, session, token, stream, prompt, model, func(finalize context.Context) error {
+		raw, err := e.runtime.ExportCredential(finalize, id)
+		if err != nil {
+			return err
+		}
+		defer clear(raw)
+		return e.credential.StageRefresh(e.scope, raw)
+	})
 }

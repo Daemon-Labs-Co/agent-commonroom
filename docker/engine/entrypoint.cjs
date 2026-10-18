@@ -63,22 +63,84 @@ function prepare(files) {
     {flag: 'wx', mode: 0o600});
 }
 
+// Read only the final private inode, after the reviewed provider child closed.
+// No path, credential or executable is supplied by a model or socket request.
+function finalCredential(files) {
+  const fd = files.openSync(`${CODEX_HOME}/auth.json`, files.constants.O_RDONLY | files.constants.O_NOFOLLOW | files.constants.O_NONBLOCK);
+  try {
+    const st = files.fstatSync(fd);
+    if (!st.isFile() || st.uid !== 1000 || st.nlink !== 1 || (st.mode & 0o077) !== 0 || st.size < 2 || st.size > 65536)
+      throw Error('Credential export refused');
+    const raw = Buffer.alloc(65537);
+    let size = 0;
+    while (size < raw.length) {
+      const n = files.readSync(fd, raw, size, raw.length - size, null);
+      if (!n) break;
+      size += n;
+    }
+    if (size < 2 || size > 65536) throw Error('Credential export refused');
+    const auth = JSON.parse(raw.subarray(0, size).toString('utf8'));
+    if (auth?.auth_mode !== 'chatgpt' || (auth.OPENAI_API_KEY !== undefined && auth.OPENAI_API_KEY !== null) ||
+        typeof auth.tokens?.access_token !== 'string' || !auth.tokens.access_token) throw Error('Credential export refused');
+    return raw.subarray(0, size);
+  } finally { files.closeSync(fd); }
+}
+
+// The worker alone enters this fixed, one-shot private channel using docker exec
+// on the inspected engine ID. It is never a model tool or app-server response.
+// The child must close before export; this is NOT container/descendant absence.
+function credentialExporter({files, network, child, fail}) {
+  const magic = Buffer.from('COMMONROOM-CREDENTIAL-EXPORT-V1\n');
+  let requested = false, completed = false, closed = false, client;
+  const server = network.createServer({allowHalfOpen: true}, socket => {
+    if (closed || requested || client) { socket.destroy(); return; }
+    client = socket;
+    let input = Buffer.alloc(0);
+    socket.setTimeout(10000, () => { socket.destroy(); fail(); });
+    socket.on('error', () => fail());
+    socket.on('data', chunk => {
+      if (input.length + chunk.length > magic.length) { socket.destroy(); fail(); return; }
+      input = Buffer.concat([input, chunk]);
+    });
+    socket.once('end', () => {
+      if (closed || requested || !input.equals(magic)) { socket.destroy(); fail(); return; }
+      requested = true;
+      try { if (!child.kill('SIGTERM')) { socket.destroy(); fail(); } }
+      catch (_) { socket.destroy(); fail(); }
+    });
+  });
+  child.once('close', () => {
+    if (!requested || closed) return;
+    try {
+      const raw = finalCredential(files), size = Buffer.alloc(4);
+      size.writeUInt32BE(raw.length);
+      client.end(Buffer.concat([magic, size, raw]));
+      raw.fill(0);
+      completed = true;
+    } catch (_) { fail(); }
+  });
+  server.on('error', fail);
+  server.listen(`${HOME}/credential-export.sock`);
+  return {requested: () => requested, complete: () => completed,
+    close() { closed = true; try { client?.destroy(); } catch (_) {} try { server.close(); } catch (_) {} }};
+}
+
 // Injection is synthetic-test infrastructure, never a model/CLI configuration.
 // Signal forwarding is not descendant/container shutdown proof; the supervisor
 // must still remove and observe both immutable container identities on exit.
 function run({files = fs, network = net, processes = cp, proc = process,
-  stderr = process.stderr} = {}) {
+  stderr = process.stderr, exportFactory = credentialExporter} = {}) {
   const report = () => { try { stderr.write('Reviewed engine startup refused\n'); } catch (_) {} };
   if (proc.platform !== 'linux' || typeof proc.getuid !== 'function' || proc.getuid() !== 1000 || !Array.isArray(proc.argv) || proc.argv.length !== 2) {
     report(); return Promise.resolve(70);
   }
   try { prepare(files); } catch (_) { report(); return Promise.resolve(70); }
   return new Promise(resolve => {
-    let server, child, settled = false;
+    let server, child, exporter, settled = false;
     const sockets = new Set();
     const remember = socket => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)); return socket; };
     const interrupt = () => { try { child?.kill('SIGINT'); } catch (_) {} };
-    const terminate = () => { try { child?.kill('SIGTERM'); } catch (_) {} };
+    const terminate = () => { if (exporter?.complete()) { finish(0); return; } try { child?.kill('SIGTERM'); } catch (_) {} };
     const finish = (code, failed = false) => {
       if (settled) return;
       settled = true;
@@ -86,6 +148,7 @@ function run({files = fs, network = net, processes = cp, proc = process,
       if (failed) { terminate(); report(); }
       for (const socket of sockets) { try { socket.destroy(); } catch (_) {} }
       try { server?.close(); } catch (_) {}
+      try { exporter?.close(); } catch (_) {}
       resolve(code);
     };
     try {
@@ -110,13 +173,19 @@ function run({files = fs, network = net, processes = cp, proc = process,
           child.once('error', () => finish(70, true));
           child.once('close', (code, signal) => {
             if (settled) return;
+            if (exporter?.requested()) {
+              for (const socket of sockets) { try { socket.destroy(); } catch (_) {} }
+              try { server.close(); } catch (_) {}
+              return; // Remain alive for private export and supervisor fencing.
+            }
             if (signal || code !== 0) report();
             finish(!signal && code === 0 ? 0 : 70);
           });
+          exporter = exportFactory({files, network, child, fail: () => finish(70, true)});
         } catch (_) { finish(70, true); }
       });
     } catch (_) { finish(70, true); }
   });
 }
-module.exports = {environment, invocation, prepare, run};
+module.exports = {environment, invocation, prepare, finalCredential, credentialExporter, run};
 if (require.main === module) run().then(code => { process.exitCode = code; }, () => { process.exitCode = 70; });

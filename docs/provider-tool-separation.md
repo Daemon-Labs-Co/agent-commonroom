@@ -21,7 +21,7 @@ sign-in/history administration are separate policies. Do not read the presence
 of internal components as permission to enable development workloads.
 
 Required remaining gates include reviewed images and live acceptance, production
-entry-point wiring/recovery, refreshed-token persistence and other required
+entry-point wiring/recovery, live refreshed-token acceptance and other required
 provider adapters. Commands, patches, trusted artifacts and approved source
 volume disposal are unfinished. Read/write callbacks are the implemented tool
 surface. See [P0 acceptance](p0-acceptance-tests.md).
@@ -155,8 +155,9 @@ Credential leases serialize use with sign-in/sign-out. Cancellation retains the
 lease until both roles settle; journal checks block reuse after a process crash.
 The provider gateway checks full scope, original lifetime and socket identity,
 and removes only its own socket/empty directory. Unexpected files or replacements
-remain evidence, not cleanup targets. Credential refresh and complete production
-recovery still require implementation/acceptance.
+remain evidence, not cleanup targets. Private final-credential capture and fenced
+persistence are implemented internally; [live custody acceptance](engine-credential-custody.md)
+and complete production recovery remain outstanding.
 
 ## Aggregate pair resources
 

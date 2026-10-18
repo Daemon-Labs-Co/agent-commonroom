@@ -32,3 +32,9 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **`TestEngineCredentialJournalBlocksCrashSurvivors`** — Regression contract: TestEngineCredentialJournalBlocksCrashSurvivors.
   Signature: `func(t *testing.T)`.
   Calls: `acquireWorkerEngineCredential`, `credentialLeaseFixture`, `filepath.Join`, `lease.Release`, `lockWorkerCredential`, `os.Remove`, `os.WriteFile`, `prior.Deadline.Add`, `prior.StartedAt.Add`, `strings.Repeat`, `t.Fatal`, `t.Parallel`, `t.Run`, `unlock`, `workerMembership`, `writeWorkerRecord`.
+- **`TestEngineRefreshCommitsOnlyAfterOriginalPairFenced`** — Regression contract: TestEngineRefreshCommitsOnlyAfterOriginalPairFenced.
+  Signature: `func(t *testing.T)`.
+  Calls: `acquireWorkerEngineCredential`, `credentialLeaseFixture`, `filepath.Join`, `lease.Provision`, `lease.Release`, `lease.StageRefresh`, `len`, `os.ReadFile`, `readPrivateBounded`, `string`, `t.Fatal`, `t.Parallel`, `workerCredentialReady`, `writeWorkerRecord`.
+- **`TestEngineRefreshNeverOverwritesChangedConnectionCredential`** — Regression contract: TestEngineRefreshNeverOverwritesChangedConnectionCredential.
+  Signature: `func(t *testing.T)`.
+  Calls: `acquireWorkerEngineCredential`, `bytes.Equal`, `credentialLeaseFixture`, `filepath.Join`, `lease.Provision`, `lease.Release`, `lease.StageRefresh`, `lockWorkerCredential`, `os.ReadFile`, `os.WriteFile`, `t.Fatal`, `t.Parallel`, `unlock`, `workerCredentialReady`.

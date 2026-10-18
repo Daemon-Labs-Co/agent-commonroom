@@ -92,15 +92,20 @@ its fenced shutdown and retain unresolved evidence after any ambiguity.
 The internal launcher, immutable-image inspection, private stdin provisioning,
 owned gateway and combined callback operation have synthetic tests. Public
 production dispatch and live image/transport acceptance remain incomplete.
-Refreshed-token custody must also be integrated before claiming a reliable
-subscription lifecycle: credentials modified in the temporary engine home
-are not currently synchronized back to the worker's official credential store.
-Never export them through model output or silently substitute an API key after
-an authentication failure. Concurrent refresh handling needs separate binding. The worker now durably marks
-credential custody uncertain before provisioning the frame. That marker survives
-process exit and both-role fencing, blocks status/execution reuse and requires
-explicit sign-in recovery. See [worker credential recovery](worker-credential-recovery.md).
-It is a safety gate, not an implementation of refreshed-token export.
+The bootstrap now exposes a one-shot private credential-export socket. The worker
+requests export after validated turn completion while the protocol attachment is
+still open. Bootstrap stops the reviewed child and waits for its `close` before
+reading the final private credential. It remains alive for the worker's bounded
+export and supervised container fencing. Credentials never enter app-server
+stdout, model output, audit or controller responses. See the
+[custody protocol](engine-credential-custody.md).
+
+The worker stages a strict subscription snapshot, checks unchanged account and
+connection identity, and persists only after matching container-absence evidence
+is read from the durable journal. Failure keeps the recovery path; no API-key
+fallback or retries against an old container are provided. A new reviewed image
+containing this bootstrap is required. Actual provider refresh and graceful
+shutdown behavior still need live acceptance.
 
 Tests inject synthetic filesystem, gateway and child-process adapters. They cover
 private exclusive home creation, fixed arguments/environment, unsafe or API
