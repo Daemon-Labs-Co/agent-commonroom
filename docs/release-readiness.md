@@ -1,6 +1,6 @@
 # Release readiness
 
-Reviewed against the source on 16 October 2026. This page describes current
+Reviewed against the source on 18 October 2026. This page describes current
 capability and remaining gates; [FUNCTIONAL_SPEC.md](../FUNCTIONAL_SPEC.md)
 defines intended behavior. Passing component tests does not mean a feature is
 available through the application or verified against a real provider.
@@ -22,7 +22,8 @@ executable adapter. A connection test is not proof of code-development capabilit
 The new Codex path connects a credential-free tool container to a separate provider
 engine. It includes fresh pair/workspace creation, scoped callback authority,
 private audit transport, bounded read/write tools, bootstrap, credential framing,
-private gateways, crash-aware credential leases and fenced cleanup.
+private gateways, crash-aware credential leases, private final-credential export
+and persistence after durable pair fencing.
 
 Combined synthetic tests exercise callback success, rejected capabilities, audit
 failures, disconnects and cleanup. Four physical container slots are reserved
@@ -41,7 +42,7 @@ and [container quotas](container-quotas.md).
 | --- | --- |
 | Production dispatch | Authorized controller/worker assembly and live admission for repository-bound development. |
 | Required providers | Reviewed isolated development paths and acceptance for Claude, Gemini, GitHub Copilot and llama.cpp; live Codex acceptance. |
-| Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Engine refresh export, automatic connection-scoped persistence and live recovery acceptance remain. |
+| Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Private final export and fenced, connection-scoped persistence are implemented internally. Reviewed image, live refresh and recovery acceptance remain. |
 | Storage | Hard aggregate 5,000,000,000-byte free-account enforcement across retained workspaces, staged bundles and artifacts. |
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
 | Idle agents | Owner-configurable shutdown after inactivity, default five minutes, without interrupting active work or discarding source. |
@@ -50,8 +51,9 @@ and [container quotas](container-quotas.md).
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Their adapters are pending: normal tests mark them skipped,
-while `make test-p0-ready` fails. Neither a catalog nor a mock is live acceptance.
+prepared scenarios. Four credential-custody scenarios now have production-backed hermetic drivers;
+70 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0
 

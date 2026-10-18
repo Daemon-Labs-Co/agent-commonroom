@@ -141,7 +141,7 @@ fallback. Optional diagnostics flags do not disable journal/fencing checks.
 Live rootless pair creation/shutdown and resource enforcement remain unverified.
 The Codex engine, controlled configuration, workspace bootstrap, private audit
 transport and callback driver are implemented internally. Public dispatch,
-refreshed-token persistence, other provider drivers, commands/artifacts and live
+live refreshed-token custody acceptance, other provider drivers, commands/artifacts and live
 acceptance remain P0 work. See [release readiness](release-readiness.md)
 and [provider/tool separation](provider-tool-separation.md).
 

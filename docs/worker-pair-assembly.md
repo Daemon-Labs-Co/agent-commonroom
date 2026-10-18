@@ -64,7 +64,7 @@ bootstrap and audited dispatch. Combined `RunCodex` tests exercise the complete
 internal path with mocked Docker and synthetic protocol peers; no live provider
 run has been verified.
 
-Reviewed release images, public transport/startup coordination, refreshed-token
+Reviewed release images, public transport/startup coordination, live refreshed-token
 persistence, bounded commands/artifacts, retention/discard workflow, hard disk
 quotas, provider coverage/upgrades/idle policy and live image/SSH/rootless/provider
 acceptance remain P0 work. Current turns end after work; no idle session pool has

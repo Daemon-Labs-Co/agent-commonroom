@@ -27,6 +27,7 @@ type EngineContainerRuntime struct {
 	runner                                DockerRunner
 	attempted, verified, started, running bool
 	attached                              bool
+	credentialExported                    bool
 }
 
 func NewEngineContainerRuntime(ctx context.Context, scope Scope, image, gateway string, runner DockerRunner) (*EngineContainerRuntime, error) {

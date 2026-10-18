@@ -269,3 +269,60 @@ func TestRunRefusesCallbackBeforeTurnSubmission(t *testing.T) {
 	}
 	<-done
 }
+
+type finalizerStream struct {
+	net.Conn
+	closed atomic.Bool
+}
+
+func (s *finalizerStream) Close() error { s.closed.Store(true); return s.Conn.Close() }
+func TestFinalizerOwnsPostTurnBeforeStreamClose(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"success", "failure", "cancelled", "provider failure"} {
+		t.Run(mode, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+			defer cancel()
+			client, server := net.Pipe()
+			defer server.Close()
+			stream := &finalizerStream{Conn: client}
+			served := make(chan struct{})
+			go func() {
+				defer close(served)
+				serverSetup(t, server)
+				if mode == "provider failure" {
+					server.Close()
+					return
+				}
+				json.NewEncoder(server).Encode(completed())
+			}()
+			calls := 0
+			result, err := RunWithFinalizer(ctx, stream, "Synthetic request", "reviewed-model", func(context.Context, string, json.RawMessage) ([]byte, error) { return nil, nil }, func(ctx context.Context) error {
+				calls++
+				if stream.closed.Load() {
+					t.Error("attachment closed before final credential capture")
+				}
+				if mode == "failure" {
+					return errors.New("synthetic private error")
+				}
+				if mode == "cancelled" {
+					cancel()
+				}
+				return nil
+			})
+			if !stream.closed.Load() {
+				t.Fatal("attachment leaked")
+			}
+			if mode == "success" {
+				if err != nil || result.Text != "Finished" || calls != 1 {
+					t.Fatal("finalization failed", err)
+				}
+			} else if err == nil || result.Text != "" {
+				t.Fatal("failed finalization released result")
+			}
+			if mode == "provider failure" && calls != 0 {
+				t.Fatal("failed provider invoked finalizer")
+			}
+			<-served
+		})
+	}
+}

@@ -25,6 +25,8 @@ import (
 	"time"
 )
 
+const syntheticRefreshedCredential = `{"auth_mode":"chatgpt","OPENAI_API_KEY":null,"tokens":{"access_token":"synthetic-new-token","refresh_token":"synthetic-new-refresh"}}`
+
 const syntheticDockerRoot = "/home/synthetic/.local/share/docker"
 
 type codexIntegrationDocker struct {
@@ -204,6 +206,21 @@ func (f *codexIntegrationDocker) Run(ctx context.Context, args []string, input [
 		f.removed++
 		return nil
 	case "exec":
+		if len(args) == 9 && args[6] == "/usr/local/bin/node" && args[7] == "-e" {
+			if args[5] != strings.Repeat("e", 64) || !strings.Contains(args[8], "COMMONROOM-CREDENTIAL-EXPORT-V1") {
+				return errors.New("wrong private export binding")
+			}
+			if f.mode == "refresh export failure" {
+				return errors.New("synthetic export failure")
+			}
+			if f.mode == "invalid refresh" {
+				return write(`{"auth_mode":"apikey","OPENAI_API_KEY":"synthetic-not-a-key"}`)
+			}
+			if f.mode == "foreign refresh" {
+				return write(`{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic-only","account_id":"foreign"}}`)
+			}
+			return write(syntheticRefreshedCredential)
+		}
 		if args[len(args)-1] != "/opt/commonroom/tool-call.cjs" || args[len(args)-3] != strings.Repeat("d", 64) || f.audit.calls.Load() != 1 || !f.bootstrapped {
 			return errors.New("helper bypassed audited tool identity")
 		}
@@ -315,7 +332,7 @@ func serveSyntheticCodex(stream net.Conn, mode string) error {
 
 func TestOwnedCodexSyntheticCallbackAndFencedRetention(t *testing.T) {
 	t.Parallel()
-	for _, mode := range []string{"success", "forbidden callback", "intent failure", "outcome failure", "engine drop"} {
+	for _, mode := range []string{"success", "forbidden callback", "intent failure", "outcome failure", "engine drop", "refresh export failure", "invalid refresh", "foreign refresh"} {
 		t.Run(mode, func(t *testing.T) {
 			_, s, _ := workspacePair(t)
 			r := s.record
@@ -361,7 +378,7 @@ func TestOwnedCodexSyntheticCallbackAndFencedRetention(t *testing.T) {
 				if mode == "intent failure" {
 					wantAudit = 1
 				}
-				if mode == "outcome failure" {
+				if mode == "outcome failure" || mode == "refresh export failure" || mode == "invalid refresh" || mode == "foreign refresh" {
 					wantAudit = 2
 					wantHelpers = 1
 				}
@@ -381,8 +398,20 @@ func TestOwnedCodexSyntheticCallbackAndFencedRetention(t *testing.T) {
 			if s.engineCredential != nil {
 				t.Fatal("fenced engine retained credential lease")
 			}
-			if workerCredentialReady(private) || credentialPresent(filepath.Join(private, "auth.json")) {
-				t.Fatal("fenced callback turn reused credentials without refreshed-token custody")
+			ready := workerCredentialReady(private) && credentialPresent(filepath.Join(private, "auth.json"))
+			if ready != (mode == "success") {
+				t.Fatal("credential custody did not match observed refresh outcome", mode)
+			}
+			saved, readErr := readPrivateBounded(filepath.Join(private, "auth.json"), 65536)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			expected := syntheticEngineCredential
+			if mode == "success" {
+				expected = syntheticRefreshedCredential
+			}
+			if string(saved) != expected {
+				t.Fatal("incorrect connection credential persisted")
 			}
 			unlock, err := lockWorkerCredential(private)
 			if err != nil {

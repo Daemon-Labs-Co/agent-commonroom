@@ -55,6 +55,15 @@ type driver struct {
 // Close MUST interrupt both stream directions; container shutdown remains the
 // supervisor's responsibility. Cancellation closes the stream without replay.
 func Run(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler) (Result, error) {
+	return RunWithFinalizer(ctx, stream, prompt, model, handler, nil)
+}
+
+// RunWithFinalizer gives trusted worker custody one bounded post-turn operation
+// before closing the attachment. It runs only after validated completion, never
+// on a provider failure. No model selects this callback. Failure withholds text;
+// cancellation still interrupts both stream directions and supervisor fencing
+// remains mandatory. The finalizer must honor ctx and keep credentials private.
+func RunWithFinalizer(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler, finalize func(context.Context) error) (Result, error) {
 	if stream == nil {
 		return Result{}, ErrProtocol
 	}
@@ -128,6 +137,12 @@ func Run(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, h
 			return Result{}, ErrProtocol
 		}
 		if done {
+			if finalize != nil && finalize(ctx) != nil {
+				return Result{}, ErrProtocol
+			}
+			if ctx.Err() != nil {
+				return Result{}, ErrProtocol
+			}
 			return d.result, nil
 		}
 	}

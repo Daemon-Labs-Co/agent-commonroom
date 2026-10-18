@@ -48,8 +48,9 @@ journal and recovery state before reading its private credential snapshot. Befor
 writing any authentication frame bytes, it atomically publishes the marker,
 fsyncs its file and parent directory, and consumes the one-shot provisioning
 attempt. Persistence failure sends no credential bytes. Partial transport failure
-keeps the marker. Releasing the lease after both-role fencing clears memory and
-the lock, but does not clear token uncertainty.
+keeps the marker. Releasing the lease after both-role fencing clears memory and the lock. Token
+uncertainty clears only if a valid final snapshot is durably saved; absence alone
+still does not establish custody.
 
 Status and the existing isolated execution preparation path also refuse a marked
 credential. Status is an observation rather than execution authority: later
@@ -96,10 +97,20 @@ blocking, retained-source recovery, connection isolation, persistence ordering,
 status/UI handling and combined callback shutdown paths. No real provider or
 Docker workload is launched.
 
-Automatic refreshed-token export from the separated engine is **not implemented**.
-Every provisioned internal engine turn therefore leaves recovery required until an
-explicit new sign-in. This safely blocks unattended reuse; it does not complete
-the credential-renewal P0 gate or enable public repository-development dispatch.
-Live provider refresh, cross-process crash behavior and deployment acceptance
-remain outstanding. The prepared P0 catalog remains pending rather than receiving
-a canned passing adapter.
+The internal separated-engine turn now captures a final private credential after
+its reviewed provider child closes, then persists it only after both containers
+are fenced and matching absence evidence is read back from the durable journal.
+A successful commit clears recovery without a new sign-in. See the
+[private custody protocol](engine-credential-custody.md) for ordering and limits.
+
+Failed/interrupted turns or invalid/unavailable exports retain recovery. An
+unpublished absence record keeps the lease and snapshot for later reconciliation.
+Persistence failure releases only safely fenced execution custody, preserves the
+recovery requirement where the replacement was not durably committed, and never
+acknowledges success. The engine image must be rebuilt, reviewed and pinned for
+this new export protocol; old images fail closed rather than falling back.
+
+Four credential acceptance drivers now exercise real custody operations with
+mocked external boundaries. Live provider refresh, cross-process crash behavior
+and deployment acceptance remain outstanding. This does not enable public
+repository-development dispatch or complete all P0 gates.

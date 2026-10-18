@@ -29,4 +29,4 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Signature: `func() toolbroker.Scope`.
 - **`(*workerCodexEngine).Turn`** — Turn connects the inspected running engine to the original tool session. Invoke inside supervisor.Run's turn callback so all outcomes receive fenced shutdown. Neither model arguments nor public requests select the stream/ID.
   Signature: `func(ctx context.Context, s *workerPairSupervisor, session *toolbroker.ToolSession, token, prompt, model string) (codexbridge.Result, error)`.
-  Calls: `e.credential.Provision`, `e.gateway.ready`, `e.runtime.Attach`, `s.CodexTurn`, `s.available`, `s.cancel`, `s.mu.Lock`, `s.mu.Unlock`, `session.Scope`, `stream.Close`, `validWorkerAuditScope`.
+  Calls: `clear`, `e.credential.Provision`, `e.credential.StageRefresh`, `e.gateway.ready`, `e.runtime.Attach`, `e.runtime.ExportCredential`, `s.available`, `s.cancel`, `s.codexTurn`, `s.mu.Lock`, `s.mu.Unlock`, `session.Scope`, `stream.Close`, `validWorkerAuditScope`.

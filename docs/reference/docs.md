@@ -134,6 +134,12 @@ Development guide — documentation.
 
 Reviewed engine-container runtime — documentation.
 
+## docs/engine-credential-custody.md
+
+[Open source](../../docs/engine-credential-custody.md)
+
+Private engine credential custody — documentation.
+
 ## docs/execution-budgets.md
 
 [Open source](../../docs/execution-budgets.md)

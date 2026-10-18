@@ -11,4 +11,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `bytes.NewReader`, `bytes.TrimSpace`, `decoder.Decode`, `decoder.More`, `decoder.Token`, `json.Delim`, `json.NewDecoder`, `json.Unmarshal`, `len`, `strictjson.ValidEncoding`, `string`.
 - **`(*workerPairSupervisor).CodexTurn`** — CodexTurn drives only the reviewed isolated app-server stream after startup. Engine process creation, controlled configuration and fencing are separate required boundaries. No codex exec, host tool, resume or API billing fallback is offered. A source fork CAN substitute stream/dispatcher, BUT loses isolation.
   Signature: `func(ctx context.Context, session *toolbroker.ToolSession, token string, stream io.ReadWriteCloser, prompt, model string) (codexbridge.Result, error)`.
-  Calls: `cancel`, `codexbridge.Run`, `context.AfterFunc`, `context.WithDeadline`, `repositoryDigestPattern.MatchString`, `s.available`, `s.cancel`, `s.mu.Lock`, `s.mu.Unlock`, `session.Dispatcher.Dispatch`, `session.Scope`, `stop`, `validWorkerAuditScope`, `workerCodexToolRequest`.
+  Calls: `s.codexTurn`.
+- **`(*workerPairSupervisor).codexTurn`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
+  Signature: `func(ctx context.Context, session *toolbroker.ToolSession, token string, stream io.ReadWriteCloser, prompt, model string, finalize func(context.Context) error) (codexbridge.Result, error)`.
+  Calls: `cancel`, `codexbridge.RunWithFinalizer`, `context.AfterFunc`, `context.WithDeadline`, `repositoryDigestPattern.MatchString`, `s.available`, `s.cancel`, `s.mu.Lock`, `s.mu.Unlock`, `session.Dispatcher.Dispatch`, `session.Scope`, `stop`, `validWorkerAuditScope`, `workerCodexToolRequest`.
