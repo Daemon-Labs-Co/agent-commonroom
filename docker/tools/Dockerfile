@@ -29,10 +29,12 @@ FROM ${NODE_IMAGE}
 # The reviewed Linux Node base must provide this exact path and no baked secrets.
 # Pinning alone does not establish provenance or absence of provider credentials.
 RUN test -x /usr/local/bin/node \
+ && test -x /bin/mkdir \
  && test -x /usr/bin/git \
  && mkdir -p /opt/commonroom /workspace \
  && chown 1000:1000 /workspace \
  && chmod 0755 /opt/commonroom /workspace
+COPY --from=build /usr/local/go/ /usr/local/go/
 COPY --from=build --chmod=0555 /out/tool-helper /opt/commonroom/tool-helper
 COPY --from=build --chmod=0555 /out/workspace-bootstrap /opt/commonroom/workspace-bootstrap
 COPY --chmod=0444 docker/tools/tool-call.cjs /opt/commonroom/tool-call.cjs

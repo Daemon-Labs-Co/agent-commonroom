@@ -11,7 +11,9 @@ It must run over the reviewed isolated engine stream with a fresh controlled hom
 
 One invocation initializes the app-server client, starts one ephemeral thread,
 then starts one model turn. It provides exactly one nondeferred dynamic function,
-`commonroom_tool`, with read/write workspace arguments. The thread requests
+`commonroom_tool`, with read/write workspace arguments by default. An explicitly
+admitted [isolated command session](isolated-commands.md) also advertises its
+fixed terminal Go profiles. The thread requests
 read-only sandbox policy, no native approval grants, fixed engine cwd and no
 provider/model fallback. The returned thread policy is checked before the turn.
 No resume, fork, configuration mutation, external MCP, native shell/patch or
@@ -28,7 +30,7 @@ The supervisor's `CodexTurn` accepts only its originally assembled ToolSession
 after pair startup, for the Codex provider, and permits one invocation. It binds
 the model's operation/path/content to the trusted scope, call ID and privately
 held capability before calling the session Dispatcher. Model arguments containing
-capability, scope, Docker options, command execution, unexpected fields, aliases
+capability, scope, Docker options, arbitrary commands, unexpected fields, aliases
 or duplicate fields are refused. The capability never appears in the model's
 schema, app-server request or thread input.
 
@@ -44,7 +46,8 @@ most 8 MiB/2,048 frames, prebinding queue at most 16 messages, tool callbacks at
 most 64, and final/tool result text at most 16 KiB. JSON nesting is bounded and
 duplicate keys are refused before typed decoding. Broker permissions, action
 budgets and path containment independently apply and may be stricter. Current
-container tools implement read/write only; commands and patch are still refused.
+file helper implements read/write only. Opt-in terminal commands use a separate
+trusted worker capture path; patch and arbitrary commands are still refused.
 
 The owned engine stream closes on success, protocol refusal or cancellation.
 Its Close must interrupt reads/writes. A protocol failure cancels the original

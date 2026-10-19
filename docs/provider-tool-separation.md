@@ -102,7 +102,9 @@ roots are refused. Writes cap content at 64 KiB, require existing parents, creat
 an exclusive temporary inode, sync it and atomically rename through the pinned
 parent. Existing files are not truncated in place. New files use 0644; existing
 ordinary permission bits are preserved without set-ID bits. ACL/xattr migration,
-directory creation, range reads, patching and commands are not provided.
+directory creation, range reads, patching and commands are not provided by this
+file helper. Separately admitted [terminal Go commands](isolated-commands.md)
+use trusted worker output capture and consume the inspected tool container.
 
 Post-rename or parent-sync uncertainty returns an unconfirmed write, never success
 or permission to retry. Namespace checks do not lock out concurrent writers;
@@ -123,7 +125,8 @@ attestation or independently observed test results.
 ## Provider adapter gates
 
 The reviewed Codex driver pins the `rust-v0.162.1` app-server protocol, uses one
-fresh read-only thread and exposes only `commonroom_tool` read/write callbacks.
+fresh read-only thread and exposes only `commonroom_tool` callbacks: read/write
+by default, or the separately granted opt-in terminal Go command profiles.
 It refuses native execution requests, mismatched identifiers and unknown protocol
 outcomes. The engine disables host discovery, hooks, plugins and browser paths
 through its fixed reviewed bootstrap. See [callback driver](codex-callback-driver.md),

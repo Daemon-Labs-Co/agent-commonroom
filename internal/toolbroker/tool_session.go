@@ -20,6 +20,7 @@ type ToolSession struct {
 	Dispatcher *Dispatcher
 	close      func()
 	scope      Scope
+	commands   bool
 }
 
 // Scope returns immutable nonsecret registration metadata, never the capability.
@@ -43,6 +44,21 @@ func (s *ToolSession) Close() {
 // After accepting basic inputs, construction owns/closes the channel on failure.
 // The raw capability is returned once for private engine delivery, never history.
 func NewToolSession(ctx context.Context, scope Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner DockerRunner) (*ToolSession, string, error) {
+	return NewToolSessionWithCommands(ctx, scope, allowed, image, dockerRoot, now, channel, runner, false)
+}
+
+// NewToolSessionWithCommands requires both the worker feature setting and a
+// separately admitted command grant. Enabled is trusted policy, never model data.
+func NewToolSessionWithCommands(ctx context.Context, scope Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner DockerRunner, enabled bool) (*ToolSession, string, error) {
+	commandGrant := false
+	for _, op := range allowed {
+		if op == "command" {
+			commandGrant = true
+		}
+	}
+	if commandGrant && !enabled {
+		return nil, "", ErrRejected
+	}
 	if ctx == nil || ctx.Err() != nil || channel == nil || runner == nil {
 		return nil, "", ErrRejected
 	}
@@ -63,7 +79,7 @@ func NewToolSession(ctx context.Context, scope Scope, allowed []string, image, d
 	if err != nil {
 		return nil, "", err
 	}
-	plan, err := NewToolContainerPlan(authority, image, now)
+	plan, err := NewToolContainerPlanWithCommands(authority, image, now, enabled)
 	if err != nil {
 		return nil, "", err
 	}
@@ -91,7 +107,7 @@ func NewToolSession(ctx context.Context, scope Scope, allowed []string, image, d
 		return nil, "", ErrRejected
 	}
 	failed = false
-	return &ToolSession{Runtime: runtime, Dispatcher: dispatcher, close: cleanup, scope: scope}, token, nil
+	return &ToolSession{Runtime: runtime, Dispatcher: dispatcher, close: cleanup, scope: scope, commands: enabled && commandGrant}, token, nil
 }
 
 // WorkspaceIntent is a lifetime-bound request for the supervisor to journal.
@@ -124,3 +140,6 @@ func (r *ToolContainerRuntime) VerifyCreated(ctx context.Context, id string) err
 	}
 	return r.verify(child, id, false)
 }
+
+// CommandsEnabled reports only an explicitly configured, separately granted capability.
+func (s *ToolSession) CommandsEnabled() bool { return s != nil && s.commands }

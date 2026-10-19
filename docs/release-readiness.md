@@ -80,3 +80,13 @@ For a release decision, run the required automated checks and record separate
 live acceptance evidence using synthetic repositories and dedicated accounts.
 Do not reuse old timing logs or a previous binary's metadata check as proof of
 the current deployment.
+
+## Internal bounded-command increment
+
+[Isolated Go commands](isolated-commands.md) now provide two opt-in, explicitly
+granted terminal command profiles, bounded trusted output capture and exact tool
+container absence before receipt release. Default sessions remain file-only.
+This is synthetic-test evidence, not live command/image acceptance. Public
+production dispatch, current-revision artifact attestation, other provider paths
+and hard aggregate storage enforcement remain blocked; no P0 gate is closed solely
+by this increment.

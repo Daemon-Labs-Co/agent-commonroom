@@ -63,7 +63,14 @@ func Run(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, h
 // on a provider failure. No model selects this callback. Failure withholds text;
 // cancellation still interrupts both stream directions and supervisor fencing
 // remains mandatory. The finalizer must honor ctx and keep credentials private.
+type Options struct{ Commands bool }
+
 func RunWithFinalizer(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler, finalize func(context.Context) error) (Result, error) {
+	return RunWithOptions(ctx, stream, prompt, model, handler, finalize, Options{})
+}
+
+// Options are admitted worker capability metadata, never model/launch options.
+func RunWithOptions(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler, finalize func(context.Context) error, options Options) (Result, error) {
 	if stream == nil {
 		return Result{}, ErrProtocol
 	}
@@ -84,6 +91,12 @@ func RunWithFinalizer(ctx context.Context, stream io.ReadWriteCloser, prompt, mo
 		return Result{}, ErrProtocol
 	}
 	schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"operation", "path"}, "properties": map[string]any{"operation": map[string]any{"type": "string", "enum": []string{"read", "write"}}, "path": map[string]string{"type": "string"}, "content": map[string]string{"type": "string"}}}
+	if options.Commands {
+		schema["required"] = []string{"operation"}
+		properties := schema["properties"].(map[string]any)
+		properties["operation"] = map[string]any{"type": "string", "enum": []string{"read", "write", "command"}}
+		properties["command"] = map[string]any{"type": "array", "items": map[string]string{"type": "string"}, "minItems": 3, "maxItems": 3}
+	}
 	params := map[string]any{"model": model, "cwd": "/tmp/commonroom-engine", "sandbox": "read-only", "approvalPolicy": "never", "ephemeral": true, "allowProviderModelFallback": false, "dynamicTools": []any{map[string]any{"type": "function", "name": "commonroom_tool", "deferLoading": false, "description": "Read or write approved isolated workspace files through the audited broker.", "inputSchema": schema}}}
 	if d.send(map[string]any{"id": 2, "method": "thread/start", "params": params}) != nil {
 		return Result{}, ErrProtocol

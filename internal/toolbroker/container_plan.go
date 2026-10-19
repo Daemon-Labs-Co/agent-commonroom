@@ -25,10 +25,12 @@ var toolImageRepository = regexp.MustCompile(`^[a-z0-9][a-z0-9./:_-]{0,254}$`)
 // arguments; there is no Docker launch, filesystem executor or host fallback.
 // A source fork CAN add engine/host mounts, BUT invalidates credential separation.
 type ToolContainerPlan struct {
-	authority *Authority
-	image     string
-	workspace atomic.Pointer[workspaceReadiness]
-	volume    atomic.Pointer[WorkspaceVolumeIdentity]
+	authority       *Authority
+	image           string
+	workspace       atomic.Pointer[workspaceReadiness]
+	volume          atomic.Pointer[WorkspaceVolumeIdentity]
+	commandsEnabled bool
+	commandUsed     atomic.Bool
 }
 
 // NewToolContainerPlan requires an approved immutable image from private worker
@@ -36,6 +38,11 @@ type ToolContainerPlan struct {
 // the operator must separately review/sign/scan the tool-only image. No provider
 // credentials may be baked into it. There is no implicit image or tag fallback.
 func NewToolContainerPlan(authority *Authority, image string, now time.Time) (*ToolContainerPlan, error) {
+	return NewToolContainerPlanWithCommands(authority, image, now, false)
+}
+
+// Commands are explicit trusted worker policy; this never grants authority.
+func NewToolContainerPlanWithCommands(authority *Authority, image string, now time.Time, enabled bool) (*ToolContainerPlan, error) {
 	if authority == nil || !validToolImage(image) {
 		return nil, ErrRejected
 	}
@@ -44,7 +51,7 @@ func NewToolContainerPlan(authority *Authority, image string, now time.Time) (*T
 	if authority.revoked || now.Before(authority.issued) || !validScope(authority.scope, now) {
 		return nil, ErrRejected
 	}
-	return &ToolContainerPlan{authority: authority, image: image}, nil
+	return &ToolContainerPlan{authority: authority, image: image, commandsEnabled: enabled}, nil
 }
 func validToolImage(image string) bool {
 	if len(image) > 327 {

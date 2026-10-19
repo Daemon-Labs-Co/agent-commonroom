@@ -188,6 +188,12 @@ Install the local controller — documentation.
 
 Interface and personal preferences — documentation.
 
+## docs/isolated-commands.md
+
+[Open source](../../docs/isolated-commands.md)
+
+Bounded isolated Go commands — documentation.
+
 ## docs/login-availability.md
 
 [Open source](../../docs/login-availability.md)

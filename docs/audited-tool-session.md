@@ -60,3 +60,10 @@ for idle EOF and cancels the original lifetime on loss. See
 [audit session supervision](worker-audit-transport.md#session-attachment-and-disconnect-supervision).
 Cancellation still requires explicit fenced container cleanup before shutdown
 or quota release can be confirmed.
+
+## Optional bounded checks
+
+The internal worker can explicitly admit one terminal Go build/test command when
+its operator flag and separate operation grant both allow it. Defaults remain
+file-only. See [isolated commands](isolated-commands.md) for configuration,
+receipt semantics, container destruction and remaining release limits.

@@ -11,7 +11,12 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `newWorkerToolSession`.
 - **`newWorkerToolSession`** — newWorkerToolSession preserves the worker-job check while sharing readiness, authority and lifetime across runtime and durable audit. Runner injection is trusted assembly/test work, never a public/model choice or host fallback.
   Signature: `func(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner toolbroker.DockerRunner) (*toolbroker.ToolSession, string, error)`.
-  Calls: `ctxJob`, `toolbroker.NewToolSession`.
+  Calls: `isolatedCommandsSetting`, `newWorkerToolSessionWithCommands`, `os.Getenv`.
+- **`newWorkerToolSessionWithCommands`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
+  Signature: `func(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner toolbroker.DockerRunner, enabled bool) (*toolbroker.ToolSession, string, error)`.
+  Calls: `ctxJob`, `toolbroker.NewToolSessionWithCommands`.
 - **`ctxJob`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context) (string, bool)`.
   Calls: `ctx.Err`, `ctx.Value`, `validWorkerJobID`.
+- **`isolatedCommandsSetting`** — Only exact deployment values are accepted; malformed opt-ins fail closed.
+  Signature: `func(value string) (enabled, valid bool)`.

@@ -12,3 +12,6 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **`TestCodexTurnRefusesBeforeReviewedPairStartup`** — Regression contract: TestCodexTurnRefusesBeforeReviewedPairStartup.
   Signature: `func(t *testing.T)`.
   Calls: `context.Background`, `s.CodexTurn`, `t.Fatal`, `t.Parallel`, `workspacePair`.
+- **`TestCodexCommandArgumentsStayWithinFixedProfiles`** — Regression contract: TestCodexCommandArgumentsStayWithinFixedProfiles.
+  Signature: `func(t *testing.T)`.
+  Calls: `json.RawMessage`, `len`, `sampleToolScope`, `strings.Repeat`, `t.Fatal`, `t.Parallel`, `workerCodexToolRequest`.

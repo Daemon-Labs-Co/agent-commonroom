@@ -160,3 +160,40 @@ func TestToolSessionConstructionFailureClosesOwnedAudit(t *testing.T) {
 		t.Fatal("failed constructor left audit link open")
 	}
 }
+
+func TestSessionCommandFlagAndGrantAreIndependent(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"off-granted", "on-granted", "on-ungranted", "off-ungranted"} {
+		t.Run(mode, func(t *testing.T) {
+			p, _, _, root, _ := inspectionFixture(t)
+			_, request := liveFixture(t)
+			enabled := strings.HasPrefix(mode, "on-")
+			granted := strings.HasSuffix(mode, "-granted")
+			allowed := []string{"read"}
+			if granted {
+				allowed = append(allowed, "command")
+			}
+			client, peer := net.Pipe()
+			defer client.Close()
+			defer peer.Close()
+			runner := mockDocker(func(context.Context, []string, []byte, io.Writer) error {
+				t.Fatal("construction launched Docker")
+				return nil
+			})
+			session, _, err := NewToolSessionWithCommands(t.Context(), request.Scope, allowed, p.image, root, time.Now(), client, runner, enabled)
+			if granted && !enabled {
+				if err != ErrRejected {
+					t.Fatal("disabled command grant accepted")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer session.Close()
+			if session.CommandsEnabled() != (enabled && granted) {
+				t.Fatal("flag granted permission")
+			}
+		})
+	}
+}

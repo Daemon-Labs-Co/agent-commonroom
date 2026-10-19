@@ -7,9 +7,12 @@ Go implementation for container plan; declarations and calls are listed below.
 Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods rather than classes.
 
 - **Type `ToolContainerPlan`**: ToolContainerPlan is trusted-supervisor policy, never a model request. It derives identities from the scoped job and exposes no caller-supplied mounts, network, environment, container names or Docker flags. It only generates arguments; there is no Docker launch, filesystem executor or host fallback. A source fork CAN add engine/host mounts, BUT invalidates credential separation.
-  Declaration: `struct { authority *Authority image string workspace atomic.Pointer[workspaceReadiness] volume atomic.Pointer[WorkspaceVolumeIdentity] }`.
+  Declaration: `struct { authority *Authority image string workspace atomic.Pointer[workspaceReadiness] volume atomic.Pointer[WorkspaceVolumeIdentity] commandsEnabled bool commandUsed atomic.Bool }`.
 - **`NewToolContainerPlan`** — NewToolContainerPlan requires an approved immutable image from private worker configuration. Pinning verifies spelling, not provenance or image contents: the operator must separately review/sign/scan the tool-only image. No provider credentials may be baked into it. There is no implicit image or tag fallback.
   Signature: `func(authority *Authority, image string, now time.Time) (*ToolContainerPlan, error)`.
+  Calls: `NewToolContainerPlanWithCommands`.
+- **`NewToolContainerPlanWithCommands`** — Commands are explicit trusted worker policy; this never grants authority.
+  Signature: `func(authority *Authority, image string, now time.Time, enabled bool) (*ToolContainerPlan, error)`.
   Calls: `authority.mu.Lock`, `authority.mu.Unlock`, `now.Before`, `validScope`, `validToolImage`.
 - **`validToolImage`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(image string) bool`.

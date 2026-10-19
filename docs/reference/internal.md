@@ -98,6 +98,22 @@ Go implementation for audit wire; declarations and calls are listed below.
 
 [Types, methods and functions](internal--toolbroker--audit_wire-go.md)
 
+## internal/toolbroker/container_command.go
+
+[Open source](../../internal/toolbroker/container_command.go)
+
+Go implementation for container command; declarations and calls are listed below.
+
+[Types, methods and functions](internal--toolbroker--container_command-go.md)
+
+## internal/toolbroker/container_command_test.go
+
+[Open source](../../internal/toolbroker/container_command_test.go)
+
+Automated regression checks for container_command; read test names for individual contracts.
+
+[Types, methods and functions](internal--toolbroker--container_command_test-go.md)
+
 ## internal/toolbroker/container_executor.go
 
 [Open source](../../internal/toolbroker/container_executor.go)
@@ -385,6 +401,22 @@ Automated regression checks for workspace_volume_cleanup; read test names for in
 Automated regression checks for workspace_volume; read test names for individual contracts.
 
 [Types, methods and functions](internal--toolbroker--workspace_volume_test-go.md)
+
+## internal/toolcommand/command.go
+
+[Open source](../../internal/toolcommand/command.go)
+
+Go implementation for command; declarations and calls are listed below.
+
+[Types, methods and functions](internal--toolcommand--command-go.md)
+
+## internal/toolcommand/command_test.go
+
+[Open source](../../internal/toolcommand/command_test.go)
+
+Automated regression checks for command; read test names for individual contracts.
+
+[Types, methods and functions](internal--toolcommand--command_test-go.md)
 
 ## internal/toolworkspace/workspace_test.go
 

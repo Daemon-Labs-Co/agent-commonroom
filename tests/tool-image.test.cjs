@@ -42,6 +42,7 @@ test('image copies only declared tool source and helper artifact, never whole tr
     'COPY internal/workspacebootstrap/bootstrap.go ./internal/workspacebootstrap/bootstrap.go',
     'COPY internal/toolworkspace/workspace_unix.go ./internal/toolworkspace/workspace_unix.go',
     'COPY internal/strictjson/encoding.go ./internal/strictjson/encoding.go',
+    'COPY --from=build /usr/local/go/ /usr/local/go/',
     'COPY --from=build --chmod=0555 /out/tool-helper /opt/commonroom/tool-helper',
     'COPY --from=build --chmod=0555 /out/workspace-bootstrap /opt/commonroom/workspace-bootstrap',
     'COPY --chmod=0444 docker/tools/tool-call.cjs /opt/commonroom/tool-call.cjs'
