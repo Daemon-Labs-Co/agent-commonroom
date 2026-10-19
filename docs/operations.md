@@ -163,7 +163,9 @@ and is configured in the trusted worker process environment using
 snapshot the policy; disabling it never disables hard deadlines or ordinary
 shutdown. The owner can configure new allocation policy in **Settings → Security → Idle agents**;
 exact registered snapshots override the legacy environment fallback in reviewed
-assembly. Public dispatch and controller idle-stop announcements remain unimplemented. Do not forward model/browser/SSH client values into this policy.
+assembly. Controller-bound idle stops require a durable acknowledgment; default-on
+`idleStopNotices` controls room notice visibility while preserving audit. Public
+dispatch, authenticated remote announcement assembly and live acceptance remain open. Do not forward model/browser/SSH client values into this policy.
 
 ## Presentation and catalog flags
 

@@ -34,6 +34,8 @@ func auditSummary(kind string, payload []byte) string {
 	name := label("name", "Agent")
 	title := label("title", "Untitled")
 	switch kind {
+	case "worker.idle_stop.announced":
+		return "Worker idle shutdown intention announced; cleanup not verified"
 	case "agents.idle_policy.updated":
 		return "Owner updated idle shutdown interval"
 	case "worker.tool.intent":

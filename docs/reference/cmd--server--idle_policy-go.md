@@ -19,5 +19,5 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Signature: `func(job room.ManagedJob) bool`.
   Calls: `pairedLifecycleVersion`.
 - **`(*workerPairSupervisor).configureJobIdle`** — configureJobIdle consumes an immutable, durably admitted controller snapshot. The reviewed authenticated assembly must pass its exact registered job, never room/model-selected data. This method grants no execution/transport authority. Omitting it in a source fork loses controller-policy enforcement; legacy local assembly retains the worker deployment default until production dispatch lands.
-  Signature: `func(job room.ManagedJob, runner toolbroker.DockerRunner) error`.
-  Calls: `errors.New`, `s.configureIdle`, `s.mu.Lock`, `s.mu.Unlock`, `sameWorkerBinding`, `validManagedJob`.
+  Signature: `func(job room.ManagedJob, runner toolbroker.DockerRunner, announce ...workerIdleAnnounce) error`.
+  Calls: `errors.New`, `len`, `s.mu.Lock`, `s.mu.Unlock`, `sameWorkerBinding`, `validManagedJob`.

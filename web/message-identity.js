@@ -1,5 +1,5 @@
 // Stable actor types outrank mutable display names. Legacy ambiguity is visible.
-function messageIdentityLabel(message){return message.actorType==='human'?'Human':message.actorType==='agent'?'Agent':'Legacy · identity not recorded'}
+function messageIdentityLabel(message){return message.actorType==='human'?'Human':message.actorType==='agent'?'Agent':message.actorType==='system'?'System':'Legacy · identity not recorded'}
 function drawMessageIdentity(){
  if(view!=='Room')return;
  for(const row of document.querySelectorAll('[data-message-id]')){

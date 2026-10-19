@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function harness(){const controls={},calls=[];let html='',submit,body;
- const target={querySelector(){return null},insertAdjacentHTML(_,value){html=value;controls['#configure-idle-policy']={};controls['#toggle-idle-policy']={}}};
+ const target={querySelector(){return null},insertAdjacentHTML(_,value){html+=value;for(const match of value.matchAll(/id="([^"]+)"/g))controls['#'+match[1]]={}}};
  const ctx=vm.createContext({view:'Settings',state:{currentActorId:'local-owner',featureFlags:{}},render(){},$(id){return id==='#main'?target:controls[id]},esc(v){return String(v).replaceAll('<','&lt;').replaceAll('"','&quot;')},form(_,value,fn){body=value;submit=fn},commit:async(...v)=>calls.push(v),refresh:async()=>{}});
  vm.runInContext(fs.readFileSync('web/idle-policy.js','utf8'),ctx);
  return {ctx,controls,calls,html:()=>html,body:()=>body,submit:d=>submit(d)};
@@ -16,4 +16,8 @@ test('interval saves exact current revision and numeric value without changing t
 });
 test('off policy keeps configuration and re-enable controls available',async()=>{
  const h=harness();h.ctx.state.featureFlags.idleAgentShutdown=false;h.ctx.drawIdlePolicySettings();assert.match(h.html(),/Idle shutdown · Off/);assert(h.controls['#configure-idle-policy']);h.controls['#toggle-idle-policy'].onclick();assert.match(h.body(),/Hard deadlines and ordinary shutdown/);await h.submit(new Map([['enabled','on']]));assert.equal(h.calls[0][0],'feature.flag.updated');assert.equal(h.calls[0][1].name,'idleAgentShutdown');assert.equal(h.calls[0][1].enabled,true);
+});
+
+test('notice visibility switch never changes the idle action policy',async()=>{
+ const h=harness();h.ctx.state.featureFlags.idleStopNotices=false;h.ctx.drawIdlePolicySettings();assert.match(h.html(),/Idle-stop notices · Off/);h.controls['#toggle-idle-notices'].onclick();assert.match(h.body(),/Audit recording remains mandatory/);await h.submit(new Map([['enabled','on']]));assert.equal(h.calls[0][0],'feature.flag.updated');assert.equal(h.calls[0][1].name,'idleStopNotices');assert.equal(h.calls[0][1].enabled,true);
 });

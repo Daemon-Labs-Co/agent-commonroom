@@ -15,6 +15,7 @@ import (
 type workerCodexRunConfig struct {
 	// Trusted authenticated controller allocation, never a model-selected override.
 	ManagedJob                         *room.ManagedJob
+	IdleAnnounce                       workerIdleAnnounce
 	EngineImage, AuthRoot, GatewayRoot string
 	Prompt, Model                      string
 }
@@ -26,6 +27,9 @@ type workerCodexRunConfig struct {
 // Validation refusal retains caller ownership; after admission all exit paths,
 // including panic, close owned resources and reconcile container identities.
 func (s *workerPairSupervisor) RunCodex(ctx context.Context, session *toolbroker.ToolSession, token string, bundle io.ReadCloser, config workerCodexRunConfig, runner toolbroker.DockerRunner) (result codexbridge.Result, record workerJobRecord, err error) {
+	if config.ManagedJob == nil && config.IdleAnnounce != nil {
+		return result, record, toolbroker.ErrRejected
+	}
 	if ctx == nil || ctx.Err() != nil || session == nil || bundle == nil || runner == nil || !repositoryDigestPattern.MatchString(token) {
 		return result, record, toolbroker.ErrRejected
 	}
@@ -38,7 +42,7 @@ func (s *workerPairSupervisor) RunCodex(ctx context.Context, session *toolbroker
 		job := *config.ManagedJob
 		// Release mu before binding the same immutable admission through its helper.
 		s.mu.Unlock()
-		if err = s.configureJobIdle(job, runner); err != nil {
+		if err = s.configureJobIdle(job, runner, config.IdleAnnounce); err != nil {
 			return result, record, err
 		}
 		s.mu.Lock()

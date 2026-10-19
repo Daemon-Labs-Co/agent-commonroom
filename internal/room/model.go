@@ -208,6 +208,7 @@ type ToolCallAudit struct {
 	OutputDigest  string `json:"outputDigest"`
 }
 type State struct {
+	IdleStopNotices    map[string]IdleStopNotice    `json:"-"`
 	AgentIdleSettings  AgentIdleSettings            `json:"agentIdleSettings"`
 	WorkspaceDisposals map[string]WorkspaceDisposal `json:"-"`
 	ManagedStorage     *ManagedStorage              `json:"-"`

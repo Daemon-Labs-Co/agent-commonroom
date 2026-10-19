@@ -75,7 +75,14 @@ Before cancellation or Docker cleanup, the supervisor persists
 persist closes admission without sending an unrecorded Docker cleanup action;
 ordinary recovery must investigate the retained resources.
 
-After a committed intention, the existing bounded `Shutdown` path cancels the
+For a controller-bound allocation, the worker next requires a durable controller
+announcement acknowledgment before cleanup. Missing, failed or ambiguous
+acknowledgment closes admission without proceeding to Docker removal through
+the idle guard. The original worker intention and unresolved resources remain
+for investigation. Legacy deployment-only internal guards retain worker-local
+evidence and do not establish controller announcement acceptance.
+
+After the required acknowledgment, the existing bounded `Shutdown` path cancels the
 supervisor, fences creator ownership, removes both roles by immutable identity
 and checks absence. It never sets workspace-disposal authority. Retained source
 keeps full job shutdown unresolved even when both containers are absent. Failed
@@ -83,10 +90,9 @@ cleanup remains unresolved, with no automatic retry, replacement or capacity
 refund. Use [worker recovery](worker-jobs.md) and separately
 [owner-reviewed disposal](workspace-disposal.md) when appropriate.
 
-The intention is durable worker-local evidence, not a controller append-only
-announcement or complete enterprise audit chain. Owner settings and immutable controller policy snapshots are implemented.
-Controller idle-stop notification, production dispatch integration and live acceptance remain
-P0 work. The worker journal must not be edited to manufacture shutdown proof.
+Controller-bound intentions now have append-only controller records and fixed
+room notices. A notice is not shutdown proof or a complete enterprise audit chain.
+Authenticated production transport assembly and live acceptance remain P0 work. The worker journal must not be edited to manufacture shutdown proof.
 
 ## Technical contract and verification
 
@@ -127,7 +133,8 @@ allocation event. Policy changes cannot rewrite those immutable fields. Legacy
 allocations with no snapshot remain readable; no history is backfilled.
 
 Reviewed authenticated assembly passes that exact registered allocation as
-`workerCodexRunConfig.ManagedJob`. `configureJobIdle` checks lifecycle, job,
+`workerCodexRunConfig.ManagedJob`, together with a trusted `IdleAnnounce` callback.
+`configureJobIdle` checks lifecycle, job,
 provider, membership, repository and deadline against the admitted supervisor
 before binding the guard. A foreign snapshot is refused before acquiring
 credentials or consuming the bundle. A valid snapshot also remains enforced if
@@ -142,3 +149,47 @@ immutable allocations, exact worker binding and Codex assembly refusal/cleanup.
 Synthetic DOM tests cover settings visibility, revisioned saves and re-enabling
 an off policy. One P0 driver verifies the unauthorized configuration boundary;
 remaining idle drivers and live browser/worker acceptance are still pending.
+
+## Idle-stop announcements
+
+`newIdleAnnouncer` binds the registered job and its initiating enabled human to a
+private trusted controller callback. Reviewed assembly supplies that callback as
+`workerCodexRunConfig.IdleAnnounce`. There is no public announcement endpoint or
+model tool; generic event commands cannot create these records.
+
+At expiry, the worker closes new turn admission, persists local intention and
+calls the announcer before cancelling its original lifetime or beginning idle
+cleanup. Acknowledgment has a fresh five-second context. The callback must honor
+that context; a source adapter that ignores it can hold closure and ownership.
+Never release ownership early or fabricate an acknowledgment to unblock it.
+Panics and missing/failed/lost acknowledgments remain uncertain and do not cause
+automatic retry or replacement. Other mandatory shutdown/recovery paths keep
+their own authority; an announcement failure cannot disable emergency fencing.
+
+The controller validates the exact job, policy snapshot, worker start/request
+instants and lifecycle identity, then appends `worker.idle_stop.announced` with
+initiator attribution and an expected journal revision. The worker request must
+follow its full recorded idle interval, precede its hard deadline and be no more
+than five seconds ahead of controller recording time. Worker start allows the
+same bounded clock skew relative to allocation. Bad scope/timing is refused.
+Actual audit persistence failure latches controller execution off; a stale
+revision conflict refuses the acknowledgment without asserting audit corruption.
+An exact already-recorded intention can be reconciled without duplicate records;
+a different intention for that job cannot reuse the acknowledgment.
+
+Room notices are fixed system text derived from the retained event, in original
+journal order. They identify the job and its recorded idle interval and explicitly
+do not verify cleanup, authorize disposal, release capacity or restart work.
+They do not dispatch agent work. The default-on `idleStopNotices` flag controls
+room delivery only. The owner can change it in **Settings → Security → Idle-stop
+notices**, immediately and without restart. Turning it off hides existing and new
+room notices; enabling it restores them. Mandatory audit recording and admitted
+cleanup remain unchanged, including when `idleAgentShutdown` is later disabled
+for new allocations.
+
+Tests combine controller audit, virtual worker expiry and mocked Docker cleanup.
+They verify acknowledgment before removal, exact replay/idempotence, concurrent
+controllers, missing callbacks, audit failure, panic, lost acknowledgment,
+source retention, visibility on/off and refused public forgery. Synthetic DOM
+tests cover the visibility control. These tests do not establish an authenticated
+remote announcement protocol, live browser behavior or deployment acceptance.
