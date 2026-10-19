@@ -144,6 +144,12 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 		job.Provider = provider
 		job.UpdatedAt = time.Now().UTC()
 		job.DiagnosticCode = "intent_recorded"
+		if paired {
+			job.Harness, err = deploymentHarnessReview(job.UpdatedAt, latest.ManagedJobs)
+			if err != nil {
+				return err
+			}
+		}
 		if !validManagedJob(job) {
 			return errors.New("invalid managed job registration")
 		}
@@ -226,7 +232,7 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 }
 
 func validManagedJob(v room.ManagedJob) bool {
-	if !validManagedIdlePolicy(v) {
+	if !validManagedIdlePolicy(v) || !validManagedHarness(v) {
 		return false
 	}
 	switch v.Version {

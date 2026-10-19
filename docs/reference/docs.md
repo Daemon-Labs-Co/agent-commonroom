@@ -152,6 +152,12 @@ Daily managed-turn budget — documentation.
 
 Extending Agent CommonRoom — documentation.
 
+## docs/harness-release-admission.md
+
+[Open source](../../docs/harness-release-admission.md)
+
+Reviewed harness release admission — documentation.
+
 ## docs/help-display.md
 
 [Open source](../../docs/help-display.md)

@@ -90,3 +90,5 @@ in a second set of setup instructions. Examples use synthetic data only.
 - [Recover uncertain worker credentials](worker-credential-recovery.md)
 
 - [Private final-credential capture and fenced persistence](engine-credential-custody.md)
+
+- [Reviewed harness release admission](harness-release-admission.md): signed release selection, deployment flag and remaining upgrade gaps.
