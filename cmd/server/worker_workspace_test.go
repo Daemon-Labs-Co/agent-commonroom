@@ -177,7 +177,13 @@ func (f *workspaceCleanupDocker) Run(ctx context.Context, args []string, in []by
 	return errors.New("unexpected volume action")
 }
 func workspaceFence(s *workerPairSupervisor) workerFenceRequest {
-	return workerFenceRequest{Version: 4, DiscardWorkspace: true, Repository: s.record.Pair.Repository, JobID: s.record.JobID, Provider: s.record.Provider, Key: pairRequest().Key}
+	request := workerFenceRequest{Version: 4, Repository: s.record.Pair.Repository, JobID: s.record.JobID, Provider: s.record.Provider, Key: pairRequest().Key}
+	if workspace := s.record.Pair.Workspace; workspace != nil && workspace.Identity.CreatedAt != "" {
+		copy := workspace.Identity
+		request.ExpectedWorkspace = &copy
+		request.DiscardWorkspace = true
+	}
+	return request
 }
 func newWorkspaceCleanup(t *testing.T, s *workerPairSupervisor) *workspaceCleanupDocker {
 	t.Helper()
@@ -253,6 +259,7 @@ func TestWorkspaceCancellationCannotDowngrade(t *testing.T) {
 	request := workspaceFence(s)
 	request.Version = 3
 	request.DiscardWorkspace = false
+	request.ExpectedWorkspace = nil
 	if _, err := fenceWorkerJobContainers(t.Context(), dir, request, func(context.Context, workerJobRecord) (workerJobRecord, error) {
 		t.Fatal("legacy fence reached cleanup")
 		return workerJobRecord{}, nil
@@ -299,8 +306,15 @@ func TestWorkspaceCrashAfterCreateDiscoversOriginalVolume(t *testing.T) {
 	f := newWorkspaceCleanup(t, s)
 	s.Close()
 	record, err := fenceWorkspace(t.Context(), dir, s, f)
-	if err != nil || !record.ShutdownConfirmed || record.Pair.Workspace.Identity.CreatedAt == "" || f.removed != 1 {
-		t.Fatal("pending workspace not safely reconciled", err)
+	if err == nil || record.ShutdownConfirmed || record.Pair.Workspace.Identity.CreatedAt == "" || f.removed != 0 {
+		t.Fatal("unreviewed creation identity was discarded", err)
+	}
+	// Discovery retains data and journals the observed creation time. Only a new
+	// exact binding can authorize the subsequent synthetic disposal fixture.
+	s.record = record
+	record, err = fenceWorkspace(t.Context(), dir, s, f)
+	if err != nil || !record.ShutdownConfirmed || f.removed != 1 {
+		t.Fatal("bound workspace not safely reconciled", err)
 	}
 }
 func TestWorkspaceCancellationBeforeCreationRefusesUnknownData(t *testing.T) {
@@ -404,6 +418,7 @@ func TestWorkspaceRetainedWithoutExplicitDiscard(t *testing.T) {
 	s.Close()
 	request := workspaceFence(s)
 	request.DiscardWorkspace = false
+	request.ExpectedWorkspace = nil
 	record, err := fenceWorkerJobContainers(t.Context(), dir, request, func(ctx context.Context, v workerJobRecord) (workerJobRecord, error) {
 		return stopWorkerPair(ctx, v, f)
 	})

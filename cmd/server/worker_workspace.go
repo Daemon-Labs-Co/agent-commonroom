@@ -82,7 +82,11 @@ func stopWorkerWorkspace(ctx context.Context, v workerJobRecord, runner toolbrok
 		copy := v.Pair.Workspace.Identity
 		identity = &copy
 	}
-	discard, _ := ctx.Value(workerWorkspaceDiscardKey{}).(bool)
+	expected, _ := ctx.Value(workerWorkspaceDiscardKey{}).(*toolbroker.WorkspaceVolumeIdentity)
+	discard := expected != nil
+	if discard && (identity == nil || *expected != *identity || !toolbroker.ValidWorkspaceVolume(v.JobID, *expected, true)) {
+		return v, errors.New("workspace disposal binding changed")
+	}
 	observed, err := toolbroker.RemoveWorkspaceVolume(ctx, runner, v.JobID, v.Pair.Repository, root, identity, discard)
 	if v.Pair.Workspace != nil {
 		copy := *v.Pair.Workspace

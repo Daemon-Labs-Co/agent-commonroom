@@ -18,6 +18,6 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `errors.New`, `s.available`, `s.cancel`, `s.mu.Lock`, `s.mu.Unlock`, `time.Now`, `time.Now().UTC`, `validWorkerRecord`, `writeWorkerRecord`.
 - **`stopWorkerWorkspace`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, v workerJobRecord, runner toolbroker.DockerRunner) (workerJobRecord, error)`.
-  Calls: `ctx.Value`, `errors.New`, `filepath.Clean`, `filepath.IsAbs`, `pairCapture`, `toolbroker.RemoveWorkspaceVolume`.
+  Calls: `ctx.Value`, `errors.New`, `filepath.Clean`, `filepath.IsAbs`, `pairCapture`, `toolbroker.RemoveWorkspaceVolume`, `toolbroker.ValidWorkspaceVolume`.
 - **`sameWorkspaceEvidence`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(before, after workerJobRecord) bool`.

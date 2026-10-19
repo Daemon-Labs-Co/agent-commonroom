@@ -18,7 +18,8 @@ a cancelled model or audit connection cannot skip cleanup merely by cancelling
 its own execution context. An explicit already-cancelled cleanup context still
 refuses observations and cannot become absence proof.
 
-The existing fence path persists a cancellation tombstone, acquires the original
+The existing fence path validates any [exact disposal binding](workspace-disposal-binding.md),
+persists a cancellation tombstone, acquires the original
 job lease, validates durable version/job/provider/repository identity and
 attempts both engine and tool removal. Only inspected immutable container IDs
 are removed. Successful absence observations and final name/job inventory checks

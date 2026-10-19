@@ -49,6 +49,7 @@ they do not imply that an end-user development endpoint is enabled.
 | --- | --- |
 | Credential boundary | [Provider/tool separation](provider-tool-separation.md) |
 | Controller intent and recovery | [Managed jobs](managed-job-lifecycle.md), [atomic operations](atomic-operations.md) |
+| Workspace disposal safety | [Exact volume binding](workspace-disposal-binding.md) |
 | Pair startup and cleanup | [Paired lifecycle](worker-pairs.md), [assembly](worker-pair-assembly.md), [shutdown](worker-pair-shutdown.md) |
 | Workspace | [Volumes](workspace-volumes.md), [bootstrap](workspace-bootstrap.md), [tool runtime](tool-container-runtime.md) |
 | Bounded commands | [Isolated Go commands](isolated-commands.md) |

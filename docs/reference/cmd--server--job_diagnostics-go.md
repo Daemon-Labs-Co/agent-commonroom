@@ -11,7 +11,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `cmd.Run`, `errors.New`, `json.Unmarshal`, `len`, `newWorkerJobRecord`, `output.Bytes`, `pairedLifecycleVersion`, `validWorkerJobID`, `validWorkerRecord`, `workerSSHCommand`.
 - **`remoteFenceJob`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, alias string, request workerFenceRequest) error`.
-  Calls: `base64.RawURLEncoding.EncodeToString`, `cmd.Run`, `errors.New`, `json.Marshal`, `json.Unmarshal`, `len`, `output.Bytes`, `request.record`, `validWorkerFenceAck`, `workerSSHCommand`.
+  Calls: `base64.RawURLEncoding.EncodeToString`, `cmd.Run`, `errors.New`, `json.Marshal`, `json.Unmarshal`, `len`, `output.Bytes`, `request.record`, `validFenceWire`, `validWorkerFenceAck`, `workerSSHCommand`.
 - **`(*server).approvedSnapshot`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context) (workerJobsSnapshot, error)`.
   Calls: `errors.New`, `os.Getenv`, `remoteJobsSnapshot`, `remoteWorkerEndpoint`, `s.jobSnapshot`.

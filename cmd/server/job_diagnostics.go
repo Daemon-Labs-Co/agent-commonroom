@@ -69,7 +69,7 @@ func remoteFenceJob(ctx context.Context, alias string, request workerFenceReques
 		return errors.New("worker_shutdown_unverified")
 	}
 	var ack workerFenceAck
-	if len(output.Bytes()) > 4096 || json.Unmarshal(output.Bytes(), &ack) != nil || !validWorkerFenceAck(request, expected, ack) {
+	if len(output.Bytes()) > 4096 || !validFenceWire(output.Bytes(), true) || json.Unmarshal(output.Bytes(), &ack) != nil || !validWorkerFenceAck(request, expected, ack) {
 		return errors.New("worker_shutdown_unverified")
 	}
 	return nil

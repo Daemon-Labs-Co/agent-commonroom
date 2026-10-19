@@ -1264,6 +1264,22 @@ Automated regression checks for worker_credential_recovery; read test names for 
 
 [Types, methods and functions](cmd--server--worker_credential_recovery_test-go.md)
 
+## cmd/server/worker_disposal_binding_test.go
+
+[Open source](../../cmd/server/worker_disposal_binding_test.go)
+
+Automated regression checks for worker_disposal_binding; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--worker_disposal_binding_test-go.md)
+
+## cmd/server/worker_disposal_wire.go
+
+[Open source](../../cmd/server/worker_disposal_wire.go)
+
+Go implementation for worker disposal wire; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--worker_disposal_wire-go.md)
+
 ## cmd/server/worker_engine.go
 
 [Open source](../../cmd/server/worker_engine.go)

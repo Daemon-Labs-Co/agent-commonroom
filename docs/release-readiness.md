@@ -47,7 +47,7 @@ and [container quotas](container-quotas.md).
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
 | Idle agents | Owner-configurable shutdown after inactivity, default five minutes, without interrupting active work or discarding source. |
 | Commands and artifacts | Bounded isolated builds/tests and permission-checked, revision-bound observed evidence/artifact delivery. |
-| Approved disposal | Exact human approval, volume identity checks, absence proof and correct storage-credit release. |
+| Approved disposal | Exact internal request/receipt volume binding now exists. Public human approval, approval expiry/revocation, artifact retention, allocation integration and durable storage-credit release remain. |
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
@@ -108,3 +108,12 @@ limits, kernel cgroup values are observed, and fresh diagnostic containers/volum
 are removed with absence checks. No provider, controller audit transport or
 production dispatch was exercised; the broader live acceptance gate stays open.
 The cold test took about 107 seconds of the 120-second command allowance.
+
+## Disposal binding hardening
+
+The [internal disposal contract](workspace-disposal-binding.md) now requires the
+complete reviewed volume identity in both request and successful receipt. Stale
+bindings are rejected before effects and rechecked under creator ownership. Crash
+discovery retains data until the complete identity can be reviewed separately.
+This adds no public disposal action or storage refund; the approval/disposal P0
+gate remains open.
