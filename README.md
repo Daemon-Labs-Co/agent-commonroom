@@ -173,3 +173,7 @@ Copyright © 2026 Agent CommonRoom contributors.
 Internal worker development: [bounded isolated Go commands](docs/isolated-commands.md)
 are opt-in and require a separate operation grant. Production repository dispatch
 and live runtime acceptance remain gated.
+
+[Owner-reviewed workspace disposal](docs/workspace-disposal.md) is off by default.
+It requires a one-minute review and explicit confirmation; storage-credit release
+and live production acceptance remain pending.

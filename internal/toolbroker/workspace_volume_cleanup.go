@@ -8,7 +8,8 @@ import (
 
 // RemoveWorkspaceVolume is explicit ephemeral-workspace teardown, not retention
 // policy or audit deletion. The caller MUST hold the original creator lease and
-// prevent other managed creation until this returns. No live caller is enabled.
+// prevent other managed creation until this returns. Only an exact owner-approved
+// disposal workflow may set discard; ordinary cancellation retains data.
 // Docker supplies no immutable volume-removal ID: creation nonce/time distinguish
 // replacements, but an administrator with daemon access can still race the name.
 // Such administrators and the daemon remain trusted. Models get neither access.

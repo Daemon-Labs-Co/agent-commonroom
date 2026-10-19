@@ -44,6 +44,16 @@ func auditSummary(kind string, payload []byte) string {
 		return "Agent activity started"
 	case "agent.background":
 		return "Agent background work · " + label("stage", "update")
+	case "workspace.disposal.proposed":
+		return "Owner proposed permanent workspace disposal"
+	case "workspace.disposal.claimed":
+		return "Owner approved permanent workspace disposal"
+	case "workspace.disposal.revoked":
+		return "Owner revoked workspace disposal"
+	case "workspace.disposal.succeeded":
+		return "Workspace disposal verified"
+	case "workspace.disposal.unconfirmed":
+		return "Workspace disposal outcome unconfirmed"
 	case "storage.inventory.recorded":
 		return "Account storage inventory recorded"
 	case "storage.reserved":

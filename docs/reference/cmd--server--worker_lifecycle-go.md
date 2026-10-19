@@ -56,17 +56,17 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **`stopWorkerContainer`** — stopWorkerContainer checks the exact name and managed label, removes only that container and confirms absence. Output/errors never contain provider data.
   Signature: `func(ctx context.Context, job string) error`.
   Calls: `cmd.Run`, `errors.New`, `exec.CommandContext`, `output.String`, `strings.TrimSpace`.
-- **Type `workerFenceRequest`**: Structured data type; fields are shown in the declaration.
-  Declaration: `struct { Repository string 'json:"repository,omitempty"' DiscardWorkspace bool 'json:"discardWorkspace,omitempty"' Version int 'json:"version"' JobID string 'json:"jobId"' Provider string 'json:"provider"' Key string 'json:"key"' }`.
+- **Type `workerFenceRequest`**: DiscardWorkspace is not human approval. Destructive callers must first obtain exact current human authorization, then bind the complete observed identity. The owner review endpoint requires a durable one-shot approval first. Ordinary reconciliation never sets these.
+  Declaration: `struct { ExpectedWorkspace *toolbroker.WorkspaceVolumeIdentity 'json:"expectedWorkspace,omitempty"' Repository string 'json:"repository,omitempty"' DiscardWorkspace bool 'json:"discardWorkspace,omitempty"' Version int 'json:"version"' JobID string 'json:"jobId"' Provider string 'json:"provider"' Key string 'json:"key"' }`.
 - **`(workerFenceRequest).record`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func() (workerJobRecord, error)`.
-  Calls: `errors.New`, `newWorkerJobRecord`, `pairExecution`, `pairedLifecycleVersion`, `repositoryDigestPattern.MatchString`, `validWorkerJobID`.
+  Calls: `errors.New`, `newWorkerJobRecord`, `pairExecution`, `pairedLifecycleVersion`, `repositoryDigestPattern.MatchString`, `toolbroker.ValidWorkspaceVolume`, `validWorkerJobID`.
 - **`fenceWorkerJob`** — fenceWorkerJob tombstones before launch and proves the supervisor lease is released before acknowledging shutdown. No automatic task replay is permitted.
   Signature: `func(ctx context.Context, dir string, request workerFenceRequest, stopContainer func(context.Context, string) error) (workerJobRecord, error)`.
   Calls: `fenceWorkerJobContainers`, `stopContainer`, `stopWorkerPair`.
 - **`fenceWorkerJobContainers`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, dir string, request workerFenceRequest, stopContainers func(context.Context, workerJobRecord) (workerJobRecord, error)) (workerJobRecord, error)`.
-  Calls: `context.WithValue`, `ctx.Done`, `ctx.Err`, `errors.New`, `file.Close`, `file.Sync`, `file.WriteString`, `filepath.Join`, `info.Mode`, `info.Mode().IsRegular`, `info.Mode().Perm`, `lease.Close`, `os.IsExist`, `os.IsNotExist`, `os.Lstat`, `os.OpenFile`, `readWorkerRecord`, `request.record`, `sameWorkerFenceBinding`, `sameWorkspaceEvidence`, `stopContainers`, `syncWorkerDirectory`, `time.After`, `time.Now`, `time.Now().UTC`, `validWorkerRecord`, `workerTerminal`, `workerTryLease`, `writeWorkerRecord`.
+  Calls: `context.WithValue`, `ctx.Done`, `ctx.Err`, `errors.New`, `file.Close`, `file.Sync`, `file.WriteString`, `filepath.Join`, `info.Mode`, `info.Mode().IsRegular`, `info.Mode().Perm`, `lease.Close`, `matchesWorkspaceDisposal`, `os.IsExist`, `os.IsNotExist`, `os.Lstat`, `os.OpenFile`, `readWorkerRecord`, `request.record`, `sameWorkerFenceBinding`, `sameWorkspaceEvidence`, `stopContainers`, `syncWorkerDirectory`, `time.After`, `time.Now`, `time.Now().UTC`, `validWorkerRecord`, `workerTerminal`, `workerTryLease`, `writeWorkerRecord`.
 - **Type `workerJobView`**: Structured data type; fields are shown in the declaration.
   Declaration: `struct { workerJobRecord LeaseState string 'json:"leaseState"' }`.
 - **Type `workerJobsSnapshot`**: Structured data type; fields are shown in the declaration.
@@ -76,7 +76,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `append`, `boundedWorkerRecords`, `lease.Close`, `len`, `pairedLifecycleVersion`, `records[i].UpdatedAt.After`, `sort.Slice`, `workerJobSettled`, `workerTryLease`.
 - **`decodeFenceRequest`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(encoded string) (workerFenceRequest, error)`.
-  Calls: `base64.RawURLEncoding.DecodeString`, `decoder.Decode`, `decoder.DisallowUnknownFields`, `errors.New`, `json.NewDecoder`, `len`, `new`, `request.record`, `string`, `strings.NewReader`.
+  Calls: `base64.RawURLEncoding.DecodeString`, `decoder.Decode`, `decoder.DisallowUnknownFields`, `errors.New`, `json.NewDecoder`, `len`, `new`, `request.record`, `string`, `strings.NewReader`, `validFenceWire`.
 - **`workerRuntimeReady`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context) error`.
   Calls: `cmd.Run`, `dockerSecurityReady`, `errors.New`, `exec.CommandContext`, `host.String`, `info.Bytes`, `os.Getenv`, `strings.HasPrefix`, `strings.TrimSpace`.
@@ -85,3 +85,5 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `v.Deadline.After`, `v.StartedAt.IsZero`, `v.UpdatedAt.IsZero`, `validWorkerJobID`, `validWorkerPair`, `workerMembership`.
 - **`sameWorkerFenceBinding`** — Pair cancellation is a separate versioned contract. Legacy requests may not reinterpret a pair as one container, including across mixed worker binaries.
   Signature: `func(record, expected workerJobRecord) bool`.
+- **`matchesWorkspaceDisposal`** — Validate both before the cancellation tombstone and again under the creator lease. A stale identity may not cancel/delete a different retained workspace.
+  Signature: `func(request workerFenceRequest, record workerJobRecord) bool`.

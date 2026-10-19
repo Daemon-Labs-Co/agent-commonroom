@@ -24,6 +24,7 @@ internal tested components and remaining release gates. The
 | Start from a process template | [Workflow templates](workflow-templates.md) |
 | Run a supported sequential workflow | [Workflow execution](workflow-execution.md) |
 | Interpret status, stop or recover an agent | [Agent activity and recovery](agent-activity.md) |
+| Review permanent deletion of a stopped workspace | [Owner-reviewed disposal](workspace-disposal.md) |
 | Find decisions and understand retention | [History](history.md) |
 | Edit company reporting relationships | [Organization chart](organization.md) |
 | Adjust profiles and display preferences | [Interface preferences](interface.md), [Help display](help-display.md) |
@@ -49,6 +50,7 @@ they do not imply that an end-user development endpoint is enabled.
 | --- | --- |
 | Credential boundary | [Provider/tool separation](provider-tool-separation.md) |
 | Controller intent and recovery | [Managed jobs](managed-job-lifecycle.md), [atomic operations](atomic-operations.md) |
+| Workspace disposal safety | [Exact volume binding](workspace-disposal-binding.md) |
 | Pair startup and cleanup | [Paired lifecycle](worker-pairs.md), [assembly](worker-pair-assembly.md), [shutdown](worker-pair-shutdown.md) |
 | Workspace | [Volumes](workspace-volumes.md), [bootstrap](workspace-bootstrap.md), [tool runtime](tool-container-runtime.md) |
 | Bounded commands | [Isolated Go commands](isolated-commands.md) |

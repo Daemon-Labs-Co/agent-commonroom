@@ -93,6 +93,7 @@ func main() {
 	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
 	mux.HandleFunc("/api/job-diagnostics", s.jobDiagnostics)
 	mux.HandleFunc("/api/job-recovery", s.jobRecovery)
+	mux.HandleFunc("/api/workspace-disposal", s.workspaceDisposal)
 	mux.HandleFunc("/api/provider-auth", s.providerAuth)
 	mux.HandleFunc("/api/connections/test", s.connectionTest)
 	editorEnabled, err := connectionEditorEnabled()

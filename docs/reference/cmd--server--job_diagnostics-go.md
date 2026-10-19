@@ -11,7 +11,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `cmd.Run`, `errors.New`, `json.Unmarshal`, `len`, `newWorkerJobRecord`, `output.Bytes`, `pairedLifecycleVersion`, `validWorkerJobID`, `validWorkerRecord`, `workerSSHCommand`.
 - **`remoteFenceJob`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, alias string, request workerFenceRequest) error`.
-  Calls: `base64.RawURLEncoding.EncodeToString`, `cmd.Run`, `errors.New`, `json.Marshal`, `json.Unmarshal`, `len`, `output.Bytes`, `request.record`, `validWorkerFenceAck`, `workerSSHCommand`.
+  Calls: `base64.RawURLEncoding.EncodeToString`, `cmd.Run`, `errors.New`, `json.Marshal`, `json.Unmarshal`, `len`, `output.Bytes`, `request.record`, `validFenceWire`, `validWorkerFenceAck`, `workerSSHCommand`.
 - **`(*server).approvedSnapshot`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context) (workerJobsSnapshot, error)`.
   Calls: `errors.New`, `os.Getenv`, `remoteJobsSnapshot`, `remoteWorkerEndpoint`, `s.jobSnapshot`.
@@ -25,7 +25,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `append`, `jobs[i].UpdatedAt.After`, `len`, `sameWorkerBinding`, `sort.Slice`, `validWorkerRecord`.
 - **`(*server).jobDiagnostics`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(w http.ResponseWriter, r *http.Request)`.
-  Calls: `boundedJobDiagnostics`, `cancel`, `context.WithTimeout`, `hasRoom`, `http.Error`, `jobsDebugEnabled`, `len`, `membershipPartPattern.MatchString`, `r.Context`, `r.URL.Query`, `r.URL.Query().Get`, `reply`, `requestActor`, `requestedRoom`, `s.approvedSnapshot`, `s.dailyTurnBudget`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `time.Now`, `time.Now().UTC`, `workerJobSettled`.
+  Calls: `boundedJobDiagnostics`, `cancel`, `context.WithTimeout`, `hasRoom`, `http.Error`, `jobsDebugEnabled`, `len`, `membershipPartPattern.MatchString`, `r.Context`, `r.URL.Query`, `r.URL.Query().Get`, `reply`, `requestActor`, `requestedRoom`, `s.approvedSnapshot`, `s.dailyTurnBudget`, `s.disposalReviews`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `time.Now`, `time.Now().UTC`, `workerJobSettled`.
 - **`(*server).jobRecovery`** — jobRecovery is a required safety operation, not a premium feature. The UI diagnostic flag does not disable server cancellation/reconciliation safeguards.
   Signature: `func(w http.ResponseWriter, r *http.Request)`.
   Calls: `auditCancel`, `cancel`, `context.Background`, `context.WithTimeout`, `http.Error`, `http.MaxBytesReader`, `json.NewDecoder`, `json.NewDecoder(r.Body).Decode`, `len`, `os.Getenv`, `r.Context`, `r.URL.Query`, `r.URL.Query().Get`, `reply`, `requestActor`, `requestedRoom`, `s.append`, `s.approvedSnapshot`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.reconcileManagedJob`, `s.tripIntegrityLocked`, `s.validCSRF`, `sameWorkerBinding`, `stop`, `strings.TrimSpace`, `validWorkerJobID`, `validWorkerRecord`.

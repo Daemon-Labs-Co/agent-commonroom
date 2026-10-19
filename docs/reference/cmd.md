@@ -850,6 +850,14 @@ Automated regression checks for p0_credential_acceptance; read test names for in
 
 [Types, methods and functions](cmd--server--p0_credential_acceptance_test-go.md)
 
+## cmd/server/p0_disposal_acceptance_test.go
+
+[Open source](../../cmd/server/p0_disposal_acceptance_test.go)
+
+Automated regression checks for p0_disposal_acceptance; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_disposal_acceptance_test-go.md)
+
 ## cmd/server/p0_storage_acceptance_test.go
 
 [Open source](../../cmd/server/p0_storage_acceptance_test.go)
@@ -1264,6 +1272,22 @@ Automated regression checks for worker_credential_recovery; read test names for 
 
 [Types, methods and functions](cmd--server--worker_credential_recovery_test-go.md)
 
+## cmd/server/worker_disposal_binding_test.go
+
+[Open source](../../cmd/server/worker_disposal_binding_test.go)
+
+Automated regression checks for worker_disposal_binding; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--worker_disposal_binding_test-go.md)
+
+## cmd/server/worker_disposal_wire.go
+
+[Open source](../../cmd/server/worker_disposal_wire.go)
+
+Go implementation for worker disposal wire; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--worker_disposal_wire-go.md)
+
 ## cmd/server/worker_engine.go
 
 [Open source](../../cmd/server/worker_engine.go)
@@ -1495,6 +1519,30 @@ Go implementation for workflows; declarations and calls are listed below.
 Automated regression checks for workflows; read test names for individual contracts.
 
 [Types, methods and functions](cmd--server--workflows_test-go.md)
+
+## cmd/server/workspace_disposal.go
+
+[Open source](../../cmd/server/workspace_disposal.go)
+
+Go implementation for workspace disposal; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--workspace_disposal-go.md)
+
+## cmd/server/workspace_disposal_state.go
+
+[Open source](../../cmd/server/workspace_disposal_state.go)
+
+Go implementation for workspace disposal state; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--workspace_disposal_state-go.md)
+
+## cmd/server/workspace_disposal_test.go
+
+[Open source](../../cmd/server/workspace_disposal_test.go)
+
+Automated regression checks for workspace_disposal; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--workspace_disposal_test-go.md)
 
 ## cmd/tool-helper/main.go
 

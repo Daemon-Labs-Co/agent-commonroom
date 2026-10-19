@@ -18,7 +18,8 @@ a cancelled model or audit connection cannot skip cleanup merely by cancelling
 its own execution context. An explicit already-cancelled cleanup context still
 refuses observations and cannot become absence proof.
 
-The existing fence path persists a cancellation tombstone, acquires the original
+The existing fence path validates any [exact disposal binding](workspace-disposal-binding.md),
+persists a cancellation tombstone, acquires the original
 job lease, validates durable version/job/provider/repository identity and
 attempts both engine and tool removal. Only inspected immutable container IDs
 are removed. Successful absence observations and final name/job inventory checks
@@ -38,8 +39,9 @@ and return; they must never launch provider work outside the reviewed engine.
 Ordinary stop and normal completion do not authorize workspace discard.
 `Shutdown` deliberately leaves the discard bit unset. A present workspace is
 retained, even after both containers have been removed, and full lifecycle
-shutdown remains unconfirmed. Its reservation stays unresolved until the approved
-retention/discard workflow and reconciliation complete. No restart, workspace
+shutdown remains unconfirmed. Its reservation stays unresolved until [owner-reviewed disposal](workspace-disposal.md)
+and reconciliation complete. Storage capacity remains charged until its separate
+credit-release workflow is implemented. No restart, workspace
 adoption or owner-role destructive bypass is provided.
 
 `Run` preserves both model/startup failure and cleanup failure in its returned

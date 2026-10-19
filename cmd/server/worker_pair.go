@@ -497,14 +497,15 @@ func stopWorkerPair(ctx context.Context, v workerJobRecord, runner toolbroker.Do
 // Pair acknowledgements bind execution kind and repository as well as scope.
 // Version-2 replies cannot settle a version-3 cancellation request.
 type workerFenceAck struct {
-	Version               int    `json:"version"`
-	JobID                 string `json:"jobId"`
-	Scope                 string `json:"scope"`
-	Stopped               bool   `json:"stopped"`
-	CancellationRequested bool   `json:"cancellationRequested"`
-	Execution             string `json:"execution,omitempty"`
-	Repository            string `json:"repository,omitempty"`
-	WorkspaceRemoved      bool   `json:"workspaceRemoved,omitempty"`
+	DiscardedWorkspace    *toolbroker.WorkspaceVolumeIdentity `json:"discardedWorkspace,omitempty"`
+	Version               int                                 `json:"version"`
+	JobID                 string                              `json:"jobId"`
+	Scope                 string                              `json:"scope"`
+	Stopped               bool                                `json:"stopped"`
+	CancellationRequested bool                                `json:"cancellationRequested"`
+	Execution             string                              `json:"execution,omitempty"`
+	Repository            string                              `json:"repository,omitempty"`
+	WorkspaceRemoved      bool                                `json:"workspaceRemoved,omitempty"`
 }
 
 func workerFenceAcknowledgement(request workerFenceRequest, record workerJobRecord) workerFenceAck {
@@ -515,9 +516,24 @@ func workerFenceAcknowledgement(request workerFenceRequest, record workerJobReco
 	if request.Version == workerWorkspaceLifecycleVersion {
 		ack.WorkspaceRemoved = record.ShutdownConfirmed && record.Pair != nil && (record.Pair.Workspace == nil || record.Pair.Workspace.Removed)
 	}
+	if request.DiscardWorkspace && ack.WorkspaceRemoved && matchesWorkspaceDisposal(request, record) {
+		copy := record.Pair.Workspace.Identity
+		ack.DiscardedWorkspace = &copy
+	}
 	return ack
 }
 func validWorkerFenceAck(request workerFenceRequest, expected workerJobRecord, ack workerFenceAck) bool {
+	if _, err := request.record(); err != nil {
+		return false
+	}
+	if request.DiscardWorkspace {
+		if ack.DiscardedWorkspace == nil || *ack.DiscardedWorkspace != *request.ExpectedWorkspace {
+			return false
+		}
+	} else if ack.DiscardedWorkspace != nil {
+		return false
+	}
+
 	if ack.Version != request.Version || ack.JobID != expected.JobID || ack.Scope != expected.Scope || !ack.Stopped {
 		return false
 	}

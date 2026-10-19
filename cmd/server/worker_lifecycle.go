@@ -1,6 +1,7 @@
 package main
 
 import (
+	"agentroom/internal/toolbroker"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -308,16 +309,29 @@ func stopWorkerContainer(ctx context.Context, job string) error {
 	return errors.New("container shutdown unverified")
 }
 
+// DiscardWorkspace is not human approval. Destructive callers must first obtain
+// exact current human authorization, then bind the complete observed identity.
+// The owner review endpoint requires a durable one-shot approval first.
+// Ordinary reconciliation never sets these.
 type workerFenceRequest struct {
-	Repository       string `json:"repository,omitempty"`
-	DiscardWorkspace bool   `json:"discardWorkspace,omitempty"`
-	Version          int    `json:"version"`
-	JobID            string `json:"jobId"`
-	Provider         string `json:"provider"`
-	Key              string `json:"key"`
+	ExpectedWorkspace *toolbroker.WorkspaceVolumeIdentity `json:"expectedWorkspace,omitempty"`
+	Repository        string                              `json:"repository,omitempty"`
+	DiscardWorkspace  bool                                `json:"discardWorkspace,omitempty"`
+	Version           int                                 `json:"version"`
+	JobID             string                              `json:"jobId"`
+	Provider          string                              `json:"provider"`
+	Key               string                              `json:"key"`
 }
 
 func (v workerFenceRequest) record() (workerJobRecord, error) {
+	if v.DiscardWorkspace {
+		if v.Version != workerWorkspaceLifecycleVersion || v.ExpectedWorkspace == nil || !toolbroker.ValidWorkspaceVolume(v.JobID, *v.ExpectedWorkspace, true) {
+			return workerJobRecord{}, errors.New("exact workspace disposal binding required")
+		}
+	} else if v.ExpectedWorkspace != nil {
+		return workerJobRecord{}, errors.New("unexpected workspace disposal binding")
+	}
+
 	if (v.DiscardWorkspace && v.Version != workerWorkspaceLifecycleVersion) || (v.Version != 2 && !pairedLifecycleVersion(v.Version)) || !validWorkerJobID(v.JobID) || (v.Provider != "codex" && v.Provider != "claude") || (v.Version == 2 && v.Repository != "") || (pairedLifecycleVersion(v.Version) && !repositoryDigestPattern.MatchString(v.Repository)) {
 		return workerJobRecord{}, errors.New("invalid cancellation binding")
 	}
@@ -345,18 +359,27 @@ func fenceWorkerJobContainers(ctx context.Context, dir string, request workerFen
 	if ctx == nil || ctx.Err() != nil || stopContainers == nil {
 		return workerJobRecord{}, errors.New("worker cancellation context unavailable")
 	}
+	// Snapshot pointer input before asynchronous lease waiting. The caller must
+	// not mutate inputs during this invocation.
+	if request.ExpectedWorkspace != nil {
+		copy := *request.ExpectedWorkspace
+		request.ExpectedWorkspace = &copy
+	}
 	expected, err := request.record()
 	if err != nil {
 		return expected, err
 	}
 	existing, err := readWorkerRecord(dir, request.JobID)
-	if err == nil && !sameWorkerFenceBinding(existing, expected) {
+	if err == nil && (!sameWorkerFenceBinding(existing, expected) || !matchesWorkspaceDisposal(request, existing)) {
 		return expected, errors.New("worker cancellation binding mismatch")
 	}
 	if err != nil {
 		if _, statErr := os.Lstat(filepath.Join(dir, request.JobID+".json")); !os.IsNotExist(statErr) {
 			return expected, errors.New("worker record is unverified")
 		}
+	}
+	if err != nil && request.DiscardWorkspace {
+		return expected, errors.New("workspace disposal journal unavailable")
 	}
 	latch := filepath.Join(dir, request.JobID+".cancel")
 	file, err := os.OpenFile(latch, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
@@ -395,7 +418,7 @@ func fenceWorkerJobContainers(ctx context.Context, dir string, request workerFen
 				record = expected
 				missing = true
 			}
-			if !sameWorkerFenceBinding(record, expected) {
+			if !sameWorkerFenceBinding(record, expected) || !matchesWorkspaceDisposal(request, record) {
 				return expected, errors.New("worker cancellation binding mismatch")
 			}
 			if missing {
@@ -404,9 +427,9 @@ func fenceWorkerJobContainers(ctx context.Context, dir string, request workerFen
 				}
 			}
 			cleanupCtx := context.WithValue(ctx, workerCleanupOwnershipKey{}, true)
-			cleanupCtx = context.WithValue(cleanupCtx, workerWorkspaceDiscardKey{}, request.DiscardWorkspace)
+			cleanupCtx = context.WithValue(cleanupCtx, workerWorkspaceDiscardKey{}, request.ExpectedWorkspace)
 			stopped, stopErr := stopContainers(cleanupCtx, record)
-			if !sameWorkerFenceBinding(stopped, expected) || !sameWorkspaceEvidence(record, stopped) {
+			if !sameWorkerFenceBinding(stopped, expected) || !sameWorkspaceEvidence(record, stopped) || !matchesWorkspaceDisposal(request, stopped) {
 				return record, errors.New("shutdown changed worker binding")
 			}
 			record = stopped
@@ -444,7 +467,7 @@ func fenceWorkerJobContainers(ctx context.Context, dir string, request workerFen
 		// Removal can interrupt a still-held supervisor, but a missing container alone
 		// never counts as stopped: keep waiting for the lease to be released.
 		active, readErr := readWorkerRecord(dir, request.JobID)
-		if readErr != nil || !sameWorkerFenceBinding(active, expected) {
+		if readErr != nil || !sameWorkerFenceBinding(active, expected) || !matchesWorkspaceDisposal(request, active) {
 			return expected, errors.New("active worker binding unverified")
 		}
 		if _, err = stopContainers(ctx, active); err != nil {
@@ -515,8 +538,8 @@ func decodeFenceRequest(encoded string) (workerFenceRequest, error) {
 		return request, errors.New("oversized cancellation request")
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(encoded)
-	if err != nil {
-		return request, err
+	if err != nil || !validFenceWire(raw, false) {
+		return request, errors.New("invalid cancellation request")
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(raw)))
 	decoder.DisallowUnknownFields()
@@ -585,4 +608,13 @@ func sameWorkerFenceBinding(record, expected workerJobRecord) bool {
 		return record.Pair == nil
 	}
 	return record.Pair != nil && record.Pair.Version == expected.Pair.Version && record.Pair.Repository == expected.Pair.Repository
+}
+
+// Validate both before the cancellation tombstone and again under the creator
+// lease. A stale identity may not cancel/delete a different retained workspace.
+func matchesWorkspaceDisposal(request workerFenceRequest, record workerJobRecord) bool {
+	if !request.DiscardWorkspace {
+		return true
+	}
+	return request.ExpectedWorkspace != nil && record.Pair != nil && record.Pair.Workspace != nil && *request.ExpectedWorkspace == record.Pair.Workspace.Identity
 }

@@ -45,7 +45,7 @@ weaken recovery checks. Version-4 acknowledgements require workspace removal
 proof as well as both-container shutdown. Legacy requests/acknowledgements cannot
 settle a workspace-bearing job. No work is restarted.
 
-The worker tombstones cancellation first. While the creator lease remains held,
+After validating any exact disposal binding, the worker tombstones cancellation. While the creator lease remains held,
 it may stop engine/tool containers but cannot remove the workspace or confirm
 cleanup. Only after acquiring creator ownership does it inspect the approved
 local daemon's data root and reconcile the volume.
@@ -53,19 +53,22 @@ local daemon's data root and reconcile the volume.
 Removal requires verified name, nonce, creation time, labels, local driver,
 canonical mountpoint and absent driver options. A successful all-container query
 must show no references to the volume. Identity is checked again immediately
-before removal. With explicit trusted `discardWorkspace:true` authorization, the worker removes
+before removal. A trusted `discardWorkspace:true` instruction additionally requires
+a complete `expectedWorkspace` matching the reviewed identity; the boolean alone
+is refused. See [exact disposal binding](workspace-disposal-binding.md). The worker removes
 only the intended ephemeral volume, then
 requires successful name and job-workspace inventory showing absence. A daemon
 error, unknown extra workspace, in-use volume, replacement or partial removal
 stays unresolved and continues blocking that membership.
 
 Ordinary cancellation does **not** authorize erasing unfinished source. The
-worker protocol's `discardWorkspace` bit defaults false and is refused by older
-protocol versions. A present workspace stays retained/unresolved without that
+worker protocol's `discardWorkspace` bit defaults false. Complete identity
+binding is mandatory for destructive requests, and incompatible workers refuse it. A present workspace stays retained/unresolved without that
 explicit authority; an already absent workspace may still be reconciled safely.
 The current HTTP recovery route never grants this bit, so its existing stop UI
-cannot silently erase workspace data. The future action-specific human approval
-or artifact-retention workflow must authorize discard before public release.
+cannot silently erase workspace data. The separate [owner review workflow](workspace-disposal.md)
+requires a one-minute proposal, exact confirmation and durable claim before
+sending an exact discard request. Storage-credit release remains pending.
 
 Explicit trusted discard affects only that job's ephemeral tool workspace,
 including unfinished edits. It never removes the approved host snapshot,

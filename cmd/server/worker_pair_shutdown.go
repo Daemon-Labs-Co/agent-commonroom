@@ -36,7 +36,7 @@ func (s *workerPairSupervisor) Shutdown(ctx context.Context, runner toolbroker.D
 	request := workerFenceRequest{Version: original.Version, JobID: original.JobID, Provider: original.Provider, Repository: original.Pair.Repository, Key: strings.Join([]string{original.RoomID, original.ParticipantID, original.ConnectionID, "worker"}, "/")}
 	// Deliberately do not populate DiscardWorkspace: cancellation and normal exit
 	// do not authorize destructive workspace deletion. Present workspaces remain
-	// unresolved until the separately approved retention/discard workflow exists.
+	// unresolved until the owner explicitly approves their exact disposal.
 	result, err := fenceWorkerJobContainers(cleanup, dir, request, func(ctx context.Context, record workerJobRecord) (workerJobRecord, error) {
 		return stopWorkerPair(ctx, record, runner)
 	})

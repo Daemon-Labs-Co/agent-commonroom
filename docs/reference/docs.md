@@ -374,6 +374,18 @@ Workflow templates — documentation.
 
 Credential-free workspace bootstrap — documentation.
 
+## docs/workspace-disposal-binding.md
+
+[Open source](../../docs/workspace-disposal-binding.md)
+
+Exact workspace disposal binding — documentation.
+
+## docs/workspace-disposal.md
+
+[Open source](../../docs/workspace-disposal.md)
+
+Owner-reviewed workspace disposal — documentation.
+
 ## docs/workspace-volumes.md
 
 [Open source](../../docs/workspace-volumes.md)

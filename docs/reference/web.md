@@ -336,6 +336,8 @@ JavaScript implementation for job diagnostics; named functions are indexed below
 - `refreshJobDiagnostics`: named function; inspect the source for parameters, callbacks and effects.
 - `openJobDiagnostics`: named function; inspect the source for parameters, callbacks and effects.
 - `drawJobDiagnostics`: named function; inspect the source for parameters, callbacks and effects.
+- `workspaceDisposalMarkup`: named function; inspect the source for parameters, callbacks and effects.
+- `bindWorkspaceDisposalButtons`: named function; inspect the source for parameters, callbacks and effects.
 
 ## web/message-identity.js
 

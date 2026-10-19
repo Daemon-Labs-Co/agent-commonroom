@@ -38,7 +38,10 @@ Six storage scenarios now drive real controller reservation methods, transaction
 journal appends and replay against the in-memory database adapter: exact boundary,
 one byte over, concurrent last byte, retained categories, negative reservation and
 no owner/paid/diagnostic bypass. They verify accounting, not physical disk quotas
-or a production launch path. Sixty-four scenarios remain unbound.
+or a production launch path. Three disposal refusal scenarios now drive the authenticated owner HTTP boundary:
+missing approval, unauthorized human and changed volume identity. They observe
+journal/worker-call/ledger state. Positive disposal remains unbound because its
+contract includes storage credit release. Sixty-one scenarios remain unbound.
 
 Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation
@@ -54,7 +57,7 @@ status report.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 64 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 61 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.

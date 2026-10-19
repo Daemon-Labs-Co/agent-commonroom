@@ -73,12 +73,13 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Signature: `func(ctx context.Context, v workerJobRecord, runner toolbroker.DockerRunner) (workerJobRecord, error)`.
   Calls: `errors.New`, `inspectPairIdentity`, `pairCapture`, `pairContainerName`, `pairInventory`, `stopWorkerWorkspace`, `toolbroker.StopContainer`, `validWorkerJobID`, `validWorkerPair`.
 - **Type `workerFenceAck`**: Pair acknowledgements bind execution kind and repository as well as scope. Version-2 replies cannot settle a version-3 cancellation request.
-  Declaration: `struct { Version int 'json:"version"' JobID string 'json:"jobId"' Scope string 'json:"scope"' Stopped bool 'json:"stopped"' CancellationRequested bool 'json:"cancellationRequested"' Execution string 'json:"execution,omitempty"' Repository string 'json:"repository,omitempty"' WorkspaceRemoved bool 'json:"workspaceRemoved,omitempty"' }`.
+  Declaration: `struct { DiscardedWorkspace *toolbroker.WorkspaceVolumeIdentity 'json:"discardedWorkspace,omitempty"' Version int 'json:"version"' JobID string 'json:"jobId"' Scope string 'json:"scope"' Stopped bool 'json:"stopped"' CancellationRequested bool 'json:"cancellationRequested"' Execution string 'json:"execution,omitempty"' Repository string 'json:"repository,omitempty"' WorkspaceRemoved bool 'json:"workspaceRemoved,omitempty"' }`.
 - **`workerFenceAcknowledgement`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(request workerFenceRequest, record workerJobRecord) workerFenceAck`.
+  Calls: `matchesWorkspaceDisposal`.
 - **`validWorkerFenceAck`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(request workerFenceRequest, expected workerJobRecord, ack workerFenceAck) bool`.
-  Calls: `pairExecution`, `pairedLifecycleVersion`.
+  Calls: `pairExecution`, `pairedLifecycleVersion`, `request.record`.
 - **`validWorkerRecord`** — Versions 3/4 cannot be interpreted as a version-2 single job; version 4 additionally prevents old container-only readers ignoring workspace cleanup. Reuse common scalar validation only after checking the actual pair evidence.
   Signature: `func(v workerJobRecord) bool`.
   Calls: `pairedLifecycleVersion`, `validV2WorkerRecord`, `validWorkerPair`.

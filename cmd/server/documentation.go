@@ -51,6 +51,8 @@ var documentationCatalog = []documentationEntry{
 	{"worker-audit-transport", "Private worker audit transport", "docs/worker-audit-transport.md"},
 	{"audited-tool-session", "Shared audited tool session", "docs/audited-tool-session.md"},
 	{"live-tool-acceptance", "Tool-only live acceptance evidence", "docs/live-tool-acceptance.md"},
+	{"workspace-disposal", "Owner-reviewed workspace disposal", "docs/workspace-disposal.md"},
+	{"workspace-disposal-binding", "Exact workspace disposal binding", "docs/workspace-disposal-binding.md"},
 	{"storage-accounting", "Managed storage accounting", "docs/storage-accounting.md"},
 	{"isolated-commands", "Bounded isolated Go commands", "docs/isolated-commands.md"},
 	{"tool-container-runtime", "Constrained tool-container launch", "docs/tool-container-runtime.md"},

@@ -47,12 +47,12 @@ and [container quotas](container-quotas.md).
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
 | Idle agents | Owner-configurable shutdown after inactivity, default five minutes, without interrupting active work or discarding source. |
 | Commands and artifacts | Bounded isolated builds/tests and permission-checked, revision-bound observed evidence/artifact delivery. |
-| Approved disposal | Exact human approval, volume identity checks, absence proof and correct storage-credit release. |
+| Approved disposal | Exact internal request/receipt volume binding now exists. Owner review, one-minute delay, expiry/revocation and one-shot claims are implemented off by default. Storage-credit identity binding/release, artifact integration and live approval acceptance remain. |
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Four credential-custody and six storage-accounting scenarios now
-have production-backed hermetic drivers; 64 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+prepared scenarios. Four credential-custody, six storage-accounting and three disposal-refusal scenarios now
+have production-backed hermetic drivers; 61 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
 still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0
@@ -108,3 +108,22 @@ limits, kernel cgroup values are observed, and fresh diagnostic containers/volum
 are removed with absence checks. No provider, controller audit transport or
 production dispatch was exercised; the broader live acceptance gate stays open.
 The cold test took about 107 seconds of the 120-second command allowance.
+
+## Disposal binding hardening
+
+The [internal disposal contract](workspace-disposal-binding.md) now requires the
+complete reviewed volume identity in both request and successful receipt. Stale
+bindings are rejected before effects and rechecked under creator ownership. Crash
+discovery retains data until the complete identity can be reviewed separately.
+The owner approval flow now uses this contract. Storage-credit release and live
+approval acceptance remain open, so the disposal P0 gate is not complete.
+
+## Owner disposal approval increment
+
+[Owner-reviewed workspace disposal](workspace-disposal.md) now provides an
+off-by-default proposal/approval/revocation flow. It enforces a full review minute,
+one-hour expiry, fresh stopped-worker identity, exact confirmation and a durable
+one-shot claim. Verified outcome and container-slot release are atomic; storage
+charges are untouched. Unknown outcomes remain blocked. Three new refusal
+acceptance drivers pass, but positive disposal/credit-release and live deployment
+acceptance remain pending.

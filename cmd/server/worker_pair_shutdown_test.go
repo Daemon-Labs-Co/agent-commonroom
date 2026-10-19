@@ -20,7 +20,7 @@ func (r ownedShutdownRunner) Run(ctx context.Context, args []string, input []byt
 	if owned, _ := ctx.Value(workerCleanupOwnershipKey{}).(bool); !owned {
 		r.t.Fatal("cleanup ran before creator lease acquisition")
 	}
-	if discard, _ := ctx.Value(workerWorkspaceDiscardKey{}).(bool); discard {
+	if discard, _ := ctx.Value(workerWorkspaceDiscardKey{}).(*toolbroker.WorkspaceVolumeIdentity); discard != nil {
 		r.t.Fatal("ordinary shutdown granted workspace discard")
 	}
 	return r.runtime.Run(ctx, args, input, out)
