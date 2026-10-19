@@ -311,7 +311,8 @@ func stopWorkerContainer(ctx context.Context, job string) error {
 
 // DiscardWorkspace is not human approval. Destructive callers must first obtain
 // exact current human authorization, then bind the complete observed identity.
-// No public disposal caller exists. Ordinary reconciliation never sets these.
+// The owner review endpoint requires a durable one-shot approval first.
+// Ordinary reconciliation never sets these.
 type workerFenceRequest struct {
 	ExpectedWorkspace *toolbroker.WorkspaceVolumeIdentity `json:"expectedWorkspace,omitempty"`
 	Repository        string                              `json:"repository,omitempty"`

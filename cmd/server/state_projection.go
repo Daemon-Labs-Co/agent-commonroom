@@ -37,6 +37,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 		st.EventCount++
 		switch kind {
+		case "workspace.disposal.proposed", "workspace.disposal.claimed", "workspace.disposal.revoked", "workspace.disposal.succeeded", "workspace.disposal.unconfirmed":
+			if err := projectWorkspaceDisposal(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "storage.inventory.recorded", "storage.reserved":
 			if err := projectManagedStorage(&st, kind, data); err != nil {
 				return st, err

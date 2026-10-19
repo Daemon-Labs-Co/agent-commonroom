@@ -92,7 +92,8 @@ ledger. Missing/ambiguous enforcement must block allocation before effects.
 A filesystem usage check or Docker volume label is not a hard quota. Rootless
 Docker's plain local named volumes currently have no verified per-volume byte
 ceiling. [Disposal identity binding](workspace-disposal-binding.md) now rejects stale or
-boolean-only internal cleanup requests. The public workflow is still pending.
+boolean-only internal cleanup requests. An [owner review workflow](workspace-disposal.md)
+now records explicit approval and one-shot execution, without releasing storage credit.
 Approved disposal must bind exact human approval and physical identity,
 prove absence, then durably release the matching capacity without deleting audit
 history. Those worker/disposal contracts remain P0 work.

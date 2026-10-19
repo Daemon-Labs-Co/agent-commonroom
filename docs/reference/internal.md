@@ -18,6 +18,14 @@ Automated regression checks for bridge; read test names for individual contracts
 
 [Types, methods and functions](internal--codexbridge--bridge_test-go.md)
 
+## internal/room/disposal.go
+
+[Open source](../../internal/room/disposal.go)
+
+Go implementation for disposal; declarations and calls are listed below.
+
+[Types, methods and functions](internal--room--disposal-go.md)
+
 ## internal/room/managed_tools.go
 
 [Open source](../../internal/room/managed_tools.go)

@@ -279,4 +279,14 @@ No paired launch API is enabled. Existing version-2 chat jobs keep their origina
 protocol; neither version can be silently substituted for the other. See
 [paired worker lifecycle](worker-pairs.md) for the implementation boundary.
 
-Version-4 recovery uses `cancel-pair-workspace-v1` and requires workspace-removal evidence as well as container/lease proof. HTTP cancellation/reconciliation does not grant workspace discard authority: a present workspace remains retained/unresolved until a separate approved discard workflow is implemented. Older protocols cannot settle these records. See [workspace volumes](workspace-volumes.md).
+Version-4 recovery uses `cancel-pair-workspace-v1` and requires workspace-removal evidence as well as container/lease proof. HTTP cancellation/reconciliation does not grant workspace discard authority: a present workspace remains retained/unresolved until the separate owner-reviewed disposal workflow succeeds. Older protocols cannot settle these records. See [workspace volumes](workspace-volumes.md).
+
+### Owner-reviewed workspace disposal
+
+`GET/POST /api/workspace-disposal` is enabled-human-owner only. POST requires CSRF.
+The `workspaceDisposal` flag defaults false and blocks new proposals/approvals
+server-side. Pending revocation and history remain available when off. Actions are
+`propose` (`jobId`), `approve` (`proposalId`, exact job-ID `confirm`) and `revoke`
+(`proposalId`). The server enforces a full minute of review and one-hour expiry.
+Claimed deletion is one-shot; unknown outcomes cannot be retried. Storage credit
+is not released. See the [full contract](workspace-disposal.md).

@@ -7,3 +7,30 @@ test('feature off and non-owner hide and deny local opening',()=>{const h=harnes
 test('unknown states stay unverified, hostile labels are inert, and stopped jobs have no retry',()=>{const h=harness();const markup=h.context.jobDiagnosticMarkup({checkedAt:'2026-01-01T00:00:00Z',detail:'<script>unsafe</script>',jobs:[{jobId:'safe',provider:'<img>',status:'shutdown_unconfirmed',workerStatus:'private-output',leaseState:'unknown',updatedAt:'2026-01-01T00:00:00Z',deadline:'2026-01-01T00:00:00Z',canReconcile:false,shutdownConfirmed:false}]});assert(!markup.includes('<script>'));assert(!markup.includes('<img>'));assert(!markup.includes('private-output'));assert.match(markup,/Unverified/);assert(!markup.includes('data-job-reconcile'));assert(!markup.includes('Replay'));const stopped=h.context.jobDiagnosticMarkup({checkedAt:'2026-01-01T00:00:00Z',jobs:[{jobId:'done',provider:'codex',status:'shutdown_confirmed',shutdownConfirmed:true}]});assert(!stopped.includes('data-job-cancel'));assert(!stopped.includes('data-job-reconcile'))});
 test('late replies cannot overwrite another overlay and one pending refresh is retained',async()=>{const h=harness();let resolve;h.context.api=()=>new Promise(r=>{resolve=r});h.context.openJobDiagnostics('p');h.context.refreshJobDiagnostics(1);h.modal.close();h.content.innerHTML='another overlay';resolve({jobs:[],checkedAt:'2026-01-01T00:00:00Z',detail:'stale'});await new Promise(setImmediate);assert.equal(h.content.innerHTML,'another overlay')});
 test('daily budget is explicit, escaped and distinguishes launch units from dollars',()=>{const h=harness();const html=h.context.jobDiagnosticMarkup({jobs:[],turnBudget:{used:200,limit:200,remaining:0,resetsAt:'2026-10-14T00:00:00Z'}});assert.match(html,/200 \/ 200 allocated/);assert.match(html,/0 remaining/);assert.match(html,/not a dollar spend limit/);const hostile=h.context.jobDiagnosticMarkup({jobs:[],turnBudget:{used:'<img>',limit:2,remaining:1,resetsAt:'2026-10-14T00:00:00Z'}});assert(!hostile.includes('<img>'));});
+
+test('workspace disposal controls require owner flag and server review time',()=>{
+ const h=harness(),p={id:'proposal',status:'pending',job:{jobId:'job',participantId:'p'},workspaceName:'<unsafe>',workspaceNonce:'nonce',workspaceCreatedAt:'date',notBefore:'2026-01-01T00:01:00Z',expiresAt:'2026-01-01T01:00:00Z'};
+ let result={checkedAt:'2026-01-01T00:00:59Z',workspaceDisposalEnabled:true,workspaceDisposals:[p]};
+ let markup=h.context.workspaceDisposalMarkup(result);
+ assert.doesNotMatch(markup,/data-workspace-approve/);assert.match(markup,/data-workspace-revoke/);assert.doesNotMatch(markup,/<unsafe>/);assert.match(markup,/&lt;unsafe&gt;/);
+ result.checkedAt='2026-01-01T00:01:00Z';assert.match(h.context.workspaceDisposalMarkup(result),/data-workspace-approve/);
+ result.workspaceDisposalEnabled=false;assert.doesNotMatch(h.context.workspaceDisposalMarkup(result),/data-workspace-approve/);assert.match(h.context.workspaceDisposalMarkup(result),/data-workspace-revoke/);
+ result.workspaceDisposalEnabled=true;result.checkedAt=p.expiresAt;assert.doesNotMatch(h.context.workspaceDisposalMarkup(result),/data-workspace-approve/);
+ h.context.state.currentActorId='developer';assert.equal(h.context.workspaceDisposalMarkup(result),'');
+});
+test('claimed and uncertain disposal never display a retry control',()=>{
+ const h=harness();for(const status of ['claimed','unconfirmed','succeeded','revoked']){
+  const markup=h.context.workspaceDisposalMarkup({checkedAt:'2026-01-01T00:02:00Z',workspaceDisposalEnabled:true,workspaceDisposals:[{id:'proposal',status,job:{jobId:'job'},notBefore:'2026-01-01T00:01:00Z',expiresAt:'2026-01-01T01:00:00Z'}]});
+  assert.doesNotMatch(markup,/data-workspace-approve|data-workspace-revoke/);
+  if(['claimed','unconfirmed'].includes(status))assert.match(markup,/Do not repeat/);
+ }
+});
+test('disposal proposal and confirmation are separate explicit form submissions',async()=>{
+ const h=harness();let submitted,html;h.context.form=(_,body,fn)=>{html=body;submitted=fn};
+ const button={dataset:{workspacePropose:'synthetic-job'}};
+ h.context.bindWorkspaceDisposalButtons({querySelectorAll(){return [button]}});button.onclick();assert.equal(h.calls.length,0);
+ await submitted();assert.equal(h.calls[0][1].action,'propose');assert.equal(h.calls[0][1].jobId,'synthetic-job');
+ const approve={dataset:{workspaceApprove:'proposal',workspaceJob:'synthetic-job'}};
+ h.context.bindWorkspaceDisposalButtons({querySelectorAll(){return [approve]}});approve.onclick();assert.equal(h.calls.length,1);assert.match(html,/unfinished edits/);assert.match(html,/name="confirm"/);
+ await submitted(new Map([['confirm','typed-job']]));assert.equal(h.calls[1][1].action,'approve');assert.equal(h.calls[1][1].proposalId,'proposal');assert.equal(h.calls[1][1].confirm,'typed-job');
+});

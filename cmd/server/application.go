@@ -10,6 +10,8 @@ import (
 )
 
 type server struct {
+	disposalSeen      map[string]time.Time
+	disposalNow       func() time.Time
 	storageTimeout    time.Duration
 	connectionProbe   workerProbe
 	verificationRooms map[string]string

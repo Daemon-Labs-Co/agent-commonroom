@@ -26,3 +26,7 @@ test('room viewport starts at top, keeps background position, and leaves other v
  context.view='Settings';context.fitRoomViewport();assert(!classes.has('room-viewport-fit'));context.view='Room';context.state.featureFlags.roomViewportFit=false;context.fitRoomViewport();assert(!classes.has('room-viewport-fit'));
  context.state.featureFlags.roomViewportFit=true;context.document.querySelector=()=>null;context.fitRoomViewport();assert(!classes.has('room-viewport-fit'),'workflow/task room tabs keep normal layouts');
 });
+test('workspace disposal switch stays off until explicitly enabled',()=>{
+ const f=switches();assert.equal(f.context.featureSwitchEnabled('workspaceDisposal',{}),false);assert.equal(f.context.featureSwitchEnabled('workspaceDisposal',{workspaceDisposal:false}),false);assert.equal(f.context.featureSwitchEnabled('workspaceDisposal',{workspaceDisposal:true}),true);
+ const control=f.context.makeFeatureSwitch(node(),'workspaceDisposal','Workspace disposal');assert.equal(control.attributes['aria-checked'],'false');
+});

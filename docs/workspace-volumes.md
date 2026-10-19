@@ -66,8 +66,9 @@ worker protocol's `discardWorkspace` bit defaults false. Complete identity
 binding is mandatory for destructive requests, and incompatible workers refuse it. A present workspace stays retained/unresolved without that
 explicit authority; an already absent workspace may still be reconciled safely.
 The current HTTP recovery route never grants this bit, so its existing stop UI
-cannot silently erase workspace data. The future action-specific human approval
-or artifact-retention workflow must authorize discard before public release.
+cannot silently erase workspace data. The separate [owner review workflow](workspace-disposal.md)
+requires a one-minute proposal, exact confirmation and durable claim before
+sending an exact discard request. Storage-credit release remains pending.
 
 Explicit trusted discard affects only that job's ephemeral tool workspace,
 including unfinished edits. It never removes the approved host snapshot,

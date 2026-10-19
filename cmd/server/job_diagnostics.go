@@ -205,8 +205,9 @@ func (s *server) jobDiagnostics(w http.ResponseWriter, r *http.Request) {
 			views[i].CanReconcile = false
 		}
 	}
+	reviews := s.disposalReviews(st)
 	s.mu.Unlock()
-	reply(w, map[string]any{"turnBudget": s.dailyTurnBudget(st, time.Now()), "jobs": views, "verified": probeErr == nil, "checkedAt": time.Now().UTC(), "detail": detail, "untrackedWorkerJobs": len(snapshot.Jobs) - known, "untrackedUnresolvedJobs": untrackedUnresolved, "unresolvedWorkerJobs": snapshot.Unresolved, "managedContainers": snapshot.ManagedContainers, "workerSnapshotTruncated": snapshot.Truncated})
+	reply(w, map[string]any{"workspaceDisposals": reviews, "workspaceDisposalEnabled": st.FeatureFlags["workspaceDisposal"], "turnBudget": s.dailyTurnBudget(st, time.Now()), "jobs": views, "verified": probeErr == nil, "checkedAt": time.Now().UTC(), "detail": detail, "untrackedWorkerJobs": len(snapshot.Jobs) - known, "untrackedUnresolvedJobs": untrackedUnresolved, "unresolvedWorkerJobs": snapshot.Unresolved, "managedContainers": snapshot.ManagedContainers, "workerSnapshotTruncated": snapshot.Truncated})
 }
 
 // jobRecovery is a required safety operation, not a premium feature. The UI

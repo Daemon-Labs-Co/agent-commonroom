@@ -5,10 +5,10 @@ including its creation nonce and timestamp. A yes/no discard instruction or a jo
 name alone is insufficient. This is mandatory retention-safety infrastructure;
 there is no flag, paid override or owner-role shortcut around identity checks.
 
-The public approval/disposal workflow is still P0 work. No new user action, HTTP
-endpoint or model tool is enabled by this change. Normal completion, cancellation
-and owner recovery keep their existing non-destructive defaults. There is no
-storage-credit release operation here.
+The [owner review workflow](workspace-disposal.md) now exposes this contract through
+an off-by-default, human-only approval endpoint. Normal completion, cancellation
+and ordinary recovery keep their non-destructive defaults. Storage-credit release
+and full production disposal acceptance remain P0 work.
 
 ## User and operator behavior
 
@@ -25,13 +25,14 @@ unresolved and are never adopted as disposable data.
 
 Upgrading code does not purge existing workspaces. Old boolean-only destructive
 requests are refused. Ordinary requests without disposal fields remain valid.
-Future optional disposal UI controls must have their own authenticated owner
-permission and server flag; they may never turn off these mandatory checks.
+The optional disposal controls enforce their own authenticated owner permission
+and `workspaceDisposal` flag; they never turn off these mandatory checks.
 
 ## Internal request contract
 
 A trusted caller must obtain current action-specific human approval **before**
-sending `discardWorkspace: true`. The worker does not authenticate a human from
+sending `discardWorkspace: true`. The controller review workflow now supplies
+that authorization through its durable, one-shot claim. The worker does not authenticate a human from
 this boolean or from volume metadata. Its trusted controller/SSH transport and
 creator ownership remain required independently.
 
@@ -46,7 +47,7 @@ A destructive version-4 fence must carry `expectedWorkspace`, whose fields are:
 
 The object must match the worker journal exactly. It identifies the volume, not
 the current source contents; source-revision approval and artifact-retention
-checks still belong to the unfinished public workflow. Job/provider/membership and
+checks remain separate from this whole-workspace disposal instruction. Job/provider/membership and
 repository bindings still apply. The worker rejects missing/partial identities,
 foreign names, wrong nonces, changed timestamps, legacy destructive versions and
 identity objects supplied with `discardWorkspace: false`.
@@ -94,10 +95,11 @@ destructive requests. Do not downgrade to an unbound request to regain
 compatibility. Verify the updated worker binary as part of deployment acceptance.
 
 A correctly bound receipt is still not permission to release storage capacity.
-Future integration must correlate exact authenticated approval, controller audit,
+The owner endpoint now correlates authenticated approval and controller audit.
+Storage-release integration must additionally correlate
 resource identity, physical absence and the matching storage reservation, then
-commit the credit release durably. Expiry, revocation, human permissions and
-artifact retention remain part of that unfinished approval workflow.
+commit the credit release durably. Expiry, revocation and human permissions are enforced by the owner workflow.
+Artifact delivery and storage-credit release remain unfinished.
 
 ## Verification
 
@@ -107,8 +109,8 @@ identity replacement while waiting for the creator lease, retained crash discove
 ordinary recovery, receipt mismatch, ambiguous JSON and container-only proof.
 Automated tests launch no Docker workload, provider or database.
 
-This increment does not add completed P0 catalog drivers or live disposal
-acceptance. The existing tool-only live cleanup used disposable diagnostic data;
+The owner workflow adds three P0 refusal drivers; positive disposal acceptance
+and live disposal acceptance remain pending. The existing tool-only live cleanup used disposable diagnostic data;
 it does not establish a human-approved production disposal workflow. See
 [workspace volumes](workspace-volumes.md), [storage accounting](storage-accounting.md)
 and [release readiness](release-readiness.md).
