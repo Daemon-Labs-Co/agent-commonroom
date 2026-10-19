@@ -7,8 +7,8 @@ there is no flag, paid override or owner-role shortcut around identity checks.
 
 The [owner review workflow](workspace-disposal.md) now exposes this contract through
 an off-by-default, human-only approval endpoint. Normal completion, cancellation
-and ordinary recovery keep their non-destructive defaults. Storage-credit release
-and full production disposal acceptance remain P0 work.
+and ordinary recovery keep their non-destructive defaults. Exact bound-reservation release is integrated; production allocation and live
+disposal acceptance remain P0 work.
 
 ## User and operator behavior
 
@@ -95,11 +95,12 @@ destructive requests. Do not downgrade to an unbound request to regain
 compatibility. Verify the updated worker binary as part of deployment acceptance.
 
 A correctly bound receipt is still not permission to release storage capacity.
-The owner endpoint now correlates authenticated approval and controller audit.
-Storage-release integration must additionally correlate
-resource identity, physical absence and the matching storage reservation, then
-commit the credit release durably. Expiry, revocation and human permissions are enforced by the owner workflow.
-Artifact delivery and storage-credit release remain unfinished.
+The owner endpoint correlates authenticated approval, controller audit and the
+exact prebound storage reservation captured in the proposal. Only verified
+success can release that reservation, atomically with the outcome and container
+slots. Unbound charges remain. Expiry, revocation and human permissions are
+enforced by the owner workflow. Artifact delivery, production allocation binding
+and live verification remain unfinished.
 
 ## Verification
 
@@ -109,8 +110,9 @@ identity replacement while waiting for the creator lease, retained crash discove
 ordinary recovery, receipt mismatch, ambiguous JSON and container-only proof.
 Automated tests launch no Docker workload, provider or database.
 
-The owner workflow adds three P0 refusal drivers; positive disposal acceptance
-and live disposal acceptance remain pending. The existing tool-only live cleanup used disposable diagnostic data;
+The owner workflow has three P0 refusal drivers and one combined approved-disposal
+driver with mocked worker removal, receipt and capacity release. Live disposal
+acceptance remains pending. The existing tool-only live cleanup used disposable diagnostic data;
 it does not establish a human-approved production disposal workflow. See
 [workspace volumes](workspace-volumes.md), [storage accounting](storage-accounting.md)
 and [release readiness](release-readiness.md).

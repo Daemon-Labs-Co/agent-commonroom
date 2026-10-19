@@ -26,7 +26,7 @@ type disposalFixture struct {
 	probes atomic.Int32
 }
 
-func newDisposalFixture(t *testing.T, enabled bool) *disposalFixture {
+func newDisposalFixture(t *testing.T, enabled bool, bound ...bool) *disposalFixture {
 	t.Helper()
 	s, db, _ := mockServer(t)
 	f := &disposalFixture{s: s, db: db}
@@ -37,7 +37,6 @@ func newDisposalFixture(t *testing.T, enabled bool) *disposalFixture {
 	db.seed("feature.flag.updated", map[string]any{"name": "workspaceDisposal", "enabled": enabled})
 	r := storageRecord(10, 42, "workspace")
 	r.Worker = "worker"
-	db.seed("storage.inventory.recorded", managedStorageInventory{1, "company", strings.Repeat("d", 64), []room.StorageReservation{r}})
 	record, err := managedJobFence(f.job).record()
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +49,11 @@ func newDisposalFixture(t *testing.T, enabled bool) *disposalFixture {
 	if !validWorkerRecord(record) {
 		t.Fatal("invalid synthetic retained workspace")
 	}
+	if len(bound) > 0 && bound[0] {
+		identity := record.Pair.Workspace.Identity
+		r.WorkspaceName, r.WorkspaceNonce, r.WorkspaceCreatedAt = identity.Name, identity.Nonce, identity.CreatedAt
+	}
+	db.seed("storage.inventory.recorded", managedStorageInventory{1, "company", strings.Repeat("d", 64), []room.StorageReservation{r}})
 	f.view = workerJobView{workerJobRecord: record, LeaseState: "free"}
 	f.now.Store(time.Now().UTC().UnixNano())
 	s.disposalNow = func() time.Time { return time.Unix(0, f.now.Load()).UTC() }
@@ -302,7 +306,7 @@ func TestWorkspaceDisposalHTTP(t *testing.T) {
 		}
 	})
 	t.Run("concurrent-clicks-and-other-controller", func(t *testing.T) {
-		f := newDisposalFixture(t, true)
+		f := newDisposalFixture(t, true, true)
 		p := f.propose(t)
 		f.now.Store(p.NotBefore.UnixNano())
 		other := &server{db: f.db, auth: f.s.auth, disposalNow: f.s.disposalNow, jobSnapshot: f.s.jobSnapshot, jobFence: f.s.jobFence}
@@ -335,6 +339,14 @@ func TestWorkspaceDisposalHTTP(t *testing.T) {
 		}
 		if success != 1 || f.calls.Load() != 1 {
 			t.Fatal("duplicate destructive dispatch", success, f.calls.Load())
+		}
+		st, err := f.s.load(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		total, err := managedStorageTotal(st)
+		if err != nil || total != 0 || len(st.ManagedStorage.Releases) != 1 {
+			t.Fatal("concurrent refund was not exactly once", total, err)
 		}
 	})
 	t.Run("review-minute-starts-after-probe", func(t *testing.T) {
@@ -405,7 +417,7 @@ func TestPublicEventsCannotForgeDisposalApproval(t *testing.T) {
 func TestClaimedDisposalSurvivesDisconnectAndFlagDisable(t *testing.T) {
 	t.Setenv("COMMONROOM_REMOTE_WORKER", "true")
 	t.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", "worker")
-	f := newDisposalFixture(t, true)
+	f := newDisposalFixture(t, true, true)
 	p := f.propose(t)
 	f.now.Store(p.NotBefore.UnixNano())
 	ctx, cancel := context.WithCancel(t.Context())
@@ -431,6 +443,9 @@ func TestClaimedDisposalSurvivesDisconnectAndFlagDisable(t *testing.T) {
 	st, err := f.s.load(t.Context())
 	if err != nil || st.WorkspaceDisposals[p.ID].Status != "succeeded" || st.FeatureFlags["workspaceDisposal"] {
 		t.Fatal("in-flight audit/flag state lost", err)
+	}
+	if total, err := managedStorageTotal(st); err != nil || total != 0 {
+		t.Fatal("admitted credit lost after disabling feature", total, err)
 	}
 }
 func TestDisposalAdapterPanicBecomesDurableUncertainty(t *testing.T) {

@@ -175,6 +175,7 @@ func (s *server) workspaceDisposal(w http.ResponseWriter, r *http.Request) {
 	if req.Action == "propose" {
 		// The review minute starts when the intention is published, not before a
 		// potentially slow worker probe.
+		p.StorageReservationID = disposalStorageReservation(latest, p)
 		p.CreatedAt = s.disposalTime()
 		p.NotBefore = p.CreatedAt.Add(disposalReviewDelay)
 		p.ExpiresAt = p.CreatedAt.Add(disposalLifetime)
@@ -236,7 +237,7 @@ func (s *server) workspaceDisposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Keep physical outcome and controller container-slot release atomic. Storage
-	// reservations are deliberately untouched until exact resource-credit binding.
+	// credit is released only for the immutable exact reservation reviewed at proposal.
 	changes := []auditChange{{Kind: disposalEvent(p), Payload: p}}
 	if workerErr == nil {
 		job := latest.ManagedJobs[p.Job.JobID]
@@ -245,6 +246,17 @@ func (s *server) workspaceDisposal(w http.ResponseWriter, r *http.Request) {
 		job.DiagnosticCode = "workspace_disposal_confirmed"
 		job.UpdatedAt = p.FinishedAt
 		changes = append(changes, auditChange{Kind: "worker.job.updated", Payload: job})
+		if p.StorageReservationID != "" {
+			release := room.StorageRelease{Version: 1, ReservationID: p.StorageReservationID, DisposalID: p.ID}
+			candidate := latest
+			candidate.WorkspaceDisposals = map[string]room.WorkspaceDisposal{p.ID: p}
+			candidate.ManagedJobs = map[string]room.ManagedJob{job.JobID: job}
+			if !validStorageRelease(candidate, release) {
+				http.Error(w, "Disposal credit unresolved; do not retry", 503)
+				return
+			}
+			changes = append(changes, auditChange{Kind: "storage.released", Payload: release})
+		}
 	}
 	if s.appendBatch(context.WithValue(action, expectedEventCountKey{}, latest.EventCount), changes) != nil {
 		http.Error(w, "Disposal outcome audit unresolved; do not retry", 503)

@@ -50,6 +50,18 @@ func projectWorkspaceDisposal(st *room.State, kind string, raw []byte) error {
 	if json.Unmarshal(raw, &p) != nil || !validDisposal(p) || p.Job.CompanyID != st.Company.ID || kind != "workspace.disposal."+map[string]string{"pending": "proposed", "claimed": "claimed", "revoked": "revoked", "succeeded": "succeeded", "unconfirmed": "unconfirmed"}[p.Status] {
 		return errDisposal
 	}
+	if p.StorageReservationID != "" {
+		if !validWorkerJobID(p.StorageReservationID) || st.ManagedStorage == nil {
+			return errDisposal
+		}
+		r, ok := st.ManagedStorage.Reservations[p.StorageReservationID]
+		if !ok || !reservationMatchesDisposal(r, p) {
+			return errDisposal
+		}
+		if _, released := st.ManagedStorage.Releases[r.ID]; released {
+			return errDisposal
+		}
+	}
 	prior, exists := st.WorkspaceDisposals[p.ID]
 	if !exists {
 		job, ok := st.ManagedJobs[p.Job.JobID]

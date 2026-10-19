@@ -288,5 +288,7 @@ The `workspaceDisposal` flag defaults false and blocks new proposals/approvals
 server-side. Pending revocation and history remain available when off. Actions are
 `propose` (`jobId`), `approve` (`proposalId`, exact job-ID `confirm`) and `revoke`
 (`proposalId`). The server enforces a full minute of review and one-hour expiry.
-Claimed deletion is one-shot; unknown outcomes cannot be retried. Storage credit
-is not released. See the [full contract](workspace-disposal.md).
+Claimed deletion is one-shot; unknown outcomes cannot be retried. The proposal
+includes `storageReservationId` only for an exact prebound workspace charge.
+Verified removal releases that charge atomically with the outcome and container
+slots; unbound legacy charges and separate artifacts stay charged. See the [full contract](workspace-disposal.md).

@@ -1026,6 +1026,22 @@ Automated regression checks for storage_deadlines; read test names for individua
 
 [Types, methods and functions](cmd--server--storage_deadlines_test-go.md)
 
+## cmd/server/storage_disposal.go
+
+[Open source](../../cmd/server/storage_disposal.go)
+
+Go implementation for storage disposal; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--storage_disposal-go.md)
+
+## cmd/server/storage_disposal_test.go
+
+[Open source](../../cmd/server/storage_disposal_test.go)
+
+Automated regression checks for storage_disposal; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--storage_disposal_test-go.md)
+
 ## cmd/server/storage_quota.go
 
 [Open source](../../cmd/server/storage_quota.go)

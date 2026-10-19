@@ -46,10 +46,14 @@ that its contents were exported or attested to a Git revision. Preserve any work
 you need before explicitly approving its complete destruction.
 
 A successful response means removal/absence proof and its controller outcome were
-recorded. Container-slot release is committed in the same transaction. **Storage
-accounting remains unchanged**: exact storage-reservation identity and credit
-release are still P0 work. Do not infer a storage refund from an empty Docker volume
-list, edit the ledger or delete history to regain capacity.
+recorded. Container-slot release and any exactly bound workspace reservation release
+commit in the same transaction. A proposal with `storageReservationId` identifies
+the immutable charge being reviewed. The reservation must already bind this job,
+company, room, worker, repository and exact volume name, nonce and creation time.
+Legacy unbound reservations, bundles and artifacts remain charged. No binding is
+guessed from a job ID, reconstructed after removal or accepted from the browser.
+Do not infer a storage refund from an empty Docker volume list, edit the ledger
+or delete history to regain capacity.
 
 ## Uncertainty and recovery
 
@@ -62,8 +66,8 @@ A worker failure, panic, uncertain transport reply or failed outcome audit leave
 a durable claimed/unconfirmed action. The UI says not to repeat it. It cannot be
 approved again, and a new proposal for the same unresolved action is refused.
 Normal worker diagnostics/reconciliation remain available, but do not erase the
-claim or authorize another deletion. A dedicated claim-resolution/storage-credit
-workflow is not implemented yet; administrator investigation may be necessary.
+claim or authorize another deletion. A dedicated claim-resolution or retrospective
+credit workflow is not implemented yet; administrator investigation may be necessary.
 Never fabricate success, reset the journal or resend a destructive request to
 resolve uncertainty.
 
@@ -92,7 +96,9 @@ outcome with human attribution. Append-only replay rejects changed scope/identit
 invalid timing, skipped approval and terminal-state rewrites. Expected journal
 revisions are checked under the transactional audit-chain lock. No worker action
 is sent unless the claim commits. Outcome and container-slot release commit
-atomically. Raw worker errors, source contents, commands and credentials do not
+atomically with `storage.released` when the reviewed reservation is exactly bound.
+The release retains the original reservation and references the successful disposal;
+replay refuses a duplicate or foreign refund. Raw worker errors, source contents, commands and credentials do not
 belong in these records.
 
 The worker transport remains a trusted dependency. Replacing it in source with
@@ -109,10 +115,11 @@ controllers, atomic outcome failure, uncertainty, panic and disconnected request
 Synthetic browser tests cover escaping, separate proposal/approval submissions,
 server-time gating, default-off switches and absence of retry controls.
 
-Three new P0 refusal drivers cover missing approval, unauthorized humans and the
-wrong volume identity. Positive catalog acceptance remains pending because it
-also requires storage-credit release. No live human-approved production disposal,
+Three P0 refusal drivers cover missing approval, unauthorized humans and the
+wrong volume identity. The approved-disposal driver additionally exercises the
+owner endpoint, worker journal and mocked Docker removal/absence, exact receipt
+validation, atomic capacity release and preserved history. No live human-approved production disposal,
 provider round trip or browser/database deployment was exercised by this change.
 The earlier [tool-only live evidence](live-tool-acceptance.md) does not establish
-this owner flow's deployment acceptance. Physical quotas, storage-credit binding,
+this owner flow's deployment acceptance. Physical quotas, production allocation binding,
 artifact delivery and full [release readiness](release-readiness.md) remain open.

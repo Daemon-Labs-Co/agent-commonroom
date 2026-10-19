@@ -18,7 +18,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `disposalIdentity`, `p.ClaimedAt.Before`, `p.ClaimedAt.IsZero`, `p.CreatedAt.Add`, `p.CreatedAt.IsZero`, `p.ExpiresAt.Equal`, `p.FinishedAt.Before`, `p.FinishedAt.IsZero`, `p.NotBefore.Equal`, `p.ReviewObservedAt.Add`, `p.ReviewObservedAt.Before`, `p.ReviewObservedAt.IsZero`, `toolbroker.ValidWorkspaceVolume`, `validManagedJob`, `validWorkerJobID`.
 - **`projectWorkspaceDisposal`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(st *room.State, kind string, raw []byte) error`.
-  Calls: `json.Unmarshal`, `p.CreatedAt.Before`, `validDisposal`.
+  Calls: `json.Unmarshal`, `p.CreatedAt.Before`, `reservationMatchesDisposal`, `validDisposal`, `validWorkerJobID`.
 - **`disposalFence`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(p room.WorkspaceDisposal) workerFenceRequest`.
   Calls: `disposalIdentity`, `managedJobFence`.
