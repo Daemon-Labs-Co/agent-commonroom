@@ -36,7 +36,7 @@ type managedStorageInventorySource interface {
 }
 
 func validStorageReservation(r room.StorageReservation) bool {
-	return r.Version == 1 && workerAliasPattern.MatchString(r.CompanyID) && validWorkerJobID(r.ID) && validWorkerJobID(r.JobID) && workerAliasPattern.MatchString(r.RoomID) && workerAliasPattern.MatchString(r.Worker) && repositoryDigestPattern.MatchString(r.RepositoryDigest) && r.Bytes > 0 && (r.Category == "workspace" || r.Category == "bundle" || r.Category == "artifact")
+	return validStorageWorkspace(r) && r.Version == 1 && workerAliasPattern.MatchString(r.CompanyID) && validWorkerJobID(r.ID) && validWorkerJobID(r.JobID) && workerAliasPattern.MatchString(r.RoomID) && workerAliasPattern.MatchString(r.Worker) && repositoryDigestPattern.MatchString(r.RepositoryDigest) && r.Bytes > 0 && (r.Category == "workspace" || r.Category == "bundle" || r.Category == "artifact")
 }
 
 // Storage totals charge reserved capacity, including retained/uncertain data,
@@ -50,11 +50,28 @@ func managedStorageTotal(st room.State) (int64, error) {
 		return 0, errStorageIdentity
 	}
 	var total int64
+	names := map[string]bool{}
 	for key, r := range l.Reservations {
-		if key != r.ID || !validStorageReservation(r) || r.CompanyID != l.CompanyID || r.Bytes > math.MaxInt64-total {
+		if key != r.ID || !validStorageReservation(r) || r.CompanyID != l.CompanyID {
 			return 0, errStorageIdentity
 		}
-		total += r.Bytes
+		if r.WorkspaceName != "" {
+			if names[r.WorkspaceName] {
+				return 0, errStorageIdentity
+			}
+			names[r.WorkspaceName] = true
+		}
+		if _, released := l.Releases[key]; !released {
+			if r.Bytes > math.MaxInt64-total {
+				return 0, errStorageIdentity
+			}
+			total += r.Bytes
+		}
+	}
+	for key, release := range l.Releases {
+		if key != release.ReservationID || !validStorageRelease(st, release) {
+			return 0, errStorageIdentity
+		}
 	}
 	return total, nil
 }
@@ -71,6 +88,13 @@ func admitManagedStorage(st room.State, r room.StorageReservation) (int64, error
 	}
 	if total > managedStorageLimit || r.Bytes > managedStorageLimit-total {
 		return 0, errStorageCapacity
+	}
+	if r.WorkspaceName != "" {
+		for _, prior := range st.ManagedStorage.Reservations {
+			if prior.WorkspaceName == r.WorkspaceName {
+				return 0, errStorageIdentity
+			}
+		}
 	}
 	return total + r.Bytes, nil
 }
@@ -168,6 +192,18 @@ func projectManagedStorage(st *room.State, kind string, raw []byte) error {
 			return err
 		}
 		st.ManagedStorage = ledger
+	case "storage.released":
+		var release room.StorageRelease
+		if json.Unmarshal(raw, &release) != nil || !validStorageRelease(*st, release) {
+			return errStorageIdentity
+		}
+		if _, exists := st.ManagedStorage.Releases[release.ReservationID]; exists {
+			return errStorageIdentity
+		}
+		if st.ManagedStorage.Releases == nil {
+			st.ManagedStorage.Releases = map[string]room.StorageRelease{}
+		}
+		st.ManagedStorage.Releases[release.ReservationID] = release
 	case "storage.reserved":
 		var r room.StorageReservation
 		if json.Unmarshal(raw, &r) != nil {

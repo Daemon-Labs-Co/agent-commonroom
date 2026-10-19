@@ -12,10 +12,10 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Declaration: `interface { Inventory(context.Context, string) (managedStorageInventory, error) }`.
 - **`validStorageReservation`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(r room.StorageReservation) bool`.
-  Calls: `repositoryDigestPattern.MatchString`, `validWorkerJobID`, `workerAliasPattern.MatchString`.
+  Calls: `repositoryDigestPattern.MatchString`, `validStorageWorkspace`, `validWorkerJobID`, `workerAliasPattern.MatchString`.
 - **`managedStorageTotal`** — Storage totals charge reserved capacity, including retained/uncertain data, without trusting current process/container status. Never sum unchecked int64s.
   Signature: `func(st room.State) (int64, error)`.
-  Calls: `repositoryDigestPattern.MatchString`, `validStorageReservation`, `workerAliasPattern.MatchString`.
+  Calls: `repositoryDigestPattern.MatchString`, `validStorageRelease`, `validStorageReservation`, `workerAliasPattern.MatchString`.
 - **`admitManagedStorage`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(st room.State, r room.StorageReservation) (int64, error)`.
   Calls: `managedStorageTotal`, `validStorageReservation`.
@@ -27,4 +27,4 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `admitManagedStorage`, `canAccess`, `cancel`, `context.WithValue`, `ctx.Err`, `ctx.Value`, `member`, `s.agentsBlockedLocked`, `s.append`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.storageContext`, `time.Now`, `time.Now().Before`, `validManagedJob`.
 - **`projectManagedStorage`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(st *room.State, kind string, raw []byte) error`.
-  Calls: `admitManagedStorage`, `json.Unmarshal`, `managedStorageTotal`, `repositoryDigestPattern.MatchString`.
+  Calls: `admitManagedStorage`, `json.Unmarshal`, `managedStorageTotal`, `repositoryDigestPattern.MatchString`, `validStorageRelease`.

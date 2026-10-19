@@ -175,5 +175,6 @@ are opt-in and require a separate operation grant. Production repository dispatc
 and live runtime acceptance remain gated.
 
 [Owner-reviewed workspace disposal](docs/workspace-disposal.md) is off by default.
-It requires a one-minute review and explicit confirmation; storage-credit release
-and live production acceptance remain pending.
+It requires a one-minute review and explicit confirmation. Verified removal releases
+only an exactly bound workspace reservation; legacy unbound data stays charged.
+Physical quotas and live production acceptance remain pending.

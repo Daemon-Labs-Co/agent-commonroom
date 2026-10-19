@@ -7,7 +7,7 @@ make retained source disappear from the storage budget.
 
 The controller now implements durable reservation accounting. Physical quota
 provisioning, a complete live inventory adapter, launch/write integration and
-approved disposal remain unfinished. This is an internal foundation, not an
+production allocation/disposal integration remain unfinished. This is an internal foundation, not an
 available storage-management screen or a completed hard disk quota. Production
 repository development remains gated.
 
@@ -24,8 +24,14 @@ A reservation is a maximum capacity charge recorded before a future allocation.
 For example, 3 GB of retained workspace capacity, 1 GB of staged bundles and 1 GB
 of artifacts fill the account. Another byte is refused. Once capacity is reserved,
 restarts, expired jobs and container shutdown cannot refund it. Unused reserved
-capacity also remains charged; this implementation does not yet shrink or release
-reservations.
+capacity also remains charged unless its exact bound workspace is explicitly
+approved for disposal and its physical absence is verified. Reservations cannot
+be shrunk or refunded by stopping a job.
+
+Owner-approved disposal is controlled by the default-off `workspaceDisposal`
+flag (owner-only, immediate, no restart). Turning it off blocks new approvals but
+does not cancel an already committed claim or prevent its verified accounting
+outcome from being recorded. Ordinary shutdown never releases capacity.
 
 This is mandatory resource-accounting infrastructure, so there is no optional
 on/off product flag. Optional diagnostics/background-work flags cannot disable it.
@@ -47,7 +53,8 @@ atomically records `storage.inventory.recorded`. An explicit empty list is requi
 for a verified empty account; omitted/null inventory is rejected. The digest binds
 the baseline evidence; it does not certify a kernel quota or ongoing filesystem
 usage. Initialization is single-use. There is no reset, baseline replacement or
-release event that could erase an earlier charge.
+baseline reset that could erase an earlier charge. Verified disposal records a
+separate release while retaining the original reservation.
 
 Inventory adapters are trusted infrastructure, never model/plugin dependencies.
 Changing source to supply false inventory bypasses this contract. No production
@@ -75,7 +82,12 @@ replayed evidence blocks state loading. Existing over-budget inventory can be
 recorded without deleting data, but cannot grow through reservations.
 
 Audit records contain the authenticated actor, immutable nonsecret binding,
-category and byte count. They contain no host paths, credentials, file contents,
+category and byte count. Workspace reservations may additionally prebind the
+complete nonsecret volume identity: `workspaceName`, `workspaceNonce` and
+`workspaceCreatedAt`. These fields are all-or-none, workspace-only, validated
+against the job and unique across the account, including released reservations.
+The trusted allocation/inventory adapter must know the exact worker-generated
+identity; callers must not fabricate or retrofit it to reclaim old charges. They contain no host paths, credentials, file contents,
 command output or prompts. Raw reservation/inventory state is excluded from the
 public state projection. Public `/api/events` requests cannot create, replace or
 release these internal records, even for the owner.
@@ -93,10 +105,17 @@ A filesystem usage check or Docker volume label is not a hard quota. Rootless
 Docker's plain local named volumes currently have no verified per-volume byte
 ceiling. [Disposal identity binding](workspace-disposal-binding.md) now rejects stale or
 boolean-only internal cleanup requests. An [owner review workflow](workspace-disposal.md)
-now records explicit approval and one-shot execution, without releasing storage credit.
-Approved disposal must bind exact human approval and physical identity,
-prove absence, then durably release the matching capacity without deleting audit
-history. Those worker/disposal contracts remain P0 work.
+now records explicit approval and one-shot execution. Its proposal captures the
+unique matching reservation ID, if one exists. After exact worker absence proof,
+`workspace.disposal.succeeded`, container-slot release and `storage.released` commit
+in one transaction with the expected journal revision. Replay validates the
+successful disposal, full immutable scope and confirmed shutdown before excluding
+that charge from the total. Duplicate releases and reuse of a released reservation
+ID or physical volume identity are refused. The reservation and release remain
+in history. Unbound legacy workspaces, bundles and artifacts receive no refund.
+Failures or ambiguous audit outcomes keep the full charge; the action cannot be
+repeated to obtain a credit. Production allocation binding and live verification
+remain P0 work.
 
 ## Verification
 

@@ -56,6 +56,8 @@ func auditSummary(kind string, payload []byte) string {
 		return "Workspace disposal outcome unconfirmed"
 	case "storage.inventory.recorded":
 		return "Account storage inventory recorded"
+	case "storage.released":
+		return "Workspace storage capacity released after verified disposal"
 	case "storage.reserved":
 		return "Account storage capacity reserved"
 	case "worker.job.updated":
