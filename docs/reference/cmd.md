@@ -1104,6 +1104,22 @@ Automated regression checks for tool_broker; read test names for individual cont
 
 [Types, methods and functions](cmd--server--tool_broker_test-go.md)
 
+## cmd/server/tool_command_runner.go
+
+[Open source](../../cmd/server/tool_command_runner.go)
+
+Go implementation for tool command runner; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--tool_command_runner-go.md)
+
+## cmd/server/tool_command_runner_test.go
+
+[Open source](../../cmd/server/tool_command_runner_test.go)
+
+Automated regression checks for tool_command_runner; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--tool_command_runner_test-go.md)
+
 ## cmd/server/turn_budget.go
 
 [Open source](../../cmd/server/turn_budget.go)

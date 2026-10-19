@@ -107,3 +107,10 @@ The worker retains leases through bootstrap and must fence both roles on failure
 See [workspace bootstrap](workspace-bootstrap.md) for Git policy and limits.
 
 See [shared audited tool session](audited-tool-session.md) for the constructor and immutable-ID dispatch contract.
+
+## Optional bounded checks
+
+The internal worker can explicitly admit one terminal Go build/test command when
+its operator flag and separate operation grant both allow it. Defaults remain
+file-only. See [isolated commands](isolated-commands.md) for configuration,
+receipt semantics, container destruction and remaining release limits.

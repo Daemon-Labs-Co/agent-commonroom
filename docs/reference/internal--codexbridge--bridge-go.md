@@ -17,8 +17,13 @@ Package: `codexbridge`. Go uses types, structs, interfaces and receiver methods 
 - **`Run`** — Run owns one fresh thread and one turn, never resume/fork/config/review methods. Close MUST interrupt both stream directions; container shutdown remains the supervisor's responsibility. Cancellation closes the stream without replay.
   Signature: `func(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler) (Result, error)`.
   Calls: `RunWithFinalizer`.
-- **`RunWithFinalizer`** — RunWithFinalizer gives trusted worker custody one bounded post-turn operation before closing the attachment. It runs only after validated completion, never on a provider failure. No model selects this callback. Failure withholds text; cancellation still interrupts both stream directions and supervisor fencing remains mandatory. The finalizer must honor ctx and keep credentials private.
+- **Type `Options`**: RunWithFinalizer gives trusted worker custody one bounded post-turn operation before closing the attachment. It runs only after validated completion, never on a provider failure. No model selects this callback. Failure withholds text; cancellation still interrupts both stream directions and supervisor fencing remains mandatory. The finalizer must honor ctx and keep credentials private.
+  Declaration: `struct{ Commands bool }`.
+- **`RunWithFinalizer`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler, finalize func(context.Context) error) (Result, error)`.
+  Calls: `RunWithOptions`.
+- **`RunWithOptions`** — Options are admitted worker capability metadata, never model/launch options.
+  Signature: `func(ctx context.Context, stream io.ReadWriteCloser, prompt, model string, handler Handler, finalize func(context.Context) error, options Options) (Result, error)`.
   Calls: `bufio.NewReaderSize`, `context.AfterFunc`, `ctx.Err`, `d.handle`, `d.read`, `d.response`, `d.send`, `finalize`, `identifier.MatchString`, `json.Unmarshal`, `len`, `modelName.MatchString`, `readOnlySandbox`, `stop`, `stream.Close`, `utf8.ValidString`.
 - **`(*driver).send`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(v any) error`.

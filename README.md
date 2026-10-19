@@ -169,3 +169,7 @@ be disabled. P0 acceptance scenarios remain pending; green component tests do no
 establish live readiness. The owner signs commits manually.
 
 Copyright © 2026 Agent CommonRoom contributors.
+
+Internal worker development: [bounded isolated Go commands](docs/isolated-commands.md)
+are opt-in and require a separate operation grant. Production repository dispatch
+and live runtime acceptance remain gated.

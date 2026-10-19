@@ -8,7 +8,10 @@ Package: `codexbridge`. Go uses types, structs, interfaces and receiver methods 
 
 - **`serverSetup`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(t *testing.T, conn net.Conn) *json.Decoder`.
-  Calls: `bufio.NewReader`, `decoder.Decode`, `json.NewDecoder`, `json.NewEncoder`, `json.NewEncoder(conn).Encode`, `json.Unmarshal`, `len`, `receive`, `send`, `t.Error`, `t.Errorf`, `t.Helper`.
+  Calls: `serverSetupCommands`.
+- **`serverSetupCommands`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
+  Signature: `func(t *testing.T, conn net.Conn, commands bool) *json.Decoder`.
+  Calls: `bufio.NewReader`, `decoder.Decode`, `json.NewDecoder`, `json.NewEncoder`, `json.NewEncoder(conn).Encode`, `json.Unmarshal`, `len`, `receive`, `send`, `string`, `strings.Contains`, `t.Error`, `t.Errorf`, `t.Helper`.
 - **`callback`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func() map[string]any`.
 - **`completed`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
@@ -39,3 +42,6 @@ Package: `codexbridge`. Go uses types, structs, interfaces and receiver methods 
 - **`TestFinalizerOwnsPostTurnBeforeStreamClose`** — Regression contract: TestFinalizerOwnsPostTurnBeforeStreamClose.
   Signature: `func(t *testing.T)`.
   Calls: `RunWithFinalizer`, `cancel`, `close`, `completed`, `context.WithTimeout`, `errors.New`, `json.NewEncoder`, `json.NewEncoder(server).Encode`, `make`, `net.Pipe`, `server.Close`, `serverSetup`, `stream.closed.Load`, `t.Context`, `t.Error`, `t.Fatal`, `t.Parallel`, `t.Run`.
+- **`TestCommandSchemaRequiresTrustedOptions`** — Regression contract: TestCommandSchemaRequiresTrustedOptions.
+  Signature: `func(t *testing.T)`.
+  Calls: `RunWithOptions`, `cancel`, `close`, `completed`, `context.WithTimeout`, `json.NewEncoder`, `json.NewEncoder(server).Encode`, `make`, `net.Pipe`, `server.Close`, `serverSetupCommands`, `t.Context`, `t.Error`, `t.Fatal`, `t.Parallel`.

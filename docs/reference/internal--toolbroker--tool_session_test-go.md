@@ -17,3 +17,6 @@ Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods r
 - **`TestToolSessionConstructionFailureClosesOwnedAudit`** — Regression contract: TestToolSessionConstructionFailureClosesOwnedAudit.
   Signature: `func(t *testing.T)`.
   Calls: `NewToolSession`, `errors.New`, `liveFixture`, `mockDocker`, `net.Pipe`, `peer.Close`, `peer.Read`, `peer.SetReadDeadline`, `t.Context`, `t.Fatal`, `t.Parallel`, `time.Now`, `time.Now().Add`.
+- **`TestSessionCommandFlagAndGrantAreIndependent`** — Regression contract: TestSessionCommandFlagAndGrantAreIndependent.
+  Signature: `func(t *testing.T)`.
+  Calls: `NewToolSessionWithCommands`, `append`, `client.Close`, `inspectionFixture`, `liveFixture`, `mockDocker`, `net.Pipe`, `peer.Close`, `session.Close`, `session.CommandsEnabled`, `strings.HasPrefix`, `strings.HasSuffix`, `t.Context`, `t.Fatal`, `t.Parallel`, `t.Run`, `time.Now`.

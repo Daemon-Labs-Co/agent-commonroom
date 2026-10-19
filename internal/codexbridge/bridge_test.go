@@ -14,6 +14,9 @@ import (
 )
 
 func serverSetup(t *testing.T, conn net.Conn) *json.Decoder {
+	return serverSetupCommands(t, conn, false)
+}
+func serverSetupCommands(t *testing.T, conn net.Conn, commands bool) *json.Decoder {
 	t.Helper()
 	decoder := json.NewDecoder(bufio.NewReader(conn))
 	receive := func(method string) message {
@@ -29,8 +32,11 @@ func serverSetup(t *testing.T, conn net.Conn) *json.Decoder {
 	receive("initialized")
 	request := receive("thread/start")
 	var params struct {
-		Sandbox, Approval, Cwd     string
-		DynamicTools               []struct{ Name, Type string }
+		Sandbox, Approval, Cwd string
+		DynamicTools           []struct {
+			Name, Type  string
+			InputSchema json.RawMessage
+		}
 		AllowProviderModelFallback bool
 	}
 	var raw map[string]json.RawMessage
@@ -41,6 +47,12 @@ func serverSetup(t *testing.T, conn net.Conn) *json.Decoder {
 	json.Unmarshal(raw["dynamicTools"], &params.DynamicTools)
 	if params.Sandbox != "read-only" || params.Approval != "never" || params.Cwd != "/tmp/commonroom-engine" || len(params.DynamicTools) != 1 || params.DynamicTools[0].Name != "commonroom_tool" {
 		t.Error("unrestricted thread configuration")
+	}
+	if len(params.DynamicTools) == 1 {
+		advertised := strings.Contains(string(params.DynamicTools[0].InputSchema), `"command"`)
+		if advertised != commands {
+			t.Error("command schema did not match admitted capability")
+		}
 	}
 	// Exercise notification ordering before the matching RPC response.
 	send(map[string]any{"method": "thread/started", "params": map[string]any{"thread": map[string]string{"id": "thread-1"}}})
@@ -325,4 +337,26 @@ func TestFinalizerOwnsPostTurnBeforeStreamClose(t *testing.T) {
 			<-served
 		})
 	}
+}
+
+func TestCommandSchemaRequiresTrustedOptions(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	client, server := net.Pipe()
+	defer server.Close()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		serverSetupCommands(t, server, true)
+		json.NewEncoder(server).Encode(completed())
+	}()
+	_, err := RunWithOptions(ctx, client, "Synthetic request", "reviewed-model", func(context.Context, string, json.RawMessage) ([]byte, error) {
+		t.Error("unexpected callback")
+		return nil, nil
+	}, nil, Options{Commands: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-done
 }

@@ -30,3 +30,19 @@ func TestCodexTurnRefusesBeforeReviewedPairStartup(t *testing.T) {
 		t.Fatal("refused turn consumed driver ownership")
 	}
 }
+
+func TestCodexCommandArgumentsStayWithinFixedProfiles(t *testing.T) {
+	t.Parallel()
+	scope := sampleToolScope(t)
+	for _, raw := range []string{`{"operation":"command","command":["go","test","./..."]}`, `{"operation":"command","command":["go","build","./..."]}`} {
+		request, err := workerCodexToolRequest(scope, strings.Repeat("a", 64), "call-1", json.RawMessage(raw))
+		if err != nil || request.Operation != "command" || len(request.Command) != 3 {
+			t.Fatal("fixed profile rejected", err)
+		}
+	}
+	for _, raw := range []string{`{"operation":"command","command":["go","test","./..."],"path":"file.go"}`, `{"operation":"command","command":["go","test","./..."],"content":"x"}`, `{"operation":"read","path":"file.go","command":["go","test","./..."]}`, `{"operation":"command","command":["go","test","-exec=sh","./..."]}`} {
+		if _, err := workerCodexToolRequest(scope, strings.Repeat("a", 64), "call-1", json.RawMessage(raw)); err == nil {
+			t.Fatal("unsafe command accepted")
+		}
+	}
+}

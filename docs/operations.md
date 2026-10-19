@@ -174,3 +174,10 @@ Start with [installation](installation.md), then [Debian](deployment/debian.md) 
 than private transcripts, raw logs or credentials. Follow [security reporting](../SECURITY.md)
 for vulnerabilities and [security hardening](security-hardening.md) for required
 boundaries. Live acceptance and release gates are tracked in [release readiness](release-readiness.md).
+
+## Optional bounded checks
+
+The internal worker can explicitly admit one terminal Go build/test command when
+its operator flag and separate operation grant both allow it. Defaults remain
+file-only. See [isolated commands](isolated-commands.md) for configuration,
+receipt semantics, container destruction and remaining release limits.

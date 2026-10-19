@@ -50,6 +50,7 @@ var documentationCatalog = []documentationEntry{
 	{"workspace-volumes", "Fresh workspace volumes and cleanup", "docs/workspace-volumes.md"},
 	{"worker-audit-transport", "Private worker audit transport", "docs/worker-audit-transport.md"},
 	{"audited-tool-session", "Shared audited tool session", "docs/audited-tool-session.md"},
+	{"isolated-commands", "Bounded isolated Go commands", "docs/isolated-commands.md"},
 	{"tool-container-runtime", "Constrained tool-container launch", "docs/tool-container-runtime.md"},
 	{"engine-container-runtime", "Reviewed engine runtime", "docs/engine-container-runtime.md"},
 	{"codex-engine-bootstrap", "Codex engine bootstrap", "docs/codex-engine-bootstrap.md"},

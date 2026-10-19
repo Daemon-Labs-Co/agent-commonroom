@@ -1,6 +1,7 @@
 package toolbroker
 
 import (
+	"agentroom/internal/toolcommand"
 	"context"
 	"encoding/json"
 	"errors"
@@ -21,7 +22,7 @@ type DockerRunner interface {
 }
 
 // ContainerExecutor adapts audited broker actions to a fixed container-side
-// helper. It starts no container and requires a separately initialized tool pair.
+// file helper or fixed terminal Go profile. It starts no container and requires a separately initialized tool pair.
 // Use only through Dispatcher: this executor is not an audit/authentication API.
 type ContainerExecutor struct {
 	plan       *ToolContainerPlan
@@ -47,13 +48,23 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	if ctx == nil || ctx.Err() != nil || out == nil || !e.plan.workspaceReady() {
 		return ErrRejected
 	}
-	// Only implemented file operations may reach the current image helper.
-	if action.Operation != "read" && action.Operation != "write" {
+	// A terminal command consumes the container; later helper calls are forbidden.
+	if e.plan.commandUsed.Load() {
+		return ErrRejected
+	}
+	command := action.Operation == "command"
+	if command && (!e.plan.commandsEnabled || !toolcommand.Valid(action.Command)) {
+		return ErrRejected
+	}
+	if !command && action.Operation != "read" && action.Operation != "write" {
 		return ErrRejected
 	}
 	scope.Deadline = scope.Deadline.UTC().Round(0)
 	deadline, ok := ctx.Deadline()
 	if !ok || deadline.After(e.plan.authority.scope.Deadline) || !e.plan.authority.permitsAction(scope, action, time.Now()) {
+		return ErrRejected
+	}
+	if command && !e.plan.commandUsed.CompareAndSwap(false, true) {
 		return ErrRejected
 	}
 	action.Command = append([]string(nil), action.Command...)
@@ -92,6 +103,9 @@ func (e *ContainerExecutor) Execute(ctx context.Context, scope Scope, action Act
 	id := inspected.ID
 	if _, err = e.plan.RunArgs(time.Now()); err != nil {
 		return err
+	}
+	if command {
+		return e.executeCommand(ctx, id, action, out)
 	}
 	execCtx, cancel := context.WithCancel(ctx)
 	defer cancel()

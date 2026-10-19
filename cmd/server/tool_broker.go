@@ -4,6 +4,7 @@ import (
 	"agentroom/internal/toolbroker"
 	"context"
 	"io"
+	"os"
 	"time"
 )
 
@@ -24,11 +25,18 @@ func newToolDispatcher(ctx context.Context, scope toolbroker.Scope, allowed []st
 // authority and lifetime across runtime and durable audit. Runner injection is
 // trusted assembly/test work, never a public/model choice or host fallback.
 func newWorkerToolSession(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner toolbroker.DockerRunner) (*toolbroker.ToolSession, string, error) {
+	enabled, valid := isolatedCommandsSetting(os.Getenv("COMMONROOM_ISOLATED_COMMANDS"))
+	if !valid {
+		return nil, "", toolbroker.ErrRejected
+	}
+	return newWorkerToolSessionWithCommands(ctx, scope, allowed, image, dockerRoot, now, channel, runner, enabled)
+}
+func newWorkerToolSessionWithCommands(ctx context.Context, scope toolbroker.Scope, allowed []string, image, dockerRoot string, now time.Time, channel io.ReadWriteCloser, runner toolbroker.DockerRunner, enabled bool) (*toolbroker.ToolSession, string, error) {
 	job, ok := ctxJob(ctx)
 	if !ok || job != scope.JobID || channel == nil {
 		return nil, "", toolbroker.ErrRejected
 	}
-	return toolbroker.NewToolSession(ctx, scope, allowed, image, dockerRoot, now, channel, runner)
+	return toolbroker.NewToolSessionWithCommands(ctx, scope, allowed, image, dockerRoot, now, channel, runner, enabled)
 }
 
 func ctxJob(ctx context.Context) (string, bool) {
@@ -37,4 +45,16 @@ func ctxJob(ctx context.Context) (string, bool) {
 	}
 	job, ok := ctx.Value(workerLocalJobContextKey{}).(string)
 	return job, ok && validWorkerJobID(job)
+}
+
+// Only exact deployment values are accepted; malformed opt-ins fail closed.
+func isolatedCommandsSetting(value string) (enabled, valid bool) {
+	switch value {
+	case "", "false":
+		return false, true
+	case "true":
+		return true, true
+	default:
+		return false, false
+	}
 }

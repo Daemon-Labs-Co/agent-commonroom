@@ -4,6 +4,7 @@ import (
 	"agentroom/internal/codexbridge"
 	"agentroom/internal/strictjson"
 	"agentroom/internal/toolbroker"
+	"agentroom/internal/toolcommand"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -58,12 +59,26 @@ func workerCodexToolRequest(scope toolbroker.Scope, token, callID string, argume
 			target = &request.Path
 		case "content":
 			target = &request.Content
+		case "command":
+			if json.Unmarshal(value, &request.Command) != nil {
+				return request, toolbroker.ErrRejected
+			}
+			continue
 		default:
 			return request, toolbroker.ErrRejected
 		}
 		if json.Unmarshal(value, target) != nil {
 			return request, toolbroker.ErrRejected
 		}
+	}
+	if request.Operation == "command" {
+		if request.Path != "" || request.Content != "" || !toolcommand.Valid(request.Command) {
+			return request, toolbroker.ErrRejected
+		}
+		return request, nil
+	}
+	if len(request.Command) != 0 {
+		return request, toolbroker.ErrRejected
 	}
 	if (request.Operation != "read" && request.Operation != "write") || request.Path == "" || (request.Operation == "read" && request.Content != "") {
 		return request, toolbroker.ErrRejected
@@ -92,13 +107,13 @@ func (s *workerPairSupervisor) codexTurn(ctx context.Context, session *toolbroke
 	defer cancel()
 	defer stop()
 	scope := session.Scope()
-	result, err := codexbridge.RunWithFinalizer(lifetime, stream, prompt, model, func(ctx context.Context, callID string, arguments json.RawMessage) ([]byte, error) {
+	result, err := codexbridge.RunWithOptions(lifetime, stream, prompt, model, func(ctx context.Context, callID string, arguments json.RawMessage) ([]byte, error) {
 		request, err := workerCodexToolRequest(scope, token, callID, arguments)
 		if err != nil {
 			return nil, err
 		}
 		return session.Dispatcher.Dispatch(ctx, request)
-	}, finalize)
+	}, finalize, codexbridge.Options{Commands: session.CommandsEnabled()})
 	if err != nil {
 		s.cancel()
 	}
