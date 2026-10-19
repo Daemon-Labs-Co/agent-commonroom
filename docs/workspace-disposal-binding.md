@@ -111,7 +111,9 @@ ordinary recovery, receipt mismatch, ambiguous JSON and container-only proof.
 Automated tests launch no Docker workload, provider or database.
 
 The owner workflow has three P0 refusal drivers and one combined approved-disposal
-driver with mocked worker removal, receipt and capacity release. Live disposal
+driver with mocked worker removal, receipt and capacity release. Five additional
+drivers cover stale approval, remove/absence uncertainty, retained cancellation
+and immutable history. Live disposal
 acceptance remains pending. The existing tool-only live cleanup used disposable diagnostic data;
 it does not establish a human-approved production disposal workflow. See
 [workspace volumes](workspace-volumes.md), [storage accounting](storage-accounting.md)

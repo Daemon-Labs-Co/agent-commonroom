@@ -858,6 +858,14 @@ Automated regression checks for p0_disposal_acceptance; read test names for indi
 
 [Types, methods and functions](cmd--server--p0_disposal_acceptance_test-go.md)
 
+## cmd/server/p0_disposal_failures_test.go
+
+[Open source](../../cmd/server/p0_disposal_failures_test.go)
+
+Automated regression checks for p0_disposal_failures; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_disposal_failures_test-go.md)
+
 ## cmd/server/p0_storage_acceptance_test.go
 
 [Open source](../../cmd/server/p0_storage_acceptance_test.go)
@@ -1375,6 +1383,22 @@ Automated regression checks for worker_engine; read test names for individual co
 Go implementation for worker idle; declarations and calls are listed below.
 
 [Types, methods and functions](cmd--server--worker_idle-go.md)
+
+## cmd/server/worker_idle_guard.go
+
+[Open source](../../cmd/server/worker_idle_guard.go)
+
+Go implementation for worker idle guard; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--worker_idle_guard-go.md)
+
+## cmd/server/worker_idle_guard_test.go
+
+[Open source](../../cmd/server/worker_idle_guard_test.go)
+
+Automated regression checks for worker_idle_guard; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--worker_idle_guard_test-go.md)
 
 ## cmd/server/worker_lifecycle.go
 

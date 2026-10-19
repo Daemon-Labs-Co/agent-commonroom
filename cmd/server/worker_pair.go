@@ -111,6 +111,8 @@ func pairRoleSettled(c workerPairContainer) bool { return !c.CreationStarted || 
 // No production launch adapter or public entry point is wired.
 // Its caller must authenticate the controller and validate image/mount policy.
 type workerPairSupervisor struct {
+	idle             *workerIdleWatch
+	pendingTurns     int
 	ctx              context.Context
 	cancel           context.CancelFunc
 	startup          sync.Mutex
@@ -363,6 +365,7 @@ func (s *workerPairSupervisor) Start(ctx context.Context, adapter workerPairLaun
 		return err
 	}
 	s.record = record
+	s.armIdleLocked()
 	return nil
 }
 

@@ -28,6 +28,10 @@ func driveP0DisposalRefusal(t *testing.T, scenario pendingP0Case) pendingP0Obser
 		f.s.auth.sessions["owner"] = ownerSession{ActorID: "developer", CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
 	case "discard-wrong-volume":
 		f.view.Pair.Workspace.Identity.Nonce = strings.Repeat("f", 32)
+	case "discard-stale":
+		if response := f.post(t, map[string]string{"action": "revoke", "proposalId": proposalID}); response.Code != 200 {
+			t.Fatal(response.Code)
+		}
 	case "discard-missing":
 	default:
 		t.Fatal("unimplemented disposal refusal driver")
@@ -137,7 +141,7 @@ func driveP0ApprovedDisposal(t *testing.T, scenario pendingP0Case) pendingP0Obse
 		out.Effects = append(out.Effects, "storage_reservation_released")
 	}
 	after := f.db.snapshot()
-	for _, event := range after[len(before):] {
+	for _, event := range after[min(len(before), len(after)):] {
 		switch event.kind {
 		case "workspace.disposal.claimed", "workspace.disposal.succeeded", "worker.job.updated", "storage.released":
 		default:

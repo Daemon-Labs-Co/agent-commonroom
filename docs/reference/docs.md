@@ -332,6 +332,12 @@ Private worker audit transport — documentation.
 
 Recover uncertain worker credentials — documentation.
 
+## docs/worker-idle-shutdown.md
+
+[Open source](../../docs/worker-idle-shutdown.md)
+
+Worker idle shutdown guard — documentation.
+
 ## docs/worker-jobs.md
 
 [Open source](../../docs/worker-jobs.md)
