@@ -56,8 +56,10 @@ because they use similar company names. This is container reservation accounting
 not a complete hosted entitlement or tenant-isolation service. Unknown remote
 containers must still block worker admission and be reconciled.
 
-The account's hard aggregate 5 GB storage ceiling is still pending. Workspace,
-bundle and artifact storage limits must be implemented independently; a
+The account's hard aggregate 5 GB storage ceiling is still pending. Internal
+[storage accounting](storage-accounting.md) now journals bounded capacity
+reservations independently of container slots. Complete physical inventory,
+worker-enforced quotas and allocation/disposal integration remain required; a
 four-container guard does not establish disk quota enforcement. Production
 managed development remains gated pending the rest of P0.
 

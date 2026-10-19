@@ -1,0 +1,110 @@
+# Managed storage accounting
+
+CommonRoom's free-account storage budget is **5,000,000,000 bytes**, shared by
+retained development workspaces, staged source bundles and stored artifacts.
+Container slots and storage capacity are separate: stopping containers must not
+make retained source disappear from the storage budget.
+
+The controller now implements durable reservation accounting. Physical quota
+provisioning, a complete live inventory adapter, launch/write integration and
+approved disposal remain unfinished. This is an internal foundation, not an
+available storage-management screen or a completed hard disk quota. Production
+repository development remains gated.
+
+## Owner and user behavior
+
+There is no new setting, public endpoint or model tool. The budget has no paid,
+owner or feature-flag override; paid account limits have not been established.
+Existing data is preserved even if an initial inventory exceeds the budget. Such
+an account cannot reserve additional capacity. Existing accounts without a trusted
+complete inventory have **unknown usage**, rather than zero usage, and reservation
+requests are refused.
+
+A reservation is a maximum capacity charge recorded before a future allocation.
+For example, 3 GB of retained workspace capacity, 1 GB of staged bundles and 1 GB
+of artifacts fill the account. Another byte is refused. Once capacity is reserved,
+restarts, expired jobs and container shutdown cannot refund it. Unused reserved
+capacity also remains charged; this implementation does not yet shrink or release
+reservations.
+
+This is mandatory resource-accounting infrastructure, so there is no optional
+on/off product flag. Optional diagnostics/background-work flags cannot disable it.
+Disabling development admission prevents new development; it does not erase
+storage records, retained data or history.
+
+## Trusted initialization
+
+`initializeManagedStorage` requires an authenticated enabled human owner and an
+explicit matching company. Its trusted inventory adapter must stop competing
+writers and account for **all** retained volumes, staged bundles and artifacts
+across every approved account worker. A partial directory scan, a model's report,
+a stale usage poll or a caller-supplied claim of completeness is insufficient.
+The implementation provides no default adapter and no empty-account fallback.
+
+The adapter returns immutable nonsecret object identities, reserved/occupied byte
+counts and a SHA-256 inventory digest. The controller validates this evidence and
+atomically records `storage.inventory.recorded`. An explicit empty list is required
+for a verified empty account; omitted/null inventory is rejected. The digest binds
+the baseline evidence; it does not certify a kernel quota or ongoing filesystem
+usage. Initialization is single-use. There is no reset, baseline replacement or
+release event that could erase an earlier charge.
+
+Inventory adapters are trusted infrastructure, never model/plugin dependencies.
+Changing source to supply false inventory bypasses this contract. No production
+inventory adapter is shipped yet, so no operator should manually synthesize these
+events or edit the database to enable development.
+
+## Reservation and audit contract
+
+`reserveManagedStorage` validates the current enabled human, room access and the
+exact company/job/worker/repository binding. A non-owner initiator must match the
+job's recorded human initiator. Expired jobs, stopped execution, uncertain/finished
+jobs, duplicate reservation IDs, unknown categories, missing inventory and invalid
+byte counts are refused. Only workspace, bundle and artifact categories exist.
+
+Reservations and inventory use the controller's append-only account journal.
+Each append carries the loaded journal revision. The transactional audit-chain
+lock checks that revision before commit; separate controllers cannot both reserve
+the final byte from stale snapshots. A conflict is refused rather than silently
+retried. Failed or ambiguous persistence grants no allocation authority and does
+not authorize an automatic refund. Reload and reconcile the journal first.
+
+All arithmetic is checked before addition. Negative/zero allocations and values
+that exceed the ceiling are refused. Malformed, foreign, duplicated or overflowing
+replayed evidence blocks state loading. Existing over-budget inventory can be
+recorded without deleting data, but cannot grow through reservations.
+
+Audit records contain the authenticated actor, immutable nonsecret binding,
+category and byte count. They contain no host paths, credentials, file contents,
+command output or prompts. Raw reservation/inventory state is excluded from the
+public state projection. Public `/api/events` requests cannot create, replace or
+release these internal records, even for the owner.
+
+## Physical enforcement still required
+
+A durable reservation prevents accounting overbooking. It cannot stop a compiler
+or detached process from writing past its reserved capacity. Before enabling
+production allocation, the worker needs a reviewed physical quota backend that
+bounds every writable workspace, staging area and artifact store, including data
+retained after job exit. Multiple workers must share the authoritative account
+ledger. Missing/ambiguous enforcement must block allocation before effects.
+
+A filesystem usage check or Docker volume label is not a hard quota. Rootless
+Docker's plain local named volumes currently have no verified per-volume byte
+ceiling. Approved disposal must bind exact human approval and physical identity,
+prove absence, then durably release the matching capacity without deleting audit
+history. Those worker/disposal contracts remain P0 work.
+
+## Verification
+
+Fast automated tests mock database access and exercise real controller methods,
+journal appends/replay, restart, concurrent controllers, stale transaction
+revisions, retained categories, audit failure, current permissions, stopped/expired
+work, public event injection and malformed inventory. No real database, Docker
+workload or provider runs in these tests.
+
+Six P0 accounting scenarios now have production-backed hermetic drivers: exact
+boundary, one byte over, concurrent final-byte reservations, retained categories,
+negative reservation and no owner/paid/diagnostic bypass. Other storage acceptance
+cases and physical/live verification remain pending. See [P0 acceptance](p0-acceptance-tests.md),
+[container quotas](container-quotas.md), and [release readiness](release-readiness.md).

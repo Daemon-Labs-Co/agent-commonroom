@@ -34,6 +34,7 @@ internal tested components and remaining release gates. The
 - [Operations and backups](operations.md): start, stop, recover and protect an installation.
 - [Worker jobs](worker-jobs.md): durable job identity, diagnostics and reconciliation.
 - [Container isolation](container-isolation.md): supported worker platform and mandatory limits.
+- [Storage accounting](storage-accounting.md): durable capacity reservations and remaining physical quota requirements.
 - [Execution budgets](execution-budgets.md) and [container quotas](container-quotas.md): enforced admission ceilings and storage gaps.
 - [Login availability](login-availability.md), [private file safety](private-file-security.md) and [storage deadlines](storage-deadlines.md): bounded failures and recovery.
 - [Development workspaces](development-workspaces.md) and [development squads](development-squad.md): configuration boundaries while development admission remains gated.
@@ -57,6 +58,7 @@ they do not imply that an end-user development endpoint is enabled.
 ## Build and evaluate
 
 - [Development guide](development.md) and [contribution rules](../CONTRIBUTING.md).
+- [Initial tool-only live evidence](live-tool-acceptance.md): limited manual worker verification, separate from release acceptance.
 - [Release readiness](release-readiness.md) and [prepared acceptance scenarios](p0-acceptance-tests.md).
 - [Backlog](planned-features.md): follow-up requirements, separate from delivered behavior.
 - [Security policy](../SECURITY.md), [current risk review](../SECURITY_REVIEW.md) and [implemented hardening](security-hardening.md).

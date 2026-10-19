@@ -204,6 +204,7 @@ type ToolCallAudit struct {
 	OutputDigest  string `json:"outputDigest"`
 }
 type State struct {
+	ManagedStorage    *ManagedStorage             `json:"-"`
 	HumanRevision     int                         `json:"humanRevision"`
 	EventCount        int64                       `json:"-"`
 	OperationReceipts map[string]OperationReceipt `json:"-"`

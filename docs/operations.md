@@ -181,3 +181,13 @@ The internal worker can explicitly admit one terminal Go build/test command when
 its operator flag and separate operation grant both allow it. Defaults remain
 file-only. See [isolated commands](isolated-commands.md) for configuration,
 receipt semantics, container destruction and remaining release limits.
+
+## Storage capacity
+
+The internal [storage accounting](storage-accounting.md) ledger reserves a maximum
+5,000,000,000 bytes across workspaces, bundles and artifacts. Missing complete
+inventory refuses reservations, and container shutdown does not refund retained
+data. No public storage-management operation or physical quota backend is enabled
+yet. Do not fabricate inventory, edit the journal or delete retained volumes to
+restore capacity. Production development stays gated pending physical enforcement
+and exact approved disposal.

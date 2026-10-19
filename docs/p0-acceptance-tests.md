@@ -32,7 +32,13 @@ provisioning, validation and persistence methods with temporary credentials and 
 pre-write filesystem-failure dependency. Observations come from actual files,
 locks, errors and release state. Separate combined tests cover the private export
 and callback/fencing path. These drivers do not launch providers or establish live
-refresh compatibility. Seventy scenarios remain unbound.
+refresh compatibility.
+
+Six storage scenarios now drive real controller reservation methods, transactional
+journal appends and replay against the in-memory database adapter: exact boundary,
+one byte over, concurrent last byte, retained categories, negative reservation and
+no owner/paid/diagnostic bypass. They verify accounting, not physical disk quotas
+or a production launch path. Sixty-four scenarios remain unbound.
 
 Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation
@@ -48,7 +54,7 @@ status report.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 70 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 64 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.
@@ -88,4 +94,6 @@ redacted observations and teardown proof. Synthetic acceptance cannot replace th
 | Upgrades and idle | Publish a reviewed compatible harness update and an incompatible candidate; advance real deployment idle settings around active/queued work. | New image only for a fresh agent, incompatible update blocked, owner-only configuration, active work preserved and normal cleanup at idle expiry. |
 | Artifacts and disposal | Collect revision-bound check/artifact evidence, retain source, then issue exact authorized disposal. Inject remove/absence failures. | Permission and size checks, explicit current approval, storage released only after verified absence, immutable audit preserved. |
 
-This list is a deployment acceptance plan. No live check is claimed complete here.
+Initial [tool-only live evidence](live-tool-acceptance.md) covers an image build,
+synthetic command, kernel limit observations and diagnostic cleanup. It does not
+complete any of the broader deployment checks in this table.

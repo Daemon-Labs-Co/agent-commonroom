@@ -850,6 +850,14 @@ Automated regression checks for p0_credential_acceptance; read test names for in
 
 [Types, methods and functions](cmd--server--p0_credential_acceptance_test-go.md)
 
+## cmd/server/p0_storage_acceptance_test.go
+
+[Open source](../../cmd/server/p0_storage_acceptance_test.go)
+
+Automated regression checks for p0_storage_acceptance; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_storage_acceptance_test-go.md)
+
 ## cmd/server/private_files.go
 
 [Open source](../../cmd/server/private_files.go)
@@ -1009,6 +1017,22 @@ Go implementation for storage deadlines; declarations and calls are listed below
 Automated regression checks for storage_deadlines; read test names for individual contracts.
 
 [Types, methods and functions](cmd--server--storage_deadlines_test-go.md)
+
+## cmd/server/storage_quota.go
+
+[Open source](../../cmd/server/storage_quota.go)
+
+Go implementation for storage quota; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--storage_quota-go.md)
+
+## cmd/server/storage_quota_test.go
+
+[Open source](../../cmd/server/storage_quota_test.go)
+
+Automated regression checks for storage_quota; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--storage_quota_test-go.md)
 
 ## cmd/server/task_dispatch.go
 

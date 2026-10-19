@@ -84,7 +84,9 @@ bounds, nonzero status, malformed receipts, failed cleanup and terminal reuse.
 Process-adapter tests use harmless local test subprocesses; no provider, database,
 Docker daemon or repository compiler is launched by the automated suite.
 
-Live Linux rootless-Docker/image/provider verification remains outstanding.
+Initial [tool-only live checks](live-tool-acceptance.md) now verify an image build,
+a cold synthetic Go test, kernel limit values and disposable-container cleanup.
+Full Linux rootless-Docker/paired-worker/provider verification remains outstanding.
 The command digest and initial source-scope digest do **not** attest the current
 working-tree revision after edits. Revision-bound artifact collection, broader
 language/provider support, hard aggregate 5 GB disk enforcement and production
