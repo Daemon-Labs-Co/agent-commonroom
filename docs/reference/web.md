@@ -320,6 +320,14 @@ Presentation asset; consumed by the interface or documentation, with no executab
 
 Presentation asset; consumed by the interface or documentation, with no executable methods.
 
+## web/idle-policy.js
+
+[Open source](../../web/idle-policy.js)
+
+JavaScript implementation for idle policy; named functions are indexed below.
+
+- `drawIdlePolicySettings`: named function; inspect the source for parameters, callbacks and effects.
+
 ## web/index.html
 
 [Open source](../../web/index.html)

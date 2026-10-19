@@ -161,8 +161,9 @@ The [paired-worker idle guard](worker-idle-shutdown.md) defaults to five minutes
 and is configured in the trusted worker process environment using
 `COMMONROOM_AGENT_IDLE_SHUTDOWN` and `COMMONROOM_AGENT_IDLE_MINUTES`. New pairs
 snapshot the policy; disabling it never disables hard deadlines or ordinary
-shutdown. Public development dispatch and controller idle announcements remain
-unimplemented. Do not forward model/browser/SSH client values into this policy.
+shutdown. The owner can configure new allocation policy in **Settings → Security → Idle agents**;
+exact registered snapshots override the legacy environment fallback in reviewed
+assembly. Public dispatch and controller idle-stop announcements remain unimplemented. Do not forward model/browser/SSH client values into this policy.
 
 ## Presentation and catalog flags
 

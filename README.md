@@ -180,5 +180,5 @@ only an exactly bound workspace reservation; legacy unbound data stays charged.
 Physical quotas and live production acceptance remain pending.
 
 The [internal idle shutdown guard](docs/worker-idle-shutdown.md) protects unused
-paired workers, retaining source. Controller-wide idle-agent behavior and live
-acceptance remain pending.
+paired workers, retaining source. Owners can set the idle interval and on/off policy in Settings for new allocations.
+Controller idle-stop announcements, production dispatch and live acceptance remain pending.

@@ -292,3 +292,12 @@ Claimed deletion is one-shot; unknown outcomes cannot be retried. The proposal
 includes `storageReservationId` only for an exact prebound workspace charge.
 Verified removal releases that charge atomically with the outcome and container
 slots; unbound legacy charges and separate artifacts stay charged. See the [full contract](workspace-disposal.md).
+
+### Owner idle shutdown policy
+
+Owner-only `agents.idle_policy.updated` events accept exactly integer `minutes`
+(1–60) and the current `revision` (initially 0). CSRF is required; stale forms
+return 409 and successful saves increment the revision. `idleAgentShutdown` is
+a default-on feature flag for new paired allocations. Existing jobs keep their
+immutable policy snapshot. These settings do not enable production dispatch.
+See [idle policy and worker handoff](worker-idle-shutdown.md#controller-and-api-contract).

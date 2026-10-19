@@ -26,6 +26,14 @@ Go implementation for disposal; declarations and calls are listed below.
 
 [Types, methods and functions](internal--room--disposal-go.md)
 
+## internal/room/idle.go
+
+[Open source](../../internal/room/idle.go)
+
+Go implementation for idle; declarations and calls are listed below.
+
+[Types, methods and functions](internal--room--idle-go.md)
+
 ## internal/room/managed_tools.go
 
 [Open source](../../internal/room/managed_tools.go)

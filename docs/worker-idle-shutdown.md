@@ -6,7 +6,21 @@ workspace source and never restarts an old container or releases storage credit.
 This is an internal lifecycle component; public development dispatch and the full
 idle-agent product feature remain gated.
 
-## Configure the approved worker
+## Owner settings
+
+Open **Settings → Security → Idle agents** as the enabled human owner. The
+`idleAgentShutdown` feature flag defaults **on**. Use its switch to enable or
+disable idle shutdown for new paired-job allocations, and **Set idle interval**
+to choose 1–60 whole minutes (default 5). Settings remain editable while off.
+Only the owner may save either value. No restart is needed for new allocations;
+already allocated/running jobs retain their durable snapshot. A stale interval
+form is refused; refresh before saving again.
+
+These controls configure admission policy, not public development availability.
+The production dispatch barrier remains in force. Disabling idle shutdown cannot
+disable deadlines, normal cleanup, isolation, audit integrity or retention.
+
+## Configure the approved worker fallback
 
 Set these values in the trusted worker process environment, owned by the worker
 administrator. Do not accept them from a room, model, plugin, browser request or
@@ -23,7 +37,9 @@ COMMONROOM_AGENT_IDLE_MINUTES=5
 | `COMMONROOM_AGENT_IDLE_MINUTES` | `5` | Integer from 1 to 60. |
 
 Only the deployment administrator with permission to change the worker environment
-can configure this policy. There is no model tool or public configuration API.
+can configure this fallback. A registered controller job snapshot takes precedence
+when provided to reviewed Codex assembly; these environment settings apply to
+legacy internal calls without that snapshot. There is no model configuration tool.
 Restart the worker deployment to apply environment changes reliably. Each newly
 admitted `Run` snapshots policy before creating containers; existing jobs keep
 their policy. Invalid values refuse paired execution before startup, including
@@ -68,8 +84,8 @@ refund. Use [worker recovery](worker-jobs.md) and separately
 [owner-reviewed disposal](workspace-disposal.md) when appropriate.
 
 The intention is durable worker-local evidence, not a controller append-only
-announcement or complete enterprise audit chain. Controller notification, owner
-application settings, production dispatch integration and live acceptance remain
+announcement or complete enterprise audit chain. Owner settings and immutable controller policy snapshots are implemented.
+Controller idle-stop notification, production dispatch integration and live acceptance remain
 P0 work. The worker journal must not be edited to manufacture shutdown proof.
 
 ## Technical contract and verification
@@ -93,3 +109,36 @@ admission, the exact boundary, startup/active/queued work, reset, durable-intent
 failure, both-role removal, retained source, cleanup uncertainty and refusal to
 revive or automatically retry a closed pair. No real provider, Docker daemon or
 database is used. Full idle catalog and live runtime acceptance remain pending.
+
+## Controller and API contract
+
+`POST /api/events` accepts owner-only `agents.idle_policy.updated` with exactly
+`{"minutes":5,"revision":0}`. Both fields are required integers. The server
+commits revision 1; later saves supply the current revision. Missing CSRF,
+unauthorized/disabled actors, duplicate/unknown fields, invalid minutes, stale
+revisions and failed audit writes cannot change policy. State exposes
+`agentIdleSettings`; revision zero/minutes zero represents the unsaved default.
+The existing owner-only `feature.flag.updated` operation changes
+`idleAgentShutdown`. Neither operation resumes or cancels an existing job.
+
+Paired registration snapshots `idlePolicyVersion:1`, `idlePolicyRevision`,
+`idleShutdownEnabled` and `idleMinutes` into its mandatory `worker.job.updated`
+allocation event. Policy changes cannot rewrite those immutable fields. Legacy
+allocations with no snapshot remain readable; no history is backfilled.
+
+Reviewed authenticated assembly passes that exact registered allocation as
+`workerCodexRunConfig.ManagedJob`. `configureJobIdle` checks lifecycle, job,
+provider, membership, repository and deadline against the admitted supervisor
+before binding the guard. A foreign snapshot is refused before acquiring
+credentials or consuming the bundle. A valid snapshot also remains enforced if
+later preparation fails. This trusted internal handoff is not an authenticated
+wire protocol; production controller-to-worker admission still must transport and
+verify it. Omitting the snapshot in old/internal source paths uses the deployment
+fallback and does not establish enforcement of the controller policy.
+
+Additional mocked tests cover owner/non-owner/CSRF checks, strict request shape,
+stale forms, audit failure, durable settings/replay, default/on/off snapshots,
+immutable allocations, exact worker binding and Codex assembly refusal/cleanup.
+Synthetic DOM tests cover settings visibility, revisioned saves and re-enabling
+an off policy. One P0 driver verifies the unauthorized configuration boundary;
+remaining idle drivers and live browser/worker acceptance are still pending.

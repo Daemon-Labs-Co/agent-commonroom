@@ -8,4 +8,4 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 
 - **`(*server).prepareIdentityEvent`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(w http.ResponseWriter, r *http.Request, st room.State, roomID string, req eventRequest) (any, bool)`.
-  Calls: `err.Error`, `http.Error`, `humanProfileImagesEnabled`, `json.Unmarshal`, `len`, `member`, `normalizeProfileImage`, `requestActor`, `strings.TrimSpace`, `validateOrganization`.
+  Calls: `err.Error`, `http.Error`, `humanProfileImagesEnabled`, `json.Unmarshal`, `len`, `member`, `normalizeProfileImage`, `prepareIdleSettings`, `requestActor`, `strings.TrimSpace`, `validateOrganization`.

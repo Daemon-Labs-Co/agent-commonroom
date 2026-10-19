@@ -2,6 +2,7 @@ package main
 
 import (
 	"agentroom/internal/codexbridge"
+	"agentroom/internal/room"
 	"agentroom/internal/toolbroker"
 	"context"
 	"errors"
@@ -12,6 +13,8 @@ import (
 // still require the controller's normal authorization and feature admission.
 // No launch flag or model argument can replace isolation, runner or gateway.
 type workerCodexRunConfig struct {
+	// Trusted authenticated controller allocation, never a model-selected override.
+	ManagedJob                         *room.ManagedJob
 	EngineImage, AuthRoot, GatewayRoot string
 	Prompt, Model                      string
 }
@@ -30,6 +33,19 @@ func (s *workerPairSupervisor) RunCodex(ctx context.Context, session *toolbroker
 	if s.available(ctx) != nil || s.codexRunStarted || s.assembled || s.engineCredential != nil || session.Runtime == nil || session.Dispatcher == nil || session.Scope().Provider != "codex" || !validWorkerAuditScope(s.record, session.Scope()) {
 		s.mu.Unlock()
 		return result, record, toolbroker.ErrRejected
+	}
+	if config.ManagedJob != nil {
+		job := *config.ManagedJob
+		// Release mu before binding the same immutable admission through its helper.
+		s.mu.Unlock()
+		if err = s.configureJobIdle(job, runner); err != nil {
+			return result, record, err
+		}
+		s.mu.Lock()
+		if s.available(ctx) != nil || s.codexRunStarted || s.assembled {
+			s.mu.Unlock()
+			return result, record, toolbroker.ErrRejected
+		}
 	}
 	s.codexRunStarted = true
 	scope, journal := session.Scope(), s.dir

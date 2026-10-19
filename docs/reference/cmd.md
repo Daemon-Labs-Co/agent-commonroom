@@ -650,6 +650,22 @@ Automated regression checks for identity_defaults; read test names for individua
 
 [Types, methods and functions](cmd--server--identity_defaults_test-go.md)
 
+## cmd/server/idle_policy.go
+
+[Open source](../../cmd/server/idle_policy.go)
+
+Go implementation for idle policy; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--idle_policy-go.md)
+
+## cmd/server/idle_policy_test.go
+
+[Open source](../../cmd/server/idle_policy_test.go)
+
+Automated regression checks for idle_policy; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--idle_policy_test-go.md)
+
 ## cmd/server/initiator_context.go
 
 [Open source](../../cmd/server/initiator_context.go)
@@ -865,6 +881,14 @@ Automated regression checks for p0_disposal_acceptance; read test names for indi
 Automated regression checks for p0_disposal_failures; read test names for individual contracts.
 
 [Types, methods and functions](cmd--server--p0_disposal_failures_test-go.md)
+
+## cmd/server/p0_idle_policy_acceptance_test.go
+
+[Open source](../../cmd/server/p0_idle_policy_acceptance_test.go)
+
+Automated regression checks for p0_idle_policy_acceptance; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_idle_policy_acceptance_test-go.md)
 
 ## cmd/server/p0_storage_acceptance_test.go
 

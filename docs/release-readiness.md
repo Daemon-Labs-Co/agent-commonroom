@@ -45,14 +45,14 @@ and [container quotas](container-quotas.md).
 | Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Private final export and fenced, connection-scoped persistence are implemented internally. Reviewed image, live refresh and recovery acceptance remain. |
 | Storage | Durable 5,000,000,000-byte reservation accounting is implemented internally. Complete physical inventory, hard worker enforcement and allocation/disposal integration remain. |
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
-| Idle agents | Internal worker guard now defaults to five minutes with administrator-only environment configuration, busy/queued-work protection and retained source. Controller announcements/settings, production integration and live acceptance remain. |
+| Idle agents | Internal worker guard now defaults to five minutes with an administrator environment fallback, busy/queued-work protection and retained source. Owner settings and immutable allocation snapshots now exist. Controller announcements, production integration and live acceptance remain. |
 | Commands and artifacts | Bounded isolated builds/tests and permission-checked, revision-bound observed evidence/artifact delivery. |
 | Approved disposal | Exact internal request/receipt volume binding now exists. Owner review, one-minute delay, expiry/revocation and one-shot claims are implemented off by default. Production storage allocation binding, artifact integration and live approval acceptance remain. |
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Four credential-custody, six storage-accounting and nine disposal scenarios now
-have production-backed hermetic drivers; 55 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+prepared scenarios. Four credential-custody, six storage-accounting, nine disposal and one idle-permission scenarios now
+have production-backed hermetic drivers; 54 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
 still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0
