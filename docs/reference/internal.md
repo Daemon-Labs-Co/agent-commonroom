@@ -106,6 +106,22 @@ Automated regression checks for encoding; read test names for individual contrac
 
 [Types, methods and functions](internal--strictjson--encoding_test-go.md)
 
+## internal/toolbroker/audit_idle.go
+
+[Open source](../../internal/toolbroker/audit_idle.go)
+
+Go implementation for audit idle; declarations and calls are listed below.
+
+[Types, methods and functions](internal--toolbroker--audit_idle-go.md)
+
+## internal/toolbroker/audit_idle_test.go
+
+[Open source](../../internal/toolbroker/audit_idle_test.go)
+
+Automated regression checks for audit_idle; read test names for individual contracts.
+
+[Types, methods and functions](internal--toolbroker--audit_idle_test-go.md)
+
 ## internal/toolbroker/audit_stream.go
 
 [Open source](../../internal/toolbroker/audit_stream.go)

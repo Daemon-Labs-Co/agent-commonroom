@@ -7,7 +7,7 @@ Go implementation for tool session; declarations and calls are listed below.
 Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods rather than classes.
 
 - **Type `ToolSession`**: ToolSession assembles one authority, plan, runtime and audited dispatcher. Runtime bootstrap opens readiness on the exact plan used by Dispatcher; callers cannot accidentally bootstrap one plan and execute through another. These are trusted worker objects, never serialized as model configuration. Close revokes access and closes audit I/O, NOT proof of container/volume stop. The paired supervisor must retain ownership through all calls and fence after failure. A source fork CAN substitute an unaudited runner/link, BUT invalidates isolation and durable audit guarantees. No host fallback is provided.
-  Declaration: `struct { Runtime *ToolContainerRuntime Dispatcher *Dispatcher close func() scope Scope commands bool }`.
+  Declaration: `struct { audit *AuditClient Runtime *ToolContainerRuntime Dispatcher *Dispatcher close func() scope Scope commands bool }`.
 - **`(*ToolSession).Scope`** — Scope returns immutable nonsecret registration metadata, never the capability.
   Signature: `func() Scope`.
 - **`(*ToolSession).Close`** — Source has no prose contract; use the signature and direct calls below to trace behavior.

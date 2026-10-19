@@ -14,6 +14,7 @@ import (
 // Construction is trusted controller work, not a model/plugin/public HTTP API.
 // A source fork CAN substitute a no-op auditor BUT then tools are unaudited.
 type controllerToolAuditor struct {
+	job                 room.ManagedJob
 	server              *server
 	scope               toolbroker.Scope
 	actorID             string
@@ -65,6 +66,7 @@ func newControllerToolAuditor(ctx context.Context, s *server, scope toolbroker.S
 		return nil, err
 	}
 	a.actor, a.participantRevision, a.connection, a.companyID = principal, participant.Revision, connection, st.Company.ID
+	a.job = st.ManagedJobs[scope.JobID]
 	return a, nil
 }
 
@@ -176,6 +178,19 @@ func (a *controllerToolAuditor) persist(ctx context.Context, st room.State, kind
 		if !errors.Is(err, errAuditConflict) {
 			a.server.tripIntegrityLocked()
 		}
+		return toolbroker.ErrAudit
+	}
+	return nil
+}
+
+// RecordIdleStop accepts only terminal supervisor lifecycle metadata. Current
+// presentation/stop flags cannot erase evidence about an already admitted job.
+// Tool/frame ordering is enforced by ServeAudit; this grants no executor access.
+func (a *controllerToolAuditor) RecordIdleStop(ctx context.Context, scope toolbroker.Scope, stop toolbroker.IdleStop) error {
+	if a == nil || a.server == nil || scope != a.scope || !toolbroker.ValidAuditIdleStop(scope, stop, time.Now()) || a.job.IdlePolicyVersion != 1 || !a.job.IdleShutdownEnabled || stop.Minutes != a.job.IdleMinutes || stop.PolicyRevision != a.job.IdlePolicyRevision {
+		return toolbroker.ErrAudit
+	}
+	if a.server.recordIdleStop(ctx, a.job, stop.StartedAt, stop.RequestedAt) != nil {
 		return toolbroker.ErrAudit
 	}
 	return nil

@@ -14,10 +14,13 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `append`, `idleNoticeMessage`, `json.Unmarshal`, `sameDisposalJob`, `validIdleNotice`.
 - **`(*server).newIdleAnnouncer`** — newIdleAnnouncer binds a registered job and initiating human to a trusted private callback. This is not a public/model/plugin API or peer authentication. Production assembly must carry it over a reviewed authenticated control stream.
   Signature: `func(ctx context.Context, jobID string) (workerIdleAnnounce, error)`.
-  Calls: `action.Err`, `canAccess`, `context.WithValue`, `ctx.Err`, `ctx.Value`, `errors.Is`, `id`, `member`, `prior.RequestedAt.Equal`, `prior.WorkerStartedAt.Equal`, `s.append`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.tripIntegrityLocked`, `sameDisposalJob`, `sameWorkerBinding`, `time.Now`, `time.Now().UTC`, `validIdleNotice`, `validManagedJob`, `validWorkerRecord`.
+  Calls: `action.Err`, `canAccess`, `ctx.Err`, `ctx.Value`, `member`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.recordIdleStop`, `sameWorkerBinding`, `validManagedJob`, `validWorkerRecord`.
 - **`idleNoticeMessage`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(n room.IdleStopNotice) room.Message`.
   Calls: `fmt.Sprintf`.
 - **`projectIdleNoticeMessages`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(st *room.State)`.
   Calls: `append`.
+- **`(*server).recordIdleStop`** — recordIdleStop is shared by the local callback and the authenticated private stream adapter; all authority comes from its captured registered allocation.
+  Signature: `func(action context.Context, job room.ManagedJob, started, requested time.Time) error`.
+  Calls: `action.Err`, `context.WithValue`, `errors.Is`, `id`, `prior.RequestedAt.Equal`, `prior.WorkerStartedAt.Equal`, `s.append`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.tripIntegrityLocked`, `sameDisposalJob`, `time.Now`, `time.Now().UTC`, `validIdleNotice`.

@@ -58,35 +58,7 @@ func (s *server) newIdleAnnouncer(ctx context.Context, jobID string) (workerIdle
 		if action == nil || action.Err() != nil || !validWorkerRecord(record) || !sameWorkerBinding(job, workerJobView{workerJobRecord: record}) || record.DiagnosticCode != "idle_shutdown_requested" || record.Status != "running" || record.IdleTimeoutMinutes != job.IdleMinutes {
 			return errIdleNotice
 		}
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		latest, err := s.load(action)
-		if err != nil || s.integrityFault {
-			return errIdleNotice
-		}
-		current, found := latest.ManagedJobs[job.JobID]
-		if !found || !sameDisposalJob(current, job) {
-			return errIdleNotice
-		}
-		if prior, exists := latest.IdleStopNotices[job.JobID]; exists {
-			if prior.WorkerStartedAt.Equal(record.StartedAt) && prior.RequestedAt.Equal(record.IdleShutdownRequestedAt) {
-				return nil
-			}
-			return errIdleNotice
-		}
-		notice := room.IdleStopNotice{Version: 1, ID: id(), Job: job, WorkerStartedAt: record.StartedAt, RequestedAt: record.IdleShutdownRequestedAt, RecordedAt: time.Now().UTC()}
-		if !validIdleNotice(notice) || current.ShutdownConfirmed {
-			return errIdleNotice
-		}
-		// Attribution comes from the immutable human/job binding, not callback input.
-		audit := context.WithValue(action, actorContextKey{}, job.InitiatorID)
-		if err := s.append(context.WithValue(audit, expectedEventCountKey{}, latest.EventCount), "worker.idle_stop.announced", notice); err != nil {
-			if !errors.Is(err, errAuditConflict) {
-				s.tripIntegrityLocked()
-			}
-			return errIdleNotice
-		}
-		return nil
+		return s.recordIdleStop(action, job, record.StartedAt, record.IdleShutdownRequestedAt)
 	}, nil
 }
 func idleNoticeMessage(n room.IdleStopNotice) room.Message {
@@ -108,4 +80,41 @@ func projectIdleNoticeMessages(st *room.State) {
 		}
 	}
 	st.Messages = kept
+}
+
+// recordIdleStop is shared by the local callback and the authenticated private
+// stream adapter; all authority comes from its captured registered allocation.
+func (s *server) recordIdleStop(action context.Context, job room.ManagedJob, started, requested time.Time) error {
+	if action == nil || action.Err() != nil {
+		return errIdleNotice
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	latest, err := s.load(action)
+	if err != nil || s.integrityFault {
+		return errIdleNotice
+	}
+	current, found := latest.ManagedJobs[job.JobID]
+	if !found || !sameDisposalJob(current, job) {
+		return errIdleNotice
+	}
+	if prior, exists := latest.IdleStopNotices[job.JobID]; exists {
+		if prior.WorkerStartedAt.Equal(started) && prior.RequestedAt.Equal(requested) {
+			return nil
+		}
+		return errIdleNotice
+	}
+	notice := room.IdleStopNotice{Version: 1, ID: id(), Job: job, WorkerStartedAt: started, RequestedAt: requested, RecordedAt: time.Now().UTC()}
+	if !validIdleNotice(notice) || current.ShutdownConfirmed {
+		return errIdleNotice
+	}
+	// Attribution comes from the immutable human/job binding, not callback input.
+	audit := context.WithValue(action, actorContextKey{}, job.InitiatorID)
+	if err := s.append(context.WithValue(audit, expectedEventCountKey{}, latest.EventCount), "worker.idle_stop.announced", notice); err != nil {
+		if !errors.Is(err, errAuditConflict) {
+			s.tripIntegrityLocked()
+		}
+		return errIdleNotice
+	}
+	return nil
 }

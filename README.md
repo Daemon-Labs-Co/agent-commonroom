@@ -182,4 +182,5 @@ Physical quotas and live production acceptance remain pending.
 The [internal idle shutdown guard](docs/worker-idle-shutdown.md) protects unused
 paired workers, retaining source. Owners can set the idle interval and on/off policy in Settings for new allocations.
 Controller-bound idle stops now require audited acknowledgment and can show fixed room notices.
-Authenticated production transport assembly and live acceptance remain pending.
+Idle acknowledgments use the scoped private audit link. Production launch/policy
+assembly and live acceptance remain pending.

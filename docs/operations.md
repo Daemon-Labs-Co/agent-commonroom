@@ -165,7 +165,9 @@ shutdown. The owner can configure new allocation policy in **Settings → Securi
 exact registered snapshots override the legacy environment fallback in reviewed
 assembly. Controller-bound idle stops require a durable acknowledgment; default-on
 `idleStopNotices` controls room notice visibility while preserving audit. Public
-dispatch, authenticated remote announcement assembly and live acceptance remain open. Do not forward model/browser/SSH client values into this policy.
+dispatch, production launch/policy assembly and live SSH/provider acceptance remain open.
+Idle acknowledgments now use the existing private audit link; mixed peers that
+lack its terminal extension refuse acknowledgment without fallback. Do not forward model/browser/SSH client values into this policy.
 
 ## Presentation and catalog flags
 

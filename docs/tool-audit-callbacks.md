@@ -46,12 +46,13 @@ Channel `Close` must safely interrupt concurrent reads/writes.
 
 Each newline-delimited frame has exact lower-case keys:
 
-- `version`: protocol 1.
-- `sequence`: consecutive integer, maximum 200 frames/100 calls.
+- `version`: protocol 1 for tools; protocol 2 for the terminal idle-stop extension.
+- `sequence`: consecutive integer, at most 200 tool frames/100 calls plus one reserved terminal idle frame.
 - `session`: fresh random 128-bit client nonce, pinned for the entire link.
-- `stage`: `intent` followed by `outcome` for that call.
+- `stage`: `intent` followed by `outcome` for that call, or terminal `idle-stop`.
 - `intent`: immutable scope, call ID, operation and canonical action SHA-256.
 - `outcome`: present only for outcomes; status, output byte count and hash.
+- `idleStop`: present only for a terminal version-2 idle stop; bounded timing and policy metadata.
 
 Acknowledgements contain `version`, `digest` and `accepted`. The digest binds the
 canonical complete frame, including session, sequence, scope and outcome. An old
@@ -134,3 +135,41 @@ production dispatch, real SSH/container/provider behavior and deployment crash
 recovery still need acceptance. See [private transport](worker-audit-transport.md),
 [paired shutdown](worker-pair-shutdown.md) and
 [release readiness](release-readiness.md) for the remaining gates.
+
+## Terminal idle-stop extension
+
+Protocol-2 `idle-stop` frames reuse the same authenticated private link, pinned
+scope, sequence and random session nonce. `intent` contains only its registered
+`scope` with empty call/action/hash fields; `outcome` must be absent. The required
+`idleStop` object contains exactly `startedAt`, `requestedAt`, integer `minutes`
+and integer `policyRevision`. No text, path, command, capability, container ID or
+new execution authority is transported.
+
+Both peers validate metadata and ordering. No tool intent may remain pending.
+The controller's optional `IdleAuditor` must match the immutable admitted policy
+and persist `worker.idle_stop.announced` before returning success. The ack uses
+version 2 and the digest of the entire canonical frame, including idle metadata,
+session, scope and sequence. A protocol-1 ack cannot acknowledge a lifecycle frame.
+Old/unsupported auditors or binaries fail closed; there is no downgrade or retry.
+
+`ToolSession.RecordIdleStop` must own the shared dispatch slot and permanently
+revokes future tool authority before sending. An occupied slot returns busy
+without revoking active work. Acknowledged idle stop is terminal on both ends:
+further tools and repeated idle frames are refused. The controller keeps the
+link open for the worker to close after consuming the final acknowledgment;
+premature EOF could race the watched reader. The extra lifecycle frame does not
+increase the 100-call execution budget.
+
+Codex assembly with a registered job automatically uses this session-backed
+announcer unless reviewed internal code explicitly supplies a trusted callback.
+The controller auditor captures that registered job during authenticated
+construction. Neither a frame nor a tool can choose another job/policy. Existing
+SSH host-key validation, same-UID trust and private socket ownership remain the
+peer-authentication boundary; the framing code supplies no authentication itself.
+See [idle guard](worker-idle-shutdown.md#idle-stop-announcements) for retention and
+acknowledgment-loss behavior. Production launch/policy transport assembly and live
+SSH/provider acceptance remain open.
+
+There is no separate transport off switch: mandatory audit cannot be disabled.
+The existing owner idle-action flag controls new job snapshots, and the existing
+notice-visibility flag controls delivery while retaining audit evidence.
