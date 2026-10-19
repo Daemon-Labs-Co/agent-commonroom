@@ -94,6 +94,16 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 				return errors.New("managed initiator access changed")
 			}
 		}
+		if paired {
+			idle, policyErr := idlePolicyForState(latest)
+			if policyErr != nil {
+				return policyErr
+			}
+			job.IdlePolicyVersion = 1
+			job.IdlePolicyRevision = latest.AgentIdleSettings.Revision
+			job.IdleShutdownEnabled = idle.Enabled
+			job.IdleMinutes = idle.Minutes
+		}
 		job.CompanyID = latest.Company.ID
 		found := false
 		for _, member := range latest.Participants {
@@ -216,6 +226,9 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 }
 
 func validManagedJob(v room.ManagedJob) bool {
+	if !validManagedIdlePolicy(v) {
+		return false
+	}
 	switch v.Version {
 	case workerLifecycleVersion:
 		if v.Execution != "" || v.RepositoryDigest != "" {

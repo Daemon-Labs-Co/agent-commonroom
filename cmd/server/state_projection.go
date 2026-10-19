@@ -415,6 +415,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.Messages = append(st.Messages, v)
+		case "agents.idle_policy.updated":
+			if err := projectIdleSettings(&st, data); err != nil {
+				return st, err
+			}
 		case "feature.flag.updated":
 			var v struct {
 				Name    string `json:"name"`

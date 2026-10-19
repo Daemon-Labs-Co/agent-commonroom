@@ -4,6 +4,7 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -153,7 +154,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	var p any
 	var ok bool
 	switch req.Kind {
-	case "feature.flag.updated", "actor.help.updated", "actor.image.updated", "actor.name.updated", "company.organization.updated", "company.updated", "human.profile.updated":
+	case "agents.idle_policy.updated", "feature.flag.updated", "actor.help.updated", "actor.image.updated", "actor.name.updated", "company.organization.updated", "company.updated", "human.profile.updated":
 		p, ok = s.prepareIdentityEvent(w, r, st, roomID, req)
 	case "workflow.revised", "room.created", "room.updated", "task.revised", "evidence.created":
 		p, ok = s.prepareRoomsEvent(w, r, st, roomID, req)
@@ -174,6 +175,9 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		result["workflowId"] = workflow.ID
 	}
 	r = r.WithContext(withOperationResponse(r.Context(), 200, result))
+	if req.Kind == "agents.idle_policy.updated" {
+		r = r.WithContext(context.WithValue(r.Context(), expectedEventCountKey{}, st.EventCount))
+	}
 	if req.Kind == "memory.revised" {
 		for _, member := range st.Participants {
 			if s.active[member.ID] {

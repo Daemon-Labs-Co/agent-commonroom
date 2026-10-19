@@ -173,6 +173,14 @@ Automated regression checks for human-profile-details; read test names for indiv
 
 - `esc`: named arrow function; inspect the source for parameters, callbacks and effects.
 
+## tests/idle-policy.test.cjs
+
+[Open source](../../tests/idle-policy.test.cjs)
+
+Automated regression checks for idle-policy; read test names for individual contracts.
+
+- `harness`: named function; inspect the source for parameters, callbacks and effects.
+
 ## tests/installation_check_test.py
 
 [Open source](../../tests/installation_check_test.py)
