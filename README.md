@@ -178,3 +178,7 @@ and live runtime acceptance remain gated.
 It requires a one-minute review and explicit confirmation. Verified removal releases
 only an exactly bound workspace reservation; legacy unbound data stays charged.
 Physical quotas and live production acceptance remain pending.
+
+The [internal idle shutdown guard](docs/worker-idle-shutdown.md) protects unused
+paired workers, retaining source. Controller-wide idle-agent behavior and live
+acceptance remain pending.

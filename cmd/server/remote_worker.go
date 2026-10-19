@@ -176,21 +176,23 @@ type workerConfiguration struct {
 	DevelopmentRepositories map[string]developmentRepository `json:"developmentRepositories,omitempty"`
 }
 type workerJobRecord struct {
-	Pair              *workerPairRecord `json:"pair,omitempty"`
-	Execution         string            `json:"execution,omitempty"`
-	Version           int               `json:"version,omitempty"`
-	RoomID            string            `json:"roomId,omitempty"`
-	ParticipantID     string            `json:"participantId,omitempty"`
-	ConnectionID      string            `json:"connectionId,omitempty"`
-	Scope             string            `json:"scope,omitempty"`
-	StartedAt         time.Time         `json:"startedAt,omitempty"`
-	UpdatedAt         time.Time         `json:"updatedAt,omitempty"`
-	Deadline          time.Time         `json:"deadline,omitempty"`
-	ShutdownConfirmed bool              `json:"shutdownConfirmed"`
-	DiagnosticCode    string            `json:"diagnosticCode,omitempty"`
-	JobID             string            `json:"jobId"`
-	Status            string            `json:"status"`
-	Provider          string            `json:"provider"`
+	IdleShutdownRequestedAt time.Time         `json:"idleShutdownRequestedAt,omitempty"`
+	IdleTimeoutMinutes      int               `json:"idleTimeoutMinutes,omitempty"`
+	Pair                    *workerPairRecord `json:"pair,omitempty"`
+	Execution               string            `json:"execution,omitempty"`
+	Version                 int               `json:"version,omitempty"`
+	RoomID                  string            `json:"roomId,omitempty"`
+	ParticipantID           string            `json:"participantId,omitempty"`
+	ConnectionID            string            `json:"connectionId,omitempty"`
+	Scope                   string            `json:"scope,omitempty"`
+	StartedAt               time.Time         `json:"startedAt,omitempty"`
+	UpdatedAt               time.Time         `json:"updatedAt,omitempty"`
+	Deadline                time.Time         `json:"deadline,omitempty"`
+	ShutdownConfirmed       bool              `json:"shutdownConfirmed"`
+	DiagnosticCode          string            `json:"diagnosticCode,omitempty"`
+	JobID                   string            `json:"jobId"`
+	Status                  string            `json:"status"`
+	Provider                string            `json:"provider"`
 }
 
 func workerStateDirectory() (string, error) {

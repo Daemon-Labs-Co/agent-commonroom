@@ -81,6 +81,13 @@ func (s *workerPairSupervisor) Run(ctx context.Context, adapter workerPairLaunch
 	if ctx == nil || ctx.Err() != nil || adapter == nil || runner == nil || turn == nil {
 		return record, errors.New("paired turn dependencies unavailable")
 	}
+	if err = s.ensureIdle(runner); err != nil {
+		return record, err
+	}
+	if err = s.queueTurn(); err != nil {
+		return record, err
+	}
+	defer s.finishQueuedTurn()
 	s.turn.Lock()
 	defer s.turn.Unlock()
 	s.mu.Lock()

@@ -155,6 +155,15 @@ preserving outputs/history. Cancel and authorized inspection remain available.
 Emergency stop also cancels matching workflow drivers. Configuration never grants
 public development admission or repository access by itself.
 
+## Internal worker idle policy
+
+The [paired-worker idle guard](worker-idle-shutdown.md) defaults to five minutes
+and is configured in the trusted worker process environment using
+`COMMONROOM_AGENT_IDLE_SHUTDOWN` and `COMMONROOM_AGENT_IDLE_MINUTES`. New pairs
+snapshot the policy; disabling it never disables hard deadlines or ordinary
+shutdown. Public development dispatch and controller idle announcements remain
+unimplemented. Do not forward model/browser/SSH client values into this policy.
+
 ## Presentation and catalog flags
 
 | Setting | Default | Effect |

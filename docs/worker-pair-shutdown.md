@@ -41,7 +41,7 @@ Ordinary stop and normal completion do not authorize workspace discard.
 retained, even after both containers have been removed, and full lifecycle
 shutdown remains unconfirmed. Its reservation stays unresolved until [owner-reviewed disposal](workspace-disposal.md)
 and reconciliation complete. Storage capacity remains charged until its separate
-credit-release workflow is implemented. No restart, workspace
+exact bound credit release is durably verified. No restart, workspace
 adoption or owner-role destructive bypass is provided.
 
 `Run` preserves both model/startup failure and cleanup failure in its returned
@@ -50,6 +50,9 @@ propagation has not yet run. It cannot report a successful lifecycle when cleanu
 is unverified. A driver panic still executes deferred cleanup and then propagates;
 it is not swallowed or treated as a successful turn. Source/output sanitization
 remains the reviewed driver's responsibility; this helper does not log raw errors.
+
+The optional [idle shutdown guard](worker-idle-shutdown.md) uses this same
+non-destructive fence. Disabling its timer cannot disable ordinary shutdown.
 
 ## Verification and remaining integration
 

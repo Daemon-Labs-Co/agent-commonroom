@@ -82,7 +82,7 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `cmd.Run`, `dockerSecurityReady`, `errors.New`, `exec.CommandContext`, `host.String`, `info.Bytes`, `os.Getenv`, `strings.HasPrefix`, `strings.TrimSpace`.
 - **`validV2WorkerRecord`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(v workerJobRecord) bool`.
-  Calls: `v.Deadline.After`, `v.StartedAt.IsZero`, `v.UpdatedAt.IsZero`, `validWorkerJobID`, `validWorkerPair`, `workerMembership`.
+  Calls: `v.Deadline.After`, `v.IdleShutdownRequestedAt.Before`, `v.IdleShutdownRequestedAt.IsZero`, `v.StartedAt.IsZero`, `v.UpdatedAt.IsZero`, `validWorkerJobID`, `validWorkerPair`, `workerMembership`.
 - **`sameWorkerFenceBinding`** — Pair cancellation is a separate versioned contract. Legacy requests may not reinterpret a pair as one container, including across mixed worker binaries.
   Signature: `func(record, expected workerJobRecord) bool`.
 - **`matchesWorkspaceDisposal`** — Validate both before the cancellation tombstone and again under the creator lease. A stale identity may not cancel/delete a different retained workspace.

@@ -32,6 +32,7 @@ internal tested components and remaining release gates. The
 
 ## Operate and troubleshoot
 
+- [Worker idle shutdown guard](worker-idle-shutdown.md): internal paired-worker policy and remaining idle-agent gaps.
 - [Operations and backups](operations.md): start, stop, recover and protect an installation.
 - [Worker jobs](worker-jobs.md): durable job identity, diagnostics and reconciliation.
 - [Container isolation](container-isolation.md): supported worker platform and mandatory limits.

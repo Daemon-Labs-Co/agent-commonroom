@@ -572,6 +572,13 @@ func workerRuntimeReady(ctx context.Context) error {
 }
 
 func validV2WorkerRecord(v workerJobRecord) bool {
+	if v.IdleShutdownRequestedAt.IsZero() {
+		if v.IdleTimeoutMinutes != 0 || v.DiagnosticCode == "idle_shutdown_requested" {
+			return false
+		}
+	} else if v.IdleTimeoutMinutes < 1 || v.IdleTimeoutMinutes > 60 || v.IdleShutdownRequestedAt.Before(v.StartedAt) {
+		return false
+	}
 	if !validWorkerPair(v) {
 		return false
 	}
@@ -592,7 +599,7 @@ func validV2WorkerRecord(v workerJobRecord) bool {
 		return false
 	}
 	switch v.DiagnosticCode {
-	case "preparing", "preparation_failed", "running", "completed", "cancelled_or_deadline", "provider_failed", "container_shutdown_unverified", "abandoned_supervisor_reconciled", "cancelled_before_launch":
+	case "idle_shutdown_requested", "preparing", "preparation_failed", "running", "completed", "cancelled_or_deadline", "provider_failed", "container_shutdown_unverified", "abandoned_supervisor_reconciled", "cancelled_before_launch":
 		return true
 	}
 	return false

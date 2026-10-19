@@ -45,7 +45,7 @@ and [container quotas](container-quotas.md).
 | Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Private final export and fenced, connection-scoped persistence are implemented internally. Reviewed image, live refresh and recovery acceptance remain. |
 | Storage | Durable 5,000,000,000-byte reservation accounting is implemented internally. Complete physical inventory, hard worker enforcement and allocation/disposal integration remain. |
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
-| Idle agents | Owner-configurable shutdown after inactivity, default five minutes, without interrupting active work or discarding source. |
+| Idle agents | Internal worker guard now defaults to five minutes with administrator-only environment configuration, busy/queued-work protection and retained source. Controller announcements/settings, production integration and live acceptance remain. |
 | Commands and artifacts | Bounded isolated builds/tests and permission-checked, revision-bound observed evidence/artifact delivery. |
 | Approved disposal | Exact internal request/receipt volume binding now exists. Owner review, one-minute delay, expiry/revocation and one-shot claims are implemented off by default. Production storage allocation binding, artifact integration and live approval acceptance remain. |
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
