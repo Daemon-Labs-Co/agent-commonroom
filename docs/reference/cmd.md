@@ -914,6 +914,14 @@ Automated regression checks for p0_disposal_failures; read test names for indivi
 
 [Types, methods and functions](cmd--server--p0_disposal_failures_test-go.md)
 
+## cmd/server/p0_harness_acceptance_test.go
+
+[Open source](../../cmd/server/p0_harness_acceptance_test.go)
+
+Automated regression checks for p0_harness_acceptance; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_harness_acceptance_test-go.md)
+
 ## cmd/server/p0_idle_policy_acceptance_test.go
 
 [Open source](../../cmd/server/p0_idle_policy_acceptance_test.go)

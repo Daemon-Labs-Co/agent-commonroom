@@ -8,19 +8,19 @@ Every included file has a source link and a purpose. Go entries include every to
 
 - [.agents](agents.md): 103 files.
 - [.githooks](githooks.md): 1 files.
-- [cmd](cmd.md): 211 files.
+- [cmd](cmd.md): 212 files.
 - [demo](demo.md): 1 files.
 - [docker](docker.md): 13 files.
 - [docs](docs.md): 67 files.
-- [internal](internal.md): 62 files.
+- [internal](internal.md): 64 files.
 - [migrations](migrations.md): 1 files.
 - [root](root.md): 15 files.
 - [scripts](scripts.md): 6 files.
 - [tests](tests.md): 46 files.
-- [tools](tools.md): 2 files.
+- [tools](tools.md): 4 files.
 - [web](web.md): 46 files.
 
-Total: 574 files, plus this generated reference directory. Generated reference pages describe themselves here rather than recursively indexing their own contents.
+Total: 579 files, plus this generated reference directory. Generated reference pages describe themselves here rather than recursively indexing their own contents.
 
 ## Local files intentionally represented by category
 
