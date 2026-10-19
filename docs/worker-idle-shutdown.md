@@ -92,7 +92,9 @@ refund. Use [worker recovery](worker-jobs.md) and separately
 
 Controller-bound intentions now have append-only controller records and fixed
 room notices. A notice is not shutdown proof or a complete enterprise audit chain.
-Authenticated production transport assembly and live acceptance remain P0 work. The worker journal must not be edited to manufacture shutdown proof.
+The acknowledgment path now uses the scoped private audit link. Production
+launch/policy assembly and live acceptance remain P0 work. The worker journal
+must not be edited to manufacture shutdown proof.
 
 ## Technical contract and verification
 
@@ -133,14 +135,18 @@ allocation event. Policy changes cannot rewrite those immutable fields. Legacy
 allocations with no snapshot remain readable; no history is backfilled.
 
 Reviewed authenticated assembly passes that exact registered allocation as
-`workerCodexRunConfig.ManagedJob`, together with a trusted `IdleAnnounce` callback.
+`workerCodexRunConfig.ManagedJob`, with a session-backed private audit-stream
+announcer by default. Reviewed
+internal code can explicitly supply a trusted `IdleAnnounce` callback.
 `configureJobIdle` checks lifecycle, job,
 provider, membership, repository and deadline against the admitted supervisor
 before binding the guard. A foreign snapshot is refused before acquiring
 credentials or consuming the bundle. A valid snapshot also remains enforced if
-later preparation fails. This trusted internal handoff is not an authenticated
-wire protocol; production controller-to-worker admission still must transport and
-verify it. Omitting the snapshot in old/internal source paths uses the deployment
+later preparation fails. The idle acknowledgment now travels over the existing
+authenticated private
+audit link using its terminal version-2 extension. Production controller-to-worker
+launch and policy admission still must transport and verify the registered
+snapshot. Omitting the snapshot in old/internal source paths uses the deployment
 fallback and does not establish enforcement of the controller policy.
 
 Additional mocked tests cover owner/non-owner/CSRF checks, strict request shape,
@@ -153,8 +159,9 @@ remaining idle drivers and live browser/worker acceptance are still pending.
 ## Idle-stop announcements
 
 `newIdleAnnouncer` binds the registered job and its initiating enabled human to a
-private trusted controller callback. Reviewed assembly supplies that callback as
-`workerCodexRunConfig.IdleAnnounce`. There is no public announcement endpoint or
+private trusted controller callback. Reviewed assembly may supply that callback as
+`workerCodexRunConfig.IdleAnnounce`; otherwise Codex uses the same scoped tool-session
+audit channel. The controller auditor durably handles the terminal idle frame. There is no public announcement endpoint or
 model tool; generic event commands cannot create these records.
 
 At expiry, the worker closes new turn admission, persists local intention and
@@ -191,5 +198,6 @@ Tests combine controller audit, virtual worker expiry and mocked Docker cleanup.
 They verify acknowledgment before removal, exact replay/idempotence, concurrent
 controllers, missing callbacks, audit failure, panic, lost acknowledgment,
 source retention, visibility on/off and refused public forgery. Synthetic DOM
-tests cover the visibility control. These tests do not establish an authenticated
-remote announcement protocol, live browser behavior or deployment acceptance.
+tests cover the visibility control. Combined transport tests additionally exercise the private Unix handshake, owned
+relay, watched client and terminal protocol with committed, failed and lost
+acknowledgments. They establish no live SSH/browser/provider deployment acceptance.

@@ -7,7 +7,7 @@ Go implementation for tool audit; declarations and calls are listed below.
 Package: `main`. Go uses types, structs, interfaces and receiver methods rather than classes.
 
 - **Type `controllerToolAuditor`**: controllerToolAuditor owns the durable side of the supervisor's callback link. Construction is trusted controller work, not a model/plugin/public HTTP API. A source fork CAN substitute a no-op auditor BUT then tools are unaudited.
-  Declaration: `struct { server *server scope toolbroker.Scope actorID string actor room.Actor participantRevision int connection room.Connection companyID string repository func() (string, error) }`.
+  Declaration: `struct { job room.ManagedJob server *server scope toolbroker.Scope actorID string actor room.Actor participantRevision int connection room.Connection companyID string repository func() (string, error) }`.
 - **`(*server).serveToolAudit`** — serveToolAudit is the controller assembly point for a registered supervisor stream, not a public handler. SSH/peer authentication and engine/control-stream separation are required before calling it. An absent identity never means owner.
   Signature: `func(ctx context.Context, scope toolbroker.Scope, channel io.ReadWriteCloser) error`.
   Calls: `channel.Close`, `s.toolAuditor`, `toolbroker.ServeAudit`.
@@ -29,3 +29,6 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **`(*controllerToolAuditor).persist`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, st room.State, kind string, call room.ManagedToolCall) error`.
   Calls: `a.server.append`, `a.server.tripIntegrityLocked`, `context.WithValue`, `errors.Is`.
+- **`(*controllerToolAuditor).RecordIdleStop`** — RecordIdleStop accepts only terminal supervisor lifecycle metadata. Current presentation/stop flags cannot erase evidence about an already admitted job. Tool/frame ordering is enforced by ServeAudit; this grants no executor access.
+  Signature: `func(ctx context.Context, scope toolbroker.Scope, stop toolbroker.IdleStop) error`.
+  Calls: `a.server.recordIdleStop`, `time.Now`, `toolbroker.ValidAuditIdleStop`.

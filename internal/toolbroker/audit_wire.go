@@ -19,14 +19,16 @@ const MaxAuditFrameBytes = 4096
 func ValidAuditScope(scope Scope, now time.Time) bool { return validScope(scope, now) }
 
 // AuditFrame belongs to the authenticated supervisor/controller channel, never
-// the model's callback channel. It contains hashes, not actions or capabilities.
+// the model's callback channel. It contains hashes and bounded lifecycle metadata,
+// never actions or capabilities.
 type AuditFrame struct {
-	Version  int      `json:"version"`
-	Sequence int      `json:"sequence"`
-	Session  string   `json:"session"`
-	Stage    string   `json:"stage"`
-	Intent   Intent   `json:"intent"`
-	Outcome  *Outcome `json:"outcome,omitempty"`
+	IdleStop *IdleStop `json:"idleStop,omitempty"`
+	Version  int       `json:"version"`
+	Sequence int       `json:"sequence"`
+	Session  string    `json:"session"`
+	Stage    string    `json:"stage"`
+	Intent   Intent    `json:"intent"`
+	Outcome  *Outcome  `json:"outcome,omitempty"`
 }
 
 type auditAck struct {
@@ -63,7 +65,8 @@ func auditFrameDigest(frame AuditFrame) (string, error) {
 }
 
 // auditDecode rejects duplicate/unknown/case-folded/missing members and explicit
-// nulls before typed decoding. All wire fields are mandatory except outcome.
+// nulls before typed decoding. All wire fields are mandatory except outcome and
+// the version-2 idleStop extension. Stage validation forbids mixed payloads.
 func auditDecode(raw []byte, target any) error {
 	if len(raw) > MaxAuditFrameBytes || !strictjson.ValidEncoding(raw) {
 		return ErrAudit

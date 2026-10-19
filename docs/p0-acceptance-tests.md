@@ -53,7 +53,9 @@ scenarios have hermetic drivers; deployment acceptance remains open. Fifty-four
 scenarios remain unbound.
 
 The idle permission driver now sends a real authenticated non-owner settings
-request and observes unchanged audit/state. Other idle scenarios remain pending.
+request and observes unchanged audit/state. Other idle scenarios remain pending. Separate combined transport tests now exercise
+the private socket handshake and terminal audit acknowledgment with mocked
+controller storage and Docker cleanup; these do not count as live SSH acceptance.
 
 Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation

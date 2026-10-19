@@ -1440,6 +1440,22 @@ Automated regression checks for worker_idle_guard; read test names for individua
 
 [Types, methods and functions](cmd--server--worker_idle_guard_test-go.md)
 
+## cmd/server/worker_idle_transport.go
+
+[Open source](../../cmd/server/worker_idle_transport.go)
+
+Go implementation for worker idle transport; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--worker_idle_transport-go.md)
+
+## cmd/server/worker_idle_transport_test.go
+
+[Open source](../../cmd/server/worker_idle_transport_test.go)
+
+Automated regression checks for worker_idle_transport; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--worker_idle_transport_test-go.md)
+
 ## cmd/server/worker_lifecycle.go
 
 [Open source](../../cmd/server/worker_lifecycle.go)

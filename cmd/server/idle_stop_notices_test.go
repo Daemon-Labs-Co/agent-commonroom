@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -24,7 +25,7 @@ type idleNoticeFixture struct {
 	now      time.Time
 }
 
-func newIdleNoticeFixture(t *testing.T) *idleNoticeFixture {
+func newIdleNoticeFixture(t *testing.T, shortDirectory ...bool) *idleNoticeFixture {
 	t.Helper()
 	s, db, _ := mockServer(t)
 	now := time.Now().UTC()
@@ -46,7 +47,16 @@ func newIdleNoticeFixture(t *testing.T) *idleNoticeFixture {
 		t.Fatal(err)
 	}
 	request := workerRunRequest{Version: job.Version, IssuedAt: job.AllocatedAt, Deadline: job.Deadline, JobID: job.JobID, Provider: job.Provider, Repository: job.RepositoryDigest, Key: job.RoomID + "/" + job.ParticipantID + "/" + job.ConnectionID + "/worker"}
-	worker, err := admitWorkerPair(ctx, t.TempDir(), request, nil)
+	dir := t.TempDir()
+	if len(shortDirectory) > 0 && shortDirectory[0] {
+		var tempErr error
+		dir, tempErr = os.MkdirTemp("/tmp", "cr-idle-")
+		if tempErr != nil {
+			t.Fatal(tempErr)
+		}
+		t.Cleanup(func() { os.RemoveAll(dir) })
+	}
+	worker, err := admitWorkerPair(ctx, dir, request, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

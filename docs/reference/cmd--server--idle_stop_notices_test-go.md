@@ -9,8 +9,8 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **Type `idleNoticeFixture`**: Structured data type; fields are shown in the declaration.
   Declaration: `struct { s *server db *mockDB job room.ManagedJob worker *workerPairSupervisor docker *workspaceCleanupDocker announce workerIdleAnnounce now time.Time }`.
 - **`newIdleNoticeFixture`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
-  Signature: `func(t *testing.T) *idleNoticeFixture`.
-  Calls: `admitWorkerPair`, `context.WithValue`, `db.seed`, `f.announce`, `job.AllocatedAt.Add`, `len`, `mockServer`, `newWorkspaceCleanup`, `now.Add`, `pairContainerName`, `quotaJob`, `s.newIdleAnnouncer`, `t.Cleanup`, `t.Context`, `t.Fatal`, `t.Helper`, `t.TempDir`, `time.Now`, `time.Now().UTC`, `worker.Start`, `worker.configureJobIdle`, `worker.ctx.Err`, `worker.mu.Lock`, `worker.mu.Unlock`, `writeWorkerRecord`.
+  Signature: `func(t *testing.T, shortDirectory ...bool) *idleNoticeFixture`.
+  Calls: `admitWorkerPair`, `context.WithValue`, `db.seed`, `f.announce`, `job.AllocatedAt.Add`, `len`, `mockServer`, `newWorkspaceCleanup`, `now.Add`, `os.MkdirTemp`, `os.RemoveAll`, `pairContainerName`, `quotaJob`, `s.newIdleAnnouncer`, `t.Cleanup`, `t.Context`, `t.Fatal`, `t.Helper`, `t.TempDir`, `time.Now`, `time.Now().UTC`, `worker.Start`, `worker.configureJobIdle`, `worker.ctx.Err`, `worker.mu.Lock`, `worker.mu.Unlock`, `writeWorkerRecord`.
 - **`TestIdleAnnouncementPrecedesCleanupAndRetainsEvidence`** — Regression contract: TestIdleAnnouncementPrecedesCleanupAndRetainsEvidence.
   Signature: `func(t *testing.T)`.
   Calls: `(&server{db: f.db}).load`, `f.announce`, `f.db.snapshot`, `f.worker.expireIdle`, `len`, `newIdleNoticeFixture`, `record.IdleShutdownRequestedAt.Add`, `t.Context`, `t.Fatal`, `t.Parallel`.

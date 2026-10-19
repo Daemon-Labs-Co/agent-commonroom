@@ -9,8 +9,8 @@ Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods r
 - **`ValidAuditScope`** — ValidAuditScope validates trusted admission metadata against a trusted clock.
   Signature: `func(scope Scope, now time.Time) bool`.
   Calls: `validScope`.
-- **Type `AuditFrame`**: AuditFrame belongs to the authenticated supervisor/controller channel, never the model's callback channel. It contains hashes, not actions or capabilities.
-  Declaration: `struct { Version int 'json:"version"' Sequence int 'json:"sequence"' Session string 'json:"session"' Stage string 'json:"stage"' Intent Intent 'json:"intent"' Outcome *Outcome 'json:"outcome,omitempty"' }`.
+- **Type `AuditFrame`**: AuditFrame belongs to the authenticated supervisor/controller channel, never the model's callback channel. It contains hashes and bounded lifecycle metadata, never actions or capabilities.
+  Declaration: `struct { IdleStop *IdleStop 'json:"idleStop,omitempty"' Version int 'json:"version"' Sequence int 'json:"sequence"' Session string 'json:"session"' Stage string 'json:"stage"' Intent Intent 'json:"intent"' Outcome *Outcome 'json:"outcome,omitempty"' }`.
 - **Type `auditAck`**: Structured data type; fields are shown in the declaration.
   Declaration: `struct { Version int 'json:"version"' Digest string 'json:"digest"' Accepted bool 'json:"accepted"' }`.
 - **`ValidAuditIntent`** — ValidAuditIntent checks bounded metadata. now is a trusted admission clock; outcome persistence may instead use the original intent's admission instant.
@@ -22,7 +22,7 @@ Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods r
 - **`auditFrameDigest`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(frame AuditFrame) (string, error)`.
   Calls: `hex.EncodeToString`, `json.Marshal`, `len`, `sha256.Sum256`.
-- **`auditDecode`** — auditDecode rejects duplicate/unknown/case-folded/missing members and explicit nulls before typed decoding. All wire fields are mandatory except outcome.
+- **`auditDecode`** — auditDecode rejects duplicate/unknown/case-folded/missing members and explicit nulls before typed decoding. All wire fields are mandatory except outcome and the version-2 idleStop extension. Stage validation forbids mixed payloads.
   Signature: `func(raw []byte, target any) error`.
   Calls: `auditShape`, `auditUniqueValue`, `bytes.NewReader`, `decoder.Token`, `json.NewDecoder`, `json.Unmarshal`, `len`, `reflect.TypeOf`, `reflect.TypeOf(target).Elem`, `strictjson.ValidEncoding`.
 - **`auditShape`** — Source has no prose contract; use the signature and direct calls below to trace behavior.

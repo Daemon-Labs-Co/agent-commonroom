@@ -42,7 +42,11 @@ func (s *workerPairSupervisor) RunCodex(ctx context.Context, session *toolbroker
 		job := *config.ManagedJob
 		// Release mu before binding the same immutable admission through its helper.
 		s.mu.Unlock()
-		if err = s.configureJobIdle(job, runner, config.IdleAnnounce); err != nil {
+		announce := config.IdleAnnounce
+		if announce == nil {
+			announce = sessionIdleAnnouncer(session, job)
+		}
+		if err = s.configureJobIdle(job, runner, announce); err != nil {
 			return result, record, err
 		}
 		s.mu.Lock()

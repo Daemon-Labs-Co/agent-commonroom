@@ -113,3 +113,16 @@ local lifecycle behavior; live SSH and container shutdown are still unverified.
 
 See [paired turn shutdown](worker-pair-shutdown.md) for unconditional
 reconciliation, active-turn lease fencing and workspace retention.
+
+## Idle-stop acknowledgments on the same link
+
+The [terminal idle-stop extension](tool-audit-callbacks.md#terminal-idle-stop-extension)
+uses the existing one-shot `audit-link-v1` SSH attachment and private socket. It
+adds no endpoint, forwarded socket, container mount, SSH permission or reconnect
+path. Model stdout and callback tools cannot produce this control frame.
+
+Tests now combine the real Unix-socket handshake/held creator lease, owned pipe
+relay, watched session, controller journal and mocked Docker fencing. They cover
+committed acknowledgment, audit failure, lost acknowledgment, wrong policy
+revision and unsupported controller. They use no actual SSH session, provider,
+Docker daemon or database; current-host socket tests are not live remote acceptance.

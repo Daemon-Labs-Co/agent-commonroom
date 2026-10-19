@@ -22,6 +22,7 @@ type AuditClient struct {
 	sequence int
 	session  string
 	pending  *Intent
+	terminal bool
 	failed   bool
 }
 
@@ -43,7 +44,7 @@ func (client *AuditClient) RecordIntent(ctx context.Context, intent Intent) erro
 		return ErrBusy
 	}
 	defer client.mu.Unlock()
-	if client.pending != nil || intent.Scope != client.scope || !ValidAuditIntent(intent, time.Now()) {
+	if client.terminal || client.sequence >= 2*MaxCalls || client.pending != nil || intent.Scope != client.scope || !ValidAuditIntent(intent, time.Now()) {
 		return client.fail()
 	}
 	if err := client.exchange(ctx, AuditFrame{Version: 1, Stage: "intent", Intent: intent}); err != nil {
@@ -58,7 +59,7 @@ func (client *AuditClient) RecordOutcome(ctx context.Context, intent Intent, out
 		return ErrBusy
 	}
 	defer client.mu.Unlock()
-	if client.pending == nil || *client.pending != intent || !ValidAuditOutcome(outcome) {
+	if client.terminal || client.pending == nil || *client.pending != intent || !ValidAuditOutcome(outcome) {
 		return client.fail()
 	}
 	if err := client.exchange(ctx, AuditFrame{Version: 1, Stage: "outcome", Intent: intent, Outcome: &outcome}); err != nil {
@@ -75,7 +76,7 @@ func (client *AuditClient) fail() error {
 }
 
 func (client *AuditClient) exchange(parent context.Context, frame AuditFrame) error {
-	if client.failed || parent == nil || parent.Err() != nil || client.sequence >= 2*MaxCalls {
+	if client.failed || parent == nil || parent.Err() != nil || client.sequence >= 2*MaxCalls+1 {
 		return client.fail()
 	}
 	ctx, cancel := context.WithDeadline(parent, client.scope.Deadline)
@@ -93,7 +94,7 @@ func (client *AuditClient) exchange(parent context.Context, frame AuditFrame) er
 		return client.fail()
 	}
 	var ack auditAck
-	if auditRead(client.reader, &ack) != nil || ack.Version != 1 || ack.Digest != expected || !ack.Accepted || ctx.Err() != nil {
+	if auditRead(client.reader, &ack) != nil || ack.Version != frame.Version || ack.Digest != expected || !ack.Accepted || ctx.Err() != nil {
 		return client.fail()
 	}
 	if !stop() {
@@ -119,9 +120,10 @@ func ServeAudit(parent context.Context, channel io.ReadWriteCloser, scope Scope,
 	seen := map[string]bool{}
 	var pending *Intent
 	session := ""
-	for sequence := 1; sequence <= 2*MaxCalls; sequence++ {
+	terminal := false
+	for sequence := 1; sequence <= 2*MaxCalls+1; sequence++ {
 		var frame AuditFrame
-		if auditRead(reader, &frame) != nil || ctx.Err() != nil || frame.Version != 1 || frame.Sequence != sequence || frame.Intent.Scope != scope || !digest(frame.Session, 16) {
+		if auditRead(reader, &frame) != nil || ctx.Err() != nil || terminal || (frame.Version != 1 && !(frame.Version == 2 && frame.Stage == "idle-stop")) || frame.Sequence != sequence || frame.Intent.Scope != scope || !digest(frame.Session, 16) {
 			return ErrAudit
 		}
 		if session == "" {
@@ -132,18 +134,25 @@ func ServeAudit(parent context.Context, channel io.ReadWriteCloser, scope Scope,
 		var err error
 		switch frame.Stage {
 		case "intent":
-			if pending != nil || frame.Outcome != nil || seen[frame.Intent.CallID] || !ValidAuditIntent(frame.Intent, time.Now()) {
+			if frame.Version != 1 || frame.IdleStop != nil || len(seen) >= MaxCalls || pending != nil || frame.Outcome != nil || seen[frame.Intent.CallID] || !ValidAuditIntent(frame.Intent, time.Now()) {
 				return ErrAudit
 			}
 			seen[frame.Intent.CallID] = true
 			pending = &frame.Intent
 			err = auditor.RecordIntent(ctx, frame.Intent)
 		case "outcome":
-			if pending == nil || *pending != frame.Intent || frame.Outcome == nil || !ValidAuditOutcome(*frame.Outcome) {
+			if frame.Version != 1 || frame.IdleStop != nil || pending == nil || *pending != frame.Intent || frame.Outcome == nil || !ValidAuditOutcome(*frame.Outcome) {
 				return ErrAudit
 			}
 			err = auditor.RecordOutcome(ctx, frame.Intent, *frame.Outcome)
 			pending = nil
+		case "idle-stop":
+			idleAuditor, ok := auditor.(IdleAuditor)
+			if !ok || frame.Version != 2 || frame.IdleStop == nil || frame.Intent != (Intent{Scope: scope}) || pending != nil || frame.Outcome != nil || !ValidAuditIdleStop(scope, *frame.IdleStop, time.Now()) {
+				return ErrAudit
+			}
+			terminal = true
+			err = idleAuditor.RecordIdleStop(ctx, scope, *frame.IdleStop)
 		default:
 			return ErrAudit
 		}
@@ -151,7 +160,14 @@ func ServeAudit(parent context.Context, channel io.ReadWriteCloser, scope Scope,
 		if digestErr != nil || ctx.Err() != nil {
 			return ErrAudit
 		}
-		if auditWrite(channel, auditAck{Version: 1, Digest: digest, Accepted: err == nil}) != nil || err != nil {
+		if auditWrite(channel, auditAck{Version: frame.Version, Digest: digest, Accepted: err == nil}) != nil || err != nil {
+			return ErrAudit
+		}
+		if terminal {
+			// Keep the acknowledged link alive until its owner closes it. Immediate EOF
+			// could race the watched worker reader before it consumes the final ack.
+			var forbidden AuditFrame
+			_ = auditRead(reader, &forbidden)
 			return ErrAudit
 		}
 	}

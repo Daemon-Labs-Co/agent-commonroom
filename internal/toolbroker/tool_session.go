@@ -16,6 +16,7 @@ import (
 // failure. A source fork CAN substitute an unaudited runner/link, BUT invalidates
 // isolation and durable audit guarantees. No host fallback is provided.
 type ToolSession struct {
+	audit      *AuditClient
 	Runtime    *ToolContainerRuntime
 	Dispatcher *Dispatcher
 	close      func()
@@ -107,7 +108,7 @@ func NewToolSessionWithCommands(ctx context.Context, scope Scope, allowed []stri
 		return nil, "", ErrRejected
 	}
 	failed = false
-	return &ToolSession{Runtime: runtime, Dispatcher: dispatcher, close: cleanup, scope: scope, commands: enabled && commandGrant}, token, nil
+	return &ToolSession{audit: audit, Runtime: runtime, Dispatcher: dispatcher, close: cleanup, scope: scope, commands: enabled && commandGrant}, token, nil
 }
 
 // WorkspaceIntent is a lifetime-bound request for the supervisor to journal.
