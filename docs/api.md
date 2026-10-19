@@ -301,3 +301,12 @@ return 409 and successful saves increment the revision. `idleAgentShutdown` is
 a default-on feature flag for new paired allocations. Existing jobs keep their
 immutable policy snapshot. These settings do not enable production dispatch.
 See [idle policy and worker handoff](worker-idle-shutdown.md#controller-and-api-contract).
+
+### Idle-stop notice visibility
+
+Owner-only `feature.flag.updated` supports default-on `idleStopNotices`. It
+controls derived room notices immediately; audit recording and existing job
+policy remain enforced when off. `worker.idle_stop.announced` is an internal
+trusted callback record, rejected by the public events API. The record is an
+intention, never container absence, source disposal or storage-credit proof.
+See [announcement contract](worker-idle-shutdown.md#idle-stop-announcements).

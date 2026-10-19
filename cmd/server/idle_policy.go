@@ -57,12 +57,17 @@ func validManagedIdlePolicy(job room.ManagedJob) bool {
 // room/model-selected data. This method grants no execution/transport authority.
 // Omitting it in a source fork loses controller-policy enforcement; legacy local
 // assembly retains the worker deployment default until production dispatch lands.
-func (s *workerPairSupervisor) configureJobIdle(job room.ManagedJob, runner toolbroker.DockerRunner) error {
+func (s *workerPairSupervisor) configureJobIdle(job room.ManagedJob, runner toolbroker.DockerRunner, announce ...workerIdleAnnounce) error {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	match := validManagedJob(job) && job.IdlePolicyVersion == 1 && !job.ShutdownConfirmed && (job.Status == "allocated" || job.Status == "submitted") && sameWorkerBinding(job, workerJobView{workerJobRecord: s.record})
-	s.mu.Unlock()
-	if !match {
+	if !match || runner == nil || len(announce) > 1 || s.idle != nil || s.closed || s.record.Status != "starting" {
 		return errors.New("registered idle policy binding refused")
 	}
-	return s.configureIdle(workerIdlePolicy{Enabled: job.IdleShutdownEnabled, Minutes: job.IdleMinutes}, runner)
+	var callback workerIdleAnnounce
+	if len(announce) == 1 {
+		callback = announce[0]
+	}
+	s.idle = &workerIdleWatch{policy: workerIdlePolicy{Enabled: job.IdleShutdownEnabled, Minutes: job.IdleMinutes}, runner: runner, announce: callback, requireAnnouncement: true}
+	return nil
 }

@@ -34,6 +34,14 @@ Go implementation for idle; declarations and calls are listed below.
 
 [Types, methods and functions](internal--room--idle-go.md)
 
+## internal/room/idle_notice.go
+
+[Open source](../../internal/room/idle_notice.go)
+
+Go implementation for idle notice; declarations and calls are listed below.
+
+[Types, methods and functions](internal--room--idle_notice-go.md)
+
 ## internal/room/managed_tools.go
 
 [Open source](../../internal/room/managed_tools.go)

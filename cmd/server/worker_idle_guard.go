@@ -36,11 +36,19 @@ func readWorkerIdlePolicy(getenv func(string) string) (workerIdlePolicy, error) 
 	return p, nil
 }
 
+// workerIdleAnnounce is a trusted private control-stream adapter. Success MUST
+// mean durable controller acknowledgment, never a model claim. It must honor
+// context cancellation. A source fork supplying a no-op loses audit guarantees;
+// this callback grants no provider launch, disposal or host-execution authority.
+type workerIdleAnnounce func(context.Context, workerJobRecord) error
+
 type workerIdleWatch struct {
-	policy workerIdlePolicy
-	runner toolbroker.DockerRunner
-	since  time.Time
-	armed  bool
+	announce            workerIdleAnnounce
+	requireAnnouncement bool
+	policy              workerIdlePolicy
+	runner              toolbroker.DockerRunner
+	since               time.Time
+	armed               bool
 }
 
 // configureIdle snapshots trusted deployment policy before startup. Explicit
@@ -143,14 +151,27 @@ func (s *workerPairSupervisor) expireIdle(now time.Time) (bool, error) {
 		s.record = record
 	}
 	s.closed = true
-	s.cancel()
 	runner := s.idle.runner
+	announce, required := s.idle.announce, s.idle.requireAnnouncement
 	s.mu.Unlock()
 	s.startup.Unlock()
 	s.turn.Unlock()
 	if err != nil {
 		s.Close()
 		return true, errors.New("idle intention persistence unavailable")
+	}
+	if required || announce != nil {
+		if announce == nil {
+			s.Close()
+			return true, errIdleNotice
+		}
+		action, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err = callIdleAnnouncer(action, record, announce)
+		cancel()
+		if err != nil {
+			s.Close()
+			return true, errIdleNotice
+		}
 	}
 	_, err = s.Shutdown(context.Background(), runner)
 	return true, err
@@ -178,4 +199,13 @@ func (s *workerPairSupervisor) finishQueuedTurn() {
 	if s.idle != nil {
 		s.idle.since = time.Now()
 	}
+}
+
+func callIdleAnnouncer(ctx context.Context, record workerJobRecord, announce workerIdleAnnounce) (err error) {
+	defer func() {
+		if recover() != nil {
+			err = errIdleNotice
+		}
+	}()
+	return announce(ctx, record)
 }

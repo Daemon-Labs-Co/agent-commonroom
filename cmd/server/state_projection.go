@@ -37,6 +37,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 		st.EventCount++
 		switch kind {
+		case "worker.idle_stop.announced":
+			if err := projectIdleNotice(&st, data); err != nil {
+				return st, err
+			}
 		case "workspace.disposal.proposed", "workspace.disposal.claimed", "workspace.disposal.revoked", "workspace.disposal.succeeded", "workspace.disposal.unconfirmed":
 			if err := projectWorkspaceDisposal(&st, kind, data); err != nil {
 				return st, err
@@ -475,6 +479,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		st.Participants[i].CompanyID = st.Company.ID
 	}
 	projectActors(&st)
+	projectIdleNoticeMessages(&st)
 	projectHumanAttention(&st, acknowledged)
 	if err := ctx.Err(); err != nil {
 		return st, err

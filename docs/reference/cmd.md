@@ -666,6 +666,22 @@ Automated regression checks for idle_policy; read test names for individual cont
 
 [Types, methods and functions](cmd--server--idle_policy_test-go.md)
 
+## cmd/server/idle_stop_notices.go
+
+[Open source](../../cmd/server/idle_stop_notices.go)
+
+Go implementation for idle stop notices; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--idle_stop_notices-go.md)
+
+## cmd/server/idle_stop_notices_test.go
+
+[Open source](../../cmd/server/idle_stop_notices_test.go)
+
+Automated regression checks for idle_stop_notices; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--idle_stop_notices_test-go.md)
+
 ## cmd/server/initiator_context.go
 
 [Open source](../../cmd/server/initiator_context.go)
