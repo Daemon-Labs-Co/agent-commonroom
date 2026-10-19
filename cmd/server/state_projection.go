@@ -37,6 +37,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 		st.EventCount++
 		switch kind {
+		case "storage.inventory.recorded", "storage.reserved":
+			if err := projectManagedStorage(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "worker.tool.intent", "worker.tool.outcome":
 			if err := projectToolAudit(&st, kind, data); err != nil {
 				return st, err

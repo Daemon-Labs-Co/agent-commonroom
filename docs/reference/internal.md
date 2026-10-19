@@ -58,6 +58,14 @@ Automated regression checks for organization; read test names for individual con
 
 [Types, methods and functions](internal--room--organization_test-go.md)
 
+## internal/room/storage.go
+
+[Open source](../../internal/room/storage.go)
+
+Go implementation for storage; declarations and calls are listed below.
+
+[Types, methods and functions](internal--room--storage-go.md)
+
 ## internal/strictjson/encoding.go
 
 [Open source](../../internal/strictjson/encoding.go)

@@ -194,6 +194,12 @@ Interface and personal preferences — documentation.
 
 Bounded isolated Go commands — documentation.
 
+## docs/live-tool-acceptance.md
+
+[Open source](../../docs/live-tool-acceptance.md)
+
+Tool-only live acceptance evidence — documentation.
+
 ## docs/login-availability.md
 
 [Open source](../../docs/login-availability.md)
@@ -283,6 +289,12 @@ Security hardening and operational limits — documentation.
 [Open source](../../docs/server-structure.md)
 
 Server structure — documentation.
+
+## docs/storage-accounting.md
+
+[Open source](../../docs/storage-accounting.md)
+
+Managed storage accounting — documentation.
 
 ## docs/storage-deadlines.md
 

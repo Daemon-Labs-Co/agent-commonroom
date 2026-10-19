@@ -93,4 +93,4 @@ Hermetic tests cover the bootstrap, private framing/client, policy drift, one-sh
 runtime export, finalizer-before-close ordering, account/scope rejection,
 connection contention, durable-journal checks and combined callback/shutdown flow.
 Four prepared P0 credential scenarios now have real custody-backed drivers; the
-remaining 70 scenarios and all live acceptance are still outstanding.
+remaining 64 scenarios and all live acceptance are still outstanding.

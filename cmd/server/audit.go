@@ -44,6 +44,10 @@ func auditSummary(kind string, payload []byte) string {
 		return "Agent activity started"
 	case "agent.background":
 		return "Agent background work · " + label("stage", "update")
+	case "storage.inventory.recorded":
+		return "Account storage inventory recorded"
+	case "storage.reserved":
+		return "Account storage capacity reserved"
 	case "worker.job.updated":
 		return "Managed worker job · " + label("status", "lifecycle update")
 	case "worker.job.recovery_requested":

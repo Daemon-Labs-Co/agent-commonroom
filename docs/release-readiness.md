@@ -43,7 +43,7 @@ and [container quotas](container-quotas.md).
 | Production dispatch | Authorized controller/worker assembly and live admission for repository-bound development. |
 | Required providers | Reviewed isolated development paths and acceptance for Claude, Gemini, GitHub Copilot and llama.cpp; live Codex acceptance. |
 | Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Private final export and fenced, connection-scoped persistence are implemented internally. Reviewed image, live refresh and recovery acceptance remain. |
-| Storage | Hard aggregate 5,000,000,000-byte free-account enforcement across retained workspaces, staged bundles and artifacts. |
+| Storage | Durable 5,000,000,000-byte reservation accounting is implemented internally. Complete physical inventory, hard worker enforcement and allocation/disposal integration remain. |
 | Harness upgrades | Instantiation-time checks, compatibility review and approved immutable-image publication/selection. |
 | Idle agents | Owner-configurable shutdown after inactivity, default five minutes, without interrupting active work or discarding source. |
 | Commands and artifacts | Bounded isolated builds/tests and permission-checked, revision-bound observed evidence/artifact delivery. |
@@ -51,8 +51,8 @@ and [container quotas](container-quotas.md).
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Four credential-custody scenarios now have production-backed hermetic drivers;
-70 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+prepared scenarios. Four credential-custody and six storage-accounting scenarios now
+have production-backed hermetic drivers; 64 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
 still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0
@@ -90,3 +90,21 @@ This is synthetic-test evidence, not live command/image acceptance. Public
 production dispatch, current-revision artifact attestation, other provider paths
 and hard aggregate storage enforcement remain blocked; no P0 gate is closed solely
 by this increment.
+
+## Internal storage-accounting increment
+
+[Storage accounting](storage-accounting.md) now persists account-wide capacity
+reservations with checked arithmetic and optimistic journal revisions. Unknown
+inventory blocks reservations, retained data stays charged after container
+shutdown, and there is no owner/paid/feature-flag override. This does not yet
+physically constrain Docker volume writes. Complete inventory, a reviewed physical
+quota backend, production allocation integration and approved disposal remain open.
+
+## Initial live tool evidence
+
+A dedicated Linux rootless worker now has [tool-only live evidence](live-tool-acceptance.md):
+the minimal tool image builds, a cold synthetic Go test succeeds under the fixed
+limits, kernel cgroup values are observed, and fresh diagnostic containers/volumes
+are removed with absence checks. No provider, controller audit transport or
+production dispatch was exercised; the broader live acceptance gate stays open.
+The cold test took about 107 seconds of the 120-second command allowance.

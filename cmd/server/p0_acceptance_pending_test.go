@@ -43,10 +43,16 @@ type pendingP0Driver func(*testing.T, pendingP0Case) pendingP0Observation
 // Leaving an absent implementation pending is intentional: there is no canned
 // passing driver. A strict release-readiness run fails every unbound scenario.
 var pendingP0Drivers = map[string]pendingP0Driver{
-	"refresh-atomic":             driveP0CredentialRefresh,
-	"refresh-concurrent":         driveP0CredentialRefresh,
-	"refresh-persist-fails":      driveP0CredentialRefresh,
-	"refresh-foreign-connection": driveP0CredentialRefresh,
+	"storage-exact-boundary":       driveP0StorageReservation,
+	"storage-one-byte-over":        driveP0StorageReservation,
+	"storage-concurrent-last-byte": driveP0StorageReservation,
+	"storage-count-retained":       driveP0StorageReservation,
+	"storage-negative":             driveP0StorageReservation,
+	"storage-no-paid-bypass":       driveP0StorageReservation,
+	"refresh-atomic":               driveP0CredentialRefresh,
+	"refresh-concurrent":           driveP0CredentialRefresh,
+	"refresh-persist-fails":        driveP0CredentialRefresh,
+	"refresh-foreign-connection":   driveP0CredentialRefresh,
 }
 
 func loadPendingP0Cases(t *testing.T) []pendingP0Case {
