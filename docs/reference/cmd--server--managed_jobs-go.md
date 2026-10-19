@@ -24,13 +24,13 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `s.managedExecutionJobContextVersion`.
 - **`(*server).managedExecutionJobContextVersion`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(ctx context.Context, p room.Participant, repository string, policy func() (string, error), version int) context.Context`.
-  Calls: `admitManagedContainerQuota`, `canAccess`, `cancel`, `connectionTestingEnabled`, `context.Background`, `context.WithTimeout`, `context.WithValue`, `ctx.Deadline`, `ctx.Err`, `ctx.Value`, `errors.New`, `id`, `idlePolicyForState`, `job.AllocatedAt.Add`, `job.Deadline.IsZero`, `member`, `pairExecution`, `policy`, `remoteWorkerEndpoint`, `repositoryDigestPattern.MatchString`, `s.admitDailyTurns`, `s.agentsBlockedLocked`, `s.append`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.recordManagedJobLocked`, `s.tripIntegrityLocked`, `time.Now`, `time.Now().UTC`, `validManagedJob`, `workerAliasPattern.MatchString`.
+  Calls: `admitManagedContainerQuota`, `canAccess`, `cancel`, `connectionTestingEnabled`, `context.Background`, `context.WithTimeout`, `context.WithValue`, `ctx.Deadline`, `ctx.Err`, `ctx.Value`, `deploymentHarnessReview`, `errors.New`, `id`, `idlePolicyForState`, `job.AllocatedAt.Add`, `job.Deadline.IsZero`, `member`, `pairExecution`, `policy`, `remoteWorkerEndpoint`, `repositoryDigestPattern.MatchString`, `s.admitDailyTurns`, `s.agentsBlockedLocked`, `s.append`, `s.load`, `s.mu.Lock`, `s.mu.Unlock`, `s.recordManagedJobLocked`, `s.tripIntegrityLocked`, `time.Now`, `time.Now().UTC`, `validManagedJob`, `workerAliasPattern.MatchString`.
 - **`(*server).recordManagedJobLocked`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(jobID, status string) error`.
   Calls: `cancel`, `context.Background`, `context.WithTimeout`, `delete`, `errors.New`, `log.Printf`, `s.append`, `s.load`, `s.tripIntegrityLocked`, `stop`, `time.Now`, `time.Now().UTC`, `withInitiatingActor`.
 - **`validManagedJob`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(v room.ManagedJob) bool`.
-  Calls: `membershipPartPattern.MatchString`, `pairExecution`, `repositoryDigestPattern.MatchString`, `v.AllocatedAt.IsZero`, `v.Deadline.After`, `v.Deadline.IsZero`, `v.Deadline.Sub`, `v.UpdatedAt.IsZero`, `validManagedIdlePolicy`, `validWorkerJobID`, `workerAliasPattern.MatchString`.
+  Calls: `membershipPartPattern.MatchString`, `pairExecution`, `repositoryDigestPattern.MatchString`, `v.AllocatedAt.IsZero`, `v.Deadline.After`, `v.Deadline.IsZero`, `v.Deadline.Sub`, `v.UpdatedAt.IsZero`, `validManagedHarness`, `validManagedIdlePolicy`, `validWorkerJobID`, `workerAliasPattern.MatchString`.
 - **`jobsDebugEnabled`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(st room.State) bool`.
 - **`managedJobFence`** — Source has no prose contract; use the signature and direct calls below to trace behavior.

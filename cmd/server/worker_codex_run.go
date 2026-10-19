@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 )
 
 // All paths/images are trusted worker deployment configuration. Prompt/model
@@ -40,6 +41,11 @@ func (s *workerPairSupervisor) RunCodex(ctx context.Context, session *toolbroker
 	}
 	if config.ManagedJob != nil {
 		job := *config.ManagedJob
+		config.EngineImage, err = selectedHarnessImage(job, config.EngineImage, time.Now())
+		if err != nil {
+			s.mu.Unlock()
+			return result, record, err
+		}
 		// Release mu before binding the same immutable admission through its helper.
 		s.mu.Unlock()
 		announce := config.IdleAnnounce

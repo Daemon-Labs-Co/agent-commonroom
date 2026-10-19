@@ -562,6 +562,22 @@ Automated regression checks for gateway_shutdown; read test names for individual
 
 [Types, methods and functions](cmd--server--gateway_shutdown_test-go.md)
 
+## cmd/server/harness_review.go
+
+[Open source](../../cmd/server/harness_review.go)
+
+Go implementation for harness review; declarations and calls are listed below.
+
+[Types, methods and functions](cmd--server--harness_review-go.md)
+
+## cmd/server/harness_review_test.go
+
+[Open source](../../cmd/server/harness_review_test.go)
+
+Automated regression checks for harness_review; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--harness_review_test-go.md)
+
 ## cmd/server/help_preferences_test.go
 
 [Open source](../../cmd/server/help_preferences_test.go)

@@ -157,27 +157,39 @@ type Actor struct {
 // ManagedJob is a safe, durable execution binding. Model data and arguments
 // never belong here; ShutdownConfirmed comes only from a fenced worker proof.
 type ManagedJob struct {
-	IdlePolicyVersion   int       `json:"idlePolicyVersion,omitempty"`
-	IdlePolicyRevision  int       `json:"idlePolicyRevision,omitempty"`
-	IdleShutdownEnabled bool      `json:"idleShutdownEnabled,omitempty"`
-	IdleMinutes         int       `json:"idleMinutes,omitempty"`
-	Execution           string    `json:"execution,omitempty"`
-	RepositoryDigest    string    `json:"repositoryDigest,omitempty"`
-	InitiatorID         string    `json:"initiatorId,omitempty"`
-	CompanyID           string    `json:"companyId,omitempty"`
-	Version             int       `json:"version"`
-	JobID               string    `json:"jobId"`
-	RoomID              string    `json:"roomId"`
-	ParticipantID       string    `json:"participantId"`
-	ConnectionID        string    `json:"connectionId"`
-	Worker              string    `json:"worker"`
-	Provider            string    `json:"provider"`
-	Status              string    `json:"status"`
-	DiagnosticCode      string    `json:"diagnosticCode"`
-	AllocatedAt         time.Time `json:"allocatedAt"`
-	UpdatedAt           time.Time `json:"updatedAt"`
-	Deadline            time.Time `json:"deadline"`
-	ShutdownConfirmed   bool      `json:"shutdownConfirmed"`
+	Harness             HarnessSelection `json:"harness,omitempty"`
+	IdlePolicyVersion   int              `json:"idlePolicyVersion,omitempty"`
+	IdlePolicyRevision  int              `json:"idlePolicyRevision,omitempty"`
+	IdleShutdownEnabled bool             `json:"idleShutdownEnabled,omitempty"`
+	IdleMinutes         int              `json:"idleMinutes,omitempty"`
+	Execution           string           `json:"execution,omitempty"`
+	RepositoryDigest    string           `json:"repositoryDigest,omitempty"`
+	InitiatorID         string           `json:"initiatorId,omitempty"`
+	CompanyID           string           `json:"companyId,omitempty"`
+	Version             int              `json:"version"`
+	JobID               string           `json:"jobId"`
+	RoomID              string           `json:"roomId"`
+	ParticipantID       string           `json:"participantId"`
+	ConnectionID        string           `json:"connectionId"`
+	Worker              string           `json:"worker"`
+	Provider            string           `json:"provider"`
+	Status              string           `json:"status"`
+	DiagnosticCode      string           `json:"diagnosticCode"`
+	AllocatedAt         time.Time        `json:"allocatedAt"`
+	UpdatedAt           time.Time        `json:"updatedAt"`
+	Deadline            time.Time        `json:"deadline"`
+	ShutdownConfirmed   bool             `json:"shutdownConfirmed"`
+}
+
+// HarnessSelection is the immutable, nonsecret result of a signed release review.
+// Zero values preserve historical allocations made before review admission.
+type HarnessSelection struct {
+	Sequence     int64     `json:"sequence"`
+	Version      string    `json:"version"`
+	Image        string    `json:"image"`
+	ReviewDigest string    `json:"reviewDigest"`
+	CheckedAt    time.Time `json:"checkedAt"`
+	ExpiresAt    time.Time `json:"expiresAt"`
 }
 
 type OperationReceipt struct {

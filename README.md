@@ -184,3 +184,5 @@ paired workers, retaining source. Owners can set the idle interval and on/off po
 Controller-bound idle stops now require audited acknowledgment and can show fixed room notices.
 Idle acknowledgments use the scoped private audit link. Production launch/policy
 assembly and live acceptance remain pending.
+
+The [reviewed harness release admission](docs/harness-release-admission.md) can pin new internal Codex allocations to a signed, operator-reviewed image. It is disabled by default; upstream discovery, image publication and live upgrade acceptance remain P0 work.
