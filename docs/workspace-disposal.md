@@ -118,7 +118,11 @@ server-time gating, default-off switches and absence of retry controls.
 Three P0 refusal drivers cover missing approval, unauthorized humans and the
 wrong volume identity. The approved-disposal driver additionally exercises the
 owner endpoint, worker journal and mocked Docker removal/absence, exact receipt
-validation, atomic capacity release and preserved history. No live human-approved production disposal,
+validation, atomic capacity release and preserved history. Five further catalog
+drivers verify stale/revoked approval, failed removal, unavailable absence proof
+after removal, cancellation that retains source and refused history deletion.
+Uncertain cleanup remains charged and cannot be retried. All nine disposal catalog
+scenarios now have hermetic coverage. No live human-approved production disposal,
 provider round trip or browser/database deployment was exercised by this change.
 The earlier [tool-only live evidence](live-tool-acceptance.md) does not establish
 this owner flow's deployment acceptance. Physical quotas, production allocation binding,

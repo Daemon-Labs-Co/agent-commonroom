@@ -51,8 +51,8 @@ and [container quotas](container-quotas.md).
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Four credential-custody, six storage-accounting, three disposal-refusal and one approved-disposal scenarios now
-have production-backed hermetic drivers; 60 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+prepared scenarios. Four credential-custody, six storage-accounting and nine disposal scenarios now
+have production-backed hermetic drivers; 55 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
 still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0
@@ -126,5 +126,6 @@ off-by-default proposal/approval/revocation flow. It enforces a full review minu
 one-hour expiry, fresh stopped-worker identity, exact confirmation and a durable
 one-shot claim. Verified outcome, container-slot release and exact prebound
 workspace credit release are atomic. Unbound charges remain. Unknown outcomes
-stay blocked. Three refusal drivers and one combined approved-disposal driver
-pass; production allocation and live deployment acceptance remain pending.
+stay blocked. All nine disposal catalog drivers pass, including removal/absence failures,
+stale approval, retained-source cancellation and audit-history protection.
+Production allocation and live deployment acceptance remain pending.

@@ -858,6 +858,14 @@ Automated regression checks for p0_disposal_acceptance; read test names for indi
 
 [Types, methods and functions](cmd--server--p0_disposal_acceptance_test-go.md)
 
+## cmd/server/p0_disposal_failures_test.go
+
+[Open source](../../cmd/server/p0_disposal_failures_test.go)
+
+Automated regression checks for p0_disposal_failures; read test names for individual contracts.
+
+[Types, methods and functions](cmd--server--p0_disposal_failures_test-go.md)
+
 ## cmd/server/p0_storage_acceptance_test.go
 
 [Open source](../../cmd/server/p0_storage_acceptance_test.go)
