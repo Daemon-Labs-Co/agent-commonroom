@@ -1066,14 +1066,18 @@
     ],
     "given": {
       "clock": "fake",
-      "idle_seconds": "300",
+      "idle_seconds": "60",
+      "owner_config_seconds": "60",
       "cleanup": "uncertain"
     },
     "action": "expire then request replacement",
     "want": {
       "state": "block",
       "effects": [
-        "shutdown_unconfirmed"
+        "idle_announced",
+        "partial_pair_cleanup",
+        "shutdown_unconfirmed",
+        "execution_stopped"
       ],
       "forbidden": [
         "replacement_started",

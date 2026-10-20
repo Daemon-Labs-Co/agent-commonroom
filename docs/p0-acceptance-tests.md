@@ -49,7 +49,7 @@ Failure drivers use the real worker journal and cleanup code with mocked Docker;
 uncertainty retains capacity and refuses another attempt. Cancellation verifies
 both roles are fenced while source remains. History protection uses the actual
 owner event boundary with disposal switched off after approval. All nine disposal
-scenarios have hermetic drivers; deployment acceptance remains open. Forty-four
+scenarios have hermetic drivers; deployment acceptance remains open. Forty-three
 scenarios remain unbound.
 
 The idle permission driver now sends a real authenticated non-owner settings
@@ -66,6 +66,17 @@ admitted worker and observes a committed controller notice before pair cleanup;
 source and history remain retained. Its catalog now requires `idle_announced` as
 well as `fenced_pair`, so missing audit evidence cannot count as success. This is
 a local controller callback test, not SSH/provider acceptance.
+
+The cleanup-uncertainty driver uses an explicit one-minute interval within the
+three-minute job lifetime. It forces engine removal to fail, observes successful
+tool removal and retained source, then passes the actual unresolved worker record
+through a mocked evidence-return transport into controller reconciliation. It
+checks durable unconfirmed shutdown and the execution stop after controller
+restart, refused replacement without new journal entries, retained physical
+capacity, and refusal to revive or automatically retry the old worker. The catalog
+records announcement, partial cleanup, unconfirmed shutdown and execution stop in
+order. This exercises real cleanup/accounting code with mocked Docker, transport
+and DB; it does not establish live remote failure recovery.
 
 Default expiry remains pending: the current paired job has a three-minute hard
 lifetime, shorter than the five-minute idle default. These refusal drivers do not
@@ -96,7 +107,7 @@ and already-current fresh-pair catalog scenarios remain pending.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 44 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 43 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.
