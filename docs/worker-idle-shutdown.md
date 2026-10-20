@@ -217,3 +217,12 @@ Default-expiry, fresh replacement and remaining idle
 acceptance cases are still pending; component tests are not production acceptance.
 No new product flag is introduced for test infrastructure. Existing idle controls
 and mandatory deadlines, audit, isolation and retention are unchanged.
+
+Uncertain-cleanup acceptance now forces engine removal failure after a committed
+idle notice, observes tool removal and retained source, and reconciles the actual
+worker journal through a mocked evidence-return transport. Restarted controller
+state retains the execution stop and container reservation and refuses replacement.
+The old worker cannot restart or automatically repeat idle cleanup. This case uses
+a one-minute interval within the mandatory three-minute lifetime; default
+five-minute expiry remains pending. No product toggle can release unconfirmed
+capacity or bypass the stop. Live SSH/daemon failure recovery remains unverified.
