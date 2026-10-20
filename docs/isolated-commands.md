@@ -121,6 +121,9 @@ The command layer now exposes `toolcommand.ErrOutputLimit`, which also matches
 `ErrExecution` with `errors.Is`. It still cancels capture immediately and releases
 no partial receipt. The container executor preserves the broker output-limit cause
 after exact-ID cleanup; ambiguous cleanup takes precedence as unconfirmed shutdown.
+The direct container-executor overflow regression requires `toolbroker.ErrOutputLimit`,
+confirmed container absence and no output; a generic execution error cannot pass
+through an audit-cancellation allowance in this test.
 The dispatcher classifies executor-reported overflow as `output_limit`, even when
 its own outer buffer never filled. No host fallback or new policy switch exists.
 

@@ -122,6 +122,9 @@ func TestCommandReceiptRequiresContainerAbsenceAndConsumesContainer(t *testing.T
 			} else if err == nil || output.Len() != 0 {
 				t.Fatal("failed command released output")
 			}
+			if mode == "overflow" && (err != ErrOutputLimit || !absent) {
+				t.Fatal("overflow lost its output-limit error after confirmed cleanup", err, absent)
+			}
 			if calls != 1 || !removed {
 				t.Fatal("missing command/cleanup")
 			}
