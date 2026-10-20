@@ -34,10 +34,10 @@ locks, errors and release state. Separate combined tests cover the private expor
 and callback/fencing path. These drivers do not launch providers or establish live
 refresh compatibility.
 
-Six storage scenarios now drive real controller reservation methods, transactional
+Seven storage scenarios now drive real controller reservation methods, transactional
 journal appends and replay against the in-memory database adapter: exact boundary,
-one byte over, concurrent last byte, retained categories, negative reservation and
-no owner/paid/diagnostic bypass. They verify accounting, not physical disk quotas
+one byte over, concurrent last byte, retained categories, unavailable metering, negative
+reservation and no owner/paid/diagnostic bypass. They verify accounting, not physical disk quotas
 or a production launch path. Three disposal refusal scenarios now drive the authenticated owner HTTP boundary:
 missing approval, unauthorized human and changed volume identity. They observe
 journal/worker-call/ledger state. The approved-disposal driver now combines the owner endpoint, worker journal,
@@ -49,8 +49,20 @@ Failure drivers use the real worker journal and cleanup code with mocked Docker;
 uncertainty retains capacity and refuses another attempt. Cancellation verifies
 both roles are fenced while source remains. History protection uses the actual
 owner event boundary with disposal switched off after approval. All nine disposal
-scenarios have hermetic drivers; deployment acceptance remains open. Thirty-seven
+scenarios have hermetic drivers; deployment acceptance remains open. Thirty-six
 scenarios remain unbound.
+
+The unavailable-metering driver calls the real inventory initializer with a
+trusted source returning a structurally valid empty result plus an error. The
+error must prevent inventory persistence; it cannot be interpreted as verified
+zero usage. One-byte workspace, bundle and artifact reservations must then fail
+with unknown usage on both the original controller and one rebuilt from the
+journal. No inventory or reservation event may be appended and prior history
+must remain unchanged. A separate recovery control explicitly records a complete
+inventory containing retained workspace charges, permits the final byte and
+refuses the next byte after replay. This establishes controller accounting refusal,
+not a production allocation or engine-launch gate; complete live inventory,
+physical quotas and production assembly remain open.
 
 The idle permission driver now sends a real authenticated non-owner settings
 request and observes unchanged audit/state. Three additional idle drivers call the real
@@ -150,7 +162,7 @@ and already-current fresh-pair catalog scenarios remain pending.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 37 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 36 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.
