@@ -201,3 +201,15 @@ source retention, visibility on/off and refused public forgery. Synthetic DOM
 tests cover the visibility control. Combined transport tests additionally exercise the private Unix handshake, owned
 relay, watched client and terminal protocol with committed, failed and lost
 acknowledgments. They establish no live SSH/browser/provider deployment acceptance.
+
+## Hermetic acceptance coverage
+
+The P0 catalog now runs the real supervisor for early default ticks (299 seconds),
+active work (600 seconds) and a disabled idle timer (600 seconds). These cases
+check the durable worker journal, running pair and retained workspace using
+temporary fixtures and mocked Docker. They run without sleeping or launching
+providers, SSH or database connections. The existing owner-only policy test covers
+unauthorized configuration. Default-expiry, fresh replacement and remaining idle
+acceptance cases are still pending; component tests are not production acceptance.
+No new product flag is introduced for test infrastructure. Existing idle controls
+and mandatory deadlines, audit, isolation and retention are unchanged.
