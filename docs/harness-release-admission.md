@@ -166,3 +166,17 @@ restart occurs. The active-agent acceptance test inspects an engine before and
 after checking a newer review and compares its audit record and lifecycle counters.
 Docker operations are mocked; this is hermetic stability coverage, not a live model
 upgrade or proof of production controller-to-worker launch integration.
+
+The P0 catalog also binds successful new-release and already-current selection to
+real controller registration and owned RunCodex assembly. Each starts with a
+signed prior allocation, records a fresh participant's selected version/image,
+replays that evidence through a new controller, then creates and bootstraps a new
+pair using the allocation's image. A synthetic audited callback completes; both
+roles are fenced and source remains retained. The worker journal must preserve
+that final evidence and both controller allocations remain unchanged. The catalog
+uses the observed fixture version `synthetic-reviewed-2`, rather than treating a
+model's claim as version evidence. These tests use disposable keys and mocked
+Docker/provider/database boundaries. They do not establish live discovery,
+publication, image contents, provider compatibility or public dispatch. Existing
+review-check flag defaults, permissions and mandatory isolation remain unchanged;
+test coverage itself has no product toggle.

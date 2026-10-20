@@ -748,11 +748,14 @@
         "upgrade_checked",
         "compatibility_verified",
         "reviewed_image_selected",
-        "fresh_pair"
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair",
+        "workspace_retained"
       ],
       "forbidden": [],
       "values": {
-        "running_version": "new-reviewed",
+        "running_version": "synthetic-reviewed-2",
         "version_audited": "true"
       }
     }
@@ -773,7 +776,10 @@
       "effects": [
         "upgrade_checked",
         "reviewed_image_selected",
-        "fresh_pair"
+        "fresh_pair",
+        "callback_dispatched",
+        "fenced_pair",
+        "workspace_retained"
       ],
       "forbidden": [
         "running_container_mutated"

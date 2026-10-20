@@ -49,7 +49,7 @@ Failure drivers use the real worker journal and cleanup code with mocked Docker;
 uncertainty retains capacity and refuses another attempt. Cancellation verifies
 both roles are fenced while source remains. History protection uses the actual
 owner event boundary with disposal switched off after approval. All nine disposal
-scenarios have hermetic drivers; deployment acceptance remains open. Thirty-six
+scenarios have hermetic drivers; deployment acceptance remains open. Thirty-four
 scenarios remain unbound.
 
 The unavailable-metering driver calls the real inventory initializer with a
@@ -146,11 +146,19 @@ status report.
 Four harness-review refusal drivers now call actual allocation registration with
 signed incompatible reviews, an untrusted signing key, a missing review file, or mismatched staged-image digest metadata.
 The registration cases observe the reported review error and unchanged allocation/audit state; the digest case exercises actual engine preflight and observes refusal before container creation. These
-prove prelaunch rejection only; successful fresh-pair upgrades, live image-content
-verification remains pending. An active-agent driver now checks a newer deployment
+prove prelaunch rejection only; live image-content verification remains pending. An active-agent driver now checks a newer deployment
 review while a synthetic engine is running and observes unchanged inspection,
-start/create/remove counters and durable allocation. Successful new-agent upgrade
-and already-current fresh-pair catalog scenarios remain pending.
+start/create/remove counters and durable allocation. Two positive drivers now register a second participant
+against a new compatible signed review or the same current review. They reload the
+actual controller allocation before passing it to RunCodex, which must use the
+persisted immutable image, bootstrap a fresh engine/tool pair, complete a synthetic
+audited callback and prove both role containers absent while retaining source.
+The catalog includes callback, fencing and retention effects. Prior and new
+allocation records remain unchanged through replay. The prior release is a durable
+allocation fixture, not a live old engine; the separate active-agent driver covers
+running-engine stability. Image inspection, Docker and the protocol peer are
+mocked. Real upgrade discovery/publication, image compatibility and production
+controller-to-worker assembly remain unverified.
 
 ## Running and completing them
 
@@ -162,7 +170,7 @@ and already-current fresh-pair catalog scenarios remain pending.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 36 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 34 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.
