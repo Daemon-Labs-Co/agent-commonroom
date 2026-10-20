@@ -103,7 +103,7 @@ broker and controller audit code: feature off, missing command grant and failed
 intent persistence. Denied policy reaches neither Docker nor audit I/O; failed
 persistence reaches neither executor nor result release and latches the integrity
 stop. These are synthetic refusal checks, not evidence of successful command
-execution, revision binding, timeout cleanup or live-provider compatibility.
+execution, revision binding or live-provider compatibility.
 They introduce no product flag: the existing default-off command setting and
 mandatory audit/authorization protections remain unchanged.
 
@@ -114,3 +114,37 @@ result, retains the pending intent and source, latches integrity shutdown and
 revokes further authority. A healthy control commits the outcome before releasing
 its result. Neither path runs a real compiler or establishes live container/SSH
 compatibility. Audit remains mandatory regardless of command feature settings.
+
+### Output-limit diagnostics
+
+The command layer now exposes `toolcommand.ErrOutputLimit`, which also matches
+`ErrExecution` with `errors.Is`. It still cancels capture immediately and releases
+no partial receipt. The container executor preserves the broker output-limit cause
+after exact-ID cleanup; ambiguous cleanup takes precedence as unconfirmed shutdown.
+The direct container-executor overflow regression requires `toolbroker.ErrOutputLimit`,
+confirmed container absence and no output; a generic execution error cannot pass
+through an audit-cancellation allowance in this test.
+The dispatcher classifies executor-reported overflow as `output_limit`, even when
+its own outer buffer never filled. No host fallback or new policy switch exists.
+
+Cancellation may prevent the controller outcome from being acknowledged. In that
+case the public broker error remains an audit failure and the durable intent may
+remain pending, rather than inventing successful persistence. A committed
+`output_limit` outcome is also possible before cancellation wins. Both withhold
+results and revoke authority. The synthetic P0 case checks 8,193 bytes against the
+8,192-byte bound; an exact-bound control succeeds. This does not add a new UI
+message or prove live provider/container containment. Existing command flags and
+mandatory audit, isolation and retention behavior remain in force.
+
+The synthetic P0 timeout driver uses a per-test virtual clock with the real fixed
+120-second command timer and a three-minute job scope. A never-exiting mocked
+command must observe deadline cancellation before exact-ID removal and verified
+tool absence. Cleanup receives a fresh context bounded to ten seconds, rather
+than the expired command context. Captured output is withheld, source retained
+and further calls refused. A failed audit outcome can be committed; if revocation
+interrupts acknowledgment, pending intent plus an audit error remains conservative
+uncertainty. A separate capture test refuses even a zero exit reported after the
+deadline, with a successful control immediately before expiry. No live process
+or descendant is launched, so this is not kernel/daemon or paired-worker teardown
+proof. No product toggle is added for test verification: existing default-off
+command configuration, authorization, mandatory audit and isolation still apply.

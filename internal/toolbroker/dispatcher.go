@@ -130,6 +130,7 @@ func (d *Dispatcher) Dispatch(parent context.Context, request Request) ([]byte, 
 	output := &boundedOutput{cancel: cancel}
 	execErr := d.executor.Execute(ctx, d.authority.scope, action, output)
 	raw, overflow := output.snapshot()
+	overflow = overflow || errors.Is(execErr, ErrOutputLimit)
 	status := "succeeded"
 	if execErr != nil || ctx.Err() != nil {
 		status = "failed"

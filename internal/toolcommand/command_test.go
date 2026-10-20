@@ -8,8 +8,39 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 )
+
+func TestCommandTimeoutWithholdsReceiptEvenIfRunnerReportsSuccess(t *testing.T) {
+	t.Parallel()
+	for _, expires := range []bool{false, true} {
+		t.Run(map[bool]string{false: "before-deadline", true: "at-deadline"}[expires], func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				started := time.Now()
+				receipt, err := Run(t.Context(), []string{"go", "test", "./..."}, testRunner(func(ctx context.Context, _ Spec, out io.Writer) (int, error) {
+					_, _ = io.WriteString(out, "synthetic output before deadline")
+					if expires {
+						<-ctx.Done()
+						if ctx.Err() != context.DeadlineExceeded || time.Since(started) != Timeout {
+							t.Fatal("fixed command deadline not enforced", ctx.Err())
+						}
+					} else {
+						time.Sleep(Timeout - time.Nanosecond)
+					}
+					return 0, nil // A late zero exit must never certify success.
+				}))
+				if expires {
+					if err != ErrExecution || receipt != (Receipt{}) {
+						t.Fatal("expired command released a receipt", receipt, err)
+					}
+				} else if err != nil || receipt.Completion != "succeeded" || receipt.Bytes == 0 {
+					t.Fatal("command before deadline was refused", err)
+				}
+			})
+		})
+	}
+}
 
 type testRunner func(context.Context, Spec, io.Writer) (int, error)
 
@@ -86,9 +117,23 @@ func TestOutputAndFailureBounds(t *testing.T) {
 				if err != nil || result.ExitCode != 1 || result.Completion != "unconfirmed" {
 					t.Fatal("client error misrepresented")
 				}
-			} else if err != ErrExecution || result.Data != "" {
+			} else if !errors.Is(err, ErrExecution) || result.Data != "" {
 				t.Fatal("failed execution leaked receipt", err)
 			}
 		})
+	}
+}
+
+func TestOverflowHasDistinctFailureCauseAndWithholdsReceipt(t *testing.T) {
+	t.Parallel()
+	receipt, err := Run(t.Context(), []string{"go", "test", "./..."}, testRunner(func(ctx context.Context, _ Spec, out io.Writer) (int, error) {
+		_, _ = io.WriteString(out, strings.Repeat("x", MaxOutputBytes+1))
+		if ctx.Err() == nil {
+			t.Fatal("overflow did not cancel command")
+		}
+		return 0, nil
+	}))
+	if !errors.Is(err, ErrOutputLimit) || !errors.Is(err, ErrExecution) || receipt.Data != "" {
+		t.Fatal("overflow cause lost or receipt released", err)
 	}
 }

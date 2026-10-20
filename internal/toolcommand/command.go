@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"sync"
@@ -22,6 +23,10 @@ const Timeout = 120 * time.Second
 
 var ErrRefused = errors.New("isolated command refused")
 var ErrExecution = errors.New("isolated command failed or exceeded its bound")
+
+// ErrOutputLimit distinguishes capture overflow without weakening the existing
+// execution-failure contract. No partial receipt is safe to release.
+var ErrOutputLimit = fmt.Errorf("%w: output limit exceeded", ErrExecution)
 
 // Valid permits only reviewed profiles; argv never selects a shell, executable
 // path, environment, working directory, timeout or image.
@@ -76,7 +81,10 @@ func Run(ctx context.Context, argv []string, runner Runner) (Receipt, error) {
 	out.mu.Lock()
 	defer out.mu.Unlock()
 	out.closed = true
-	if err != nil || ctx.Err() != nil || out.overflow || code < 0 || code > 255 {
+	if out.overflow {
+		return Receipt{}, ErrOutputLimit
+	}
+	if err != nil || ctx.Err() != nil || code < 0 || code > 255 {
 		return Receipt{}, ErrExecution
 	}
 	sum := sha256.Sum256(out.data)
@@ -100,7 +108,7 @@ func (w *boundedWriter) Write(p []byte) (int, error) {
 	if w.closed || w.overflow || len(p) > MaxOutputBytes-len(w.data) {
 		w.overflow = true
 		w.cancel()
-		return 0, ErrExecution
+		return 0, ErrOutputLimit
 	}
 	w.data = append(w.data, p...)
 	return len(p), nil

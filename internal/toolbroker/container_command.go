@@ -3,6 +3,7 @@ package toolbroker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"time"
 
@@ -51,7 +52,7 @@ func (e *ContainerExecutor) executeCommand(ctx context.Context, id string, actio
 	}
 	receipt, err := toolcommand.Run(ctx, action.Command, isolatedCommandAdapter{runner, id})
 	if err != nil {
-		return e.failed(id, false)
+		return e.failed(id, errors.Is(err, toolcommand.ErrOutputLimit))
 	}
 	raw, err := json.Marshal(receipt)
 	if err != nil || !validCommandReceipt(raw, action) {

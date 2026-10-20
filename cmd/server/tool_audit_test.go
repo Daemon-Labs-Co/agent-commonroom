@@ -15,12 +15,17 @@ import (
 
 func scopedAuditFixture(t *testing.T) (*server, *mockDB, *controllerToolAuditor, toolbroker.Intent) {
 	t.Helper()
+	return scopedAuditFixtureWithLifetime(t, time.Minute)
+}
+
+func scopedAuditFixtureWithLifetime(t *testing.T, lifetime time.Duration) (*server, *mockDB, *controllerToolAuditor, toolbroker.Intent) {
+	t.Helper()
 	s, db, _ := mockServer(t)
 	db.seed("connection.created", room.Connection{ID: "connection", Name: "Synthetic provider", Protocol: "CLI", Provider: "openai", Endpoint: "ssh://worker", Revision: 1})
 	db.seed("participant.created", room.Participant{ID: "agent", RoomID: "engineering", ConnectionID: "connection", Revision: 1})
 	db.seed("actor.revised", room.Actor{ID: "human", Kind: "human", Role: "Developer", Enabled: true, RoomIDs: []string{"engineering"}, Revision: 1})
 	now := time.Now().UTC().Round(0)
-	scope := toolbroker.Scope{Version: 1, JobID: strings.Repeat("a", 32), Room: "engineering", Participant: "agent", Connection: "connection", Provider: "codex", RepositoryDigest: strings.Repeat("b", 64), Deadline: now.Add(time.Minute)}
+	scope := toolbroker.Scope{Version: 1, JobID: strings.Repeat("a", 32), Room: "engineering", Participant: "agent", Connection: "connection", Provider: "codex", RepositoryDigest: strings.Repeat("b", 64), Deadline: now.Add(lifetime)}
 	db.seed("worker.job.updated", room.ManagedJob{Version: 2, InitiatorID: "human", CompanyID: "company", JobID: scope.JobID, RoomID: scope.Room, ParticipantID: scope.Participant, ConnectionID: scope.Connection, Worker: "worker", Provider: "codex", Status: "submitted", AllocatedAt: now, UpdatedAt: now, Deadline: scope.Deadline})
 	auditor, err := newControllerToolAuditor(context.Background(), s, scope, "human", func() (string, error) { return scope.RepositoryDigest, nil })
 	if err != nil {

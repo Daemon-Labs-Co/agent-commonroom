@@ -1197,8 +1197,10 @@
     "want": {
       "state": "block",
       "effects": [
+        "intent_durable",
+        "isolated_command",
         "command_cancelled",
-        "descendants_fenced"
+        "tool_container_absent"
       ],
       "forbidden": [
         "success_released"
@@ -1220,7 +1222,10 @@
     "want": {
       "state": "block",
       "effects": [
-        "output_limit_reported"
+        "intent_durable",
+        "isolated_command",
+        "output_limit_reported",
+        "tool_container_absent"
       ],
       "forbidden": [
         "unbounded_output",
