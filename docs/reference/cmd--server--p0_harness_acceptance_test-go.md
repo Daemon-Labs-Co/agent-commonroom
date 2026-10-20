@@ -17,3 +17,6 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **`driveP0HarnessDigestRefusal`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(t *testing.T, scenario pendingP0Case) pendingP0Observation`.
   Calls: `append`, `errors.Is`, `harnessFixture`, `now.Add`, `runtime.Close`, `runtime.Create`, `selectHarnessReview`, `signHarness`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Helper`, `toolbroker.NewEngineContainerRuntime`.
+- **`driveP0HarnessActiveUpgrade`** — The engine runtime is real; Docker inspection/start are synthetic and no protocol peer or provider is launched. Bootstrap is treated as an established prerequisite here; combined pair tests separately exercise its enforcement.
+  Signature: `func(t *testing.T, scenario pendingP0Case) pendingP0Observation`.
+  Calls: `append`, `base64.StdEncoding.EncodeToString`, `bytes.Equal`, `db.snapshot`, `deploymentHarnessReview`, `filepath.Join`, `harnessFixture`, `len`, `managedPairFixtureVersion`, `os.WriteFile`, `registration.Update`, `runtime.Close`, `runtime.Create`, `runtime.Inspect`, `runtime.Start`, `s.load`, `signHarness`, `strconv.FormatBool`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Helper`, `t.Setenv`, `t.TempDir`, `time.Now`, `time.Now().UTC`, `toolbroker.NewEngineContainerRuntime`, `verifyHarnessReview`.

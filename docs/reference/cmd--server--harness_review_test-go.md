@@ -27,3 +27,6 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
 - **`TestHarnessReviewRegistrationUsesDeploymentPolicy`** — Environment configuration is serialized by testing.Setenv; all other review tests use explicit inputs and can run in parallel without deployment mutation.
   Signature: `func(t *testing.T)`.
   Calls: `base64.StdEncoding.EncodeToString`, `context.WithValue`, `ctx.Value`, `db.seed`, `filepath.Join`, `harnessFixture`, `len`, `managedPairFixtureVersion`, `mockServer`, `os.WriteFile`, `registration.Register`, `s.load`, `s.managedExecutionJobContextVersion`, `signHarness`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Run`, `t.Setenv`, `t.TempDir`.
+- **`TestHarnessNextAllocationPreservesActiveReview`** — Regression contract: TestHarnessNextAllocationPreservesActiveReview.
+  Signature: `func(t *testing.T)`.
+  Calls: `base64.StdEncoding.EncodeToString`, `context.WithValue`, `ctx.Value`, `db.seed`, `ed25519.GenerateKey`, `errors.Is`, `filepath.Join`, `first.Update`, `harnessFixture`, `managedPairFixtureVersion`, `os.WriteFile`, `publish`, `registration.Register`, `s.load`, `s.managedExecutionJobContextVersion`, `selectedHarnessImage`, `signHarness`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Helper`, `t.Run`, `t.Setenv`, `t.TempDir`, `time.Now`.

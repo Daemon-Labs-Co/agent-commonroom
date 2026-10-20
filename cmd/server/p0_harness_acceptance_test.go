@@ -3,6 +3,7 @@ package main
 import (
 	"agentroom/internal/room"
 	"agentroom/internal/toolbroker"
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -12,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -126,6 +128,94 @@ func driveP0HarnessDigestRefusal(t *testing.T, scenario pendingP0Case) pendingP0
 		case "start":
 			actual.Effects = append(actual.Effects, "engine_started")
 		}
+	}
+	return actual
+}
+
+// The engine runtime is real; Docker inspection/start are synthetic and no
+// protocol peer or provider is launched. Bootstrap is treated as an established
+// prerequisite here; combined pair tests separately exercise its enforcement.
+func driveP0HarnessActiveUpgrade(t *testing.T, scenario pendingP0Case) pendingP0Observation {
+	t.Helper()
+	if scenario.Given["job"] != "active" || scenario.Given["available"] != "new-compatible-reviewed" {
+		t.Fatal("unknown active upgrade input")
+	}
+	review, key, private, now := harnessFixture(t)
+	oldReview := review
+	oldReview.Sequence = 1
+	oldReview.Version = "synthetic-reviewed-1"
+	oldReview.Image = "registry.example/engine@sha256:" + strings.Repeat("b", 64)
+	oldSelection, err := verifyHarnessReview(signHarness(t, oldReview, private), key, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "review.json")
+	if err := os.WriteFile(path, signHarness(t, oldReview, private), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("COMMONROOM_HARNESS_UPGRADE_CHECKS", "true")
+	t.Setenv("COMMONROOM_HARNESS_REVIEW_FILE", path)
+	t.Setenv("COMMONROOM_HARNESS_REVIEW_KEY", base64.StdEncoding.EncodeToString(key))
+	s, db, _, registration := managedPairFixtureVersion(t, workerWorkspaceLifecycleVersion)
+	if err := registration.Update("submitted"); err != nil {
+		t.Fatal(err)
+	}
+	state, err := s.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := state.ManagedJobs[registration.JobID]
+	if job.Harness.Image != oldSelection.Image {
+		t.Fatal("active fixture lost original image")
+	}
+	scope := toolbroker.Scope{Version: 1, JobID: job.JobID, Room: job.RoomID, Participant: job.ParticipantID, Connection: job.ConnectionID, Provider: job.Provider, RepositoryDigest: job.RepositoryDigest, Deadline: job.Deadline}
+	runner := &codexIntegrationDocker{containers: map[string]map[string]any{}, scope: scope, bootstrapped: true}
+	runtime, err := toolbroker.NewEngineContainerRuntime(t.Context(), scope, job.Harness.Image, "/private/synthetic/gateway.sock", runner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runtime.Close()
+	id, err := runtime.Create(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runtime.Start(t.Context(), id); err != nil {
+		t.Fatal(err)
+	}
+	before, err := runtime.Inspect(t.Context(), id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeAudit := len(db.snapshot())
+	creates, starts, removed := runner.creates, runner.starts, runner.removed
+	// Replacing deployment review metadata checks only the next allocation.
+	if err := os.WriteFile(path, signHarness(t, review, private), 0600); err != nil {
+		t.Fatal(err)
+	}
+	selected, checkErr := deploymentHarnessReview(time.Now().UTC(), state.ManagedJobs)
+	actual := pendingP0Observation{State: "allow", Effects: []string{"upgrade_checked"}, Values: map[string]string{}}
+	if checkErr != nil {
+		actual.State = "block"
+		actual.Effects = append(actual.Effects, "upgrade_failure_reported")
+	}
+	if selected.Image != review.Image || selected.Version != review.Version {
+		t.Fatal("check did not select the new reviewed release", checkErr)
+	}
+	after, err := runtime.Inspect(t.Context(), id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := s.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	unchanged := bytes.Equal(before, after) && current.ManagedJobs[job.JobID] == job && runner.engineImage == job.Harness.Image && len(db.snapshot()) == beforeAudit
+	actual.Values["active_version_unchanged"] = strconv.FormatBool(unchanged)
+	if runner.creates != creates || runner.removed != removed || !bytes.Equal(before, after) {
+		actual.Effects = append(actual.Effects, "running_container_mutated")
+	}
+	if runner.starts != starts {
+		actual.Effects = append(actual.Effects, "old_container_restarted")
 	}
 	return actual
 }
