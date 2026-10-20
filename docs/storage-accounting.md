@@ -125,8 +125,20 @@ revisions, retained categories, audit failure, current permissions, stopped/expi
 work, public event injection and malformed inventory. No real database, Docker
 workload or provider runs in these tests.
 
-Six P0 accounting scenarios now have production-backed hermetic drivers: exact
+Seven P0 accounting scenarios now have production-backed hermetic drivers: exact
 boundary, one byte over, concurrent final-byte reservations, retained categories,
-negative reservation and no owner/paid/diagnostic bypass. Other storage acceptance
+unavailable metering, negative reservation and no owner/paid/diagnostic bypass. Other storage acceptance
 cases and physical/live verification remain pending. See [P0 acceptance](p0-acceptance-tests.md),
 [container quotas](container-quotas.md), and [release readiness](release-readiness.md).
+
+Unavailable-metering acceptance checks the actual initializer with an inventory
+source returning an error alongside a structurally valid empty result. That
+result must never become authoritative zero usage. The controller must preserve
+the journal and refuse even one-byte reservations for workspace, bundle and
+artifact categories with unknown usage, including after restart. Recovery requires
+an explicit successful complete inventory; its retained charges still count, and
+the capacity bound remains enforced. These are mocked controller accounting
+checks, not physical allocation or engine-start evidence. They introduce no new
+product capability or verification toggle. Mandatory accounting and existing
+permission checks remain in force; production inventory/launch integration and
+hard worker quotas are still pending.

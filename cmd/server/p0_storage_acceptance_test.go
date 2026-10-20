@@ -2,11 +2,101 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"context"
+	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 )
+
+// Inventory failure must leave no authoritative ledger, including after replay.
+// This exercises controller accounting only; no physical allocation is attempted.
+func driveP0StorageMeteringUnknown(t *testing.T, scenario pendingP0Case) pendingP0Observation {
+	t.Helper()
+	if scenario.Given["meter"] != "unavailable" {
+		t.Fatal("unknown metering failure fixture")
+	}
+	s, db, _ := mockServer(t)
+	db.seed("worker.job.updated", quotaJob(1, true))
+	ctx := context.WithValue(t.Context(), actorContextKey{}, ownerID)
+	before := db.snapshot()
+	calls := 0
+	err := s.initializeManagedStorage(ctx, "company", storageInventoryFunc(func(ctx context.Context, company string) (managedStorageInventory, error) {
+		calls++
+		if ctx.Err() != nil || company != "company" {
+			t.Fatal("inventory invoked with invalid account/context")
+		}
+		// Even a structurally valid partial result is unusable when the trusted
+		// source cannot attest completeness. Never reinterpret it as empty usage.
+		return managedStorageInventory{1, company, strings.Repeat("d", 64), []room.StorageReservation{}}, errors.New("synthetic meter unavailable")
+	}))
+	if calls != 1 || !errors.Is(err, errStorageUnknown) {
+		t.Fatal("meter failure was not propagated", calls, err)
+	}
+	out := pendingP0Observation{State: "block", Values: map[string]string{}}
+	for _, controller := range []*server{s, {db: db}} {
+		state, err := controller.load(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state.ManagedStorage != nil {
+			out.Effects = append(out.Effects, "inventory_recorded")
+		}
+		for i, category := range []string{"workspace", "bundle", "artifact"} {
+			total, err := controller.reserveManagedStorage(ctx, storageRecord(20+i, 1, category))
+			if err == nil {
+				out.State = "allow"
+				out.Effects = append(out.Effects, "storage_reserved")
+			} else if !errors.Is(err, errStorageUnknown) || total != 0 {
+				t.Fatal("reservation did not reach unknown-inventory gate", category, total, err)
+			}
+		}
+	}
+	after := db.snapshot()
+	if len(after) < len(before) || !reflect.DeepEqual(before, after[:len(before)]) {
+		out.Effects = append(out.Effects, "history_mutated")
+	}
+	for _, event := range after[min(len(before), len(after)):] {
+		out.Effects = append(out.Effects, event.kind)
+	}
+	return out
+}
+
+func TestStorageMeteringFailureRequiresExplicitCompleteInventoryForRecovery(t *testing.T) {
+	t.Parallel()
+	s, db, _ := mockServer(t)
+	db.seed("worker.job.updated", quotaJob(1, true))
+	ctx := context.WithValue(t.Context(), actorContextKey{}, ownerID)
+	if err := s.initializeManagedStorage(ctx, "company", storageInventoryFunc(func(context.Context, string) (managedStorageInventory, error) {
+		return managedStorageInventory{}, errors.New("synthetic unavailable meter")
+	})); !errors.Is(err, errStorageUnknown) {
+		t.Fatal("failed inventory was accepted", err)
+	}
+	restarted := &server{db: db}
+	retained := storageRecord(10, managedStorageLimit-1, "workspace")
+	if err := restarted.initializeManagedStorage(ctx, "company", storageInventoryFunc(func(context.Context, string) (managedStorageInventory, error) {
+		return managedStorageInventory{1, "company", strings.Repeat("d", 64), []room.StorageReservation{retained}}, nil
+	})); err != nil {
+		t.Fatal("complete inventory could not recover", err)
+	}
+	if total, err := restarted.reserveManagedStorage(ctx, storageRecord(20, 1, "artifact")); err != nil || total != managedStorageLimit {
+		t.Fatal("healthy metering control failed", total, err)
+	}
+	replayed, err := (&server{db: db}).load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total, err := managedStorageTotal(replayed); err != nil || total != managedStorageLimit || replayed.ManagedStorage.Reservations[retained.ID] != retained {
+		t.Fatal("recovery lost retained charges", total, err)
+	}
+	before := db.snapshot()
+	if _, err := restarted.reserveManagedStorage(ctx, storageRecord(21, 1, "bundle")); !errors.Is(err, errStorageCapacity) || !reflect.DeepEqual(before, db.snapshot()) {
+		t.Fatal("recovered inventory overbooked capacity", err)
+	}
+}
 
 // Drives real controller reservation methods and journal replay with the in-memory
 // database adapter. These cases establish accounting, not physical disk quotas.
