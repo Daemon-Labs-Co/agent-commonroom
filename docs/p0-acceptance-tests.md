@@ -61,10 +61,10 @@ Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation
 status report.
 
-Three harness-review refusal drivers now call actual allocation registration with
-signed incompatible reviews, an untrusted signing key, or a missing review file.
-They observe the reported review error and unchanged allocation/audit state. These
-prove prelaunch rejection only; successful fresh-pair upgrades, actual image digest
+Four harness-review refusal drivers now call actual allocation registration with
+signed incompatible reviews, an untrusted signing key, a missing review file, or mismatched staged-image digest metadata.
+The registration cases observe the reported review error and unchanged allocation/audit state; the digest case exercises actual engine preflight and observes refusal before container creation. These
+prove prelaunch rejection only; successful fresh-pair upgrades, live image-content
 verification and active-agent checks remain pending.
 
 ## Running and completing them
@@ -77,7 +77,7 @@ verification and active-agent checks remain pending.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 51 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 50 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.

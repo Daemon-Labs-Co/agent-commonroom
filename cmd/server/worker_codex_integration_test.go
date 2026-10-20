@@ -4,6 +4,7 @@ package main
 // runtime inspection, audit framing, callback dispatch and cleanup together.
 // No real Docker, provider, database or credentials are used.
 import (
+	"agentroom/internal/room"
 	"agentroom/internal/toolbroker"
 	"agentroom/internal/workspacebootstrap"
 	"context"
@@ -38,6 +39,7 @@ type codexIntegrationDocker struct {
 	creates, starts, helpers, removed int
 	bootstrapped                      bool
 	mode                              string
+	engineImage                       string
 }
 
 type codexIntegrationAuditor struct {
@@ -138,11 +140,12 @@ func (f *codexIntegrationDocker) Run(ctx context.Context, args []string, input [
 		slices.Sort(ids)
 		return write(strings.Join(ids, "\n"))
 	case "image":
-		return encode(map[string]any{"Id": "sha256:" + strings.Repeat("c", 64), "Config": map[string]any{"User": "1000:1000", "WorkingDir": "/tmp", "Entrypoint": []string{"/usr/local/bin/node", "/opt/commonroom/engine-entrypoint.cjs"}}})
+		return encode(map[string]any{"Id": "sha256:" + strings.Repeat("c", 64), "RepoDigests": []string{args[len(args)-1]}, "Config": map[string]any{"User": "1000:1000", "WorkingDir": "/tmp", "Entrypoint": []string{"/usr/local/bin/node", "/opt/commonroom/engine-entrypoint.cjs"}}})
 	case "create":
 		f.creates++
 		id := strings.Repeat("d", 64)
 		if strings.Contains(fixtureFlag(args, "--name"), "engine") {
+			f.engineImage = args[slices.Index(args, "--entrypoint")+2]
 			id = strings.Repeat("e", 64)
 		}
 		if f.containers[id] != nil {
@@ -332,8 +335,12 @@ func serveSyntheticCodex(stream net.Conn, mode string) error {
 
 func TestOwnedCodexSyntheticCallbackAndFencedRetention(t *testing.T) {
 	t.Parallel()
-	for _, mode := range []string{"success", "forbidden callback", "intent failure", "outcome failure", "engine drop", "refresh export failure", "invalid refresh", "foreign refresh"} {
+	for _, mode := range []string{"success", "reviewed success", "forbidden callback", "intent failure", "outcome failure", "engine drop", "refresh export failure", "invalid refresh", "foreign refresh"} {
 		t.Run(mode, func(t *testing.T) {
+			reviewed := mode == "reviewed success"
+			if reviewed {
+				mode = "success"
+			}
 			_, s, _ := workspacePair(t)
 			r := s.record
 			scope := toolbroker.Scope{Version: 1, JobID: r.JobID, Room: r.RoomID, Participant: r.ParticipantID, Connection: r.ConnectionID, Provider: r.Provider, RepositoryDigest: r.Pair.Repository, Deadline: r.Deadline}
@@ -359,7 +366,20 @@ func TestOwnedCodexSyntheticCallbackAndFencedRetention(t *testing.T) {
 			}
 			gateway := shortGatewayRoot(t)
 			bundle := &pairBundleFixture{Reader: strings.NewReader("synthetic approved bundle")}
-			result, record, err := s.RunCodex(t.Context(), session, token, bundle, workerCodexRunConfig{EngineImage: "ghcr.io/example/engine@sha256:" + strings.Repeat("b", 64), AuthRoot: auth, GatewayRoot: gateway, Prompt: "Synthetic request", Model: "reviewed-model"}, runner)
+			config := workerCodexRunConfig{EngineImage: "ghcr.io/example/engine@sha256:" + strings.Repeat("b", 64), AuthRoot: auth, GatewayRoot: gateway, Prompt: "Synthetic request", Model: "reviewed-model"}
+			if reviewed {
+				review, key, private, now := harnessFixture(t)
+				selected, reviewErr := verifyHarnessReview(signHarness(t, review, private), key, now)
+				if reviewErr != nil {
+					t.Fatal(reviewErr)
+				}
+				config.EngineImage = ""
+				config.ManagedJob = &room.ManagedJob{Harness: selected, Version: r.Version, Execution: r.Execution, RepositoryDigest: r.Pair.Repository, InitiatorID: ownerID, CompanyID: "company", JobID: r.JobID, RoomID: r.RoomID, ParticipantID: r.ParticipantID, ConnectionID: r.ConnectionID, Worker: "worker", Provider: r.Provider, Status: "allocated", AllocatedAt: r.StartedAt, UpdatedAt: now, Deadline: r.Deadline, IdlePolicyVersion: 1, IdleMinutes: 5}
+			}
+			result, record, err := s.RunCodex(t.Context(), session, token, bundle, config, runner)
+			if reviewed && runner.engineImage != config.ManagedJob.Harness.Image {
+				t.Fatal("assembly did not use the reviewed image", runner.engineImage)
+			}
 			if err == nil || record.ShutdownConfirmed || record.Pair.Workspace == nil || record.Pair.Workspace.Removed || runner.volume == nil {
 				t.Fatalf("unapproved workspace disposal or false lifecycle success: %v %+v", err, record)
 			}

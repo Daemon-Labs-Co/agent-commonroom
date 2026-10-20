@@ -93,14 +93,23 @@ func (r *EngineContainerRuntime) capture(ctx context.Context, args []string) ([]
 }
 func (r *EngineContainerRuntime) verifyImage(raw []byte) error {
 	var image struct {
-		ID     string `json:"Id"`
-		Config struct {
+		ID          string   `json:"Id"`
+		RepoDigests []string `json:"RepoDigests"`
+		Config      struct {
 			Env, Entrypoint, Cmd, OnBuild []string
 			User, WorkingDir              string
 			Volumes                       map[string]json.RawMessage
 		}
 	}
 	if decodeInspection(raw, &image) != nil || !strings.HasPrefix(image.ID, "sha256:") || !digest(strings.TrimPrefix(image.ID, "sha256:"), 32) || (strings.HasPrefix(r.image, "sha256:") && r.image != image.ID) {
+		return ErrRejected
+	}
+	// A repository manifest digest is distinct from Docker's config image ID.
+	// Bind the staged metadata to the exact reviewed repository/digest as well as
+	// retaining the image ID for stopped/running container verification. A trusted
+	// daemon/runner can lie about both; source forks cannot remove this check and
+	// retain the mandatory isolation/approved-image claim.
+	if !strings.HasPrefix(r.image, "sha256:") && !slices.Contains(image.RepoDigests, r.image) {
 		return ErrRejected
 	}
 	c := image.Config

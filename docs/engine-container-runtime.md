@@ -100,8 +100,19 @@ Image inspection must report an immutable image ID and expected user, workdir an
 entrypoint, with no inherited command, implicit volumes, OnBuild hooks or unknown
 environment keys. Known values are overridden by fixed create policy;
 `LD_PRELOAD` is refused and `NODE_OPTIONS` is emptied. Later inspection must report
-the recorded image ID. These checks do not attest signatures, scans or binary
-compatibility.
+the recorded image ID. For a reviewed `repository@sha256:...` reference, image
+inspection must also report that exact reference in `RepoDigests`. A missing list,
+different repository, different digest or tag-only response refuses creation. A
+manifest digest is distinct from the local image/config ID; they are not compared
+as interchangeable hashes. Other repository aliases are allowed only when the
+exact reviewed reference is also present. Direct operator-pinned `sha256:<image
+ID>` inputs retain exact image-ID matching and do not require repository metadata.
+
+This preflight is part of the mandatory isolated execution boundary and has no
+optional bypass. It applies with release review checks on or off. All Docker
+metadata remains a trusted daemon/runner assertion, not independent cryptographic
+verification of image bytes. These checks do not attest signatures, scans or
+binary compatibility.
 
 ## Container contract
 
@@ -156,7 +167,7 @@ Automated coverage uses mocked Docker, synthetic credentials, local protocol pee
 and temporary files. It covers image/policy drift, unsafe mounts/resources,
 one-shot operations, original-lifetime cancellation, private credential framing,
 gateway replacement, stream closure and process reaping. Combined RunCodex tests
-exercise bootstrap, callbacks, framed audit intent/outcome and independent role
+exercise signed-review image selection, bootstrap, callbacks, framed audit intent/outcome and independent role
 cleanup, including forbidden callbacks, audit failure and engine disconnects.
 
 A successful model turn still returns a lifecycle error while its workspace is

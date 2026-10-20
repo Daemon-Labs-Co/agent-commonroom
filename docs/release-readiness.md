@@ -44,15 +44,15 @@ and [container quotas](container-quotas.md).
 | Required providers | Reviewed isolated development paths and acceptance for Claude, Gemini, GitHub Copilot and llama.cpp; live Codex acceptance. |
 | Credential renewal | Durable uncertainty blocking and explicit sign-in recovery exist. Private final export and fenced, connection-scoped persistence are implemented internally. Reviewed image, live refresh and recovery acceptance remain. |
 | Storage | Durable 5,000,000,000-byte reservation accounting is implemented internally. Complete physical inventory, hard worker enforcement and allocation/disposal integration remain. |
-| Harness upgrades | Signed operator-review admission and immutable Codex image selection now exist internally, with rollback and startup binding checks. An offline tool generates review keys and exclusively publishes signed review envelopes. Upstream discovery, real compatibility review, approved image publication/staging, production launch integration and live acceptance remain. See [release admission](harness-release-admission.md). |
+| Harness upgrades | Signed operator-review admission and immutable Codex image selection now exist internally, with rollback, startup binding and exact staged repository-digest checks. An offline tool generates review keys and exclusively publishes signed review envelopes. Upstream discovery, real compatibility review, approved image publication/staging, production launch integration and live acceptance remain. See [release admission](harness-release-admission.md). |
 | Idle agents | Internal worker guard now defaults to five minutes with an administrator environment fallback, busy/queued-work protection and retained source. Owner settings and immutable allocation snapshots now exist. Internal pre-cleanup controller acknowledgments and room notices now exist. The private audit-link acknowledgment path is implemented internally. Production launch/policy assembly and live acceptance remain. |
 | Commands and artifacts | Bounded isolated builds/tests and permission-checked, revision-bound observed evidence/artifact delivery. |
 | Approved disposal | Exact internal request/receipt volume binding now exists. Owner review, one-minute delay, expiry/revocation and one-shot claims are implemented off by default. Production storage allocation binding, artifact integration and live approval acceptance remain. |
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Four credential-custody, six storage-accounting, nine disposal, one idle-permission and three harness-review refusal scenarios now
-have production-backed hermetic drivers; 51 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+prepared scenarios. Four credential-custody, six storage-accounting, nine disposal, one idle-permission and four harness-review refusal scenarios now
+have production-backed hermetic drivers; 50 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
 still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0

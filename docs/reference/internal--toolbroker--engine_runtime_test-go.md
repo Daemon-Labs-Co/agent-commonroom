@@ -35,3 +35,9 @@ Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods r
 - **`TestEngineRuntimeOriginalCancellationPrecedesDerivedPropagation`** — Regression contract: TestEngineRuntimeOriginalCancellationPrecedesDerivedPropagation.
   Signature: `func(t *testing.T)`.
   Calls: `cancel`, `context.Background`, `context.WithCancel`, `engineFixture`, `len`, `runtime.Create`, `t.Context`, `t.Fatal`, `t.Parallel`.
+- **`TestEngineRuntimeRefusesUnboundRepositoryDigestBeforeCreation`** — Regression contract: TestEngineRuntimeRefusesUnboundRepositoryDigestBeforeCreation.
+  Signature: `func(t *testing.T)`.
+  Calls: `delete`, `engineFixture`, `runtime.Create`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Parallel`, `t.Run`.
+- **`TestEngineRuntimeDistinguishesManifestDigestFromLocalImageID`** — Regression contract: TestEngineRuntimeDistinguishesManifestDigestFromLocalImageID.
+  Signature: `func(t *testing.T)`.
+  Calls: `delete`, `engineFixture`, `runtime.Create`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Parallel`, `t.Run`.

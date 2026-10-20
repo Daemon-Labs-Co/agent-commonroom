@@ -126,8 +126,11 @@ A valid signature establishes the configured review authority. It does not prove
 image contents match a safe harness, validate upstream provenance or measure
 compatibility. Those are responsibilities of the trusted review pipeline; Docker's
 existing immutable-image inspection still applies. An invalid digest format or
-worker override is rejected here; actual image/digest verification remains in the
-container runtime. No network update or package installation runs in this path.
+worker override is rejected here; the container runtime additionally requires the exact reviewed reference in
+Docker's `RepoDigests` before creation and binds all subsequent container checks
+to the inspected local image ID. A missing or mismatched repository digest blocks
+creation even when the local image ID and other policy fields look valid. This
+metadata check relies on the trusted daemon; it is not an image-content attestation. No network update or package installation runs in this path.
 
 The allocation passed to private worker assembly is trusted authenticated controller
 input. Selection metadata is not a portable signed authorization token. Production
@@ -140,3 +143,9 @@ concurrent publication, unsafe key files, invalid keys, expiry and output refusa
 Admission tests use disposable signing keys, synthetic manifests, mocked audit storage and
 no real database, provider, Docker daemon or image publication. Live review
 publication, staged-image admission and production dispatch remain unverified.
+
+Combined synthetic worker tests now consume a signed-review selection through
+RunCodex, create the selected image, complete a callback and verify fenced role
+cleanup with workspace retention. A separate acceptance driver proves staged
+digest mismatch rejection before creation. These checks use fake Docker and a
+synthetic engine peer, not a real model or staged registry image.

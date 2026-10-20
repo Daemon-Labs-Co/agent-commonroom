@@ -30,7 +30,7 @@ func (f *engineDockerFake) Run(ctx context.Context, args []string, _ []byte, out
 		}
 		return nil
 	case "image":
-		raw := map[string]any{"Id": "sha256:" + strings.Repeat("c", 64), "Config": map[string]any{"User": "1000:1000", "WorkingDir": "/tmp", "Env": []string{"PATH=/usr/local/bin"}, "Entrypoint": []string{"/usr/local/bin/node", "/opt/commonroom/engine-entrypoint.cjs"}, "Cmd": []string{}}}
+		raw := map[string]any{"Id": "sha256:" + strings.Repeat("c", 64), "RepoDigests": []string{f.runtime.image}, "Config": map[string]any{"User": "1000:1000", "WorkingDir": "/tmp", "Env": []string{"PATH=/usr/local/bin"}, "Entrypoint": []string{"/usr/local/bin/node", "/opt/commonroom/engine-entrypoint.cjs"}, "Cmd": []string{}}}
 		if f.imageMutation != nil {
 			f.imageMutation(raw)
 		}
@@ -259,5 +259,65 @@ func TestEngineRuntimeOriginalCancellationPrecedesDerivedPropagation(t *testing.
 	cancel()
 	if _, err := runtime.Create(context.Background()); err != ErrRejected || len(fake.calls) != 0 {
 		t.Fatal("derived context revived cancelled original")
+	}
+}
+
+func TestEngineRuntimeRefusesUnboundRepositoryDigestBeforeCreation(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"missing", "different digest", "different repository", "tag only", "malformed"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			runtime, fake := engineFixture(t)
+			fake.imageMutation = func(raw map[string]any) {
+				switch mode {
+				case "missing":
+					delete(raw, "RepoDigests")
+				case "different digest":
+					raw["RepoDigests"] = []string{"ghcr.io/example/engine@sha256:" + strings.Repeat("f", 64)}
+				case "different repository":
+					raw["RepoDigests"] = []string{"ghcr.io/untrusted/engine@sha256:" + strings.Repeat("a", 64)}
+				case "tag only":
+					raw["RepoDigests"] = []string{"ghcr.io/example/engine:latest"}
+				case "malformed":
+					raw["RepoDigests"] = "not-a-list"
+				}
+			}
+			if _, err := runtime.Create(t.Context()); err == nil {
+				t.Fatal("unbound image digest accepted")
+			}
+			for _, call := range fake.calls {
+				if call[0] == "create" || call[0] == "start" {
+					t.Fatal("digest mismatch reached container mutation", call)
+				}
+			}
+		})
+	}
+}
+
+func TestEngineRuntimeDistinguishesManifestDigestFromLocalImageID(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"repository aliases", "direct image id", "wrong direct image id"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			runtime, fake := engineFixture(t)
+			if mode != "repository aliases" {
+				runtime.image = "sha256:" + strings.Repeat("c", 64)
+			}
+			fake.imageMutation = func(raw map[string]any) {
+				if mode == "repository aliases" {
+					raw["RepoDigests"] = []string{"registry.example/alias@sha256:" + strings.Repeat("f", 64), runtime.image}
+				}
+				if mode == "direct image id" {
+					delete(raw, "RepoDigests")
+				}
+				if mode == "wrong direct image id" {
+					raw["Id"] = "sha256:" + strings.Repeat("f", 64)
+				}
+			}
+			_, err := runtime.Create(t.Context())
+			if (err != nil) != (mode == "wrong direct image id") {
+				t.Fatal("wrong image identity outcome", err)
+			}
+		})
 	}
 }
