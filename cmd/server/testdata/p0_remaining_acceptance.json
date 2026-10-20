@@ -1262,7 +1262,9 @@
     "want": {
       "state": "block",
       "effects": [
-        "isolated_command"
+        "intent_durable",
+        "isolated_command",
+        "tool_container_absent"
       ],
       "forbidden": [
         "result_released"
