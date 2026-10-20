@@ -51,8 +51,8 @@ and [container quotas](container-quotas.md).
 | Live acceptance | Reviewed image build, rootless enforcement, transport interruption, crash recovery and real provider round trips. |
 
 The [remaining acceptance guide](p0-acceptance-tests.md) maps these gates to 74
-prepared scenarios. Four credential-custody, six storage-accounting, nine disposal, one idle-permission, six idle lifecycle protection/acknowledgment and four harness-review refusal scenarios plus one active-agent upgrade stability scenario now
-have production-backed hermetic drivers; 43 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
+prepared scenarios. Four credential-custody, six storage-accounting, nine disposal, one idle-permission, six idle lifecycle protection/acknowledgment, three command admission refusal and four harness-review refusal scenarios plus one active-agent upgrade stability scenario now
+have production-backed hermetic drivers; 40 scenarios remain pending and are skipped by normal tests. `make test-p0-ready`
 still fails for those missing drivers. Neither a catalog nor a mock is live acceptance.
 
 ## After P0

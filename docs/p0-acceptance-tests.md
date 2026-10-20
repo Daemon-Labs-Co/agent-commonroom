@@ -49,7 +49,7 @@ Failure drivers use the real worker journal and cleanup code with mocked Docker;
 uncertainty retains capacity and refuses another attempt. Cancellation verifies
 both roles are fenced while source remains. History protection uses the actual
 owner event boundary with disposal switched off after approval. All nine disposal
-scenarios have hermetic drivers; deployment acceptance remains open. Forty-three
+scenarios have hermetic drivers; deployment acceptance remains open. Forty
 scenarios remain unbound.
 
 The idle permission driver now sends a real authenticated non-owner settings
@@ -84,6 +84,15 @@ prove resident-pool behavior or relax that deadline. Other idle scenarios remain
 the private socket handshake and terminal audit acknowledgment with mocked
 controller storage and Docker cleanup; these do not count as live SSH acceptance.
 
+Three command refusal drivers now exercise worker-session construction with the
+feature disabled, broker dispatch without the command grant, and command dispatch
+over the real framed audit stream into controller storage with an injected insert
+failure. The first two require no Docker or audit transport calls. The failed
+intent must roll back, latch the integrity stop and release no execution/result.
+These tests use the fixed Go-test profile, not an arbitrary compiler or host
+command. They establish admission refusal only; successful command execution,
+timeouts, output bounds and artifact delivery remain separate pending cases.
+
 Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation
 status report.
@@ -107,7 +116,7 @@ and already-current fresh-pair catalog scenarios remain pending.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 43 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 40 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.

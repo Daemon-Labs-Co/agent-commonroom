@@ -43,6 +43,9 @@ type pendingP0Driver func(*testing.T, pendingP0Case) pendingP0Observation
 // Leaving an absent implementation pending is intentional: there is no canned
 // passing driver. A strict release-readiness run fails every unbound scenario.
 var pendingP0Drivers = map[string]pendingP0Driver{
+	"command-no-permission":        driveP0CommandAdmission,
+	"command-feature-off":          driveP0CommandAdmission,
+	"command-audit-intent-fails":   driveP0CommandIntentFailure,
 	"idle-cleanup-uncertain":       driveP0IdleCleanupUncertain,
 	"idle-arriving-work":           driveP0IdleArrivingWork,
 	"idle-owner-interval":          driveP0IdleOwnerInterval,

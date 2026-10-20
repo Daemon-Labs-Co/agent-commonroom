@@ -97,3 +97,12 @@ or isolation off switch exists.
 
 See [callback binding](codex-callback-driver.md), [audited sessions](audited-tool-session.md),
 [tool runtime](tool-container-runtime.md), and [release readiness](release-readiness.md).
+
+The P0 catalog now binds three command admission refusals to actual worker-session,
+broker and controller audit code: feature off, missing command grant and failed
+intent persistence. Denied policy reaches neither Docker nor audit I/O; failed
+persistence reaches neither executor nor result release and latches the integrity
+stop. These are synthetic refusal checks, not evidence of successful command
+execution, revision binding, timeout cleanup or live-provider compatibility.
+They introduce no product flag: the existing default-off command setting and
+mandatory audit/authorization protections remain unchanged.
