@@ -7,7 +7,7 @@ Automated regression checks for worker_codex_integration; read test names for in
 Package: `main`. Go uses types, structs, interfaces and receiver methods rather than classes.
 
 - **Type `codexIntegrationDocker`**: Structured data type; fields are shown in the declaration.
-  Declaration: `struct { containers map[string]map[string]any volume map[string]any scope toolbroker.Scope engineDone chan error audit *transportTestAuditor creates, starts, helpers, removed int bootstrapped bool mode string }`.
+  Declaration: `struct { containers map[string]map[string]any volume map[string]any scope toolbroker.Scope engineDone chan error audit *transportTestAuditor creates, starts, helpers, removed int bootstrapped bool mode string engineImage string }`.
 - **Type `codexIntegrationAuditor`**: Structured data type; fields are shown in the declaration.
   Declaration: `struct { counter *transportTestAuditor mode string }`.
 - **`(codexIntegrationAuditor).RecordIntent`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
@@ -36,4 +36,4 @@ Package: `main`. Go uses types, structs, interfaces and receiver methods rather 
   Calls: `binary.BigEndian.Uint32`, `decoder.Decode`, `encoder.Encode`, `errors.New`, `fmt.Errorf`, `io.ReadFull`, `json.NewDecoder`, `json.NewEncoder`, `len`, `make`, `receive`, `send`, `string`, `strings.Contains`, `uint32`.
 - **`TestOwnedCodexSyntheticCallbackAndFencedRetention`** — Regression contract: TestOwnedCodexSyntheticCallbackAndFencedRetention.
   Signature: `func(t *testing.T)`.
-  Calls: `auditor.calls.Load`, `awaitAuditResult`, `bundle.closes.Load`, `connectionAuthKey`, `context.WithValue`, `credentialPresent`, `filepath.Join`, `int32`, `len`, `lockWorkerCredential`, `make`, `net.Pipe`, `newWorkerToolSession`, `os.MkdirAll`, `os.ReadDir`, `os.WriteFile`, `peer.Close`, `readPrivateBounded`, `s.RunCodex`, `session.Close`, `shortGatewayRoot`, `string`, `strings.NewReader`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Fatalf`, `t.Parallel`, `t.Run`, `t.TempDir`, `time.After`, `time.Now`, `toolbroker.ServeAudit`, `unlock`, `workerCredentialReady`, `workspacePair`.
+  Calls: `auditor.calls.Load`, `awaitAuditResult`, `bundle.closes.Load`, `connectionAuthKey`, `context.WithValue`, `credentialPresent`, `filepath.Join`, `harnessFixture`, `int32`, `len`, `lockWorkerCredential`, `make`, `net.Pipe`, `newWorkerToolSession`, `os.MkdirAll`, `os.ReadDir`, `os.WriteFile`, `peer.Close`, `readPrivateBounded`, `s.RunCodex`, `session.Close`, `shortGatewayRoot`, `signHarness`, `string`, `strings.NewReader`, `strings.Repeat`, `t.Context`, `t.Fatal`, `t.Fatalf`, `t.Parallel`, `t.Run`, `t.TempDir`, `time.After`, `time.Now`, `toolbroker.ServeAudit`, `unlock`, `verifyHarnessReview`, `workerCredentialReady`, `workspacePair`.

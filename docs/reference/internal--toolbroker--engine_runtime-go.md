@@ -31,7 +31,7 @@ Package: `toolbroker`. Go uses types, structs, interfaces and receiver methods r
   Calls: `cancel`, `child.Err`, `context.WithCancel`, `output.snapshot`, `r.runner.Run`.
 - **`(*EngineContainerRuntime).verifyImage`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(raw []byte) error`.
-  Calls: `decodeInspection`, `digest`, `engineEnvironment`, `len`, `slices.Equal`, `strings.Cut`, `strings.HasPrefix`, `strings.TrimPrefix`.
+  Calls: `decodeInspection`, `digest`, `engineEnvironment`, `len`, `slices.Contains`, `slices.Equal`, `strings.Cut`, `strings.HasPrefix`, `strings.TrimPrefix`.
 - **`(*EngineContainerRuntime).verify`** — Source has no prose contract; use the signature and direct calls below to trace behavior.
   Signature: `func(raw []byte, running bool) error`.
   Calls: `decodeInspection`, `digest`, `engineEnvironment`, `isBool`, `isInt`, `len`, `r.labels`, `r.name`, `sameMap`, `slices.Equal`, `strings.Cut`.

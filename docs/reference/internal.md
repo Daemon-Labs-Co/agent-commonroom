@@ -18,6 +18,22 @@ Automated regression checks for bridge; read test names for individual contracts
 
 [Types, methods and functions](internal--codexbridge--bridge_test-go.md)
 
+## internal/harnessrelease/publish.go
+
+[Open source](../../internal/harnessrelease/publish.go)
+
+Go implementation for publish; declarations and calls are listed below.
+
+[Types, methods and functions](internal--harnessrelease--publish-go.md)
+
+## internal/harnessrelease/review.go
+
+[Open source](../../internal/harnessrelease/review.go)
+
+Go implementation for review; declarations and calls are listed below.
+
+[Types, methods and functions](internal--harnessrelease--review-go.md)
+
 ## internal/room/disposal.go
 
 [Open source](../../internal/room/disposal.go)

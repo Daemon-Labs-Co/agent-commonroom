@@ -185,4 +185,6 @@ Controller-bound idle stops now require audited acknowledgment and can show fixe
 Idle acknowledgments use the scoped private audit link. Production launch/policy
 assembly and live acceptance remain pending.
 
-The [reviewed harness release admission](docs/harness-release-admission.md) can pin new internal Codex allocations to a signed, operator-reviewed image. It is disabled by default; upstream discovery, image publication and live upgrade acceptance remain P0 work.
+The [reviewed harness release admission](docs/harness-release-admission.md) can pin new internal Codex allocations to a signed, operator-reviewed image. It is disabled by default. Engine preflight always requires the exact pinned repository digest in staged-image metadata; upstream discovery, image publication and live upgrade acceptance remain P0 work.
+
+Administrators can use the [offline harness review tool](docs/harness-release-admission.md#offline-review-publication-tool) to generate review keys and publish signed release manifests without placing private signing keys on workers.
