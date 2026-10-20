@@ -106,3 +106,11 @@ stop. These are synthetic refusal checks, not evidence of successful command
 execution, revision binding, timeout cleanup or live-provider compatibility.
 They introduce no product flag: the existing default-off command setting and
 mandatory audit/authorization protections remain unchanged.
+
+Outcome-persistence acceptance additionally runs real session bootstrap, terminal
+command execution logic and exact-ID tool-container absence checks with mocked
+Docker. An injected controller outcome-insert failure withholds the captured
+result, retains the pending intent and source, latches integrity shutdown and
+revokes further authority. A healthy control commits the outcome before releasing
+its result. Neither path runs a real compiler or establishes live container/SSH
+compatibility. Audit remains mandatory regardless of command feature settings.
