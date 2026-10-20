@@ -960,6 +960,7 @@
     "want": {
       "state": "allow",
       "effects": [
+        "idle_announced",
         "fenced_pair"
       ],
       "forbidden": [

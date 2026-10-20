@@ -27,19 +27,24 @@ type idleNoticeFixture struct {
 
 func newIdleNoticeFixture(t *testing.T, shortDirectory ...bool) *idleNoticeFixture {
 	t.Helper()
+	return newIdleNoticeIntervalFixture(t, 1, shortDirectory...)
+}
+
+func newIdleNoticeIntervalFixture(t *testing.T, minutes int, shortDirectory ...bool) *idleNoticeFixture {
+	t.Helper()
 	s, db, _ := mockServer(t)
 	now := time.Now().UTC()
 	job := quotaJob(1, true)
 	job.InitiatorID = ownerID
 	job.RoomID = "engineering"
 	job.Worker = "worker"
-	job.AllocatedAt = now.Add(-90 * time.Second)
+	job.AllocatedAt = now.Add(-time.Duration(minutes)*time.Minute - 30*time.Second)
 	job.UpdatedAt = job.AllocatedAt
-	job.Deadline = now.Add(90 * time.Second)
+	job.Deadline = job.AllocatedAt.Add(3 * time.Minute)
 	job.IdlePolicyVersion = 1
 	job.IdlePolicyRevision = 1
 	job.IdleShutdownEnabled = true
-	job.IdleMinutes = 1
+	job.IdleMinutes = minutes
 	db.seed("worker.job.updated", job)
 	ctx := context.WithValue(t.Context(), actorContextKey{}, ownerID)
 	announce, err := s.newIdleAnnouncer(ctx, job.JobID)
@@ -92,7 +97,7 @@ func newIdleNoticeFixture(t *testing.T, shortDirectory ...bool) *idleNoticeFixtu
 		docker.containers[id] = pairFakeContainer{name: pairContainerName(job.JobID, role), execution: "separated-" + role + "-v1", repository: job.RepositoryDigest, job: job.JobID}
 	}
 	worker.mu.Lock()
-	worker.idle.since = now.Add(-time.Minute)
+	worker.idle.since = now.Add(-time.Duration(minutes) * time.Minute)
 	worker.mu.Unlock()
 	return f
 }

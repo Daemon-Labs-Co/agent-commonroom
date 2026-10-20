@@ -209,7 +209,11 @@ active work (600 seconds) and a disabled idle timer (600 seconds). These cases
 check the durable worker journal, running pair and retained workspace using
 temporary fixtures and mocked Docker. They run without sleeping or launching
 providers, SSH or database connections. The existing owner-only policy test covers
-unauthorized configuration. Default-expiry, fresh replacement and remaining idle
+unauthorized configuration. Queued-arrival acceptance now checks that completion resets a full interval and
+prevents the old timer from winning. Owner-interval acceptance exercises a saved
+two-minute setting, the durable controller notice and non-destructive pair cleanup.
+Its synthetic allocation stays within the three-minute hard deadline.
+Default-expiry, fresh replacement and remaining idle
 acceptance cases are still pending; component tests are not production acceptance.
 No new product flag is introduced for test infrastructure. Existing idle controls
 and mandatory deadlines, audit, isolation and retention are unchanged.
