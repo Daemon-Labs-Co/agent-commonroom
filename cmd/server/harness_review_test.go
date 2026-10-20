@@ -226,3 +226,98 @@ func TestHarnessReviewRegistrationUsesDeploymentPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestHarnessNextAllocationPreservesActiveReview(t *testing.T) {
+	// Deployment env is process-wide; keep these subtests serialized.
+	for _, mode := range []string{"new review", "same review", "disabled", "invalid signature", "rollback"} {
+		t.Run(mode, func(t *testing.T) {
+			review, key, private, _ := harnessFixture(t)
+			path := filepath.Join(t.TempDir(), "review.json")
+			publish := func(v harnessReview) {
+				t.Helper()
+				if err := os.WriteFile(path, signHarness(t, v, private), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			publish(review)
+			t.Setenv("COMMONROOM_HARNESS_UPGRADE_CHECKS", "true")
+			t.Setenv("COMMONROOM_HARNESS_REVIEW_FILE", path)
+			t.Setenv("COMMONROOM_HARNESS_REVIEW_KEY", base64.StdEncoding.EncodeToString(key))
+			s, db, _, first := managedPairFixtureVersion(t, workerWorkspaceLifecycleVersion)
+			if err := first.Update("submitted"); err != nil {
+				t.Fatal(err)
+			}
+			before, err := s.load(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			active := before.ManagedJobs[first.JobID]
+			next := review
+			switch mode {
+			case "new review":
+				next.Sequence++
+				next.Version = "synthetic-reviewed-3"
+				next.Image = "registry.example/engine@sha256:" + strings.Repeat("c", 64)
+			case "disabled":
+				t.Setenv("COMMONROOM_HARNESS_UPGRADE_CHECKS", "false")
+			case "invalid signature":
+				next.Version = "untrusted"
+				_, other, err := ed25519.GenerateKey(rand.Reader)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, signHarness(t, next, other), 0600); err != nil {
+					t.Fatal(err)
+				}
+			case "rollback":
+				next.Sequence--
+			}
+			if mode != "invalid signature" {
+				publish(next)
+			}
+			p := room.Participant{ID: "next-agent", RoomID: active.RoomID, ConnectionID: active.ConnectionID, Revision: 1}
+			db.seed("participant.created", p)
+			ctx := context.WithValue(t.Context(), actorContextKey{}, ownerID)
+			repo := active.RepositoryDigest
+			ctx = s.managedExecutionJobContextVersion(ctx, p, repo, func() (string, error) { return repo, nil }, workerWorkspaceLifecycleVersion)
+			registration := ctx.Value(managedJobContextKey{}).(managedJobRegistration)
+			err = registration.Register("worker", "codex")
+			rejected := mode == "invalid signature" || mode == "rollback"
+			if rejected && !errors.Is(err, errHarnessReview) {
+				t.Fatal("unsafe next allocation not refused at review gate", err)
+			}
+			if !rejected && err != nil {
+				t.Fatal(err)
+			}
+			after, err := s.load(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if after.ManagedJobs[active.JobID] != active {
+				t.Fatal("next review changed the active allocation")
+			}
+			job, exists := after.ManagedJobs[registration.JobID]
+			if rejected {
+				if exists {
+					t.Fatal("refused upgrade recorded allocation")
+				}
+				return
+			}
+			if !exists || job.JobID == active.JobID {
+				t.Fatal("next allocation is not fresh")
+			}
+			if mode == "disabled" {
+				if job.Harness != (room.HarnessSelection{}) {
+					t.Fatal("disabled review added new selection")
+				}
+			} else if job.Harness.Image != next.Image || job.Harness.Version != next.Version || job.Harness.Sequence != next.Sequence {
+				t.Fatal("next allocation ignored current review", job.Harness)
+			}
+			// Off affects future admission only. An old reviewed job still refuses a
+			// mismatched worker image through its immutable startup selection.
+			if _, err := selectedHarnessImage(active, "registry.example/other@sha256:"+strings.Repeat("f", 64), time.Now()); err == nil {
+				t.Fatal("existing selection lost enforcement")
+			}
+		})
+	}
+}

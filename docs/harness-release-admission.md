@@ -149,3 +149,20 @@ RunCodex, create the selected image, complete a callback and verify fenced role
 cleanup with workspace retention. A separate acceptance driver proves staged
 digest mismatch rejection before creation. These checks use fake Docker and a
 synthetic engine peer, not a real model or staged registry image.
+
+## Changing a review while agents are active
+
+Publish a higher-sequence review for the next allocation. Checking it does not
+create, stop, restart or replace an active engine. A new authorized participant
+allocation snapshots the newly reviewed version and image; existing allocations
+retain their complete original audit binding. Selecting the same reviewed release
+again is allowed, but still creates a new job identity rather than adopting a used
+container. Capacity limits and unresolved-job restrictions still apply.
+
+Disabling review checks affects only future allocations and does not remove image
+binding from previously reviewed jobs. An invalid signature or rollback refuses
+the new allocation without editing existing work. No in-place upgrade or automatic
+restart occurs. The active-agent acceptance test inspects an engine before and
+after checking a newer review and compares its audit record and lifecycle counters.
+Docker operations are mocked; this is hermetic stability coverage, not a live model
+upgrade or proof of production controller-to-worker launch integration.
