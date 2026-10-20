@@ -255,3 +255,21 @@ func TestMissingDependencies(t *testing.T) {
 		}
 	}
 }
+
+func TestExecutorReportedOutputLimitPreservesFailureEvidence(t *testing.T) {
+	t.Parallel()
+	authority, request := liveFixture(t)
+	request.Operation, request.Path, request.Content = "command", "", ""
+	request.Command = []string{"go", "test", "./..."}
+	var outcome Outcome
+	d := dispatcher(t, authority, mockAudit{outcome: func(_ context.Context, _ Intent, value Outcome) error { outcome = value; return nil }}, mockExecutor(func(context.Context, Scope, Action, io.Writer) error {
+		return errors.Join(ErrExecution, ErrOutputLimit)
+	}))
+	if raw, err := d.Dispatch(t.Context(), request); raw != nil || err != ErrOutputLimit || outcome.Status != "output_limit" || outcome.OutputBytes != 0 {
+		t.Fatal("executor overflow was downgraded or released output", err, outcome)
+	}
+	request.CallID = "after-output-limit"
+	if _, err := d.Dispatch(t.Context(), request); err != ErrRejected {
+		t.Fatal("overflow authority reused", err)
+	}
+}

@@ -114,3 +114,21 @@ result, retains the pending intent and source, latches integrity shutdown and
 revokes further authority. A healthy control commits the outcome before releasing
 its result. Neither path runs a real compiler or establishes live container/SSH
 compatibility. Audit remains mandatory regardless of command feature settings.
+
+### Output-limit diagnostics
+
+The command layer now exposes `toolcommand.ErrOutputLimit`, which also matches
+`ErrExecution` with `errors.Is`. It still cancels capture immediately and releases
+no partial receipt. The container executor preserves the broker output-limit cause
+after exact-ID cleanup; ambiguous cleanup takes precedence as unconfirmed shutdown.
+The dispatcher classifies executor-reported overflow as `output_limit`, even when
+its own outer buffer never filled. No host fallback or new policy switch exists.
+
+Cancellation may prevent the controller outcome from being acknowledged. In that
+case the public broker error remains an audit failure and the durable intent may
+remain pending, rather than inventing successful persistence. A committed
+`output_limit` outcome is also possible before cancellation wins. Both withhold
+results and revoke authority. The synthetic P0 case checks 8,193 bytes against the
+8,192-byte bound; an exact-bound control succeeds. This does not add a new UI
+message or prove live provider/container containment. Existing command flags and
+mandatory audit, isolation and retention behavior remain in force.

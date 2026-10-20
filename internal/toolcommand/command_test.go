@@ -86,9 +86,23 @@ func TestOutputAndFailureBounds(t *testing.T) {
 				if err != nil || result.ExitCode != 1 || result.Completion != "unconfirmed" {
 					t.Fatal("client error misrepresented")
 				}
-			} else if err != ErrExecution || result.Data != "" {
+			} else if !errors.Is(err, ErrExecution) || result.Data != "" {
 				t.Fatal("failed execution leaked receipt", err)
 			}
 		})
+	}
+}
+
+func TestOverflowHasDistinctFailureCauseAndWithholdsReceipt(t *testing.T) {
+	t.Parallel()
+	receipt, err := Run(t.Context(), []string{"go", "test", "./..."}, testRunner(func(ctx context.Context, _ Spec, out io.Writer) (int, error) {
+		_, _ = io.WriteString(out, strings.Repeat("x", MaxOutputBytes+1))
+		if ctx.Err() == nil {
+			t.Fatal("overflow did not cancel command")
+		}
+		return 0, nil
+	}))
+	if !errors.Is(err, ErrOutputLimit) || !errors.Is(err, ErrExecution) || receipt.Data != "" {
+		t.Fatal("overflow cause lost or receipt released", err)
 	}
 }
