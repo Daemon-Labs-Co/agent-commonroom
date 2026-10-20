@@ -103,7 +103,7 @@ broker and controller audit code: feature off, missing command grant and failed
 intent persistence. Denied policy reaches neither Docker nor audit I/O; failed
 persistence reaches neither executor nor result release and latches the integrity
 stop. These are synthetic refusal checks, not evidence of successful command
-execution, revision binding, timeout cleanup or live-provider compatibility.
+execution, revision binding or live-provider compatibility.
 They introduce no product flag: the existing default-off command setting and
 mandatory audit/authorization protections remain unchanged.
 
@@ -135,3 +135,16 @@ results and revoke authority. The synthetic P0 case checks 8,193 bytes against t
 8,192-byte bound; an exact-bound control succeeds. This does not add a new UI
 message or prove live provider/container containment. Existing command flags and
 mandatory audit, isolation and retention behavior remain in force.
+
+The synthetic P0 timeout driver uses a per-test virtual clock with the real fixed
+120-second command timer and a three-minute job scope. A never-exiting mocked
+command must observe deadline cancellation before exact-ID removal and verified
+tool absence. Cleanup receives a fresh context bounded to ten seconds, rather
+than the expired command context. Captured output is withheld, source retained
+and further calls refused. A failed audit outcome can be committed; if revocation
+interrupts acknowledgment, pending intent plus an audit error remains conservative
+uncertainty. A separate capture test refuses even a zero exit reported after the
+deadline, with a successful control immediately before expiry. No live process
+or descendant is launched, so this is not kernel/daemon or paired-worker teardown
+proof. No product toggle is added for test verification: existing default-off
+command configuration, authorization, mandatory audit and isolation still apply.

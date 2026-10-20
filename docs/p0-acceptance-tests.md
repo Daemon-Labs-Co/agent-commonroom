@@ -49,7 +49,7 @@ Failure drivers use the real worker journal and cleanup code with mocked Docker;
 uncertainty retains capacity and refuses another attempt. Cancellation verifies
 both roles are fenced while source remains. History protection uses the actual
 owner event boundary with disposal switched off after approval. All nine disposal
-scenarios have hermetic drivers; deployment acceptance remains open. Thirty-eight
+scenarios have hermetic drivers; deployment acceptance remains open. Thirty-seven
 scenarios remain unbound.
 
 The idle permission driver now sends a real authenticated non-owner settings
@@ -91,7 +91,7 @@ failure. The first two require no Docker or audit transport calls. The failed
 intent must roll back, latch the integrity stop and release no execution/result.
 These tests use the fixed Go-test profile, not an arbitrary compiler or host
 command. They establish admission refusal only; successful command execution,
-timeouts, output bounds and artifact delivery remain separate pending cases.
+revision-attested success and artifact delivery remain separate pending cases.
 
 The command-outcome failure case now runs real tool-session startup, bootstrap,
 fixed Go-command capture, exact-ID removal/absence checks, framed audit and
@@ -113,6 +113,19 @@ race persistence: the controller may retain a pending intent or commit an
 `output_limit` outcome; neither is success, and pending evidence requires an audit
 failure. No canceled-context bypass, replay or raw-output audit storage is added.
 This is synthetic runtime coverage, not live descendant/daemon acceptance.
+
+Command-timeout acceptance now runs the same session/bootstrap/audit/controller
+path under Go's per-test virtual clock. A synthetic command writes bounded output
+and waits for its real command context to expire at the fixed 120-second limit,
+inside the unchanged three-minute job lifetime. The driver observes durable intent,
+isolated invocation, deadline cancellation and exact-ID tool-container absence in
+order. Cleanup must use a fresh, bounded context; source remains retained, no
+result is released and further authority is revoked. Audit may commit a failed
+outcome or retain pending evidence with an audit error if revocation wins. Separate
+capture controls accept completion one nanosecond before the deadline and refuse
+a runner reporting zero exit after expiration. These checks run without waiting
+120 real seconds. They do not launch descendants or prove live Docker/kernel
+termination, pair cleanup, provider compatibility or production admission.
 
 Use [release readiness](release-readiness.md) for the current gap matrix. The
 scenario catalog is a future acceptance contract, not a second implementation
@@ -137,7 +150,7 @@ and already-current fresh-pair catalog scenarios remain pending.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 38 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 37 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.

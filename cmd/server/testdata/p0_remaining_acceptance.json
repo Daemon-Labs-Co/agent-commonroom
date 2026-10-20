@@ -1197,8 +1197,10 @@
     "want": {
       "state": "block",
       "effects": [
+        "intent_durable",
+        "isolated_command",
         "command_cancelled",
-        "descendants_fenced"
+        "tool_container_absent"
       ],
       "forbidden": [
         "success_released"
