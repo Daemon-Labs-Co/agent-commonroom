@@ -34,9 +34,10 @@ locks, errors and release state. Separate combined tests cover the private expor
 and callback/fencing path. These drivers do not launch providers or establish live
 refresh compatibility.
 
-Seven storage scenarios now drive real controller reservation methods, transactional
-journal appends and replay against the in-memory database adapter: exact boundary,
-one byte over, concurrent last byte, retained categories, unavailable metering, negative
+Nine storage scenarios now exercise controller inventory/reservation methods and
+internal journal decoding/replay against the in-memory database adapter: exact
+boundary, one byte over, concurrent last byte, retained categories, unavailable
+metering, overflow evidence decoding, independent-account accounting, negative
 reservation and no owner/paid/diagnostic bypass. They verify accounting, not physical disk quotas
 or a production launch path. Three disposal refusal scenarios now drive the authenticated owner HTTP boundary:
 missing approval, unauthorized human and changed volume identity. They observe
@@ -49,7 +50,7 @@ Failure drivers use the real worker journal and cleanup code with mocked Docker;
 uncertainty retains capacity and refuses another attempt. Cancellation verifies
 both roles are fenced while source remains. History protection uses the actual
 owner event boundary with disposal switched off after approval. All nine disposal
-scenarios have hermetic drivers; deployment acceptance remains open. Thirty-four
+scenarios have hermetic drivers; deployment acceptance remains open. Thirty-two
 scenarios remain unbound.
 
 The unavailable-metering driver calls the real inventory initializer with a
@@ -63,6 +64,26 @@ inventory containing retained workspace charges, permits the final byte and
 refuses the next byte after replay. This establishes controller accounting refusal,
 not a production allocation or engine-launch gate; complete live inventory,
 physical quotas and production assembly remain open.
+
+Storage boundary drivers now reject an oversized numeric reservation at the real
+internal journal projection decoder and reserve capacity independently across two
+synthetic installation/account journals. The overflow case exercises evidence
+decoding, not an arbitrary-precision public reservation API: the internal reserve
+method accepts int64. Controls reject numbers beyond int64/uint64, fractional,
+exponent and string encodings while admitting a valid integer; malformed evidence
+also fails actual journal replay without rewriting history. The account case
+replays both totals after reserving in B while A is full, preserves A's journal,
+and separately rejects foreign account identities. It does not claim shared-DB
+multi-tenancy or physical allocation isolation.
+
+A combined worker/controller regression verifies that ordinary reconciliation
+removes both role containers but retains the exact workspace reservation, full
+storage charge and unresolved container-slot reservations. It uses actual worker
+journaling, cleanup and controller reconciliation with mocked Docker/DB. The
+`storage-retention-no-credit` catalog case remains pending because it requires
+container-slot release while source is retained; the current version-4 lifecycle
+requires workspace disposal before full shutdown acknowledgment. The regression
+preserves that conservative boundary rather than inventing release evidence.
 
 The idle permission driver now sends a real authenticated non-owner settings
 request and observes unchanged audit/state. Three additional idle drivers call the real
@@ -170,7 +191,7 @@ controller-to-worker assembly remain unverified.
 `COMMONROOM_REQUIRE_P0_ACCEPTANCE=1` is only a test-runner strictness setting, set
 by the readiness target. It changes no product behavior, permissions or feature
 flags, requires no restart and cannot weaken isolation/audit/retention. Leaving it
-unset makes the 34 unbound scenarios visibly skipped in verbose output. A green normal
+unset makes the 32 unbound scenarios visibly skipped in verbose output. A green normal
 suite with skipped scenarios is not a release-readiness claim. The strict target
 is intentionally failing for the remaining unbound scenarios and is not added to `make check` until the pending
 work is actually implemented.

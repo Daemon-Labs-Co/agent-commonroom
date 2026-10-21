@@ -1,47 +1,61 @@
 # P0 batch checkpoint
 
-Updated: 20 October 2026 (America/Toronto).
+Updated: 21 October 2026 (America/Toronto).
 
 ## Current batch
 
-- Branch: `codex/p0-command-output-limit`.
-- Published commit: `9755de5` (verify full current head on resume).
-- PR: [#50](https://github.com/Daemon-Labs-Co/agent-commonroom/pull/50).
-- Objective: reviewed and already-current harness selection through fresh-pair
-  startup, synthetic audited callback, fencing and retained source.
-- State: PR open and unmerged at
-  `9755de544ba7bc6cac9eb6ded944a4cd8b8122cd`. Greptile succeeded at 19:20 Toronto;
-  GitHub reports merge state CLEAN. Workflow setup remains an additional local
-  change on this branch. Await owner publication/merge before the next batch.
-- Last implementation checks: make test 8.96 seconds, make check 17.84 seconds;
-  both passed. Those results predate the workflow documentation changes.
-- Acceptance snapshot: 40 bound, 34 pending, 74 total; rederive from source.
-- Limits: mocked Docker/provider/database boundaries; live compatibility and
-  production launch assembly remain open.
+- Branch: `codex/p0-storage-boundaries`.
+- Base: verified PR #50 merge `b94ec5e9379d12ac81a643c3fe3b0c106e8dcdcb`.
+- PR: none; owner publication follows a complete batch.
+- Objective: reservation evidence overflow rejection and independent-account
+  accounting, with retained-workspace reconciliation regression coverage.
+- State: verified local batch ready for owner signing/publication. Two catalog
+  drivers cover overflow evidence decoding and independent accounts. Retained
+  source regression passes; `storage-retention-no-credit` remains pending because
+  version-4 retained source prevents full shutdown acknowledgment/slot release.
+- Acceptance snapshot: 42 bound, 32 pending, 74 total.
+- Limits: tests mock DB/Docker boundaries; no live inventory, physical quota or
+  production allocation acceptance is claimed.
 
 ## Review tracking
 
-- Read current-head PR reviews, threads and checks directly from GitHub.
-- No review submissions, inline comments or conversation comments at the
-  20 October approximately 19:57 Toronto inspection. No feedback IDs handled.
-- Last notification: Greptile passed on the current PR head with no findings;
-  awaiting Mark's publication/merge. Stay quiet while that state is unchanged.
-- Publication: owner signs/pushes, opens PRs and merges. Agent prepares changes
-  and commit messages; preserve all unrelated or staged edits.
+- PR #50 merged 21 October at 11:53 Toronto. Greptile succeeded on published
+  head `c1e6199`; no reviews/comments required fixes. Merge tree matches that head.
+- Previous local checkpoint metadata was preserved at
+  `/private/tmp/commonroom-p0-checkpoint-c1e6199.patch` and `.md` before switching.
+- Last notification: verified storage boundary batch ready, with full commit
+  message in this chat. Stay quiet while awaiting owner publication/new PR.
+- Mark signs/pushes, opens PRs and merges. Agent prepares local changes and
+  commit messages; leave staging to Mark unless requested.
 - Follow-up: `commonroom-p0-batches-and-review`, active every 15 minutes in this
-  chat. The older overnight-security-remediation schedule expired on 14 October;
-  it belongs to a different chat and was left unchanged.
-- Workflow setup validation: make test passed in 8.37 seconds; make check passed
-  in 16.25 seconds (24.62 seconds combined suite wall time). Owner publication is
-  still required for these workflow files.
+  chat. Reinspect state before work and stay quiet while waiting unchanged.
 
-## Next batch intake
+## Completion evidence
 
-After this PR merges, choose a coherent remaining P0 objective from the acceptance
-catalog and security review. Assess remaining storage admission cases together
-(overflow decoding, account separation, retention accounting) before selecting
-the supported scope. Container absence and full workspace disposal remain
-different guarantees; do not mark retained-workspace capacity release accepted
-without the required architectural evidence. Record the chosen objective here
-before implementing it. Continue automatically until the next publication
-checkpoint or a genuine blocker requiring Mark's decision.
+- Focused storage catalog/decoder/account/reconciliation tests passed.
+- make test passed: 8.93 seconds wall time.
+- make check passed: 19.21 seconds wall time.
+- Batch elapsed: approximately 5 minutes 20 seconds, including branch setup.
+- Final Git inspection: only tests/catalog/docs changed; whitespace clean;
+  nothing staged, committed or pushed by the agent.
+- User/technical docs updated in p0-acceptance-tests.md, storage-accounting.md
+  and release-readiness.md. Test infrastructure adds no product toggle.
+- Overflow driver exercises actual internal projection decoding and malformed
+  journal replay; no arbitrary-precision public reservation API is claimed.
+- Account driver uses independent installation/account journals; no shared-DB
+  multi-tenancy or physical allocation guarantee is claimed.
+
+Suggested commit message:
+
+```text
+test: verify storage decoding and account boundaries
+
+Reject unrepresentable reservation evidence through the real journal decoder.
+Add valid decoding and malformed replay controls using mocked database storage.
+
+Verify independent account reservations and reject foreign company identities.
+Exercise worker cleanup and controller reconciliation with retained source,
+keeping storage charges and unresolved container reservations intact.
+
+Bind two P0 scenarios and document the remaining retention and live-runtime gaps.
+```
