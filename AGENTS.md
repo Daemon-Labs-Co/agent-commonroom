@@ -6,6 +6,7 @@
 - Tests must be fast and parallel-safe. Mock every database interaction; do not connect to a database, create schemas, or insert test data. Use temporary directories for file fixtures. Do not launch real provider agents in automated tests.
 - Feature flags must have server enforcement, permission checks, documented defaults, and tests for both states. They must not bypass authentication, authorization, audit integrity, or retention safeguards. Infrastructure/test changes do not need a product toggle for verification itself.
 - Run make test during development and make check before completion. Report meaningful remaining coverage or integration gaps honestly.
+- For ongoing P0 development, review feedback, or scheduled continuation, follow [the batch workflow](docs/p0-batch-workflow.md) and update [its checkpoint](docs/p0-batch-status.md).
 
 ## Mandatory execution boundary
 

@@ -12,6 +12,10 @@ Do development on a feature, fix, or documentation branch. Do not push changes d
 
 Keep changes focused. A useful description explains the trigger/problem, resulting behavior, verification, and remaining limits. Preserve unrelated local changes. Never use live history or production credentials as fixtures.
 
+For ongoing P0 work, use the [batch and review workflow](p0-batch-workflow.md).
+Related scenarios share a publication checkpoint; scheduled follow-ups read PR
+feedback and resume after merge. Mark retains signing, publishing and merging.
+
 ## Common commands
 
 ```sh
