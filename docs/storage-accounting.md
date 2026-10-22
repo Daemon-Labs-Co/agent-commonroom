@@ -125,9 +125,10 @@ revisions, retained categories, audit failure, current permissions, stopped/expi
 work, public event injection and malformed inventory. No real database, Docker
 workload or provider runs in these tests.
 
-Seven P0 accounting scenarios now have production-backed hermetic drivers: exact
+Nine P0 accounting scenarios now have production-backed hermetic drivers: exact
 boundary, one byte over, concurrent final-byte reservations, retained categories,
-unavailable metering, negative reservation and no owner/paid/diagnostic bypass. Other storage acceptance
+unavailable metering, overflow decoding, independent-account accounting, negative
+reservation and no owner/paid/diagnostic bypass. Other storage acceptance
 cases and physical/live verification remain pending. See [P0 acceptance](p0-acceptance-tests.md),
 [container quotas](container-quotas.md), and [release readiness](release-readiness.md).
 
@@ -142,3 +143,21 @@ checks, not physical allocation or engine-start evidence. They introduce no new
 product capability or verification toggle. Mandatory accounting and existing
 permission checks remain in force; production inventory/launch integration and
 hard worker quotas are still pending.
+
+Internal overflow acceptance exercises the journal projection decoder with
+`18446744073709551616` bytes. It must reject that evidence without mutating the
+ledger; malformed signed-range, fractional, exponent and string inputs are also
+refused. A valid integer updates the projection, and invalid evidence prevents
+journal replay. This is not a new public numeric input API: reservation methods
+use int64. Account acceptance uses two independent synthetic installation journals,
+observes B's durable reservation while A is full, and rejects foreign company
+identity. Shared-database multi-tenancy and physical worker allocation remain
+outside this coverage.
+
+Retained workspace reconciliation has a combined worker/controller regression:
+both roles become absent, source and its exact full charge remain, and replay
+keeps shutdown unconfirmed and the pair's container reservations occupied. The
+catalog scenario requiring container capacity release with retained source stays
+pending. Distinguishing process absence from complete version-4 job settlement
+is still an architectural gap; tests do not bypass that contract or add disposal
+authority to cancellation.

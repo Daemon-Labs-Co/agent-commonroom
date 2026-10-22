@@ -647,7 +647,7 @@
     "given": {
       "reserve_bytes": "18446744073709551616"
     },
-    "action": "reserve storage",
+    "action": "decode internal reservation evidence",
     "want": {
       "state": "deny",
       "effects": [],
