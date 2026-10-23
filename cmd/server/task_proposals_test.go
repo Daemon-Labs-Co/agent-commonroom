@@ -23,12 +23,16 @@ func proposalFixture(t *testing.T, enabled bool) (*server, *mockDB, http.Handler
 	db.seed("message.created", room.Message{ID: "secret", RoomID: "foreign", ActorID: "other", ActorType: "human", Author: "Other", Text: "Synthetic foreign content"})
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/task-proposals", s.taskProposals)
+	mux.HandleFunc("/api/state", s.state)
 	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
 	mux.HandleFunc("/api/events", s.events)
 	return s, db, s.auth.protect(s.actorGuard(mux))
 }
 func proposalRequest(h http.Handler, actor, key, body string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "http://127.0.0.1:8787/api/task-proposals", strings.NewReader(body))
+	return proposalRoomRequest(h, actor, "engineering", key, body)
+}
+func proposalRoomRequest(h http.Handler, actor, rid, key, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "http://127.0.0.1:8787/api/task-proposals?room="+rid, strings.NewReader(body))
 	r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: actor})
 	r.Header.Set("X-CSRF-Token", "csrf")
 	r.Header.Set("Idempotency-Key", key)
@@ -350,5 +354,101 @@ func TestProposalDraftCannotDispatchEvenAfterAssigneeEdit(t *testing.T) {
 	w = dispatchRequest(h, "dispatch-assigned-draft", fmt.Sprintf(`{"taskId":%q,"revision":2,"mode":"work"}`, task.ID))
 	if w.Code != 409 || len(s.active) != 0 {
 		t.Fatal("assigned draft reached dispatch", w.Code)
+	}
+}
+
+func TestPersonalRoomTaskProposalsReplayWithoutProfileOrHelpEvents(t *testing.T) {
+	t.Parallel()
+	for _, identity := range []string{"implicit-owner", "member", "connection-agent"} {
+		for _, decision := range []string{"approve", "reject"} {
+			t.Run(identity+"/"+decision, func(t *testing.T) {
+				t.Parallel()
+				_, db, h := proposalFixture(t, true)
+				actorID := ownerID
+				sourceKind := "human"
+				switch identity {
+				case "member":
+					actorID = "member"
+					db.seed("actor.revised", room.Actor{ID: actorID, Kind: "human", Role: "Developer", Name: "Synthetic member", Enabled: true})
+				case "connection-agent":
+					actorID = "bot-native"
+					sourceKind = "agent"
+					db.seed("connection.created", room.Connection{ID: "native", Name: "Synthetic agent", Protocol: "CLI", Endpoint: "codex"})
+				}
+				rid := "personal-" + actorID
+				db.seed("message.created", room.Message{ID: "personal-source", RoomID: rid, ActorID: actorID, ActorType: sourceKind, Author: "Personal author", Text: "Synthetic personal suggestion"})
+				body := `{"action":"capture","sourceMessageId":"personal-source","title":"Private suggestion","criteria":""}`
+				w := proposalRoomRequest(h, "owner", rid, "capture-personal", body)
+				var p room.TaskProposal
+				if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+					t.Fatal(w.Code, w.Body.String())
+				}
+				// Fresh controller replay must work immediately after the first capture.
+				restarted := &server{db: db}
+				st, err := restarted.load(t.Context())
+				if err != nil || !hasRoom(st, rid) || st.TaskProposals[p.ID].RoomID != rid {
+					t.Fatal("personal capture poisoned replay", err)
+				}
+				w = mockRequest(h, "GET", "/api/state?room="+rid, "")
+				if w.Code != 200 {
+					t.Fatal("personal state unavailable after capture", w.Code, w.Body.String())
+				}
+				body = fmt.Sprintf(`{"action":"reject","proposalId":%q,"revision":1}`, p.ID)
+				if decision == "approve" {
+					body = approveProposalBody(p)
+				}
+				w = proposalRoomRequest(h, "owner", rid, "decide-personal", body)
+				if w.Code != 200 {
+					t.Fatal(w.Code, w.Body.String())
+				}
+				st, err = restarted.load(t.Context())
+				if err != nil {
+					t.Fatal("personal decision poisoned replay", err)
+				}
+				want := "Rejected"
+				if decision == "approve" {
+					want = "Approved"
+					if len(st.Tasks) != 1 || st.Tasks[0].RoomID != rid {
+						t.Fatal("draft escaped personal room")
+					}
+				}
+				if st.TaskProposals[p.ID].Status != want {
+					t.Fatal("decision lost")
+				}
+				w = mockRequest(h, "GET", "/api/task-proposals?room="+rid, "")
+				if w.Code != 200 || !strings.Contains(w.Body.String(), "Synthetic personal suggestion") || strings.Contains(w.Body.String(), "Synthetic foreign content") {
+					t.Fatal("personal read failed or leaked", w.Code)
+				}
+				// Shared-room lists must never include the private proposal/source.
+				w = mockRequest(h, "GET", "/api/task-proposals?room=engineering", "")
+				if w.Code != 200 || strings.Contains(w.Body.String(), "Synthetic personal suggestion") {
+					t.Fatal("private proposal leaked to shared room")
+				}
+				// Retained private history remains replayable with the feature disabled.
+				db.seed("feature.flag.updated", map[string]any{"name": "taskProposals", "enabled": false})
+				if _, err = restarted.load(t.Context()); err != nil {
+					t.Fatal("disabled private history failed", err)
+				}
+			})
+		}
+	}
+}
+
+func TestProposalReplayDoesNotInventUnknownOrFuturePersonalRooms(t *testing.T) {
+	t.Parallel()
+	for _, future := range []bool{false, true} {
+		t.Run(fmt.Sprint(future), func(t *testing.T) {
+			t.Parallel()
+			s, db, _ := proposalFixture(t, true)
+			rid := "personal-absent"
+			db.seed("message.created", room.Message{ID: "invalid-source", RoomID: rid, ActorID: "absent", Author: "Unregistered", Text: "Synthetic invalid scope"})
+			db.seed("task.proposal.captured", map[string]any{"id": "invalid-proposal", "companyId": "company", "roomId": rid, "sourceMessageId": "invalid-source", "sourceActorId": "absent", "sourceActorType": "", "sourceAuthor": "Unregistered", "capturedBy": ownerID, "title": "Invalid scope", "criteria": "", "status": "Proposed", "revision": 1, "performedBy": ownerID})
+			if future {
+				db.seed("actor.revised", room.Actor{ID: "absent", Kind: "human", Role: "Developer", Enabled: true})
+			}
+			if _, err := s.load(t.Context()); err == nil {
+				t.Fatal("unknown or future room made historical proposal valid")
+			}
+		})
 	}
 }

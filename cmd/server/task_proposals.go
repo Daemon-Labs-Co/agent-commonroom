@@ -31,6 +31,10 @@ func proposalText(title, criteria string) bool {
 // Only the authenticated human capture/review endpoint can create these facts.
 // A source message is untrusted content, never an approval or execution grant.
 func projectTaskProposal(st *room.State, kind string, data []byte) error {
+	// Personal rooms derive from actors/connections already replayed, including
+	// the implicit owner. Materialize them before validating historical scope;
+	// never rely on unrelated profile/help events or later journal records.
+	projectActors(st)
 	var actor struct {
 		PerformedBy string `json:"performedBy"`
 	}

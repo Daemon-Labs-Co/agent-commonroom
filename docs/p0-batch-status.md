@@ -243,3 +243,28 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: proposal capture/review/Draft batch verified locally and ready
   for owner signing/publication with one commit message. Nothing staged, committed,
   pushed, merged or posted by the agent. Await owner publication/review on this batch.
+
+## PR #58 personal-room replay review fix
+
+- Current reviewed head: `71e67624d3336d5fc8ad3a3aa317268f2d18ebea`, branch
+  `codex/governance-task-proposals`. PR #58 open; Greptile completed with new
+  valid P1 `4362796233`: derived personal rooms were missing at proposal replay
+  validation, making a successful capture poison subsequent state loading.
+- Projection now materializes personal rooms from the owner and previously
+  replayed actors/connections before proposal scope validation. No permissions
+  or historical room-existence checks are bypassed; future actors cannot repair
+  an invalid earlier proposal.
+- Authenticated regressions cover owner, member and connection-agent personal
+  rooms, first capture without profile/Help events, state/list reads, approval,
+  rejection, restart and feature-off history. Unknown/future personal-room scope
+  remains refused; private sources remain absent from shared-room lists.
+- Prior missing-file findings `4362619352`, `4362619359`, `4362619374` on
+  `2f44cb17186f47cfced9923664c562c47373a015` were resolved by owner publication;
+  all five implementation/test/doc files are tracked in current head.
+- make test passed in 9.19 seconds; make check passed in 18.81 seconds. Elapsed
+  3 minutes 5 seconds from 18:22:05 to 18:25:10 UTC before checkpoint handoff.
+  All database/provider boundaries mocked; live deployment/browser/provider
+  acceptance remains unverified and no P0 release gate is certified.
+- Last notification: personal-room replay fix verified locally, ready for owner
+  signing/publication on the same PR. Nothing staged, committed, pushed, merged
+  or posted by the agent. Await current-head rereview after owner publication.

@@ -121,3 +121,11 @@ a P0 release gate. Automatic agent-originated proposal submission, bounded
 delegation, resource approvals, dependency handling, independent objections and
 live multi-controller/provider/browser acceptance remain separate work. See
 [governance design](governance-model.md) and [release acceptance](p0-release-gate-acceptance.md).
+
+Personal-room proposals use the same capture/review contract. During historical
+replay the controller first derives personal rooms from the owner and the actors
+or connections already recorded at that point, then validates proposal scope.
+Capture/decision replay does not depend on earlier profile or Help preference
+changes. Missing actors/connections and ones introduced only later cannot make
+an invalid historical personal-room proposal valid. Existing room access checks
+and source scoping remain enforced.
