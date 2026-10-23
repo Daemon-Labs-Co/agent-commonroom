@@ -209,3 +209,37 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: P1 fix verified locally with one commit message; owner signs
   and publishes on the same PR before current-head rereview. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## Conversation task proposal batch
+
+- Active branch: `codex/governance-task-proposals`, from verified PR #57 merge
+  `880f20643ac9c5f796d375bdfc9ece8c2ed49d0c`. Merge tree matched exact reviewed
+  head `aa68d55b462e50bdcaec48322b6e45d7755137e2`; Greptile passed with no new
+  findings. Prior branches and Codex adapter work retained.
+- Added owner-mediated capture/review of room message suggestions. Immutable
+  source message/recorded authorship stays distinct from human capture identity,
+  reviewed criteria and approval. Capture grants no authority or task execution.
+- Atomic approval creates one unassigned Draft task. Rejection is terminal and
+  creates none. Operation receipts deduplicate retries; expected revisions/event
+  count prevent competing approvals or stale approval across disable/stop.
+- Added controller-owned Task.ProposalID, preserved through normal edits and
+  checked on replay. Draft dispatch refuses even with an assigned agent. Existing
+  independent task permissions/execution barriers are unchanged.
+- `taskProposals` defaults off, owner-only and server-enforced, no restart. Off
+  refuses captures/decisions, preserves readable records and approved tasks, and
+  does not cancel independent jobs. Settings/shared-switch defaults tested.
+- UI presents original escaped source for review; in-app Help and user/API/setup
+  docs describe source provenance, idempotency, flag behavior and limits.
+- Tests exercise authenticated endpoints, scope/identity forgery, default/off,
+  replay/restart, rollback/integrity failure, competing controllers, disable race,
+  immutable provenance, assigned Draft refusal and synthetic UI request controls.
+- make test passed in 9.23 seconds; make check passed in 18.93 seconds. Elapsed
+  9 minutes 29 seconds from 16:56:58 to 17:06:27 UTC before checkpoint handoff.
+  Tests mock all database/provider boundaries and launch no real providers/Docker.
+- No deployed browser/screenshot, live multi-controller or provider acceptance
+  performed. This is partial GOV-08: automatic agent-originated proposal channels,
+  bounded delegation, resource approvals and independent objections remain pending.
+  No full governance model or P0 release gate is certified.
+- Last notification: proposal capture/review/Draft batch verified locally and ready
+  for owner signing/publication with one commit message. Nothing staged, committed,
+  pushed, merged or posted by the agent. Await owner publication/review on this batch.

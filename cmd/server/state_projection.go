@@ -231,12 +231,25 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					}
 				}
 			}
+		case "task.proposal.captured", "task.proposal.approved", "task.proposal.rejected":
+			if err := projectTaskProposal(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "task.revised":
 			var v room.Task
 			json.Unmarshal(data, &v)
+			if v.ProposalID != "" {
+				proposal, ok := st.TaskProposals[v.ProposalID]
+				if !ok || proposal.Status != "Approved" || proposal.TaskID != v.ID || proposal.RoomID != v.RoomID {
+					return st, errors.New("invalid task proposal provenance")
+				}
+			}
 			found := false
 			for i, t := range st.Tasks {
 				if t.ID == v.ID {
+					if t.ProposalID != v.ProposalID {
+						return st, errors.New("task proposal provenance changed")
+					}
 					st.Tasks[i] = v
 					found = true
 				}

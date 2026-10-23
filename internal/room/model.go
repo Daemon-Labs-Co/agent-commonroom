@@ -98,6 +98,7 @@ type Room struct {
 	Description          string               `json:"description"`
 }
 type Task struct {
+	ProposalID     string `json:"proposalId,omitempty"`
 	DispatchID     string `json:"dispatchId,omitempty"`
 	DispatchStatus string `json:"dispatchStatus,omitempty"`
 	DispatchDetail string `json:"dispatchDetail,omitempty"`
@@ -110,6 +111,26 @@ type Task struct {
 	Status         string `json:"status"`
 	Revision       int    `json:"revision"`
 }
+
+// TaskProposal preserves the suggestion separately from a human task decision.
+// Source authorship is copied from the original message, never request claims.
+type TaskProposal struct {
+	ID              string `json:"id"`
+	CompanyID       string `json:"companyId"`
+	RoomID          string `json:"roomId"`
+	SourceMessageID string `json:"sourceMessageId"`
+	SourceActorID   string `json:"sourceActorId"`
+	SourceActorType string `json:"sourceActorType"`
+	SourceAuthor    string `json:"sourceAuthor"`
+	CapturedBy      string `json:"capturedBy"`
+	ReviewedBy      string `json:"reviewedBy,omitempty"`
+	Title           string `json:"title"`
+	Criteria        string `json:"criteria"`
+	Status          string `json:"status"`
+	Revision        int    `json:"revision"`
+	TaskID          string `json:"taskId,omitempty"`
+}
+
 type Evidence struct {
 	ID      string    `json:"id"`
 	RoomID  string    `json:"roomId"`
@@ -231,6 +252,7 @@ type GovernanceAppointment struct {
 }
 
 type State struct {
+	TaskProposals      map[string]TaskProposal          `json:"-"`
 	CoordinationEpoch  int                              `json:"-"`
 	Governance         map[string]GovernanceAppointment `json:"-"`
 	IdleStopNotices    map[string]IdleStopNotice        `json:"-"`

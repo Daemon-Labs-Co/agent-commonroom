@@ -3,8 +3,9 @@
 Status: accepted design; durable appointments and human transfer implemented
 as described in [room coordination appointments](governance-appointments.md).
 Explicit owner-requested turns can depend on the appointment revision, with managed
-execution revalidation. Agent-issued grants, delegation and broader enforcement
-integration remain pending. This document refines FR-07–17,
+execution revalidation. Owner-mediated suggestion capture and review can create attributed Draft tasks
+without dispatch. Agent-issued grants, delegation and broader enforcement
+integration remain pending; see [task proposals](task-proposals.md). This document refines FR-07–17,
 FR-20 and the later paid rules FR-22–24. It does not claim the current application
 implements every enforcement boundary below.
 

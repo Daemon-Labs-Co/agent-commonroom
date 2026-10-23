@@ -112,7 +112,7 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		v.DispatchStatus = ""
 		v.DispatchDetail = ""
 		switch v.Status {
-		case "Assigned", "Working", "Submitted", "Reviewing", "Changes requested", "Accepted":
+		case "Draft", "Assigned", "Working", "Submitted", "Reviewing", "Changes requested", "Accepted":
 		default:
 			http.Error(w, "Invalid task status", 400)
 			return nil, false
@@ -124,6 +124,11 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			}
 		}
 		if v.ID == "" {
+			if v.ProposalID != "" {
+				http.Error(w, "Proposal provenance is controller-owned", 400)
+				return nil, false
+			}
+
 			v.ID = id()
 			v.Revision = 1
 		} else {
@@ -135,6 +140,11 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 						http.Error(w, "Task dispatch pending; wait for its result or reconcile the worker", 409)
 						return nil, false
 					}
+					if v.ProposalID != "" && v.ProposalID != old.ProposalID {
+						http.Error(w, "Proposal provenance cannot change", 400)
+						return nil, false
+					}
+					v.ProposalID = old.ProposalID
 					v.DispatchID = old.DispatchID
 					v.DispatchStatus = old.DispatchStatus
 					v.DispatchDetail = old.DispatchDetail
