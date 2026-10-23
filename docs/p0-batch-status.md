@@ -79,3 +79,21 @@ Updated: 22 October 2026 (America/Toronto).
 The prior storage batch and exact-ID review fix passed make test and make check
 before owner publication. PR #52 now contains that fix. Its synthetic cleanup
 proof does not establish live daemon or descendant termination guarantees.
+
+## Governance design branch
+
+- Owner requested preservation of the Codex work and a separate branch for the
+  provider-independent governance design.
+- Active branch: `codex/provider-independent-governance`, created clean from
+  `c3c76e95c45a788bade224e24750ee607919c4b6` after PR #53 merged.
+- `codex/p0-release-gates` retains the committed P0/Codex build work. No work
+  was discarded, stashed or committed by the agent during branch separation.
+- Added accepted architecture decision, domain glossary and governance design
+  with 13 pending adversarial acceptance scenarios. Runtime implementation has
+  not changed; no governance case or P0 release gate is certified.
+- Continue on the active branch only after checking actual Git state; do not
+  mix unrelated Codex review fixes into governance changes or overwrite edits.
+- Governance design checks passed: make test 8.37 seconds; make check 15.95
+  seconds. Document links verified. Elapsed approximately 5 minutes.
+- Last notification: separate design branch prepared; no staging/commit/push,
+  runtime enforcement remains to implement and verify.
