@@ -173,7 +173,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		if req.Cursor != "" {
 			params["cursor"] = req.Cursor
 		}
-		result, e := historyRPC(r.Context(), "thread/list", params)
+		result, e := s.readAgentHistory(r.Context(), "thread/list", params)
 		if e != nil {
 			http.Error(w, "Unable to list conversations: "+e.Error(), 502)
 			return
@@ -200,7 +200,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Conversation ID required", 400)
 			return
 		}
-		result, e := historyRPC(r.Context(), "thread/read", map[string]any{"threadId": req.ThreadID, "includeTurns": true})
+		result, e := s.readAgentHistory(r.Context(), "thread/read", map[string]any{"threadId": req.ThreadID, "includeTurns": true})
 		if e != nil {
 			http.Error(w, "Unable to read conversation: "+e.Error(), 400)
 			return
@@ -290,7 +290,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Conversation ID and supported mode required", 400)
 			return
 		}
-		result, e := historyRPC(r.Context(), "thread/read", map[string]any{"threadId": req.ThreadID, "includeTurns": false})
+		result, e := s.readAgentHistory(r.Context(), "thread/read", map[string]any{"threadId": req.ThreadID, "includeTurns": false})
 		if e != nil {
 			http.Error(w, "Unable to read conversation: "+e.Error(), 400)
 			return
@@ -325,7 +325,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Server working directory unavailable", 500)
 				return
 			}
-			result, e = historyRPC(r.Context(), "thread/fork", map[string]any{"threadId": thread, "cwd": workingDirectory, "approvalPolicy": "never", "sandbox": "read-only"})
+			result, e = s.readAgentHistory(r.Context(), "thread/fork", map[string]any{"threadId": thread, "cwd": workingDirectory, "approvalPolicy": "never", "sandbox": "read-only"})
 			if e != nil {
 				http.Error(w, "Unable to copy conversation: "+e.Error(), 400)
 				return
@@ -351,15 +351,12 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Action == "create" {
-		if _, err = exec.LookPath("codex"); err != nil {
-			http.Error(w, "Codex CLI unavailable", 503)
-			return
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		defer cancel()
-		out, e := exec.CommandContext(ctx, "codex", "login", "status").CombinedOutput()
-		if e != nil || !strings.Contains(string(out), "ChatGPT") {
-			http.Error(w, "Sign in to Codex with ChatGPT first", 409)
+		if err = s.checkAgentLogin(r.Context()); err != nil {
+			status := 409
+			if errors.Is(err, exec.ErrNotFound) {
+				status = 503
+			}
+			http.Error(w, err.Error(), status)
 			return
 		}
 		c := room.Connection{ID: id(), Provider: "openai", Name: "ChatGPT via Codex", Protocol: "CLI", Endpoint: "codex"}
@@ -658,4 +655,27 @@ func (a claudeAdapter) Run(ctx context.Context, thread, prompt string, onThread 
 		return "", err
 	}
 	return result.Text, nil
+}
+
+// These instance-scoped seams keep handler tests from invoking a real provider.
+func (s *server) readAgentHistory(ctx context.Context, method string, params any) (json.RawMessage, error) {
+	if s.agentHistoryRPC != nil {
+		return s.agentHistoryRPC(ctx, method, params)
+	}
+	return historyRPC(ctx, method, params)
+}
+func (s *server) checkAgentLogin(ctx context.Context) error {
+	if s.agentLoginStatus != nil {
+		return s.agentLoginStatus(ctx)
+	}
+	if _, err := exec.LookPath("codex"); err != nil {
+		return fmt.Errorf("Codex CLI unavailable: %w", exec.ErrNotFound)
+	}
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "codex", "login", "status").CombinedOutput()
+	if err != nil || !strings.Contains(string(out), "ChatGPT") {
+		return errors.New("Sign in to Codex with ChatGPT first")
+	}
+	return nil
 }

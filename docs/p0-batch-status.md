@@ -138,3 +138,21 @@ proof does not establish live daemon or descendant termination guarantees.
   no live browser/provider or deployment acceptance was performed.
 - Last notification: both review fixes verified and ready with one commit message;
   stay quiet awaiting owner publication and current-head rereview.
+
+## Governance PR #56 handler regression review
+
+- Current reviewed head: `2bfbca2f3890e089ed6b3f591e28d9fa2ee1b896`, branch
+  `codex/governance-authority`; PR #56 open with successful Greptile check.
+- Valid P2 inline comment `4360544342`: prior create/attach tests invoked the
+  batch helper directly and could miss a handler reverting to ordinary append.
+- Added authenticated handler-level create/attach tests with instance-scoped
+  mocked login/history dependencies. Healthy enabled/disabled controls verify
+  registration and appointment behavior. Failed commit verifies full rollback,
+  required integrity-stop latching and subsequent appointment refusal.
+- make test passed in 8.98 seconds; make check passed in 19.15 seconds.
+  Initial sandboxed test attempt could not access the Go cache; required checks
+  passed with cache/socket access. Active elapsed time approximately 6 minutes.
+  All database/provider boundaries mocked; live authentication and deployment
+  acceptance remain unverified. No execution or isolation contract changed.
+- Last notification: handler regression fix ready for owner signing/publication
+  on the same PR. Nothing staged, committed, pushed or posted by the agent.
