@@ -220,6 +220,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 
 		case "room.created", "room.updated":
+			if kind == "room.updated" {
+				projectActors(&st)
+			}
 			var v room.Room
 			json.Unmarshal(data, &v)
 			if kind == "room.created" {
@@ -227,6 +230,12 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			} else {
 				for i, old := range st.Rooms {
 					if old.ID == v.ID {
+						if old.PersonalActorID != "" {
+							// A changed saved name is an explicit override.
+							// Saving other settings keeps automatic labels derived.
+							v.CustomPersonalName = old.CustomPersonalName || v.Name != old.Name
+							v.PersonalActorID = old.PersonalActorID
+						}
 						st.Rooms[i] = v
 					}
 				}

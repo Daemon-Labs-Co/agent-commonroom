@@ -501,3 +501,95 @@ func TestProposalReplayRefreshesPersonalRoomLabelsAfterLaterRenames(t *testing.T
 		})
 	}
 }
+
+func TestPersonalRoomCustomNamesSurviveProposalReplayAndRenames(t *testing.T) {
+	t.Parallel()
+	for _, timing := range []string{"before-proposal", "after-proposal"} {
+		for _, custom := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s/custom=%t", timing, custom), func(t *testing.T) {
+				t.Parallel()
+				s, db, h := proposalFixture(t, true)
+				db.seed("actor.revised", room.Actor{ID: "member", Kind: "human", Name: "Earlier member", Role: "Developer", Enabled: true})
+				rid := "personal-member"
+				saveRoom := func() {
+					st, err := s.load(t.Context())
+					if err != nil {
+						t.Fatal(err)
+					}
+					var target room.Room
+					for _, r := range st.Rooms {
+						if r.ID == rid {
+							target = r
+						}
+					}
+					if target.ID == "" {
+						t.Fatal("personal room missing")
+					}
+					if custom {
+						target.Name = "Research den"
+					}
+					target.Description = "Saved description"
+					body, err := json.Marshal(map[string]any{"kind": "room.updated", "payload": target})
+					if err != nil {
+						t.Fatal(err)
+					}
+					w := mockRequest(h, "POST", "/api/events?room="+rid, string(body))
+					if w.Code != 200 {
+						t.Fatal(w.Code, w.Body.String())
+					}
+				}
+				if timing == "before-proposal" {
+					saveRoom()
+				}
+				capturedProposal(t, h) // Shared-room proposal must not alter personal naming policy.
+				if timing == "after-proposal" {
+					saveRoom()
+				}
+				db.seed("actor.name.updated", map[string]string{"id": "member", "name": "Current member"})
+				saveRoom() // Later settings saves retain the selected naming policy.
+				for _, controller := range []*server{s, {db: db}} {
+					st, err := controller.load(t.Context())
+					if err != nil {
+						t.Fatal(err)
+					}
+					for _, r := range st.Rooms {
+						if r.ID == rid {
+							want := "Current member · Personal"
+							if custom {
+								want = "Research den"
+							}
+							if r.Name != want || r.Description != "Saved description" || r.PersonalActorID != "member" || r.CustomPersonalName != custom {
+								t.Fatal("saved naming policy or settings lost", r)
+							}
+						}
+					}
+				}
+				// Verify the actual room list response after refresh, not just projection.
+				w := mockRequest(h, "GET", "/api/state?room="+rid, "")
+				var state room.State
+				if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &state) != nil {
+					t.Fatal(w.Code, w.Body.String())
+				}
+				want := "Current member · Personal"
+				if custom {
+					want = "Research den"
+				}
+				found := false
+				for _, r := range state.Rooms {
+					if r.ID == rid {
+						found = true
+						if r.Name != want {
+							t.Fatal("room list label differs", r.Name)
+						}
+					}
+				}
+				if !found {
+					t.Fatal("room missing in refreshed state")
+				}
+				if strings.Contains(w.Body.String(), "CustomPersonalName") || strings.Contains(w.Body.String(), "customPersonalName") {
+					t.Fatal("internal naming policy exposed")
+				}
+			})
+		}
+	}
+}

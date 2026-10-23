@@ -288,3 +288,25 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: derived-label review fix verified locally, ready for owner
   signing/publication on the same PR. Nothing staged, committed, pushed, merged
   or posted by the agent; await current-head rereview after owner publication.
+
+## PR #58 custom personal-room name review fix
+
+- Reviewed head `7765e8d878df4e7fe007392178ad2a69fd7d5381`, branch
+  `codex/governance-task-proposals`. PR #58 open; Greptile completed with valid
+  non-blocking P2 `4363039881`: refreshing every derived personal-room label
+  overwrote custom names explicitly saved through Room settings.
+- Replay now distinguishes automatic labels from custom names using historical
+  room.updated values. This metadata is private/controller-derived, never trusted
+  from clients. Personal rooms exist before applying their historical updates;
+  saved personal ownership and other room fields are preserved.
+- Only automatic names follow actor renames. Custom names persist through later
+  settings saves, proposal capture, actor rename, restart and state refresh.
+  Tests cover updates before/after proposal capture and unchanged automatic-name
+  controls. Prior unknown/future-room and source-isolation regressions still pass.
+- make test passed in 9.19 seconds; make check passed in 18.85 seconds. Observed
+  wall-clock span 18:37:53–21:08:12 UTC (2 hours 30 minutes 19 seconds); active
+  execution time was not separately measured. Tests use mocked boundaries;
+  no real database/provider/browser or live deployment acceptance performed.
+- Last notification: custom-name persistence fix verified locally, ready for
+  owner signing/publication on the same PR. Nothing staged, committed, pushed,
+  merged or posted by the agent; await current-head rereview after publication.

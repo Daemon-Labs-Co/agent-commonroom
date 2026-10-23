@@ -130,8 +130,17 @@ changes. Missing actors/connections and ones introduced only later cannot make
 an invalid historical personal-room proposal valid. Existing room access checks
 and source scoping remain enforced.
 
-Personal-room labels are derived from the current actor name and refreshed at
+Automatic personal-room labels follow the current actor name and refresh at
 final replay, even if an earlier proposal caused the room to be materialized.
+Changing the room name in Room settings saves a custom name that survives refresh,
+restart and later actor renames. Saving other settings without changing an
+automatic name keeps it automatic; later settings saves preserve a custom name.
 Connection-derived agent display names follow the current connection name.
 Renames change those display labels without changing room IDs, personal-room
 ownership, saved room settings, actor permissions or recorded source authorship.
+
+The controller reconstructs this naming distinction from `room.updated` history;
+it does not trust a client-supplied naming-mode flag. Personal rooms are derived
+from actors/connections already recorded before applying their historical updates.
+Only automatic labels refresh. Custom names, room identity, access and settings
+remain intact whether the room update precedes or follows proposal capture.

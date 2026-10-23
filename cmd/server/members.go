@@ -184,7 +184,7 @@ func projectActors(st *room.State) {
 				found = true
 				// Refresh only derived personal labels. Identity, access and
 				// all other saved room fields remain unchanged.
-				if r.PersonalActorID == a.ID {
+				if r.PersonalActorID == a.ID && !r.CustomPersonalName {
 					st.Rooms[i].Name = a.Name + " · Personal"
 				}
 				break
