@@ -5,6 +5,11 @@ This is a test preparation inventory, not proof of implemented functionality.
 It covers P0 execution work, including completed hermetic custody scenarios; P1 collaboration and the explicitly later
 FR-25–28 secrets-editor/detection feature are outside this suite's release scope.
 
+The [nine-gate acceptance specification](p0-release-gate-acceptance.md) defines
+complete release procedures and maps all 74 cases below to release gates. It
+adds live and production-integration criteria without declaring missing drivers
+or functionality complete.
+
 ## What is ready
 
 `cmd/server/testdata/p0_remaining_acceptance.json` contains 74 scenarios across
@@ -234,3 +239,19 @@ redacted observations and teardown proof. Synthetic acceptance cannot replace th
 Initial [tool-only live evidence](live-tool-acceptance.md) covers an image build,
 synthetic command, kernel limit observations and diagnostic cleanup. It does not
 complete any of the broader deployment checks in this table.
+
+## Codex provider contract
+
+A standalone Codex provider regression now exercises signed controller allocation and the
+owned `RunCodex` assembly with synthetic Docker and a synthetic provider protocol
+peer. It checks two distinct fresh containers, bootstrap, an authenticated tool
+callback, exact removal and both-role absence, while retaining source. The
+provider identity comes from the replayed allocation. No host/provider launcher
+is supplied to this assembly. This covers the internal Codex contract only; it
+does not enable public production dispatch or establish live provider acceptance.
+Other provider adapters and their live acceptance remain open. Verification is
+test infrastructure and introduces no product feature flag.
+
+The catalog `provider-codex` case remains pending: its host-launch count needs an
+independently measured boundary. The regression does not supply a literal zero
+as acceptance evidence.

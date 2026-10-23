@@ -41,6 +41,8 @@ internal tested components and remaining release gates. The
 - [Login availability](login-availability.md), [private file safety](private-file-security.md) and [storage deadlines](storage-deadlines.md): bounded failures and recovery.
 - [Development workspaces](development-workspaces.md) and [development squads](development-squad.md): configuration boundaries while development admission remains gated.
 
+- [P0 release-gate acceptance specification](p0-release-gate-acceptance.md): procedures, evidence and pass/fail rules for all nine gates.
+
 ## Understand the implementation
 
 Start with [architecture](architecture.md), [server structure](server-structure.md)
