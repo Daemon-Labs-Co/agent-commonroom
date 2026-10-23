@@ -163,6 +163,14 @@ func projectActors(st *room.State) {
 		bid := "bot-" + c.ID
 		if _, ok := member(*st, bid); !ok {
 			st.Actors = append(st.Actors, room.Actor{ID: bid, Name: c.Name, Kind: "agent", Role: "Agent", Enabled: true, Revision: 1})
+		} else {
+			// Connection actors are derived; early projection must not freeze
+			// their display names before a later connection rename is replayed.
+			for i := range st.Actors {
+				if st.Actors[i].ID == bid && st.Actors[i].Kind == "agent" {
+					st.Actors[i].Name = c.Name
+				}
+			}
 		}
 	}
 	for i := range st.Participants {
@@ -171,9 +179,15 @@ func projectActors(st *room.State) {
 	for _, a := range st.Actors {
 		rid := "personal-" + a.ID
 		found := false
-		for _, r := range st.Rooms {
+		for i, r := range st.Rooms {
 			if r.ID == rid {
 				found = true
+				// Refresh only derived personal labels. Identity, access and
+				// all other saved room fields remain unchanged.
+				if r.PersonalActorID == a.ID {
+					st.Rooms[i].Name = a.Name + " · Personal"
+				}
+				break
 			}
 		}
 		if !found {

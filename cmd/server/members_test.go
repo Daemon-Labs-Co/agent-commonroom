@@ -14,6 +14,7 @@ import (
 
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -167,5 +168,35 @@ func TestInvitationAuthorizationWithMockDB(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatal("owner access not audited")
+	}
+}
+
+func TestPersonalLabelRefreshPreservesRoomSettingsAndActorAuthority(t *testing.T) {
+	t.Parallel()
+	present := false
+	actor := room.Actor{ID: "member", Name: "Current", Kind: "human", Role: "QA", Enabled: false, Revision: 7, RoomIDs: []string{"engineering"}}
+	bot := room.Actor{ID: "bot-connection", Name: "Old connection", Kind: "agent", Role: "Agent", Enabled: false, Revision: 9}
+	st := room.State{Company: room.Company{ID: "company"}, Actors: []room.Actor{actor, bot}, Connections: []room.Connection{{ID: "connection", Name: "Current connection"}}, Rooms: []room.Room{
+		{ID: "engineering", Name: "Custom shared name", Description: "Shared settings"},
+		{ID: "personal-member", PersonalActorID: "member", Name: "Earlier · Personal", Description: "Private settings", HumanPresent: &present},
+	}}
+	before := st.Rooms[1]
+	before.Name = "Current · Personal"
+	projectActors(&st)
+	projectActors(&st)
+	if !reflect.DeepEqual(st.Rooms[1], before) || st.Rooms[0].Name != "Custom shared name" {
+		t.Fatal("refresh rewrote room settings")
+	}
+	actual, _ := member(st, "member")
+	if !reflect.DeepEqual(actual, actor) {
+		t.Fatal("refresh changed human authority")
+	}
+	actual, _ = member(st, "bot-connection")
+	bot.Name = "Current connection"
+	if !reflect.DeepEqual(actual, bot) {
+		t.Fatal("connection rename changed agent authority")
+	}
+	if canAccess(st, "member", "personal-member") {
+		t.Fatal("label refresh enabled disabled actor")
 	}
 }

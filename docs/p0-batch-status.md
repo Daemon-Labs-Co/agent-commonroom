@@ -268,3 +268,23 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: personal-room replay fix verified locally, ready for owner
   signing/publication on the same PR. Nothing staged, committed, pushed, merged
   or posted by the agent. Await current-head rereview after owner publication.
+
+## PR #58 derived personal-room label review fix
+
+- Current reviewed head `545246aaff1ff01cd31bee210ada874afa599df9`, branch
+  `codex/governance-task-proposals`; prior P1 personal-room replay fix published.
+  PR #58 open; Greptile completed with valid non-blocking P2 `4362975561`:
+  early projection froze personal-room labels before later actor renames.
+- Existing derived personal-room labels now refresh from current actor names;
+  connection-derived agent names follow current connections. Room IDs, personal
+  ownership, saved settings and actor authority remain unchanged. Historical
+  proposal source authorship is never renamed retroactively.
+- Mocked shared/private proposal replay and restart regressions cover later
+  member, owner and connection renames. A repeated-projection control verifies
+  custom shared labels, personal settings and disabled actor permissions persist.
+- make test passed in 9.25 seconds; make check passed in 18.74 seconds. Elapsed
+  2 minutes 9 seconds from 18:30:48 to 18:32:57 UTC before checkpoint handoff.
+  No real database/provider/browser or live deployment exercised.
+- Last notification: derived-label review fix verified locally, ready for owner
+  signing/publication on the same PR. Nothing staged, committed, pushed, merged
+  or posted by the agent; await current-head rereview after owner publication.

@@ -452,3 +452,52 @@ func TestProposalReplayDoesNotInventUnknownOrFuturePersonalRooms(t *testing.T) {
 		})
 	}
 }
+
+func TestProposalReplayRefreshesPersonalRoomLabelsAfterLaterRenames(t *testing.T) {
+	t.Parallel()
+	for _, proposalRoom := range []string{"engineering", "personal-member"} {
+		t.Run(proposalRoom, func(t *testing.T) {
+			t.Parallel()
+			s, db, h := proposalFixture(t, true)
+			db.seed("actor.revised", room.Actor{ID: "member", Kind: "human", Name: "Earlier member", Role: "Developer", Enabled: true})
+			db.seed("human.profile.updated", map[string]string{"name": "Earlier owner"})
+			db.seed("connection.created", room.Connection{ID: "renamed", Name: "Earlier connection", Protocol: "CLI", Endpoint: "codex"})
+			db.seed("message.created", room.Message{ID: "rename-source", RoomID: proposalRoom, ActorID: "member", ActorType: "human", Author: "Earlier member", Text: "Synthetic suggestion before rename"})
+			w := proposalRoomRequest(h, "owner", proposalRoom, "capture-before-rename", `{"action":"capture","sourceMessageId":"rename-source","title":"Before rename","criteria":""}`)
+			var p room.TaskProposal
+			if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+				t.Fatal(w.Code, w.Body.String())
+			}
+			db.seed("actor.name.updated", map[string]string{"id": "member", "name": "Current member"})
+			db.seed("human.profile.updated", map[string]string{"name": "Current owner"})
+			db.seed("connection.updated", room.Connection{ID: "renamed", Name: "Current connection", Protocol: "CLI", Endpoint: "codex"})
+			for _, controller := range []*server{s, {db: db}} {
+				st, err := controller.load(t.Context())
+				if err != nil {
+					t.Fatal(err)
+				}
+				for actorID, want := range map[string]string{"member": "Current member", ownerID: "Current owner", "bot-renamed": "Current connection"} {
+					actor, ok := member(st, actorID)
+					if !ok || actor.Name != want {
+						t.Fatal("actor label stale", actorID, actor.Name)
+					}
+					found := false
+					for _, r := range st.Rooms {
+						if r.ID == "personal-"+actorID {
+							found = true
+							if r.Name != want+" · Personal" || r.PersonalActorID != actorID {
+								t.Fatal("personal room label or identity stale", r)
+							}
+						}
+					}
+					if !found {
+						t.Fatal("personal room missing", actorID)
+					}
+				}
+				if st.TaskProposals[p.ID].SourceAuthor != "Earlier member" {
+					t.Fatal("rename rewrote historical source authorship")
+				}
+			}
+		})
+	}
+}

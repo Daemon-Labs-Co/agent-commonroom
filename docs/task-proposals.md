@@ -129,3 +129,9 @@ Capture/decision replay does not depend on earlier profile or Help preference
 changes. Missing actors/connections and ones introduced only later cannot make
 an invalid historical personal-room proposal valid. Existing room access checks
 and source scoping remain enforced.
+
+Personal-room labels are derived from the current actor name and refreshed at
+final replay, even if an earlier proposal caused the room to be materialized.
+Connection-derived agent display names follow the current connection name.
+Renames change those display labels without changing room IDs, personal-room
+ownership, saved room settings, actor permissions or recorded source authorship.
