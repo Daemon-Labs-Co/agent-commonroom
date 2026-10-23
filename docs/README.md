@@ -45,6 +45,8 @@ internal tested components and remaining release gates. The
 
 ## Understand the implementation
 
+- [Provider-independent governance](governance-model.md): accepted coordination and security boundaries, transfer rules and pending acceptance.
+
 Start with [architecture](architecture.md), [server structure](server-structure.md)
 and the [HTTP API](api.md). The execution references describe internal contracts;
 they do not imply that an end-user development endpoint is enabled.
