@@ -4,72 +4,78 @@ Updated: 22 October 2026 (America/Toronto).
 
 ## Current batch
 
-- Branch: `codex/p0-storage-boundaries`.
-- Base: verified PR #50 merge `b94ec5e9379d12ac81a643c3fe3b0c106e8dcdcb`.
-- PR: [#51](https://github.com/Daemon-Labs-Co/agent-commonroom/pull/51), published
-  head `69802294ea5eacaf5a79d452e51e5eb61690487f`.
-- Objective: reservation evidence overflow rejection and independent-account
-  accounting, with retained-workspace reconciliation regression coverage.
-- State: PR #51 merged without the local Greptile fix. The verified fix still
-  requires owner publication and a follow-up PR; the dirty checkout prevents
-  beginning a distinct batch. Two catalog
-  drivers cover overflow evidence decoding and independent accounts. Retained
-  source regression passes; `storage-retention-no-credit` remains pending because
-  version-4 retained source prevents full shutdown acknowledgment/slot release.
+- Branch: `codex/p0-release-gates`.
+- Base: verified clean merged main `a2112b6a233f08774cffaeb5bc88827a3e38b429`.
+- Published head: `d3d10743335791fffd0112c12f7e45a145e4294c`. PR #53 open;
+  Greptile succeeded with valid P1 comment `4355424030` on that head.
+  Local fix requires full daemon capability evidence before preparation/start,
+  including explicitly true MemoryLimit, SwapLimit, PidsLimit and CpuCfsQuota.
+  Refusal tests cover false, missing and malformed values for each field.
+  No GitHub discussion was posted; current-head rereview follows publication.
+- PR #52 merged the exact-role cleanup fix as `465b7f7`; Greptile succeeded
+  on that reviewed head. No local fix was carried forward.
+- User requested consolidation of remaining P0 work into the next commit.
+- State: owner authorized sequential implementation of all nine gates on this
+  branch for one eventual commit. Gate G09 platform/build foundation is in progress;
+  no gate is certified and this is not a publication checkpoint.
+- Added docs/p0-release-gate-acceptance.md with setup, failure/permission controls,
+  exact evidence, teardown, pass/BLOCKED rules and all 74 catalog mappings.
+- Added a standalone Codex provider regression through signed allocation and the owned
+  isolated runtime with synthetic Docker/provider boundaries.
 - Acceptance snapshot: 42 bound, 32 pending, 74 total.
-- Limits: tests mock DB/Docker boundaries; no live inventory, physical quota or
-  production allocation acceptance is claimed.
+- make test passed in 9.01 seconds; make check passed in 18.69 seconds.
+  Elapsed approximately 9 minutes including repository and gate inspection.
+  Live provider/daemon verification remains
+  separate; no production readiness claim is made.
+- Owner identified dedicated Codex SSH alias `jerry` and authorized necessary
+  image pulls. Read-only checks confirmed Linux, rootless Docker, seccomp and
+  cgroup v2/systemd. The recorded Go/Node/Rust digest-pinned build inputs were
+  pulled successfully. No provider was launched or credential file read.
+- The existing tool image is the previously documented local acceptance artifact.
+  No worker executable was found on PATH or at the standard local-bin location.
+  A reviewed bridge-only engine build, worker setup and live acceptance remain.
+  Other dedicated provider accounts/images have not been identified. Never put
+  credentials in this checkpoint or test fixtures.
+- Open implementation gates remain production dispatch, other provider adapters,
+  artifacts/revision evidence, storage enforcement/integration and idle policy
+  assembly. Do not replace these gaps with canned observations.
+- Specification validation: nine gate sections, all 74 unique scenario mappings
+  and local links verified. make test passed in 8.59 seconds; make check passed
+  in 15.82 seconds. Elapsed approximately 6 minutes for specification preparation.
+- G09 foundation: added a reproducible bridge-only build launcher with rootless
+  admission, source/policy pins, bounded resources and reduced environment.
+  Seven mocked tests cover successful confinement, missing rootless evidence,
+  unsafe paths/configuration, pin/preparation failure and compiler failure.
+  Build infrastructure has no product toggle and does not approve engine images.
+- Live build on `jerry`: directory `/var/tmp/commonroom-engine-build.oBvGZdku`,
+  container `commonroom-reviewed-engine-build-oBvGZdku`, log `build.log` there.
+  Upstream commit `092d3acd6bec3e3a14bdc7e7a2810ab628ab759d`; archive SHA-256
+  `79c8ea8547e1dd9969f63ef6b76a4fb0d1a024ef36c0c627fbcd2ffb658d9312`.
+  Source/policy/lock pins passed. The actual initial command uses 4 CPUs,
+  8 GiB memory and 512 PIDs, all capabilities dropped, no-new-privileges,
+  public source only and no credential/socket mounts. Future launcher also
+  bounds compiler jobs and additional swap. No provider has been launched.
+  All three bridge-router tests passed. The subsequent release build failed
+  with a confirmed container OOM while compiling codex-tui; no release binary
+  success is claimed. Preserve the failed container and log.
+  A one-job retry uses the same pinned image/source and 8-GiB memory bound,
+  with no additional swap allowance. Its public cache is copied to resume-cache;
+  retry container is `commonroom-reviewed-engine-build-oBvGZdku-j1`, log
+  `release-j1.log`. Verify cache-copy/start state before creating another retry.
+  Reinspect exact container/log before retrying; do not start a competing build.
+- Foundation make test passed in 0.70 seconds (cached); make check passed in
+  6.78 seconds after the final resource-limit refinement. Live build elapsed
+  time remains open until completion; it is separate from hermetic check timing.
+- Review fix checks: make test 0.76 seconds; make check 6.54 seconds, both passed.
+  Elapsed approximately 5 minutes including live failure diagnosis; retry build
+  time remains open. Launcher now limits compilation to one job.
+- Last notification: published PR verified; capability review fix ready locally.
+  Three router tests passed but release build OOM failed; bounded retry underway.
+  No release gate is certified. Await owner publication of the grouped fix.
+- Mark retains signing, publication and merge control; nothing staged by agent.
 
-## Review tracking
+## Previous batch evidence
 
-- PR #50 merged 21 October at 11:53 Toronto. Greptile succeeded on published
-  head `c1e6199`; no reviews/comments required fixes. Merge tree matches that head.
-- Previous local checkpoint metadata was preserved at
-  `/private/tmp/commonroom-p0-checkpoint-c1e6199.patch` and `.md` before switching.
-- Feedback: Greptile comment `4339889422` on published head `6980229` correctly
-  identified an initially empty cleanup fake. Seed both role containers using
-  the worker journal and require the exact engine/tool ID removal sequence.
-  PR #51 merged 22 October at 09:02 Toronto as
-  `6f37e367200d2dae96fe4eedda4076083c786c12`, from unchanged head `6980229`.
-  The fix was omitted from that merge and remains local; owner publication,
-  a follow-up PR and current-head review are still required.
-- Last notification: PR #51 merged without the local exact-ID cleanup fix;
-  follow-up publication is needed before the next batch. Commit message surfaced
-  again for this changed state; stay quiet while awaiting owner publication.
-- Review fix checks: focused regression passed; make test 8.14 seconds and
-  make check 18.61 seconds passed. Elapsed approximately 1 minute 15 seconds.
-  Exact-ID removal proof is synthetic; live daemon/descendant gaps remain.
-- Mark signs/pushes, opens PRs and merges. Agent prepares local changes and
-  commit messages; leave staging to Mark unless requested.
-- Follow-up: `commonroom-p0-batches-and-review`, active every 15 minutes in this
-  chat. Reinspect state before work and stay quiet while waiting unchanged.
-
-## Completion evidence
-
-- Focused storage catalog/decoder/account/reconciliation tests passed.
-- make test passed: 8.93 seconds wall time.
-- make check passed: 19.21 seconds wall time.
-- Batch elapsed: approximately 5 minutes 20 seconds, including branch setup.
-- Final Git inspection: only tests/catalog/docs changed; whitespace clean;
-  nothing staged, committed or pushed by the agent.
-- User/technical docs updated in p0-acceptance-tests.md, storage-accounting.md
-  and release-readiness.md. Test infrastructure adds no product toggle.
-- Overflow driver exercises actual internal projection decoding and malformed
-  journal replay; no arbitrary-precision public reservation API is claimed.
-- Account driver uses independent installation/account journals; no shared-DB
-  multi-tenancy or physical allocation guarantee is claimed.
-
-Suggested commit message:
-
-```text
-test: verify storage decoding and account boundaries
-
-Reject unrepresentable reservation evidence through the real journal decoder.
-Add valid decoding and malformed replay controls using mocked database storage.
-
-Verify independent account reservations and reject foreign company identities.
-Exercise worker cleanup and controller reconciliation with retained source,
-keeping storage charges and unresolved container reservations intact.
-
-Bind two P0 scenarios and document the remaining retention and live-runtime gaps.
-```
+The prior storage batch and exact-ID review fix passed make test and make check
+before owner publication. PR #52 now contains that fix. Its synthetic cleanup
+proof does not establish live daemon or descendant termination guarantees.

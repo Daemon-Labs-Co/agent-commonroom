@@ -30,6 +30,7 @@ coverage:
 check: test-race
 	go vet ./...
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p codex_bridge_build_test.py
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p engine_build_launcher_test.py
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p documentation_test.py
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p setup_scripts_test.py
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p installation_check_test.py

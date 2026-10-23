@@ -19,8 +19,13 @@ import (
 // Docker and the provider protocol peer are synthetic; no real provider runs.
 func driveP0HarnessFreshPair(t *testing.T, scenario pendingP0Case) pendingP0Observation {
 	t.Helper()
-	current := scenario.ID == "upgrade-already-current"
-	if (!current && scenario.ID != "upgrade-reviewed") || (current && scenario.Given["available"] != "current-reviewed") || (!current && scenario.Given["available"] != "new-compatible-reviewed") {
+	providerAcceptance := scenario.ID == "provider-codex"
+	current := scenario.ID == "upgrade-already-current" || providerAcceptance
+	if providerAcceptance {
+		if scenario.Given["provider"] != "codex" || scenario.Given["transport"] != "synthetic" || scenario.Given["auth"] != "supported-user-auth" {
+			t.Fatal("unknown Codex provider fixture")
+		}
+	} else if (!current && scenario.ID != "upgrade-reviewed") || (current && scenario.Given["available"] != "current-reviewed") || (!current && scenario.Given["available"] != "new-compatible-reviewed") {
 		t.Fatal("unknown fresh harness fixture")
 	}
 	review, key, private, _ := harnessFixture(t)
@@ -67,14 +72,18 @@ func driveP0HarnessFreshPair(t *testing.T, scenario pendingP0Case) pendingP0Obse
 	if job.Harness.CheckedAt.Before(job.AllocatedAt) || job.Harness.ReviewDigest == "" || job.JobID == prior.JobID {
 		t.Fatal("fresh allocation lacks durable review evidence")
 	}
-	out.Effects = append(out.Effects, "upgrade_checked")
+	if !providerAcceptance {
+		out.Effects = append(out.Effects, "upgrade_checked")
+	}
 	if !current && validManagedHarness(job) && job.Harness.Sequence > prior.Harness.Sequence {
 		out.Effects = append(out.Effects, "compatibility_verified")
 	}
 	if job.Harness.Image != review.Image || job.Harness.Version != review.Version {
 		t.Fatal("controller did not select reviewed release")
 	}
-	out.Effects = append(out.Effects, "reviewed_image_selected")
+	if !providerAcceptance {
+		out.Effects = append(out.Effects, "reviewed_image_selected")
+	}
 	if state.ManagedJobs[prior.JobID] != prior {
 		out.Effects = append(out.Effects, "running_container_mutated")
 	}
@@ -129,7 +138,13 @@ func driveP0HarnessFreshPair(t *testing.T, scenario pendingP0Case) pendingP0Obse
 	if !record.Pair.Engine.Absent || !record.Pair.Tool.Absent || runner.removed != 2 || len(runner.containers) != 0 {
 		t.Fatal("reviewed pair cleanup lacked both-role absence")
 	}
-	out.Effects = append(out.Effects, "fenced_pair", "workspace_retained")
+	out.Effects = append(out.Effects, "fenced_pair")
+	if providerAcceptance {
+		out.Values["provider"] = job.Provider
+
+	} else {
+		out.Effects = append(out.Effects, "workspace_retained")
+	}
 	stored, err := readWorkerRecord(worker.dir, job.JobID)
 	if err != nil || !reflect.DeepEqual(stored, record) {
 		t.Fatal("worker journal lost final pair/source evidence", err)
@@ -152,4 +167,13 @@ func driveP0HarnessFreshPair(t *testing.T, scenario pendingP0Case) pendingP0Obse
 		out.Values["version_audited"] = strconv.FormatBool(validManagedHarness(job))
 	}
 	return out
+}
+
+// Keep the catalog scenario pending until its host-launch observation has an
+// independently measured boundary; this regression proves only the owned pair.
+func TestCodexProviderOwnedPairContract(t *testing.T) {
+	out := driveP0HarnessFreshPair(t, pendingP0Case{ID: "provider-codex", Given: map[string]string{"provider": "codex", "transport": "synthetic", "auth": "supported-user-auth"}})
+	if out.State != "allow" || out.Values["provider"] != "codex" || !reflect.DeepEqual(out.Effects, []string{"fresh_pair", "callback_dispatched", "fenced_pair"}) {
+		t.Fatal("owned Codex pair contract failed", out)
+	}
 }

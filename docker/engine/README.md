@@ -97,3 +97,48 @@ The [engine bootstrap contract](../../docs/codex-engine-bootstrap.md) documents
 the new runtime recipe and fixed entrypoint. No release image or live acceptance
 is claimed. The trusted source-image exporter must include `/out/codex`,
 `/out/LICENSE` and `/out/notices/` with all required notices.
+
+## Reproducible confined build launcher
+
+On the dedicated Linux rootless worker, export the exact public upstream commit
+above into a fresh private directory (without `.git`, credentials or caches).
+Transfer only `build-reviewed.py`, `lock-codex.py` and `codex-bridge-router.rs`
+from this reviewed repository. Resolve the export's absolute path first:
+
+```sh
+python3 build-reviewed.py --source /var/tmp/private-build/source \
+  --name commonroom-engine-build-unique-run
+```
+
+The launcher requires full Docker daemon evidence with rootless mode and explicit
+boolean support for memory, swap, PID and CPU CFS quotas. Missing, false or
+malformed capability fields refuse before source preparation or container start.
+It also refuses noncanonical mount paths, preparation
+parent symlinks, common private configuration roots and invalid container names.
+It verifies source/policy/lockfile pins before creating the build container. The
+pinned Rust image compiles the synthetic router tests and then the release CLI
+with `--locked`, one compiler job/four CPUs, 8 GiB memory with no additional
+swap allowance, 512 PIDs, all capabilities dropped and
+no-new-privileges. Only the trusted public source export is bind-mounted; provider
+environment variables and Docker endpoint overrides are not inherited. Network
+access inside this trusted build is for locked build dependencies, not agent
+workspace execution. The root filesystem/container build cache is writable for
+the compiler; this is a build policy, not the stricter engine execution policy.
+A different rootless deployment context must be configured as Docker's default
+before running; this launcher does not accept a caller-supplied Docker endpoint.
+
+The named container is deliberately retained for diagnostics and artifact
+extraction. The binary is `/build-cache/target/release/codex` inside it. Record
+its digest, compiler version, successful router tests and image provenance before
+exporting it with upstream license/notices. On error retain the build log, repair
+the build prerequisite and use a fresh source export/name: partial preparation is
+not silently reused. Remove only the exact operator-owned build container after
+saving required evidence/artifacts; no blanket prune or source disposal is done.
+This tool neither publishes nor approves an engine image and never launches a
+provider. It has no product feature flag because it is build infrastructure.
+`make check` runs mocked launcher tests; they do not download images or run Docker.
+
+An initial four-job release compilation exceeded the 8-GiB build bound after
+all three synthetic bridge-router tests passed. The launcher now uses one
+compiler job while retaining the same memory/isolation limits. A compile failure
+is not an approved binary; record the actual final build result separately.
