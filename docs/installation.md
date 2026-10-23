@@ -135,6 +135,8 @@ rather than a claim established by the mocked test suite.
 
 Room appointments are off by default. The owner enables `agentCoordination` in
 Settings without restart, then selects a loaded agent in the room. Disabling
-preserves appointments and history; security checks and human stop remain active.
+cancels local role-dependent turns and preserves appointments and history. Old
+dependencies remain invalid after re-enable; ordinary independent work keeps its
+existing permissions. Security checks and human stop remain active.
 See [coordination and authority](governance-appointments.md) for scope, running-work
 behavior and remaining governance implementation.

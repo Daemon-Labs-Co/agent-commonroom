@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -124,16 +125,17 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Action            string `json:"action"`
-		ParticipantID     string `json:"participantId"`
-		Text              string `json:"text"`
-		ThreadID          string `json:"threadId"`
-		Mode              string `json:"mode"`
-		Name              string `json:"name"`
-		AdditionalContext string `json:"additionalContext"`
-		ContextSource     string `json:"contextSource"`
-		Search            string `json:"search"`
-		Cursor            string `json:"cursor"`
+		Action               string `json:"action"`
+		CoordinationRevision *int   `json:"coordinationRevision"`
+		ParticipantID        string `json:"participantId"`
+		Text                 string `json:"text"`
+		ThreadID             string `json:"threadId"`
+		Mode                 string `json:"mode"`
+		Name                 string `json:"name"`
+		AdditionalContext    string `json:"additionalContext"`
+		ContextSource        string `json:"contextSource"`
+		Search               string `json:"search"`
+		Cursor               string `json:"cursor"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 65536)
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
@@ -158,6 +160,22 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		r = r.WithContext(ctx)
+	}
+	if req.CoordinationRevision != nil {
+		if r.Header.Get("Idempotency-Key") == "" {
+			http.Error(w, "Coordination requires an idempotency key", 400)
+			return
+		}
+		if requestActor(r) != ownerID {
+			http.Error(w, "Owner permission required", 403)
+			return
+		}
+		appointment := st.Governance[roomID]
+		if req.Action != "send" || *req.CoordinationRevision < 1 || *req.CoordinationRevision != appointment.Revision || req.ParticipantID != appointment.ParticipantID || !currentCoordination(st, appointment) {
+			http.Error(w, "Coordination changed or is unavailable; reload before sending", 409)
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), coordinationContextKey{}, coordinationBinding{Appointment: appointment, Epoch: st.CoordinationEpoch}))
 	}
 	allState := st
 	st = scoped(st, roomID)
@@ -444,7 +462,15 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	for _, p := range targets {
 		s.active[p.ID] = true
 		prompt := prompts[p.ID]
-		ctx, cancel := context.WithTimeout(detachedInitiatorContext(r.Context()), 3*time.Minute)
+		parent := detachedInitiatorContext(r.Context())
+		if binding, bound := r.Context().Value(coordinationContextKey{}).(coordinationBinding); bound {
+			parent = context.WithValue(parent, coordinationContextKey{}, binding)
+			if s.coordinationTurns == nil {
+				s.coordinationTurns = map[string]room.GovernanceAppointment{}
+			}
+			s.coordinationTurns[p.ID] = binding.Appointment
+		}
+		ctx, cancel := context.WithTimeout(parent, 3*time.Minute)
 		s.cancels[p.ID] = cancel
 		go s.runAgent(ctx, cancel, p, prompt, endpoints[p.ID])
 	}
@@ -463,7 +489,11 @@ func (b *bufferResponse) WriteHeader(n int)           { b.status = n }
 func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
-	text, err := s.executeAgentTurn(ctx, p, prompt, endpoint)
+	turn := s.agentTurn
+	if turn == nil {
+		turn = s.executeAgentTurn
+	}
+	text, err := turn(ctx, p, prompt, endpoint)
 	s.finishAgentTurn(ctx, p, text, endpoint, err)
 }
 
@@ -499,29 +529,7 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 		adapter = claudeAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
 	}
 	text, err = adapter.Run(ctx, nativeContextThread(p), prompt, func(thread string) error {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		st, e := s.load(ctx)
-		if e != nil {
-			return e
-		}
-		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) {
-			return errors.New("agent turn cancelled or blocked")
-		}
-		found := false
-		for _, current := range st.Participants {
-			if current.ID == p.ID {
-				p = current
-				found = true
-			}
-		}
-		if !found {
-			return errors.New("participant removed")
-		}
-		p.DisclosureVersion = 1
-		p.ExecutionMode = mode
-		p.ThreadID = thread
-		return s.append(ctx, "participant.session", p)
+		return s.recordAgentSession(ctx, p, mode, thread)
 	})
 	return text, err
 }
@@ -536,47 +544,64 @@ func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant
 	defer s.mu.Unlock()
 	defer delete(s.active, p.ID)
 	defer delete(s.cancels, p.ID)
-	st, e := s.load(context.Background())
-	if e != nil {
-		s.tripIntegrityLocked()
-		return
-	}
-	found := false
-	for _, current := range st.Participants {
-		if current.ID == p.ID {
-			p = current
-			found = true
-		}
-	}
-	if !found {
-		changes := taskOutcome(st, taskID, dispatchID, "Stopped")
-		changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "removed from room"}})
-		if s.appendBatch(context.Background(), changes) != nil {
+	defer delete(s.coordinationTurns, p.ID)
+	if e := s.finishAgentTurnStateLocked(ctx, p, text, endpoint, err, taskID, dispatchID); e != nil {
+		if !errors.Is(e, errAuditConflict) {
 			s.tripIntegrityLocked()
 		}
-		return
+		log.Printf("agent result withheld: %v", e)
 	}
-	changes := []auditChange{}
-	p.Status = "Idle"
-	if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) {
-		p.Status = "Stopped"
-		changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"}})
-	} else if err != nil || ctx.Err() != nil {
-		// CommandContext commonly reports signal: killed on deadline. Preserve
-		// the causal context error rather than masking it with the process exit.
-		if ctx.Err() != nil {
-			err = ctx.Err()
+}
+
+// Caller holds s.mu. Cross-controller conflicts require fresh authority checks;
+// bounded retries never publish against a state that was not validated.
+func (s *server) finishAgentTurnStateLocked(ctx context.Context, p room.Participant, text, endpoint string, err error, taskID, dispatchID string) error {
+	for attempt := 0; attempt < 3; attempt++ {
+		st, e := s.load(context.Background())
+		if e != nil {
+			return e
 		}
-		p.Status = "Blocked"
-		changes = append(changes, auditChange{Kind: "agent.error", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "error": err.Error()}})
-	} else if !st.Incident {
-		changes = append(changes, auditChange{Kind: "message.created", Payload: room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()}})
+		found := false
+		for _, current := range st.Participants {
+			if current.ID == p.ID {
+				p = current
+				found = true
+			}
+		}
+		if !found {
+			changes := taskOutcome(st, taskID, dispatchID, "Stopped")
+			changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "removed from room"}})
+			if e := s.appendBatch(context.WithValue(context.Background(), expectedEventCountKey{}, st.EventCount), changes); errors.Is(e, errAuditConflict) {
+				continue
+			} else {
+				return e
+			}
+		}
+		changes := []auditChange{}
+		p.Status = "Idle"
+		if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) || !coordinationContextAllowed(ctx, st, p) {
+			p.Status = "Stopped"
+			changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"}})
+		} else if err != nil || ctx.Err() != nil {
+			// CommandContext commonly reports signal: killed on deadline. Preserve
+			// the causal context error rather than masking it with the process exit.
+			if ctx.Err() != nil {
+				err = ctx.Err()
+			}
+			p.Status = "Blocked"
+			changes = append(changes, auditChange{Kind: "agent.error", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "error": err.Error()}})
+		} else if !st.Incident {
+			changes = append(changes, auditChange{Kind: "message.created", Payload: room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()}})
+		}
+		changes = append(changes, auditChange{Kind: "participant.session", Payload: p})
+		changes = append(changes, taskOutcome(st, taskID, dispatchID, p.Status)...)
+		if e := s.appendBatch(context.WithValue(context.Background(), expectedEventCountKey{}, st.EventCount), changes); errors.Is(e, errAuditConflict) {
+			continue
+		} else {
+			return e
+		}
 	}
-	changes = append(changes, auditChange{Kind: "participant.session", Payload: p})
-	changes = append(changes, taskOutcome(st, taskID, dispatchID, p.Status)...)
-	if e := s.appendBatch(context.Background(), changes); e != nil {
-		s.tripIntegrityLocked()
-	}
+	return errAuditConflict
 }
 
 // sessionAdapter abstracts model turns, not a security boundary. Implementations
@@ -678,4 +703,39 @@ func (s *server) checkAgentLogin(ctx context.Context) error {
 		return errors.New("Sign in to Codex with ChatGPT first")
 	}
 	return nil
+}
+
+// recordAgentSession is the actual native-session callback persistence path.
+// A conflict retries metadata only, never the provider turn or its effects.
+func (s *server) recordAgentSession(ctx context.Context, p room.Participant, mode, thread string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for attempt := 0; attempt < 3; attempt++ {
+		st, err := s.load(ctx)
+		if err != nil {
+			return err
+		}
+		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) || !coordinationContextAllowed(ctx, st, p) {
+			return errors.New("agent turn cancelled or blocked")
+		}
+		found := false
+		for _, current := range st.Participants {
+			if current.ID == p.ID {
+				p = current
+				found = true
+			}
+		}
+		if !found {
+			return errors.New("participant removed")
+		}
+		p.DisclosureVersion = 1
+		p.ExecutionMode = mode
+		p.ThreadID = thread
+		err = s.append(context.WithValue(ctx, expectedEventCountKey{}, st.EventCount), "participant.session", p)
+		if errors.Is(err, errAuditConflict) {
+			continue
+		}
+		return err
+	}
+	return errAuditConflict
 }

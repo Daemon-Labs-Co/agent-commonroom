@@ -104,6 +104,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			if st.ManagedJobs == nil {
 				st.ManagedJobs = map[string]room.ManagedJob{}
 			}
+			if _, exists := st.ManagedJobs[job.JobID]; !exists && job.GovernanceRevision > 0 && !coordinationJobAllowed(st, job) {
+				return st, errors.New("invalid initial coordination dependency")
+			}
 			if prior, exists := st.ManagedJobs[job.JobID]; exists {
 				binding := job
 				binding.Status, binding.DiagnosticCode, binding.UpdatedAt, binding.ShutdownConfirmed = prior.Status, prior.DiagnosticCode, prior.UpdatedAt, prior.ShutdownConfirmed
@@ -437,6 +440,12 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			if st.FeatureFlags == nil {
 				st.FeatureFlags = map[string]bool{}
+			}
+			if v.Name == "agentCoordination" && !v.Enabled {
+				if st.CoordinationEpoch == int(^uint(0)>>1) {
+					return st, errors.New("coordination generation exhausted")
+				}
+				st.CoordinationEpoch++
 			}
 			st.FeatureFlags[v.Name] = v.Enabled
 		case "agents.stop", "agents.resume":

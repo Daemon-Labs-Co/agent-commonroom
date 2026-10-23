@@ -156,3 +156,56 @@ proof does not establish live daemon or descendant termination guarantees.
   acceptance remain unverified. No execution or isolation contract changed.
 - Last notification: handler regression fix ready for owner signing/publication
   on the same PR. Nothing staged, committed, pushed or posted by the agent.
+
+## Revision-bound coordination turns
+
+- Active branch: `codex/governance-grants`, created clean from verified PR #56
+  merge `b9a8465b2a74b75ebd2c1d34e95597a5361239d3`. That merge contains exact
+  reviewed head `e510a32bd6d4eb64f820ed6b9761bdafc781e2fa`; Greptile succeeded.
+  Its prior handler-test finding was handled; no new review feedback pending.
+- Implemented owner-requested coordination turns via the existing send handler,
+  bound to exact company/room/coordinator/revision and a durable disable generation.
+  Ordinary sends/tasks remain independent; no agent-issued grants, delegation,
+  new task authorization or increased resource permissions are introduced.
+- The binding survives the detached queue and managed job journal. Admission,
+  submission, tool intent/outcome, native-session update and result publication
+  revalidate. Journal replay refuses stripping/changing a job's dependency.
+- Committed transfer/disable cancels local role-dependent turns only. Global audit
+  integrity failure retains its existing broader safety stop. Off/on never revives
+  old work. Cleanup and shutdown confirmation still require normal worker proof.
+- Added owner room control, full user/API/security documentation and mocked
+  handler, registration, broker, replay and browser-control regression coverage.
+- make test passed in 8.86 seconds; make check passed in 18.41 seconds. Active
+  elapsed wall time was not separately recorded. Initial test failures exposed
+  synthetic key length and cancellation-test assumptions; both corrected.
+- No real providers, database, Docker, deployed browser or multi-controller live
+  runtime were exercised. Cross-controller cancellation is not immediate; stale
+  effect acknowledgments/results refuse, with deadlines/reconciliation retained.
+  In-flight effects already acknowledged are not claimed to be undone. Full
+  GOV-06/07/08/09/10/13 and all live P0 release gates remain uncertified.
+- Last notification: coherent revision-bound turn batch verified and ready for
+  owner signing/publication, with one commit message. Nothing staged, committed,
+  pushed or posted by the agent. Existing branches and adapter work preserved.
+
+## PR #57 cross-controller authority review fix
+
+- Reviewed exact head `2ea5223073d3d7bd43d5a04dc3f970daa5da5c5a` on
+  `codex/governance-grants`, PR #57 open. Greptile check succeeded but valid P1
+  inline comment `4361052481` identifies a validation-to-append race.
+- Result/task completion, native-session callback persistence and managed
+  submission now carry validated EventCount into the transaction. Conflicts
+  reload and revalidate, with three bounded metadata-only attempts. Revoked
+  results remain withheld; unrelated writes can retry. Ordinary conflicts do
+  not falsely latch an integrity fault. Existing shutdown-proof semantics remain.
+- Added deterministic mocked second-controller commits between validation and
+  transaction start: transfer, disable, human stop, unrelated mutations and
+  repeated conflicts across all three paths, plus independent-result control.
+- make test passed in 9.38 seconds; make check passed in 20.08 seconds. Elapsed
+  approximately six minutes, measured from 15:19:53 UTC. Initial test iteration
+  corrected a missing import and used the real safety endpoint for stop requests.
+- Database/provider boundaries remain mocked; no live providers, database,
+  deployed browser or live multi-controller runtime exercised. Repeated conflicts
+  can leave completion unresolved for inspection, never inferred as success.
+- Last notification: P1 fix verified locally with one commit message; owner signs
+  and publishes on the same PR before current-head rereview. Nothing staged,
+  committed, pushed, merged or posted by the agent.

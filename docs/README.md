@@ -18,7 +18,8 @@ internal tested components and remaining release gates. The
 ## Use the workspace
 
 [Room coordination appointments](governance-appointments.md) explains the optional
-owner controls and the distinction between selection and execution authority.
+owner controls, revision-bound coordinator requests, and the distinction between
+selection and execution authority.
 
 | Goal | Guide |
 | --- | --- |
