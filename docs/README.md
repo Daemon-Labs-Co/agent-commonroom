@@ -17,6 +17,9 @@ internal tested components and remaining release gates. The
 
 ## Use the workspace
 
+[Room coordination appointments](governance-appointments.md) explains the optional
+owner controls and the distinction between selection and execution authority.
+
 | Goal | Guide |
 | --- | --- |
 | Understand rooms, connections, profiles and memory | [Product guide](concepts.md) |

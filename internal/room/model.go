@@ -219,33 +219,41 @@ type ToolCallAudit struct {
 	OutputBytes   int    `json:"outputBytes"`
 	OutputDigest  string `json:"outputDigest"`
 }
+type GovernanceAppointment struct {
+	CompanyID     string `json:"companyId"`
+	RoomID        string `json:"roomId"`
+	ParticipantID string `json:"participantId"`
+	Revision      int    `json:"revision"`
+}
+
 type State struct {
-	IdleStopNotices    map[string]IdleStopNotice    `json:"-"`
-	AgentIdleSettings  AgentIdleSettings            `json:"agentIdleSettings"`
-	WorkspaceDisposals map[string]WorkspaceDisposal `json:"-"`
-	ManagedStorage     *ManagedStorage              `json:"-"`
-	HumanRevision      int                          `json:"humanRevision"`
-	EventCount         int64                        `json:"-"`
-	OperationReceipts  map[string]OperationReceipt  `json:"-"`
-	ManagedJobs        map[string]ManagedJob        `json:"-"`
-	ToolAudits         map[string]ManagedToolCall   `json:"-"`
-	ToolCalls          map[string]ToolCallAudit     `json:"-"`
-	Organization       OrganizationChart            `json:"organization"`
-	FeatureFlags       map[string]bool              `json:"featureFlags"`
-	AgentsStopped      bool                         `json:"agentsStopped"`
-	AgentRoomStopped   bool                         `json:"agentRoomStopped"`
-	AgentStopRooms     []string                     `json:"-"`
-	Actors             []Actor                      `json:"actors"`
-	CurrentActorID     string                       `json:"currentActorId"`
-	Company            Company                      `json:"company"`
-	HumanCompanyID     string                       `json:"humanCompanyId"`
-	HumanTitle         string                       `json:"humanTitle"`
-	HumanName          string                       `json:"humanName"`
-	WorkflowRuns       []WorkflowRun                `json:"workflowRuns"`
-	Workflows          []Workflow                   `json:"workflows"`
-	Rooms              []Room                       `json:"rooms"`
-	Tasks              []Task                       `json:"tasks"`
-	Evidence           []Evidence                   `json:"evidence"`
+	Governance         map[string]GovernanceAppointment `json:"-"`
+	IdleStopNotices    map[string]IdleStopNotice        `json:"-"`
+	AgentIdleSettings  AgentIdleSettings                `json:"agentIdleSettings"`
+	WorkspaceDisposals map[string]WorkspaceDisposal     `json:"-"`
+	ManagedStorage     *ManagedStorage                  `json:"-"`
+	HumanRevision      int                              `json:"humanRevision"`
+	EventCount         int64                            `json:"-"`
+	OperationReceipts  map[string]OperationReceipt      `json:"-"`
+	ManagedJobs        map[string]ManagedJob            `json:"-"`
+	ToolAudits         map[string]ManagedToolCall       `json:"-"`
+	ToolCalls          map[string]ToolCallAudit         `json:"-"`
+	Organization       OrganizationChart                `json:"organization"`
+	FeatureFlags       map[string]bool                  `json:"featureFlags"`
+	AgentsStopped      bool                             `json:"agentsStopped"`
+	AgentRoomStopped   bool                             `json:"agentRoomStopped"`
+	AgentStopRooms     []string                         `json:"-"`
+	Actors             []Actor                          `json:"actors"`
+	CurrentActorID     string                           `json:"currentActorId"`
+	Company            Company                          `json:"company"`
+	HumanCompanyID     string                           `json:"humanCompanyId"`
+	HumanTitle         string                           `json:"humanTitle"`
+	HumanName          string                           `json:"humanName"`
+	WorkflowRuns       []WorkflowRun                    `json:"workflowRuns"`
+	Workflows          []Workflow                       `json:"workflows"`
+	Rooms              []Room                           `json:"rooms"`
+	Tasks              []Task                           `json:"tasks"`
+	Evidence           []Evidence                       `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`

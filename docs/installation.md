@@ -130,3 +130,11 @@ optional DBA-managed prerequisite for future semantic memory, not needed to run
 the current application. Fresh-server deployment remains an integration check
 rather than a claim established by the mocked test suite.
 
+
+## Optional room coordination
+
+Room appointments are off by default. The owner enables `agentCoordination` in
+Settings without restart, then selects a loaded agent in the room. Disabling
+preserves appointments and history; security checks and human stop remain active.
+See [coordination and authority](governance-appointments.md) for scope, running-work
+behavior and remaining governance implementation.

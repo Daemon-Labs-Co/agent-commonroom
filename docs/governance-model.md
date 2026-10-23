@@ -1,6 +1,8 @@
 # Provider-independent governance
 
-Status: accepted design, implementation pending. This document refines FR-07–17,
+Status: accepted design; durable appointments and human transfer implemented
+as described in [room coordination appointments](governance-appointments.md).
+Coordination grants, delegation and the broader enforcement integration remain pending. This document refines FR-07–17,
 FR-20 and the later paid rules FR-22–24. It does not claim the current application
 implements appointments, transfers or every enforcement boundary below.
 
