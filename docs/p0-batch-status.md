@@ -186,3 +186,26 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: coherent revision-bound turn batch verified and ready for
   owner signing/publication, with one commit message. Nothing staged, committed,
   pushed or posted by the agent. Existing branches and adapter work preserved.
+
+## PR #57 cross-controller authority review fix
+
+- Reviewed exact head `2ea5223073d3d7bd43d5a04dc3f970daa5da5c5a` on
+  `codex/governance-grants`, PR #57 open. Greptile check succeeded but valid P1
+  inline comment `4361052481` identifies a validation-to-append race.
+- Result/task completion, native-session callback persistence and managed
+  submission now carry validated EventCount into the transaction. Conflicts
+  reload and revalidate, with three bounded metadata-only attempts. Revoked
+  results remain withheld; unrelated writes can retry. Ordinary conflicts do
+  not falsely latch an integrity fault. Existing shutdown-proof semantics remain.
+- Added deterministic mocked second-controller commits between validation and
+  transaction start: transfer, disable, human stop, unrelated mutations and
+  repeated conflicts across all three paths, plus independent-result control.
+- make test passed in 9.38 seconds; make check passed in 20.08 seconds. Elapsed
+  approximately six minutes, measured from 15:19:53 UTC. Initial test iteration
+  corrected a missing import and used the real safety endpoint for stop requests.
+- Database/provider boundaries remain mocked; no live providers, database,
+  deployed browser or live multi-controller runtime exercised. Repeated conflicts
+  can leave completion unresolved for inspection, never inferred as success.
+- Last notification: P1 fix verified locally with one commit message; owner signs
+  and publishes on the same PR before current-head rereview. Nothing staged,
+  committed, pushed, merged or posted by the agent.

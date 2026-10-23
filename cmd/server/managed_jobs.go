@@ -193,6 +193,10 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 }
 
 func (s *server) recordManagedJobLocked(jobID, status string) error {
+	return s.recordManagedJobAttemptLocked(jobID, status, 3)
+}
+
+func (s *server) recordManagedJobAttemptLocked(jobID, status string, attempts int) error {
 	auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	st, err := s.load(auditCtx)
@@ -217,7 +221,17 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 		auditCtx = withInitiatingActor(auditCtx, job.InitiatorID)
 	}
 	job.ShutdownConfirmed = status == "shutdown_confirmed"
-	if err = s.append(auditCtx, "worker.job.updated", job); err != nil {
+	writeCtx := auditCtx
+	if status == "submitted" {
+		writeCtx = context.WithValue(auditCtx, expectedEventCountKey{}, st.EventCount)
+	}
+	if err = s.append(writeCtx, "worker.job.updated", job); err != nil {
+		if errors.Is(err, errAuditConflict) {
+			if attempts > 1 {
+				return s.recordManagedJobAttemptLocked(jobID, status, attempts-1)
+			}
+			return errAuditConflict
+		}
 		s.tripIntegrityLocked()
 		return errors.New("job audit update failed")
 	}

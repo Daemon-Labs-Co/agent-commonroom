@@ -148,3 +148,20 @@ binding tampering. Browser control tests verify the displayed identity/revision
 and submitted binding. No live provider, Docker, database, browser deployment or
 multi-controller runtime was exercised. Bounded delegation and agent-originated
 task proposals remain later increments.
+
+### Concurrent controller writes
+
+Result/task completion, native-session updates and the managed `submitted`
+transition carry the event count from the authority check into their append
+transaction. A competing transfer, disable or stop makes that write conflict.
+The controller reloads and revalidates before retrying metadata, up to three
+attempts; it never retries the provider turn or external effects. Unrelated
+journal changes can retry successfully. Continued conflicts withhold the result
+or return a conflict without falsely declaring audit corruption. Completion may
+remain unresolved and require inspection; no shutdown or success is inferred.
+Actual persistence failures retain the existing integrity-stop behavior.
+
+Deterministic mocked two-controller regressions commit transfer, disable and stop
+between validation and transaction start for each path. Healthy unrelated writes,
+independent results and bounded repeated-conflict controls remain covered. These
+are transaction-boundary regressions, not live multi-controller acceptance.
