@@ -195,6 +195,19 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		err = s.appendBatch(r.Context(), changes)
+	} else if req.Kind == "participant.created" && st.FeatureFlags["agentCoordination"] && st.Governance[roomID].Revision == 0 {
+		if err = s.workflowSafety(r.Context(), st, roomID); err != nil {
+			http.Error(w, "Governance blocked: audit integrity unavailable or failed", 409)
+			return
+		}
+		participant := p.(room.Participant)
+		candidate := st
+		candidate.Participants = append(append([]room.Participant(nil), st.Participants...), participant)
+		changes := []auditChange{{Kind: req.Kind, Payload: p}}
+		if eligibleGovernor(candidate, roomID, participant.ID) {
+			changes = append(changes, auditChange{Kind: "governance.appointed", Payload: room.GovernanceAppointment{CompanyID: st.Company.ID, RoomID: roomID, ParticipantID: participant.ID, Revision: 1}})
+		}
+		err = s.appendBatch(r.Context(), changes)
 	} else {
 		err = s.append(r.Context(), req.Kind, p)
 	}

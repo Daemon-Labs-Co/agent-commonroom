@@ -15,6 +15,7 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
+	{"governance", "Room coordination and authority", "docs/governance-appointments.md"},
 	{"help-display", "Help window preference", "docs/help-display.md"},
 	{"index", "Documentation home", "docs/README.md"},
 	{"installation", "Installation and getting started", "docs/installation.md"},

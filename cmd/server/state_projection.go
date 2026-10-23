@@ -37,6 +37,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 		st.EventCount++
 		switch kind {
+		case "governance.appointed":
+			if err := projectGovernance(&st, data); err != nil {
+				return st, err
+			}
 		case "worker.idle_stop.announced":
 			if err := projectIdleNotice(&st, data); err != nil {
 				return st, err

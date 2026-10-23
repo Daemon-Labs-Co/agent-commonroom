@@ -97,3 +97,28 @@ proof does not establish live daemon or descendant termination guarantees.
   seconds. Document links verified. Elapsed approximately 5 minutes.
 - Last notification: separate design branch prepared; no staging/commit/push,
   runtime enforcement remains to implement and verify.
+
+## Governance authority runtime increment
+
+- Active branch: `codex/governance-authority`, from verified PR #54 merge
+  `44f192333bfe0c05679972e6dd12df9f08205dab`. Prior branches retained.
+- Implemented durable room appointments and owner-only explicit transfers,
+  monotonic expected revisions, atomic audit/receipts, replay validation and
+  idempotent selection. First newly registered eligible room agent is appointed
+  atomically while enabled; reconnect/removal never silently replaces it.
+- `agentCoordination` defaults off; server-enforced owner settings and room
+  selection UI added. Off preserves history and independent work; no extra
+  execution privileges or agent coordination grants are minted by selection.
+- Mocked tests cover restart/replay, concurrency, forged agent identity, scope,
+  malformed/duplicate input, audit failure, stops, first selection and feature off.
+- User/technical Help: docs/governance-appointments.md. Full grant/delegation,
+  task-proposal and independent escalation acceptance remain pending; no complete
+  new security-model or live production-readiness claim is made.
+- Last notification: appointment authority foundation implemented and undergoing
+  final checks. Nothing staged/committed/pushed by the agent.
+- Runtime checks passed: make test 8.92 seconds; final make check 5.82
+  seconds (cached Go packages). Four browser-control tests passed; no live
+  browser/provider or multi-controller deployment was exercised. Active elapsed
+  work time was not separately measured.
+- Publication checkpoint: owner appointment foundation ready, with full grant/
+  delegation implementation explicitly pending. Owner signs/pushes/merges.
