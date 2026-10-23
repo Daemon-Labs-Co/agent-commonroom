@@ -30,3 +30,13 @@ test('workspace disposal switch stays off until explicitly enabled',()=>{
  const f=switches();assert.equal(f.context.featureSwitchEnabled('workspaceDisposal',{}),false);assert.equal(f.context.featureSwitchEnabled('workspaceDisposal',{workspaceDisposal:false}),false);assert.equal(f.context.featureSwitchEnabled('workspaceDisposal',{workspaceDisposal:true}),true);
  const control=f.context.makeFeatureSwitch(node(),'workspaceDisposal','Workspace disposal');assert.equal(control.attributes['aria-checked'],'false');
 });
+
+test('coordination shared switch defaults off and enables on the first click',async()=>{
+ const f=switches();
+ for(const flags of [{},{agentCoordination:false}])assert.equal(f.context.featureSwitchEnabled('agentCoordination',flags),false);
+ assert.equal(f.context.featureSwitchEnabled('agentCoordination',{agentCoordination:true}),true);
+ const control=f.context.makeFeatureSwitch(node(),'agentCoordination','Agent coordination');
+ assert.equal(control.attributes['aria-checked'],'false');
+ const pending=control.onclick();assert.equal(f.calls[0].body.payload.name,'agentCoordination');assert.equal(f.calls[0].body.payload.enabled,true);
+ f.resolve();await pending;assert.equal(f.reloads(),1);
+});

@@ -185,3 +185,55 @@ func TestGovernanceProjectionRefusesForgedAuthority(t *testing.T) {
 		}
 	}
 }
+
+func TestAutomaticAppointmentFailureLatchesStop(t *testing.T) {
+	t.Parallel()
+	for _, failure := range []string{"begin", "insert", "commit"} {
+		t.Run(failure, func(t *testing.T) {
+			s, db, h := governanceFixture(t, true)
+			before := len(db.snapshot())
+			db.failAt = failure
+			w := mockRequest(h, "POST", "/api/events", `{"kind":"participant.created","payload":{"name":"New","rank":1,"connectionId":"c"}}`)
+			if w.Code != 500 || !s.integrityFault || len(db.snapshot()) != before {
+				t.Fatal("failed registration did not latch atomically", w.Code, s.integrityFault)
+			}
+			db.failAt = ""
+			if w = governanceRequest(h, "owner", "retry-after-fault", `{"participantId":"a","revision":0}`); w.Code != 409 {
+				t.Fatal("fault allowed later appointment", w.Code)
+			}
+		})
+	}
+}
+
+func TestAppointmentBatchesStopOnFailureButNotConflict(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"create", "attach", "conflict"} {
+		t.Run(mode, func(t *testing.T) {
+			s, db, _ := governanceFixture(t, true)
+			st, err := s.load(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := room.Participant{ID: "new", RoomID: "engineering", ConnectionID: "fresh", Status: "Idle"}
+			c := room.Connection{ID: "fresh", Protocol: "CLI", Endpoint: "claude"}
+			changes := []auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}}
+			if mode == "attach" {
+				changes = append(changes, auditChange{Kind: "participant.history_attached", Payload: map[string]string{"participantId": p.ID}})
+			}
+			changes = append(changes, initialGovernanceChanges(st, p, c)...)
+			ctx := context.WithValue(t.Context(), actorContextKey{}, ownerID)
+			if mode == "conflict" {
+				ctx = context.WithValue(ctx, expectedEventCountKey{}, st.EventCount-1)
+			} else {
+				db.failAt = "commit"
+			}
+			before := len(db.snapshot())
+			s.mu.Lock()
+			err = s.appendAppointmentBatch(ctx, changes)
+			s.mu.Unlock()
+			if err == nil || len(db.snapshot()) != before || s.integrityFault != (mode != "conflict") {
+				t.Fatal("incorrect failure/stop policy", err, s.integrityFault)
+			}
+		})
+	}
+}

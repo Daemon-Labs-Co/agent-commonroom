@@ -75,3 +75,8 @@ permissions. Tests launch no provider, Docker or database. Browser controls use
 current revisions and idempotent requests; the server remains authoritative.
 Live multi-controller/provider acceptance and all later governance grants/delegation
 remain pending. See [release acceptance](p0-release-gate-acceptance.md).
+
+Automatic registration, agent creation and history attachment use the same
+appointment-batch failure policy: required persistence failure latches integrity
+stop; optimistic concurrency conflict alone does not. Both the ordinary settings
+control and the shared switch render an unset coordination flag as off.

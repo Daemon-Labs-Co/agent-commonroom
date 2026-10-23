@@ -122,3 +122,19 @@ proof does not establish live daemon or descendant termination guarantees.
   work time was not separately measured.
 - Publication checkpoint: owner appointment foundation ready, with full grant/
   delegation implementation explicitly pending. Owner signs/pushes/merges.
+
+## Governance PR #55 review
+
+- Published head `dc6d4d4ff7f5783ae0daa34056e3ab5e95adadd9`; PR #55 open.
+- Valid P1 `4356133587`: automatic appointment persistence failures now latch
+  integrity stop in registration, create and attach batches; optimistic conflicts
+  do not. Tests exercise transaction begin/insert/commit failure and later refusal.
+- Valid P2 `4356133592`: shared feature switches now treat agentCoordination as
+  default off. Regression checks its initial display and first enable click.
+- Both findings assessed against source and grouped into one local publication
+  checkpoint on the existing branch. No GitHub discussion posted.
+- Checks passed: make test 9.07 seconds; make check 18.19 seconds. Active
+  elapsed work time was not separately measured. Tests use mocked boundaries;
+  no live browser/provider or deployment acceptance was performed.
+- Last notification: both review fixes verified and ready with one commit message;
+  stay quiet awaiting owner publication and current-head rereview.

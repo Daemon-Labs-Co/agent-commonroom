@@ -2,6 +2,7 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -129,4 +130,19 @@ func initialGovernanceChanges(st room.State, p room.Participant, c room.Connecti
 		return nil
 	}
 	return []auditChange{{Kind: "governance.appointed", Payload: room.GovernanceAppointment{CompanyID: st.Company.ID, RoomID: p.RoomID, ParticipantID: p.ID, Revision: 1}}}
+}
+
+// appendAppointmentBatch requires s.mu, like all registration callers. A failed
+// required appointment audit must stop admission even if no events committed.
+func (s *server) appendAppointmentBatch(ctx context.Context, changes []auditChange) error {
+	err := s.appendBatch(ctx, changes)
+	if err != nil && !errors.Is(err, errAuditConflict) {
+		for _, change := range changes {
+			if change.Kind == "governance.appointed" {
+				s.tripIntegrityLocked()
+				break
+			}
+		}
+	}
+	return err
 }

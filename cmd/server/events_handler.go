@@ -207,7 +207,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		if eligibleGovernor(candidate, roomID, participant.ID) {
 			changes = append(changes, auditChange{Kind: "governance.appointed", Payload: room.GovernanceAppointment{CompanyID: st.Company.ID, RoomID: roomID, ParticipantID: participant.ID, Revision: 1}})
 		}
-		err = s.appendBatch(r.Context(), changes)
+		err = s.appendAppointmentBatch(r.Context(), changes)
 	} else {
 		err = s.append(r.Context(), req.Kind, p)
 	}

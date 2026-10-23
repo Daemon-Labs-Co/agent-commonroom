@@ -343,7 +343,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		}
 		p := room.Participant{RoomID: roomID, ID: id(), ConnectionID: c.ID, Name: name, Role: "Room assistant", Instructions: "Participate conversationally. Do not use tools or access files during this chat-only trial.", Rank: 1, ThreadID: thread, Status: "Idle", AdditionalContext: req.AdditionalContext, ContextSource: req.ContextSource}
 		ctx := withOperationResponse(r.Context(), 200, p)
-		if e = s.appendBatch(ctx, append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}, {Kind: "participant.history_attached", Payload: map[string]string{"participantId": p.ID, "sourceThreadId": req.ThreadID, "threadId": thread, "mode": req.Mode}}}, initialGovernanceChanges(st, p, c)...)); e != nil {
+		if e = s.appendAppointmentBatch(ctx, append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}, {Kind: "participant.history_attached", Payload: map[string]string{"participantId": p.ID, "sourceThreadId": req.ThreadID, "threadId": thread, "mode": req.Mode}}}, initialGovernanceChanges(st, p, c)...)); e != nil {
 			operationError(w, e)
 			return
 		}
@@ -364,7 +364,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		}
 		c := room.Connection{ID: id(), Provider: "openai", Name: "ChatGPT via Codex", Protocol: "CLI", Endpoint: "codex"}
 		p := room.Participant{RoomID: roomID, ID: id(), ConnectionID: c.ID, Name: personalName(st), Role: "Room assistant", Instructions: "Participate in this room. Answer conversationally. Do not use tools or access files; this is a chat-only integration test.", Rank: 1, Status: "Idle"}
-		if err = s.appendBatch(withOperationResponse(r.Context(), 200, p), append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}}, initialGovernanceChanges(st, p, c)...)); err != nil {
+		if err = s.appendAppointmentBatch(withOperationResponse(r.Context(), 200, p), append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}}, initialGovernanceChanges(st, p, c)...)); err != nil {
 			operationError(w, err)
 			return
 		}

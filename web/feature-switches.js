@@ -7,7 +7,7 @@ const featureSwitchSpecial={
  'edit-signin-flag':['connectionSignIn','Connection sign-in'],
  'edit-testing-flag':['connectionTesting','Connection testing']
 };
-function featureSwitchEnabled(flag,flags){return ['newestMessagesFirst','workflowExecution','workspaceDisposal'].includes(flag)?flags?.[flag]===true:flags?.[flag]!==false}
+function featureSwitchEnabled(flag,flags){return ['agentCoordination','newestMessagesFirst','workflowExecution','workspaceDisposal'].includes(flag)?flags?.[flag]===true:flags?.[flag]!==false}
 function makeFeatureSwitch(original,flag,label){
  const enabled=featureSwitchEnabled(flag,state.featureFlags);
  const row=document.createElement('div');row.className='feature-switch-row';
