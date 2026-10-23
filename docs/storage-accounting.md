@@ -155,7 +155,8 @@ identity. Shared-database multi-tenancy and physical worker allocation remain
 outside this coverage.
 
 Retained workspace reconciliation has a combined worker/controller regression:
-both roles become absent, source and its exact full charge remain, and replay
+the cleanup fake begins with both journal-bound role containers present and must
+observe their exact-ID removals. Both roles become absent, source and its exact full charge remain, and replay
 keeps shutdown unconfirmed and the pair's container reservations occupied. The
 catalog scenario requiring container capacity release with retained source stays
 pending. Distinguishing process absence from complete version-4 job settlement

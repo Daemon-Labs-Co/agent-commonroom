@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -182,6 +183,12 @@ func TestRetainedWorkspaceReconciliationKeepsStorageAndContainerReservations(t *
 	docker := newWorkspaceCleanup(t, worker)
 	worker.Close() // Release the synthetic supervisor lease before reconciliation.
 	record := worker.record
+	for role, id := range map[string]string{"engine": record.Pair.Engine.ID, "tool": record.Pair.Tool.ID} {
+		docker.containers[id] = pairFakeContainer{
+			name: pairContainerName(record.JobID, role), execution: "separated-" + role + "-v1",
+			repository: record.Pair.Repository, job: record.JobID,
+		}
+	}
 	job := quotaJob(1, true)
 	job.JobID, job.RoomID, job.ParticipantID, job.ConnectionID = record.JobID, record.RoomID, record.ParticipantID, record.ConnectionID
 	job.Provider, job.RepositoryDigest, job.Deadline = record.Provider, record.Pair.Repository, record.Deadline
@@ -210,6 +217,9 @@ func TestRetainedWorkspaceReconciliationKeepsStorageAndContainerReservations(t *
 	shutdownErr, auditErr := s.reconcileManagedJob(ctx, job)
 	if shutdownErr == nil || auditErr != nil {
 		t.Fatal("retained source was mistaken for complete shutdown", shutdownErr, auditErr)
+	}
+	if !slices.Equal(docker.pairFakeDocker.removed, []string{record.Pair.Engine.ID, record.Pair.Tool.ID}) {
+		t.Fatal("reconciliation did not remove both exact role IDs", docker.pairFakeDocker.removed)
 	}
 	stored, err := readWorkerRecord(dir, job.JobID)
 	if err != nil || stored.ShutdownConfirmed || !stored.Pair.Engine.Absent || !stored.Pair.Tool.Absent || stored.Pair.Workspace.Removed || !docker.volume || docker.removed != 0 || len(docker.containers) != 0 {
