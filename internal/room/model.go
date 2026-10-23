@@ -157,6 +157,10 @@ type Actor struct {
 // ManagedJob is a safe, durable execution binding. Model data and arguments
 // never belong here; ShutdownConfirmed comes only from a fenced worker proof.
 type ManagedJob struct {
+	CoordinationEpoch int `json:"coordinationEpoch,omitempty"`
+	// Optional role dependency; never an additional resource permission.
+	CoordinatorID       string           `json:"coordinatorId,omitempty"`
+	GovernanceRevision  int              `json:"governanceRevision,omitempty"`
 	Harness             HarnessSelection `json:"harness,omitempty"`
 	IdlePolicyVersion   int              `json:"idlePolicyVersion,omitempty"`
 	IdlePolicyRevision  int              `json:"idlePolicyRevision,omitempty"`
@@ -227,6 +231,7 @@ type GovernanceAppointment struct {
 }
 
 type State struct {
+	CoordinationEpoch  int                              `json:"-"`
 	Governance         map[string]GovernanceAppointment `json:"-"`
 	IdleStopNotices    map[string]IdleStopNotice        `json:"-"`
 	AgentIdleSettings  AgentIdleSettings                `json:"agentIdleSettings"`

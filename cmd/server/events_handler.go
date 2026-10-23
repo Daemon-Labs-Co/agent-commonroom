@@ -222,6 +222,9 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			Enabled bool   `json:"enabled"`
 		}
 		json.Unmarshal(req.Payload, &flag)
+		if flag.Name == "agentCoordination" && !flag.Enabled {
+			s.cancelStaleCoordinationLocked(room.GovernanceAppointment{})
+		}
 		if flag.Name == "workflowExecution" && !flag.Enabled {
 			for _, cancel := range s.workflowLive {
 				cancel()

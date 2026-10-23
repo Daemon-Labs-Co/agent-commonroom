@@ -115,6 +115,7 @@ func (s *server) governance(w http.ResponseWriter, r *http.Request) {
 		operationError(w, err)
 		return
 	}
+	s.cancelStaleCoordinationLocked(next)
 	reply(w, response)
 }
 
@@ -145,4 +146,42 @@ func (s *server) appendAppointmentBatch(ctx context.Context, changes []auditChan
 		}
 	}
 	return err
+}
+
+// A role dependency can only narrow an authenticated human's work permission.
+// It is controller context, never a bearer capability supplied by model output.
+type coordinationContextKey struct{}
+type coordinationBinding struct {
+	Appointment room.GovernanceAppointment
+	Epoch       int
+}
+
+func currentCoordination(st room.State, appointment room.GovernanceAppointment) bool {
+	return appointment.Revision > 0 && st.FeatureFlags["agentCoordination"] &&
+		appointment.CompanyID == st.Company.ID && hasRoom(st, appointment.RoomID) &&
+		st.Governance[appointment.RoomID] == appointment && eligibleGovernor(st, appointment.RoomID, appointment.ParticipantID)
+}
+func coordinationJobAllowed(st room.State, job room.ManagedJob) bool {
+	if job.GovernanceRevision == 0 {
+		return job.CoordinatorID == "" && job.CoordinationEpoch == 0
+	}
+	return job.CoordinationEpoch == st.CoordinationEpoch && currentCoordination(st, room.GovernanceAppointment{CompanyID: job.CompanyID, RoomID: job.RoomID, ParticipantID: job.CoordinatorID, Revision: job.GovernanceRevision}) && job.ParticipantID == job.CoordinatorID
+}
+func coordinationContextAllowed(ctx context.Context, st room.State, p room.Participant) bool {
+	binding, bound := ctx.Value(coordinationContextKey{}).(coordinationBinding)
+	appointment := binding.Appointment
+	return !bound || binding.Epoch == st.CoordinationEpoch && appointment.ParticipantID == p.ID && appointment.RoomID == p.RoomID && currentCoordination(st, appointment)
+}
+
+// Only cancels local role-bound turns. Worker cleanup retains its normal fenced
+// proof protocol; cancellation is never reported as confirmed shutdown.
+// Caller holds s.mu; a zero next value revokes all local coordination turns.
+func (s *server) cancelStaleCoordinationLocked(next room.GovernanceAppointment) {
+	for pid, prior := range s.coordinationTurns {
+		if next.Revision == 0 || prior.RoomID == next.RoomID && prior != next {
+			if cancel := s.cancels[pid]; cancel != nil {
+				cancel()
+			}
+		}
+	}
 }

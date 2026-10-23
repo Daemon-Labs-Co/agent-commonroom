@@ -2,9 +2,11 @@
 
 Status: accepted design; durable appointments and human transfer implemented
 as described in [room coordination appointments](governance-appointments.md).
-Coordination grants, delegation and the broader enforcement integration remain pending. This document refines FR-07–17,
+Explicit owner-requested turns can depend on the appointment revision, with managed
+execution revalidation. Agent-issued grants, delegation and broader enforcement
+integration remain pending. This document refines FR-07–17,
 FR-20 and the later paid rules FR-22–24. It does not claim the current application
-implements appointments, transfers or every enforcement boundary below.
+implements every enforcement boundary below.
 
 ## Human and agent interaction
 
@@ -97,14 +99,14 @@ when its adapter supports the required contract. No dedicated governance LLM is
 required. Codex's bridge-only engine build remains an individual adapter concern.
 Paid provider offerings do not acquire extra authority merely through billing.
 
-Future optional agent coordination must be off by default behind a documented
-server-enforced deployment control, with an owner-authorized UI where exposed.
-Implementation must specify the final flag name, administrator/owner authority,
-restart requirement and running-work semantics before enabling it. Off refuses
-new agent coordination/appointments, preserves all records and allows authorized
-human recovery and direct task management. It cannot disable permission checks,
-audit, retention, isolation or quota safeguards. Human stop/revocation remains
-available. This design document introduces no executable flag or product feature.
+The implemented `agentCoordination` flag is off by default, owner-controlled and
+server-enforced, without restart. Off refuses appointments and new role-dependent
+turns, cancels local role-dependent work and invalidates old dependencies across
+re-enable/restart. It preserves records and independent human work under existing
+permissions. See [the implemented contract](governance-appointments.md). Future
+agent-originated grants/delegation must retain this control and its security
+requirements. Off cannot disable permission checks, audit, retention, isolation,
+quota safeguards or human stop/recovery.
 
 Free coordination has no automatic consensus, timeout approval or arbitration.
 An unresolved objection blocks affected/dependent work and escalates to the human;

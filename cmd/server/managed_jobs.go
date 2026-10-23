@@ -54,6 +54,12 @@ func (s *server) managedExecutionJobContext(ctx context.Context, p room.Particip
 func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.Participant, repository string, policy func() (string, error), version int) context.Context {
 	job := room.ManagedJob{Version: 2, JobID: id(), RoomID: p.RoomID, ParticipantID: p.ID, ConnectionID: p.ConnectionID, Status: "allocated", AllocatedAt: time.Now().UTC()}
 	job.InitiatorID, _ = ctx.Value(actorContextKey{}).(string)
+	binding, coordinated := ctx.Value(coordinationContextKey{}).(coordinationBinding)
+	appointment := binding.Appointment
+	if coordinated {
+		job.CoordinationEpoch = binding.Epoch
+		job.CoordinatorID, job.GovernanceRevision = appointment.ParticipantID, appointment.Revision
+	}
 	paired := policy != nil || repository != ""
 	if paired {
 		job.Version = version
@@ -85,7 +91,7 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 		if err != nil {
 			return errors.New("managed job state unavailable")
 		}
-		if s.agentsBlockedLocked(latest, p.RoomID) {
+		if s.agentsBlockedLocked(latest, p.RoomID) || coordinated && (!coordinationContextAllowed(ctx, latest, p) || job.InitiatorID != ownerID) {
 			return errors.New("managed execution is stopped")
 		}
 		if job.InitiatorID != "" {
@@ -201,6 +207,9 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 	if job.ShutdownConfirmed {
 		return nil
 	} // late uncertainty cannot reverse verified proof
+	if status == "submitted" && (!coordinationJobAllowed(st, job) || s.agentsBlockedLocked(st, job.RoomID)) {
+		return errors.New("managed coordination revoked or execution stopped")
+	}
 	job.Status = status
 	job.UpdatedAt = time.Now().UTC()
 	job.DiagnosticCode = status
@@ -232,6 +241,9 @@ func (s *server) recordManagedJobLocked(jobID, status string) error {
 }
 
 func validManagedJob(v room.ManagedJob) bool {
+	if v.CoordinationEpoch < 0 || v.GovernanceRevision == 0 && v.CoordinationEpoch != 0 || v.GovernanceRevision < 0 || v.GovernanceRevision == 0 && v.CoordinatorID != "" || v.GovernanceRevision > 0 && (v.CoordinatorID != v.ParticipantID || !membershipPartPattern.MatchString(v.CoordinatorID) || v.InitiatorID != ownerID || v.CompanyID == "") {
+		return false
+	}
 	if !validManagedIdlePolicy(v) || !validManagedHarness(v) {
 		return false
 	}

@@ -124,16 +124,17 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Action            string `json:"action"`
-		ParticipantID     string `json:"participantId"`
-		Text              string `json:"text"`
-		ThreadID          string `json:"threadId"`
-		Mode              string `json:"mode"`
-		Name              string `json:"name"`
-		AdditionalContext string `json:"additionalContext"`
-		ContextSource     string `json:"contextSource"`
-		Search            string `json:"search"`
-		Cursor            string `json:"cursor"`
+		Action               string `json:"action"`
+		CoordinationRevision *int   `json:"coordinationRevision"`
+		ParticipantID        string `json:"participantId"`
+		Text                 string `json:"text"`
+		ThreadID             string `json:"threadId"`
+		Mode                 string `json:"mode"`
+		Name                 string `json:"name"`
+		AdditionalContext    string `json:"additionalContext"`
+		ContextSource        string `json:"contextSource"`
+		Search               string `json:"search"`
+		Cursor               string `json:"cursor"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 65536)
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
@@ -158,6 +159,22 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		r = r.WithContext(ctx)
+	}
+	if req.CoordinationRevision != nil {
+		if r.Header.Get("Idempotency-Key") == "" {
+			http.Error(w, "Coordination requires an idempotency key", 400)
+			return
+		}
+		if requestActor(r) != ownerID {
+			http.Error(w, "Owner permission required", 403)
+			return
+		}
+		appointment := st.Governance[roomID]
+		if req.Action != "send" || *req.CoordinationRevision < 1 || *req.CoordinationRevision != appointment.Revision || req.ParticipantID != appointment.ParticipantID || !currentCoordination(st, appointment) {
+			http.Error(w, "Coordination changed or is unavailable; reload before sending", 409)
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), coordinationContextKey{}, coordinationBinding{Appointment: appointment, Epoch: st.CoordinationEpoch}))
 	}
 	allState := st
 	st = scoped(st, roomID)
@@ -444,7 +461,15 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	for _, p := range targets {
 		s.active[p.ID] = true
 		prompt := prompts[p.ID]
-		ctx, cancel := context.WithTimeout(detachedInitiatorContext(r.Context()), 3*time.Minute)
+		parent := detachedInitiatorContext(r.Context())
+		if binding, bound := r.Context().Value(coordinationContextKey{}).(coordinationBinding); bound {
+			parent = context.WithValue(parent, coordinationContextKey{}, binding)
+			if s.coordinationTurns == nil {
+				s.coordinationTurns = map[string]room.GovernanceAppointment{}
+			}
+			s.coordinationTurns[p.ID] = binding.Appointment
+		}
+		ctx, cancel := context.WithTimeout(parent, 3*time.Minute)
 		s.cancels[p.ID] = cancel
 		go s.runAgent(ctx, cancel, p, prompt, endpoints[p.ID])
 	}
@@ -463,7 +488,11 @@ func (b *bufferResponse) WriteHeader(n int)           { b.status = n }
 func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
-	text, err := s.executeAgentTurn(ctx, p, prompt, endpoint)
+	turn := s.agentTurn
+	if turn == nil {
+		turn = s.executeAgentTurn
+	}
+	text, err := turn(ctx, p, prompt, endpoint)
 	s.finishAgentTurn(ctx, p, text, endpoint, err)
 }
 
@@ -505,7 +534,7 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 		if e != nil {
 			return e
 		}
-		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) {
+		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) || !coordinationContextAllowed(ctx, st, p) {
 			return errors.New("agent turn cancelled or blocked")
 		}
 		found := false
@@ -536,6 +565,7 @@ func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant
 	defer s.mu.Unlock()
 	defer delete(s.active, p.ID)
 	defer delete(s.cancels, p.ID)
+	defer delete(s.coordinationTurns, p.ID)
 	st, e := s.load(context.Background())
 	if e != nil {
 		s.tripIntegrityLocked()
@@ -558,7 +588,7 @@ func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant
 	}
 	changes := []auditChange{}
 	p.Status = "Idle"
-	if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) {
+	if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) || !coordinationContextAllowed(ctx, st, p) {
 		p.Status = "Stopped"
 		changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"}})
 	} else if err != nil || ctx.Err() != nil {
