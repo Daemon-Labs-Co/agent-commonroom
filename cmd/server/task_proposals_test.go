@@ -1,0 +1,354 @@
+package main
+
+import (
+	"agentroom/internal/room"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+)
+
+func proposalFixture(t *testing.T, enabled bool) (*server, *mockDB, http.Handler) {
+	t.Helper()
+	s, db, _ := mockServer(t)
+	db.seed("feature.flag.updated", map[string]any{"name": "taskProposals", "enabled": enabled})
+	db.seed("message.created", room.Message{ID: "source", RoomID: "engineering", ActorID: "synthetic-agent", ActorType: "agent", Author: "Synthetic author", Text: "A suggestion, not approval"})
+	db.seed("room.created", room.Room{ID: "foreign", Name: "Foreign"})
+	db.seed("message.created", room.Message{ID: "secret", RoomID: "foreign", ActorID: "other", ActorType: "human", Author: "Other", Text: "Synthetic foreign content"})
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/task-proposals", s.taskProposals)
+	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
+	mux.HandleFunc("/api/events", s.events)
+	return s, db, s.auth.protect(s.actorGuard(mux))
+}
+func proposalRequest(h http.Handler, actor, key, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "http://127.0.0.1:8787/api/task-proposals", strings.NewReader(body))
+	r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: actor})
+	r.Header.Set("X-CSRF-Token", "csrf")
+	r.Header.Set("Idempotency-Key", key)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	return w
+}
+
+const captureProposal = `{"action":"capture","sourceMessageId":"source","title":"Synthetic proposal","criteria":""}`
+
+func capturedProposal(t *testing.T, h http.Handler) room.TaskProposal {
+	t.Helper()
+	w := proposalRequest(h, "owner", "capture-proposal", captureProposal)
+	var p room.TaskProposal
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	return p
+}
+func approveProposalBody(p room.TaskProposal) string {
+	return fmt.Sprintf(`{"action":"approve","proposalId":%q,"revision":%d,"title":"Reviewed task","criteria":"Explicit synthetic acceptance"}`, p.ID, p.Revision)
+}
+func TestTaskProposalSeparatesCaptureApprovalAndExecution(t *testing.T) {
+	t.Parallel()
+	s, db, h := proposalFixture(t, true)
+	p := capturedProposal(t, h)
+	st, err := s.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Tasks) != 0 || len(st.ManagedJobs) != 0 || len(s.active) != 0 || p.SourceActorID != "synthetic-agent" || p.SourceAuthor != "Synthetic author" || p.CapturedBy != ownerID || p.Status != "Proposed" {
+		t.Fatal("capture became approval or lost authorship", p)
+	}
+	original := db.snapshot()
+	w := proposalRequest(h, "owner", "capture-proposal", captureProposal)
+	if w.Code != 200 || w.Header().Get("Idempotent-Replay") != "true" || !reflect.DeepEqual(original, db.snapshot()) {
+		t.Fatal("capture retry duplicated proposal")
+	}
+	body := approveProposalBody(p)
+	w = proposalRequest(h, "owner", "approve-proposal", body)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	st, err = (&server{db: db}).load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Tasks) != 1 || st.Tasks[0].ProposalID != p.ID || st.Tasks[0].Status != "Draft" || st.Tasks[0].Assignee != "" || len(st.ManagedJobs) != 0 || len(s.active) != 0 {
+		t.Fatal("approval dispatched work or lost draft")
+	}
+	task := st.Tasks[0]
+	if st.TaskProposals[p.ID].ReviewedBy != ownerID || st.TaskProposals[p.ID].TaskID != task.ID {
+		t.Fatal("approval link missing")
+	}
+	before := db.snapshot()
+	w = proposalRequest(h, "owner", "approve-proposal", body)
+	if w.Code != 200 || w.Header().Get("Idempotent-Replay") != "true" || !reflect.DeepEqual(before, db.snapshot()) {
+		t.Fatal("approval retry created another task")
+	}
+	w = proposalRequest(h, "owner", "changed-approval", body)
+	if w.Code != 409 {
+		t.Fatal("second decision accepted", w.Code)
+	}
+	w = dispatchRequest(h, "dispatch-draft", fmt.Sprintf(`{"taskId":%q,"revision":1,"mode":"work"}`, task.ID))
+	if w.Code != 409 || len(s.active) != 0 {
+		t.Fatal("draft dispatched", w.Code)
+	}
+	// Generic task edits preserve controller-owned source linkage even if omitted.
+	w = mockRequest(h, "POST", "/api/events", fmt.Sprintf(`{"kind":"task.revised","payload":{"id":%q,"revision":1,"title":"Human edit","criteria":"Reviewed acceptance","status":"Assigned"}}`, task.ID))
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	st, err = s.load(t.Context())
+	if err != nil || st.Tasks[0].ProposalID != p.ID {
+		t.Fatal("task edit erased provenance", err)
+	}
+}
+func TestTaskProposalRefusalsAndScopedRead(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"off", "agent", "human", "foreign-source", "missing-source", "forged-author", "duplicate-field", "stop", "no-key"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			s, db, h := proposalFixture(t, mode != "off")
+			body := captureProposal
+			actor := "owner"
+			key := "capture-refusal"
+			want := 400
+			switch mode {
+			case "off":
+				want = 403
+			case "agent", "human":
+				actor = mode
+				db.seed("actor.created", room.Actor{ID: mode, Kind: mode, Role: "Developer", Enabled: true, RoomIDs: []string{"engineering"}})
+				s.auth.sessions[mode] = ownerSession{ActorID: mode, CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
+				want = 403
+			case "foreign-source":
+				body = strings.Replace(body, `"source"`, `"secret"`, 1)
+				want = 404
+			case "missing-source":
+				body = strings.Replace(body, `"source"`, `"absent"`, 1)
+				want = 404
+			case "forged-author":
+				body = strings.TrimSuffix(body, "}") + `,"sourceActorId":"owner"}`
+			case "duplicate-field":
+				body = strings.TrimSuffix(body, "}") + `,"title":"duplicate"}`
+			case "stop":
+				s.stopAll = true
+				want = 409
+			case "no-key":
+				key = ""
+			}
+			before := db.snapshot()
+			w := proposalRequest(h, actor, key, body)
+			if w.Code != want || !reflect.DeepEqual(before, db.snapshot()) {
+				t.Fatal("invalid proposal admitted", w.Code, w.Body.String())
+			}
+		})
+	}
+	_, _, h := proposalFixture(t, true)
+	capturedProposal(t, h)
+	w := mockRequest(h, "GET", "/api/task-proposals", "")
+	if w.Code != 200 || strings.Contains(w.Body.String(), "Synthetic foreign content") || !strings.Contains(w.Body.String(), "A suggestion, not approval") {
+		t.Fatal("source read leaked or missing", w.Code, w.Body.String())
+	}
+}
+func TestTaskProposalDecisionAtomicityRejectionAndFeatureOff(t *testing.T) {
+	t.Parallel()
+	for _, failure := range []string{"begin", "insert", "commit"} {
+		t.Run(failure, func(t *testing.T) {
+			t.Parallel()
+			s, db, h := proposalFixture(t, true)
+			p := capturedProposal(t, h)
+			before := db.snapshot()
+			db.failAt = failure
+			w := proposalRequest(h, "owner", "failed-approval", approveProposalBody(p))
+			if w.Code != 500 || !s.integrityFault || !reflect.DeepEqual(before, db.snapshot()) {
+				t.Fatal("approval failure partially committed", w.Code)
+			}
+			db.failAt = ""
+			st, err := s.load(t.Context())
+			if err != nil || len(st.Tasks) != 0 || st.TaskProposals[p.ID].Status != "Proposed" {
+				t.Fatal("failed decision changed state", err)
+			}
+		})
+	}
+	s, db, h := proposalFixture(t, true)
+	p := capturedProposal(t, h)
+	body := fmt.Sprintf(`{"action":"reject","proposalId":%q,"revision":1}`, p.ID)
+	w := proposalRequest(h, "owner", "reject-proposal", body)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	db.seed("feature.flag.updated", map[string]any{"name": "taskProposals", "enabled": false})
+	st, err := s.load(t.Context())
+	if err != nil || st.TaskProposals[p.ID].Status != "Rejected" || len(st.Tasks) != 0 {
+		t.Fatal("rejection/off erased history", err)
+	}
+	if w = proposalRequest(h, "owner", "approve-rejected", approveProposalBody(p)); w.Code != 403 {
+		t.Fatal("off permitted decision", w.Code)
+	}
+	if w = mockRequest(h, "GET", "/api/task-proposals", ""); w.Code != 200 || !strings.Contains(w.Body.String(), "Rejected") {
+		t.Fatal("off hid retained history")
+	}
+}
+func TestTaskProposalConcurrentApprovalsCreateOneDraft(t *testing.T) {
+	t.Parallel()
+	s, db, h := proposalFixture(t, true)
+	p := capturedProposal(t, h)
+	body := approveProposalBody(p)
+	other := &server{db: db, auth: s.auth}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/task-proposals", other.taskProposals)
+	h2 := other.auth.protect(other.actorGuard(mux))
+	var wg sync.WaitGroup
+	codes := make(chan int, 2)
+	for i, handler := range []http.Handler{h, h2} {
+		wg.Add(1)
+		go func(i int, h http.Handler) {
+			defer wg.Done()
+			codes <- proposalRequest(h, "owner", fmt.Sprintf("approval-race-%d", i), body).Code
+		}(i, handler)
+	}
+	wg.Wait()
+	close(codes)
+	ok, conflict := 0, 0
+	for code := range codes {
+		if code == 200 {
+			ok++
+		} else if code == 409 {
+			conflict++
+		} else {
+			t.Fatal(code)
+		}
+	}
+	st, err := s.load(context.Background())
+	if err != nil || ok != 1 || conflict != 1 || len(st.Tasks) != 1 || s.integrityFault || other.integrityFault {
+		t.Fatal("approval race duplicated or stopped", err, ok, conflict)
+	}
+}
+
+func TestTaskProposalCannotForgeOrStripProvenance(t *testing.T) {
+	t.Parallel()
+	s, db, h := proposalFixture(t, true)
+	p := capturedProposal(t, h)
+	w := mockRequest(h, "POST", "/api/events", fmt.Sprintf(`{"kind":"task.revised","payload":{"title":"Forged task","status":"Assigned","proposalId":%q}}`, p.ID))
+	if w.Code != 400 {
+		t.Fatal("generic task claimed proposal approval", w.Code, w.Body.String())
+	}
+	w = mockRequest(h, "POST", "/api/events", `{"kind":"task.proposal.approved","payload":{}}`)
+	if w.Code != 400 {
+		t.Fatal("generic event injected approval", w.Code)
+	}
+	w = proposalRequest(h, "owner", "real-approval", approveProposalBody(p))
+	if w.Code != 200 {
+		t.Fatal(w.Code)
+	}
+	st, err := s.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := st.Tasks[0]
+	task.ProposalID = ""
+	db.seed("task.revised", task)
+	if _, err = s.load(t.Context()); err == nil {
+		t.Fatal("replay accepted stripped provenance")
+	}
+}
+func TestTaskProposalCaptureFailureAndApprovalDisableRace(t *testing.T) {
+	t.Parallel()
+	t.Run("capture-failure", func(t *testing.T) {
+		t.Parallel()
+		s, db, h := proposalFixture(t, true)
+		before := db.snapshot()
+		db.failAt = "commit"
+		w := proposalRequest(h, "owner", "capture-failure", captureProposal)
+		if w.Code != 500 || !s.integrityFault || !reflect.DeepEqual(before, db.snapshot()) {
+			t.Fatal("capture failure was not atomic", w.Code)
+		}
+	})
+	t.Run("disable-race", func(t *testing.T) {
+		t.Parallel()
+		s, db, h := proposalFixture(t, true)
+		p := capturedProposal(t, h)
+		other := &server{db: db, auth: s.auth}
+		mux := http.NewServeMux()
+		mux.HandleFunc("/api/events", other.events)
+		otherHandler := other.auth.protect(other.actorGuard(mux))
+		once := false
+		s.db = &interleavedEventDB{eventDatabase: db, beforeBegin: func(context.Context) {
+			if !once {
+				once = true
+				w := mockRequest(otherHandler, "POST", "/api/events", `{"kind":"feature.flag.updated","payload":{"name":"taskProposals","enabled":false}}`)
+				if w.Code != 200 {
+					t.Fatal(w.Code)
+				}
+			}
+		}}
+		w := proposalRequest(h, "owner", "approval-disable", approveProposalBody(p))
+		if w.Code != 409 || s.integrityFault {
+			t.Fatal("stale approval crossed disable", w.Code)
+		}
+		st, err := s.load(t.Context())
+		if err != nil || len(st.Tasks) != 0 || st.TaskProposals[p.ID].Status != "Proposed" {
+			t.Fatal("disable race created task", err)
+		}
+	})
+}
+func TestTaskProposalFlagDefaultsOffAndOwnerCanEnable(t *testing.T) {
+	t.Parallel()
+	s, db, _ := mockServer(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/events", s.events)
+	mux.HandleFunc("/api/task-proposals", s.taskProposals)
+	h := s.auth.protect(s.actorGuard(mux))
+	w := mockRequest(h, "GET", "/api/task-proposals", "")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"enabled":false`) {
+		t.Fatal("default not off", w.Code)
+	}
+	w = mockRequest(h, "POST", "/api/events", `{"kind":"feature.flag.updated","payload":{"name":"taskProposals","enabled":true}}`)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	st, err := s.load(t.Context())
+	if err != nil || !st.FeatureFlags["taskProposals"] {
+		t.Fatal("owner enable failed", err)
+	}
+	db.seed("actor.created", room.Actor{ID: "human", Kind: "human", Role: "Developer", Enabled: true, RoomIDs: []string{"engineering"}})
+	s.auth.sessions["human"] = ownerSession{ActorID: "human", CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
+	r := httptest.NewRequest("POST", "http://127.0.0.1:8787/api/events", strings.NewReader(`{"kind":"feature.flag.updated","payload":{"name":"taskProposals","enabled":false}}`))
+	r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: "human"})
+	r.Header.Set("X-CSRF-Token", "csrf")
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 403 {
+		t.Fatal("non-owner changed flag", w.Code)
+	}
+}
+
+func TestProposalDraftCannotDispatchEvenAfterAssigneeEdit(t *testing.T) {
+	t.Parallel()
+	s, db, h := proposalFixture(t, true)
+	p := capturedProposal(t, h)
+	db.seed("connection.created", room.Connection{ID: "connection", Protocol: "CLI", Endpoint: "ssh://synthetic-worker"})
+	db.seed("participant.created", room.Participant{ID: "dev", RoomID: "engineering", ConnectionID: "connection", Status: "Idle"})
+	w := proposalRequest(h, "owner", "approve-draft", approveProposalBody(p))
+	if w.Code != 200 {
+		t.Fatal(w.Code)
+	}
+	st, err := s.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := st.Tasks[0]
+	w = mockRequest(h, "POST", "/api/events", fmt.Sprintf(`{"kind":"task.revised","payload":{"id":%q,"revision":1,"title":"Assigned draft","criteria":"Acceptance","assignee":"dev","status":"Draft"}}`, task.ID))
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	s.taskReady = func(string) error { t.Error("draft reached runtime admission"); return fmt.Errorf("synthetic refusal") }
+	w = dispatchRequest(h, "dispatch-assigned-draft", fmt.Sprintf(`{"taskId":%q,"revision":2,"mode":"work"}`, task.ID))
+	if w.Code != 409 || len(s.active) != 0 {
+		t.Fatal("assigned draft reached dispatch", w.Code)
+	}
+}
