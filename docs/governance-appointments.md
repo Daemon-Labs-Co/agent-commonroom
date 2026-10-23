@@ -75,3 +75,15 @@ permissions. Tests launch no provider, Docker or database. Browser controls use
 current revisions and idempotent requests; the server remains authoritative.
 Live multi-controller/provider acceptance and all later governance grants/delegation
 remain pending. See [release acceptance](p0-release-gate-acceptance.md).
+
+Automatic registration, agent creation and history attachment use the same
+appointment-batch failure policy: required persistence failure latches integrity
+stop; optimistic concurrency conflict alone does not. Both the ordinary settings
+control and the shared switch render an unset coordination flag as off.
+
+Handler-level regression tests exercise agent creation and history attachment
+with instance-scoped mocked login/history dependencies. They verify successful
+registration and initial appointment, disabled coordination, and transaction
+commit failure: all registration events roll back, and a required appointment
+failure latches the integrity stop and refuses a subsequent selection. These
+checks do not launch a provider or prove live provider authentication.

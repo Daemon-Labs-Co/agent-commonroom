@@ -5,11 +5,15 @@ package main
 import (
 	"agentroom/internal/room"
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 )
 
 type server struct {
+	// Provider metadata boundaries; nil uses the production implementation.
+	agentLoginStatus  func(context.Context) error
+	agentHistoryRPC   func(context.Context, string, any) (json.RawMessage, error)
 	disposalSeen      map[string]time.Time
 	disposalNow       func() time.Time
 	storageTimeout    time.Duration
