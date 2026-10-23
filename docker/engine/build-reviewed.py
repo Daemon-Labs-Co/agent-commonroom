@@ -39,7 +39,7 @@ def build_args(source, name):
             '--mount', f'type=bind,src={source},dst=/src', '--workdir', '/src/codex-rs',
             '--env', 'CARGO_HOME=/build-cache/cargo',
             '--env', 'CARGO_TARGET_DIR=/build-cache/target',
-            '--env', 'CARGO_BUILD_JOBS=4',
+            '--env', 'CARGO_BUILD_JOBS=1',
             '--tmpfs', '/tmp:rw,nosuid,nodev,size=1g', RUST_IMAGE,
             'sh', '-c', BUILD_COMMAND]
 
@@ -48,11 +48,16 @@ def run(source, name, prepare, invoke=subprocess.run):
     args = build_args(source, name)
     # Check actual daemon mode before writing source or creating a container.
     env = {key: os.environ[key] for key in ('PATH', 'HOME', 'XDG_RUNTIME_DIR') if key in os.environ}
-    result = invoke(['docker', 'info', '--format', '{{json .SecurityOptions}}'],
+    result = invoke(['docker', 'info', '--format', '{{json .}}'],
                     check=True, capture_output=True, text=True, env=env)
-    options = json.loads(result.stdout)
-    if not isinstance(options, list) or not any(x == 'name=rootless' for x in options):
+    info = json.loads(result.stdout)
+    if not isinstance(info, dict):
+        raise ValueError('Docker capability evidence required')
+    options = info.get('SecurityOptions')
+    if not isinstance(options, list) or 'name=rootless' not in options:
         raise ValueError('Rootless Docker is required; no host build fallback')
+    if any(info.get(key) is not True for key in ('MemoryLimit', 'SwapLimit', 'PidsLimit', 'CpuCfsQuota')):
+        raise ValueError('Enforceable memory, swap, PID and CPU limits are required')
     prepare(Path(source))
     # Use a reduced process environment: no inherited provider keys or custom
     # Docker endpoint/context. Docker uses its default rootless local socket.

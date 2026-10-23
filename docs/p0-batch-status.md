@@ -6,6 +6,12 @@ Updated: 22 October 2026 (America/Toronto).
 
 - Branch: `codex/p0-release-gates`.
 - Base: verified clean merged main `a2112b6a233f08774cffaeb5bc88827a3e38b429`.
+- Published head: `d3d10743335791fffd0112c12f7e45a145e4294c`. PR #53 open;
+  Greptile succeeded with valid P1 comment `4355424030` on that head.
+  Local fix requires full daemon capability evidence before preparation/start,
+  including explicitly true MemoryLimit, SwapLimit, PidsLimit and CpuCfsQuota.
+  Refusal tests cover false, missing and malformed values for each field.
+  No GitHub discussion was posted; current-head rereview follows publication.
 - PR #52 merged the exact-role cleanup fix as `465b7f7`; Greptile succeeded
   on that reviewed head. No local fix was carried forward.
 - User requested consolidation of remaining P0 work into the next commit.
@@ -38,7 +44,7 @@ Updated: 22 October 2026 (America/Toronto).
   in 15.82 seconds. Elapsed approximately 6 minutes for specification preparation.
 - G09 foundation: added a reproducible bridge-only build launcher with rootless
   admission, source/policy pins, bounded resources and reduced environment.
-  Six mocked tests cover successful confinement, missing rootless evidence,
+  Seven mocked tests cover successful confinement, missing rootless evidence,
   unsafe paths/configuration, pin/preparation failure and compiler failure.
   Build infrastructure has no product toggle and does not approve engine images.
 - Live build on `jerry`: directory `/var/tmp/commonroom-engine-build.oBvGZdku`,
@@ -49,13 +55,23 @@ Updated: 22 October 2026 (America/Toronto).
   8 GiB memory and 512 PIDs, all capabilities dropped, no-new-privileges,
   public source only and no credential/socket mounts. Future launcher also
   bounds compiler jobs and additional swap. No provider has been launched.
-  Compilation is still running; router tests and binary success are NOT claimed.
+  All three bridge-router tests passed. The subsequent release build failed
+  with a confirmed container OOM while compiling codex-tui; no release binary
+  success is claimed. Preserve the failed container and log.
+  A one-job retry uses the same pinned image/source and 8-GiB memory bound,
+  with no additional swap allowance. Its public cache is copied to resume-cache;
+  retry container is `commonroom-reviewed-engine-build-oBvGZdku-j1`, log
+  `release-j1.log`. Verify cache-copy/start state before creating another retry.
   Reinspect exact container/log before retrying; do not start a competing build.
 - Foundation make test passed in 0.70 seconds (cached); make check passed in
   6.78 seconds after the final resource-limit refinement. Live build elapsed
   time remains open until completion; it is separate from hermetic check timing.
-- Last notification: sequential implementation started; G09 source compilation
-  is active. No commit handoff or release-readiness claim.
+- Review fix checks: make test 0.76 seconds; make check 6.54 seconds, both passed.
+  Elapsed approximately 5 minutes including live failure diagnosis; retry build
+  time remains open. Launcher now limits compilation to one job.
+- Last notification: published PR verified; capability review fix ready locally.
+  Three router tests passed but release build OOM failed; bounded retry underway.
+  No release gate is certified. Await owner publication of the grouped fix.
 - Mark retains signing, publication and merge control; nothing staged by agent.
 
 ## Previous batch evidence

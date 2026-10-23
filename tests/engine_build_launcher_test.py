@@ -13,6 +13,11 @@ launcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(launcher)
 
 
+def healthy_info():
+    return {'SecurityOptions': ['name=rootless'], 'MemoryLimit': True,
+            'SwapLimit': True, 'PidsLimit': True, 'CpuCfsQuota': True}
+
+
 class EngineBuildLauncherTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -26,7 +31,7 @@ class EngineBuildLauncherTests(unittest.TestCase):
         prepared = []
         def invoke(args, **kwargs):
             calls.append((args, kwargs))
-            return types.SimpleNamespace(stdout=json.dumps(['name=rootless']))
+            return types.SimpleNamespace(stdout=json.dumps(healthy_info()))
         with patch.dict(os.environ, {'OPENAI_API_KEY': 'synthetic-canary', 'DOCKER_HOST': 'tcp://foreign.invalid:2375'}):
             launcher.run(self.source, 'commonroom-engine-build-test', prepared.append, invoke)
         self.assertEqual(prepared, [self.source])
@@ -34,7 +39,7 @@ class EngineBuildLauncherTests(unittest.TestCase):
         args, kwargs = calls[1]
         self.assertEqual(args.count('--mount'), 1)
         self.assertIn(f'type=bind,src={self.source},dst=/src', args)
-        for value in ('--cpus=4', '--memory=8g', '--memory-swap=8g', 'CARGO_BUILD_JOBS=4', '--pids-limit=512', '--cap-drop=ALL', '--security-opt=no-new-privileges', launcher.RUST_IMAGE):
+        for value in ('--cpus=4', '--memory=8g', '--memory-swap=8g', 'CARGO_BUILD_JOBS=1', '--pids-limit=512', '--cap-drop=ALL', '--security-opt=no-new-privileges', launcher.RUST_IMAGE):
             self.assertIn(value, args)
         self.assertEqual(args[-1], launcher.BUILD_COMMAND)
         for _, options in calls:
@@ -53,11 +58,27 @@ class EngineBuildLauncherTests(unittest.TestCase):
                 launcher.run(self.source, 'commonroom-engine-build-test', lambda _: self.fail('source changed'), invoke)
             self.assertEqual(len(calls), 1)
 
+    def test_resource_support_must_be_explicitly_true(self):
+        for key in ('MemoryLimit', 'SwapLimit', 'PidsLimit', 'CpuCfsQuota'):
+            for value in (False, None, 'true', 1, 'missing'):
+                info = healthy_info()
+                if value == 'missing':
+                    del info[key]
+                else:
+                    info[key] = value
+                calls = []
+                def invoke(args, **kwargs):
+                    calls.append(args)
+                    return types.SimpleNamespace(stdout=json.dumps(info))
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    launcher.run(self.source, 'commonroom-engine-build-test', lambda _: self.fail('source changed'), invoke)
+                self.assertEqual(len(calls), 1)
+
     def test_preparation_failure_never_starts_container(self):
         calls = []
         def invoke(args, **kwargs):
             calls.append(args)
-            return types.SimpleNamespace(stdout='["name=rootless"]')
+            return types.SimpleNamespace(stdout=json.dumps(healthy_info()))
         def prepare(_):
             raise ValueError('pin mismatch')
         with self.assertRaises(ValueError):
@@ -90,6 +111,6 @@ class EngineBuildLauncherTests(unittest.TestCase):
         def invoke(args, **kwargs):
             if args[1] == 'run':
                 raise subprocess.CalledProcessError(1, args)
-            return types.SimpleNamespace(stdout='["name=rootless"]')
+            return types.SimpleNamespace(stdout=json.dumps(healthy_info()))
         with self.assertRaises(subprocess.CalledProcessError):
             launcher.run(self.source, 'commonroom-engine-build-test', lambda _: None, invoke)
