@@ -113,6 +113,10 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Task dispatch pending; wait or reconcile the worker", 409)
 		return
 	}
+	if task.Status == "Draft" {
+		http.Error(w, "Assign and authorize the draft task before dispatch", 409)
+		return
+	}
 	if task.Status == "Accepted" {
 		http.Error(w, "Accepted tasks cannot be dispatched", 409)
 		return

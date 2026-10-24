@@ -193,3 +193,7 @@ Optional [room coordination](docs/governance-appointments.md) is off by default.
 Owners may select a coordinator and send explicitly role-dependent requests.
 Replacement or disabling invalidates those turns; ordinary human work keeps its
 existing permissions. Selection never grants extra access or bypasses isolation.
+
+Optional [conversation task proposals](docs/task-proposals.md) let the owner
+capture a suggestion and review its original source before creating a draft.
+Off by default; approval never starts execution or grants agent permissions.

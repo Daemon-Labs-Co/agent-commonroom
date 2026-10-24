@@ -209,3 +209,126 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: P1 fix verified locally with one commit message; owner signs
   and publishes on the same PR before current-head rereview. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## Conversation task proposal batch
+
+- Active branch: `codex/governance-task-proposals`, from verified PR #57 merge
+  `880f20643ac9c5f796d375bdfc9ece8c2ed49d0c`. Merge tree matched exact reviewed
+  head `aa68d55b462e50bdcaec48322b6e45d7755137e2`; Greptile passed with no new
+  findings. Prior branches and Codex adapter work retained.
+- Added owner-mediated capture/review of room message suggestions. Immutable
+  source message/recorded authorship stays distinct from human capture identity,
+  reviewed criteria and approval. Capture grants no authority or task execution.
+- Atomic approval creates one unassigned Draft task. Rejection is terminal and
+  creates none. Operation receipts deduplicate retries; expected revisions/event
+  count prevent competing approvals or stale approval across disable/stop.
+- Added controller-owned Task.ProposalID, preserved through normal edits and
+  checked on replay. Draft dispatch refuses even with an assigned agent. Existing
+  independent task permissions/execution barriers are unchanged.
+- `taskProposals` defaults off, owner-only and server-enforced, no restart. Off
+  refuses captures/decisions, preserves readable records and approved tasks, and
+  does not cancel independent jobs. Settings/shared-switch defaults tested.
+- UI presents original escaped source for review; in-app Help and user/API/setup
+  docs describe source provenance, idempotency, flag behavior and limits.
+- Tests exercise authenticated endpoints, scope/identity forgery, default/off,
+  replay/restart, rollback/integrity failure, competing controllers, disable race,
+  immutable provenance, assigned Draft refusal and synthetic UI request controls.
+- make test passed in 9.23 seconds; make check passed in 18.93 seconds. Elapsed
+  9 minutes 29 seconds from 16:56:58 to 17:06:27 UTC before checkpoint handoff.
+  Tests mock all database/provider boundaries and launch no real providers/Docker.
+- No deployed browser/screenshot, live multi-controller or provider acceptance
+  performed. This is partial GOV-08: automatic agent-originated proposal channels,
+  bounded delegation, resource approvals and independent objections remain pending.
+  No full governance model or P0 release gate is certified.
+- Last notification: proposal capture/review/Draft batch verified locally and ready
+  for owner signing/publication with one commit message. Nothing staged, committed,
+  pushed, merged or posted by the agent. Await owner publication/review on this batch.
+
+## PR #58 personal-room replay review fix
+
+- Current reviewed head: `71e67624d3336d5fc8ad3a3aa317268f2d18ebea`, branch
+  `codex/governance-task-proposals`. PR #58 open; Greptile completed with new
+  valid P1 `4362796233`: derived personal rooms were missing at proposal replay
+  validation, making a successful capture poison subsequent state loading.
+- Projection now materializes personal rooms from the owner and previously
+  replayed actors/connections before proposal scope validation. No permissions
+  or historical room-existence checks are bypassed; future actors cannot repair
+  an invalid earlier proposal.
+- Authenticated regressions cover owner, member and connection-agent personal
+  rooms, first capture without profile/Help events, state/list reads, approval,
+  rejection, restart and feature-off history. Unknown/future personal-room scope
+  remains refused; private sources remain absent from shared-room lists.
+- Prior missing-file findings `4362619352`, `4362619359`, `4362619374` on
+  `2f44cb17186f47cfced9923664c562c47373a015` were resolved by owner publication;
+  all five implementation/test/doc files are tracked in current head.
+- make test passed in 9.19 seconds; make check passed in 18.81 seconds. Elapsed
+  3 minutes 5 seconds from 18:22:05 to 18:25:10 UTC before checkpoint handoff.
+  All database/provider boundaries mocked; live deployment/browser/provider
+  acceptance remains unverified and no P0 release gate is certified.
+- Last notification: personal-room replay fix verified locally, ready for owner
+  signing/publication on the same PR. Nothing staged, committed, pushed, merged
+  or posted by the agent. Await current-head rereview after owner publication.
+
+## PR #58 derived personal-room label review fix
+
+- Current reviewed head `545246aaff1ff01cd31bee210ada874afa599df9`, branch
+  `codex/governance-task-proposals`; prior P1 personal-room replay fix published.
+  PR #58 open; Greptile completed with valid non-blocking P2 `4362975561`:
+  early projection froze personal-room labels before later actor renames.
+- Existing derived personal-room labels now refresh from current actor names;
+  connection-derived agent names follow current connections. Room IDs, personal
+  ownership, saved settings and actor authority remain unchanged. Historical
+  proposal source authorship is never renamed retroactively.
+- Mocked shared/private proposal replay and restart regressions cover later
+  member, owner and connection renames. A repeated-projection control verifies
+  custom shared labels, personal settings and disabled actor permissions persist.
+- make test passed in 9.25 seconds; make check passed in 18.74 seconds. Elapsed
+  2 minutes 9 seconds from 18:30:48 to 18:32:57 UTC before checkpoint handoff.
+  No real database/provider/browser or live deployment exercised.
+- Last notification: derived-label review fix verified locally, ready for owner
+  signing/publication on the same PR. Nothing staged, committed, pushed, merged
+  or posted by the agent; await current-head rereview after owner publication.
+
+## PR #58 custom personal-room name review fix
+
+- Reviewed head `7765e8d878df4e7fe007392178ad2a69fd7d5381`, branch
+  `codex/governance-task-proposals`. PR #58 open; Greptile completed with valid
+  non-blocking P2 `4363039881`: refreshing every derived personal-room label
+  overwrote custom names explicitly saved through Room settings.
+- Replay now distinguishes automatic labels from custom names using historical
+  room.updated values. This metadata is private/controller-derived, never trusted
+  from clients. Personal rooms exist before applying their historical updates;
+  saved personal ownership and other room fields are preserved.
+- Only automatic names follow actor renames. Custom names persist through later
+  settings saves, proposal capture, actor rename, restart and state refresh.
+  Tests cover updates before/after proposal capture and unchanged automatic-name
+  controls. Prior unknown/future-room and source-isolation regressions still pass.
+- make test passed in 9.19 seconds; make check passed in 18.85 seconds. Observed
+  wall-clock span 18:37:53–21:08:12 UTC (2 hours 30 minutes 19 seconds); active
+  execution time was not separately measured. Tests use mocked boundaries;
+  no real database/provider/browser or live deployment acceptance performed.
+- Last notification: custom-name persistence fix verified locally, ready for
+  owner signing/publication on the same PR. Nothing staged, committed, pushed,
+  merged or posted by the agent; await current-head rereview after publication.
+
+## PR #58 stale automatic-name dialog review fix
+
+- Reviewed exact head `0e6b203f08c0c3f799f968c25ba874846995ea82`, branch
+  `codex/governance-task-proposals`. PR #58 open; valid P2 `4364398490`:
+  a description-only save from before an actor rename could freeze its old
+  automatic room name because the saved room revision had not changed.
+- Personal rooms now expose a derived `nameVersion` display-state precondition.
+  Room updates require it to match the current room name/identity as well as the
+  ordinary room revision. Missing/stale values refuse with 409 and no writes.
+  This is not an authority credential; normal authentication/access checks remain.
+- Actual state/settings endpoint regressions cover member, owner and connection
+  renames, stale description saves, fresh description saves, later automatic
+  renames, explicit custom naming, unchanged custom-name dialogs and restart.
+  Existing room update clients spread state fields and carry the precondition.
+- make test passed in 9.02 seconds; make check passed in 19.06 seconds. Elapsed
+  approximately 3 minutes 15 seconds from 00:24:38 to 00:27:53 UTC, 24 October.
+  Database/provider boundaries remain mocked; no live browser/provider/deployment
+  verification or P0 certification is claimed.
+- Last notification: valid stale-dialog finding fixed and verified locally, with
+  one commit message. Nothing staged, committed, pushed, merged or posted by the
+  agent; owner publishes on the same PR before current-head rereview.

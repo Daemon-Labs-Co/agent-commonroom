@@ -90,6 +90,7 @@ func main() {
 	mux.HandleFunc("/api/agents", s.agents)
 	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
 	mux.HandleFunc("/api/governance", s.governance)
+	mux.HandleFunc("/api/task-proposals", s.taskProposals)
 	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
 	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
 	mux.HandleFunc("/api/job-diagnostics", s.jobDiagnostics)

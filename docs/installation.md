@@ -140,3 +140,12 @@ dependencies remain invalid after re-enable; ordinary independent work keeps its
 existing permissions. Security checks and human stop remain active.
 See [coordination and authority](governance-appointments.md) for scope, running-work
 behavior and remaining governance implementation.
+
+
+## Optional conversation task proposals
+
+`taskProposals` defaults off. The owner enables it in Settings without restart,
+then captures a room suggestion and reviews its source in Tasks. Approval creates
+an unassigned Draft, never an execution. Off preserves all history and tasks and
+refuses new captures/decisions; independent work retains its existing permissions.
+See [task proposals](task-proposals.md) for usage, API, permissions and limits.

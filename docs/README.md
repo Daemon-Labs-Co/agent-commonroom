@@ -17,6 +17,9 @@ internal tested components and remaining release gates. The
 
 ## Use the workspace
 
+[Conversation task proposals](task-proposals.md) separates suggestion capture,
+human review and draft creation from execution.
+
 [Room coordination appointments](governance-appointments.md) explains the optional
 owner controls, revision-bound coordinator requests, and the distinction between
 selection and execution authority.

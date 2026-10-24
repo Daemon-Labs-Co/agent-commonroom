@@ -163,6 +163,14 @@ func projectActors(st *room.State) {
 		bid := "bot-" + c.ID
 		if _, ok := member(*st, bid); !ok {
 			st.Actors = append(st.Actors, room.Actor{ID: bid, Name: c.Name, Kind: "agent", Role: "Agent", Enabled: true, Revision: 1})
+		} else {
+			// Connection actors are derived; early projection must not freeze
+			// their display names before a later connection rename is replayed.
+			for i := range st.Actors {
+				if st.Actors[i].ID == bid && st.Actors[i].Kind == "agent" {
+					st.Actors[i].Name = c.Name
+				}
+			}
 		}
 	}
 	for i := range st.Participants {
@@ -171,9 +179,15 @@ func projectActors(st *room.State) {
 	for _, a := range st.Actors {
 		rid := "personal-" + a.ID
 		found := false
-		for _, r := range st.Rooms {
+		for i, r := range st.Rooms {
 			if r.ID == rid {
 				found = true
+				// Refresh only derived personal labels. Identity, access and
+				// all other saved room fields remain unchanged.
+				if r.PersonalActorID == a.ID && !r.CustomPersonalName {
+					st.Rooms[i].Name = a.Name + " · Personal"
+				}
+				break
 			}
 		}
 		if !found {
@@ -181,6 +195,19 @@ func projectActors(st *room.State) {
 			st.Rooms = append(st.Rooms, room.Room{ID: rid, Name: a.Name + " · Personal", CompanyID: st.Company.ID, PersonalActorID: a.ID, HumanPresent: &present})
 		}
 	}
+	for i := range st.Rooms {
+		if st.Rooms[i].PersonalActorID != "" {
+			st.Rooms[i].NameVersion = personalRoomNameVersion(st.Rooms[i])
+		}
+	}
+}
+
+// A display-state precondition, never an authority token. Actor renames can
+// change derived room names without changing the saved room revision.
+func personalRoomNameVersion(r room.Room) string {
+	raw, _ := json.Marshal([3]string{r.ID, r.PersonalActorID, r.Name})
+	digest := sha256.Sum256(raw)
+	return base64.RawURLEncoding.EncodeToString(digest[:])
 }
 func (s *server) members(w http.ResponseWriter, r *http.Request) {
 	if requestActor(r) != ownerID {

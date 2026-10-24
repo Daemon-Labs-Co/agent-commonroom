@@ -54,6 +54,7 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		if req.Kind == "room.created" {
 			v.Revision = 1
 			v.ContextExport = nil
+			v.NameVersion = ""
 			v.ID = id()
 		} else if !hasRoom(st, v.ID) {
 			http.Error(w, "Room not found", 404)
@@ -91,6 +92,11 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		}
 		for _, old := range st.Rooms {
 			if old.ID == v.ID {
+				if old.PersonalActorID != "" && (v.NameVersion == "" || v.NameVersion != old.NameVersion) {
+					http.Error(w, "Room name changed; reload settings before saving", 409)
+					return nil, false
+				}
+				v.NameVersion = old.NameVersion
 				if v.Revision != old.Revision {
 					http.Error(w, "Room changed; reload", 409)
 					return nil, false
@@ -112,7 +118,7 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		v.DispatchStatus = ""
 		v.DispatchDetail = ""
 		switch v.Status {
-		case "Assigned", "Working", "Submitted", "Reviewing", "Changes requested", "Accepted":
+		case "Draft", "Assigned", "Working", "Submitted", "Reviewing", "Changes requested", "Accepted":
 		default:
 			http.Error(w, "Invalid task status", 400)
 			return nil, false
@@ -124,6 +130,11 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			}
 		}
 		if v.ID == "" {
+			if v.ProposalID != "" {
+				http.Error(w, "Proposal provenance is controller-owned", 400)
+				return nil, false
+			}
+
 			v.ID = id()
 			v.Revision = 1
 		} else {
@@ -135,6 +146,11 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 						http.Error(w, "Task dispatch pending; wait for its result or reconcile the worker", 409)
 						return nil, false
 					}
+					if v.ProposalID != "" && v.ProposalID != old.ProposalID {
+						http.Error(w, "Proposal provenance cannot change", 400)
+						return nil, false
+					}
+					v.ProposalID = old.ProposalID
 					v.DispatchID = old.DispatchID
 					v.DispatchStatus = old.DispatchStatus
 					v.DispatchDetail = old.DispatchDetail
