@@ -447,3 +447,57 @@ proof does not establish live daemon or descendant termination guarantees.
   remote findings. Last notification: valid P2 fixed and verified locally with
   one commit message; owner signs/publishes on PR #60 for current-head rereview.
   Nothing staged, committed, pushed, merged or posted by the agent.
+
+## Shared room outcome definitions
+
+- Verified PR #60 merged fixed head `01fa5428866be99611db7be145adcf310e2ae7bd`
+  as `ae7972e9c4fb1891ac9af5ac04d78f4b4f71eebd`. Clean main and remote agreed;
+  merged tree matches reviewed fix tree, final-head Greptile passed, no new
+  findings. Git helper created `codex/room-outcomes` from that exact base.
+- Shared rooms support owner-managed `outcome` and `acceptanceCriteria`, saved
+  in existing append-only room events. Trimmed bounded strings; old-client
+  omitted fields preserve prior values, stale revisions refuse, and defined
+  outcomes cannot accidentally be cleared while enabled. Personal rooms exempt.
+- `roomOutcomes` defaults off, owner-only, server-enforced, no restart. Enabled
+  requires both fields for new shared rooms; legacy rooms can be defined
+  gradually without blocking unrelated edits. Off rejects definition changes
+  but preserves history and continues displaying saved definitions.
+- New/Edit room forms, Room and Tasks summaries, categorized Settings flag and
+  in-app Help documentation implemented. Tests cover authenticated lifecycle,
+  bad input, flags, permissions, legacy/personal rooms, stale saves, omitted
+  fields, replay/restart, escaped UI and real script grouping order.
+- make test passed in 10.83 seconds; make check passed in 21.97 seconds. Observed
+  implementation/check span 16:25:50–16:28:40 UTC on 24 October (2m50s), excluding
+  initial merge/branch verification. No real DB/provider/browser acceptance.
+- This is purpose metadata, not completion automation or execution authority:
+  it does not yet link tasks to individual criteria, assess evidence, gate
+  dispatch, feed provider prompts or certify a P0 gate. Existing approved task
+  scopes and mandatory isolation remain enforced independently.
+- Git helper confirmed expected scope, empty index, no unrelated edits and
+  clean whitespace. New files: cmd/server/room_outcomes.go;
+  cmd/server/room_outcomes_test.go; docs/room-outcomes.md;
+  tests/room-outcomes.test.cjs; web/room-outcomes.js. Include all when publishing.
+- Last notification: room outcome increment verified locally with one commit
+  message, ready for owner signing/publication. Nothing staged, committed,
+  pushed, merged or posted by the agent.
+
+## PR #61 legacy room form compatibility fix
+
+- Verified clean `codex/room-outcomes` and PR #61 current reviewed head
+  `39d420b4ec81de6ed8e3679ba0094502434cec7f`. Open; Greptile check succeeded
+  with sole valid P1 `4368601346`: required browser fields blocked unrelated
+  saves on existing undefined shared rooms, despite server compatibility.
+- Undefined existing rooms now render both definition fields as optional. New
+  rooms and rooms with either saved definition field still require both. The
+  server continues refusing partial definitions and clearing defined outcomes.
+- Added generated-form constraint regression for legacy blank submissions versus
+  new/defined required fields, plus actual mocked HTTP save with explicit blank
+  fields and unrelated name/description changes. Updated usage documentation.
+- make test passed in 10.11 seconds; make check passed in 20.92 seconds. Observed
+  work span approximately 21:38:06–21:39:15 UTC on 24 October (about 69 seconds),
+  including review/check waits. No live browser/provider/database verification.
+- Git helper confirmed expected four-file fix scope before this checkpoint,
+  empty index, clean whitespace and no unrelated changes/new remote findings.
+- Last notification: valid P1 fixed and verified locally with one commit message;
+  owner signs and publishes on PR #61 for current-head rereview. Nothing staged,
+  committed, pushed, merged or posted by the agent.

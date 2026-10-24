@@ -85,7 +85,9 @@ type ContextExportPolicy struct {
 	ExcludeReferences bool     `json:"excludeReferences"`
 }
 type Room struct {
-	NameVersion string `json:"nameVersion,omitempty"`
+	Outcome            string `json:"outcome,omitempty"`
+	AcceptanceCriteria string `json:"acceptanceCriteria,omitempty"`
+	NameVersion        string `json:"nameVersion,omitempty"`
 	// Reconstructed from explicit name changes, never accepted from clients.
 	CustomPersonalName   bool                 `json:"-"`
 	Revision             int                  `json:"revision"`

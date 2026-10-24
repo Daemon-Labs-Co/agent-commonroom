@@ -15,7 +15,8 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
- {"task-delegations","Bounded task delegation","docs/task-delegations.md"},
+	{"room-outcomes", "Room outcomes and acceptance criteria", "docs/room-outcomes.md"},
+	{"task-delegations", "Bounded task delegation", "docs/task-delegations.md"},
 	{"task-proposals", "Conversation task proposals", "docs/task-proposals.md"},
 	{"governance", "Room coordination and authority", "docs/governance-appointments.md"},
 	{"help-display", "Help window preference", "docs/help-display.md"},

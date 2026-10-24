@@ -267,3 +267,6 @@ container absence and obey explicit workspace retention/discard authority; a
 cleanup failure blocks replacement admission rather than reusing remnants.
 Rigorous synthetic failure tests and separately documented live acceptance are
 required before production admission is opened.
+
+
+Room deliverable increment: shared rooms support owner-managed outcome and acceptance criteria under default-off `roomOutcomes`. Enabling it requires both for new shared rooms, while preserving legacy rooms. This metadata does not itself authorize execution or certify completion; see [the implemented contract](docs/room-outcomes.md).
