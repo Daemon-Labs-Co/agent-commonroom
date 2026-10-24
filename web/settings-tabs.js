@@ -2,7 +2,7 @@
 function settingsCardCategory(title){
  if(/^Your profile|^Your room profile/.test(title))return 'Profile';
  if(/^Company/.test(title))return 'Company';
- if(title==='Feature flags'||title==='Room presentation'||/^(Security|Cosmetic|Connections|Workflows) ·/.test(title))return 'Features';
+ if(title==='Agent rooms'||title==='Feature flags'||title==='Room presentation'||/^(Security|Cosmetic|Connections|Workflows) ·/.test(title))return 'Features';
  if(title==='Retention')return 'Retention';
  if(title==='Help display')return 'Help';
  return 'About';

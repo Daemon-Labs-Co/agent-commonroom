@@ -170,3 +170,10 @@ exist only in the in-memory mock; no provider runs and no PostgreSQL writes occu
 The badge beside **Squad** counts the humans and agents currently displayed in that room. Inviting or removing an agent, joining or leaving as a human, and switching rooms update it with the rendered membership. Background status and profile changes do not affect the total. Membership changes made elsewhere become visible when room state next refreshes; this fix does not introduce idle-room polling.
 
 Technical contract: `trackSquadCount` in `web/features.js` counts direct `.participant` children of `.squad-members`, updates an accessible member-count label, and observes direct membership changes. Each render disconnects the previous observer, including when leaving the room view. It does not count nested menus or conversation authors. This is a correction to existing membership presentation, always active with no new feature flag or permission changes. Regression tests in `tests/squad-count.test.cjs` use synthetic DOM membership only.
+
+
+Agents join work rooms rather than receiving an empty personal room automatically.
+Legacy agent rooms containing saved history, settings or work remain in the room
+list. Owners can restore unused automatic agent rooms with **Settings → Features → Agent
+rooms → Automatic agent rooms** (default Off). See the [compatibility and
+retention contract](concepts.md#automatic-agent-room-compatibility).

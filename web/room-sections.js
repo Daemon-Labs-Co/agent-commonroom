@@ -15,3 +15,14 @@ function groupRoomNavigation(){
  for(const key of ['public','private'])if(!sections[key].querySelector('[data-room]')){const empty=document.createElement('small');empty.className='room-nav-empty';empty.textContent='No '+key+' rooms';sections[key].append(empty)}
 }
 const roomSectionsRender=render;render=function(){roomSectionsRender();groupRoomNavigation()};
+
+// Compatibility control for the old implicit agent-room catalog, owner only.
+function drawAutomaticAgentRoomsSetting(){
+ if(typeof view==='undefined'||view!=='Settings'||state?.currentActorId!=='local-owner')return;
+ const main=$('#main');if(!main)return;
+ const enabled=state.featureFlags?.automaticAgentRooms===true;
+ main.insertAdjacentHTML('beforeend','<section class="card"><h3>Agent rooms</h3><p>Agents work in assigned shared rooms. Existing agent rooms with saved history or work remain available.</p><button id="automatic-agent-rooms" data-feature-flag="automaticAgentRooms">Automatic agent rooms · '+(enabled?'On':'Off')+'</button></section>');
+ $('#automatic-agent-rooms').onclick=()=>form('Automatic agent rooms','<label><input type="checkbox" name="enabled" '+(enabled?'checked':'')+'> Restore legacy automatic agent rooms</label><p>Off removes unused implicit agent rooms from the room list. Saved history and work remain available. Human personal rooms are unchanged.</p>',async d=>commit('feature.flag.updated',{name:'automaticAgentRooms',enabled:d.has('enabled')}));
+}
+const automaticAgentRoomsRender=render;render=function(){automaticAgentRoomsRender();drawAutomaticAgentRoomsSetting()};
+drawAutomaticAgentRoomsSetting();

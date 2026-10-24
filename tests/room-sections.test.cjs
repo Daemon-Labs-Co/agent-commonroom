@@ -9,3 +9,15 @@ assert(headingRule.includes('font-size:13px'));assert(headingRule.includes('font
 
 const publicToggle=created[0].children[0].children[0],privateToggle=created[1].children[0].children[0];assert.equal(created[0].children[1].hidden,false);publicToggle.onclick();assert.equal(created[0].children[1].hidden,true);assert.equal(created[1].children[1].hidden,false);assert.equal(publicToggle['aria-expanded'],'false');privateToggle.onclick();assert.equal(created[1].children[1].hidden,true);publicToggle.onclick();assert.equal(created[0].children[1].hidden,false);
 ctx.localStorage={getItem(){return '{"public":true,"private":false}'},setItem(){}};assert.equal(ctx.roomSectionPreferences().public,true);assert.equal(ctx.roomSectionPreferences().private,false);ctx.localStorage.getItem=()=>'{bad';assert.equal(ctx.roomSectionPreferences().public,false);console.log('Room sections collapse independently, preserve accessible state and tolerate unavailable/corrupt preferences.');
+
+// Agent-room compatibility control is owner-only, defaults off and saves through
+// the authenticated event API. It never changes the client room list itself.
+let settingHTML='', savedSetting;
+const settingButton={};
+const settingsContext=vm.createContext({view:'Settings',state:{currentActorId:'local-owner',featureFlags:{}},render(){},document:{querySelector(){return null}},$:(selector)=>selector==='#main'?{insertAdjacentHTML(_where,html){settingHTML+=html}}:settingButton,form(_title,_html,save){save({has(){return true}})},commit(kind,payload){savedSetting={kind,payload}}});
+vm.runInContext(fs.readFileSync('web/room-sections.js','utf8'),settingsContext);
+assert(settingHTML.includes('Automatic agent rooms · Off'));
+settingButton.onclick();assert.equal(savedSetting.kind,'feature.flag.updated');assert.equal(savedSetting.payload.name,'automaticAgentRooms');assert.equal(savedSetting.payload.enabled,true);
+settingHTML='';settingsContext.state.currentActorId='member';vm.runInContext('drawAutomaticAgentRoomsSetting()',settingsContext);assert.equal(settingHTML,'');
+settingsContext.state.currentActorId='local-owner';settingsContext.state.featureFlags.automaticAgentRooms=true;vm.runInContext('drawAutomaticAgentRoomsSetting()',settingsContext);assert(settingHTML.includes('Automatic agent rooms · On'));
+console.log('Automatic agent-room setting defaults off, supports owner restore and is hidden from members.');

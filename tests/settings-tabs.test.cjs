@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');let renders=0;
 const ctx=vm.createContext({state:{currentActorId:'local-owner',featureFlags:{settingsTabs:false}},view:'Settings',render(){renders++},document:{querySelector(){throw Error('disabled layout must not change DOM')}}});vm.runInContext(fs.readFileSync('web/settings-tabs.js','utf8'),ctx);
-for(const [title,group] of [['Your profile','Profile'],['Company members','Company'],['Feature flags','Features'],['Security · Human session persistence','Features'],['Retention','Retention'],['Help display','Help'],['Local development','About']])assert.equal(ctx.settingsCardCategory(title),group);
+for(const [title,group] of [['Your profile','Profile'],['Company members','Company'],['Feature flags','Features'],['Agent rooms','Features'],['Security · Human session persistence','Features'],['Retention','Retention'],['Help display','Help'],['Local development','About']])assert.equal(ctx.settingsCardCategory(title),group);
 vm.runInContext('render()',ctx);assert.equal(renders,1);
 let retentionRemoved=false;const history={textContent:'History & retention'},heading={textContent:'History & retention'};ctx.state.featureFlags.settingsTabs=true;ctx.view='History & retention';ctx.document.querySelector=()=>history;ctx.$=s=>s==='#main h1'?heading:{parentElement:{querySelector(){return {remove(){retentionRemoved=true}}}}};vm.runInContext('render()',ctx);assert.equal(history.textContent,'History');assert.equal(heading.textContent,'History');assert.equal(retentionRemoved,true);
 console.log('Settings category mapping, disabled fallback and separation of history from retention passed.');
@@ -11,3 +11,27 @@ console.log('Invited-human settings expose only their available sections and pre
 const help={classList:{add(name){this.name=name}},onclick(){return 'help'}};ctx.$=()=>({prepend(node){this.first=node},querySelector(s){return s.includes('.context-help')?help:null},querySelectorAll(){return cards}});vm.runInContext('render()',ctx);const helpBar=profileCard.beforeNodes[0];assert.equal(helpBar.children.at(-1),help);assert.equal(help.classList.name,'settings-help');assert.equal(help.onclick(),'help');assert.equal(helpBar.children[0].attributes,undefined);console.log('Settings help remains separate from tabs and retains its routing.');
 
 let firstNode;const existingHeader=el('div');const layout={prepend(node){firstNode=node},querySelector(s){return s===':scope > .toolbar'?existingHeader:null},querySelectorAll(){return cards}};ctx.$=()=>layout;vm.runInContext('render()',ctx);assert.equal(firstNode,existingHeader);console.log('Settings toolbar is moved ahead of dynamically inserted cards.');
+
+// The real script order must insert the agent-room control before Settings
+// builds its panels; otherwise it escapes every tab's visibility boundary.
+const page=fs.readFileSync('web/index.html','utf8');
+assert(page.indexOf('src="room-sections.js"')<page.indexOf('src="settings-tabs.js"'));
+const agentCard=el('section');agentCard.heading=el('h3','Agent rooms');
+const agentControl={onclick(){return 'original authenticated save'}};agentCard.control=agentControl;
+const companyCard=el('section');companyCard.heading=el('h2','Company members');
+const retentionCard=el('section');retentionCard.heading=el('h2','Retention');
+cards=[profileCard,companyCard,agentCard,retentionCard,helpCard];ctx.state.currentActorId='developer';
+ctx.$=()=>({prepend(){},querySelector(){return null},querySelectorAll(){return cards}});
+vm.runInContext('render()',ctx);
+const [agentBar,agentPanels]=profileCard.beforeNodes;
+const agentTabs=agentBar.children[0].children;
+assert.deepEqual(agentTabs.map(button=>button.textContent),['Profile','Company','Features','Retention','Help']);
+const featurePanel=agentPanels.children[2];
+assert.equal(featurePanel.children[0],agentCard);assert.equal(featurePanel.hidden,true);
+agentTabs[2].onclick();assert.equal(featurePanel.hidden,false);
+assert.equal(agentCard.control.onclick(),'original authenticated save');
+for(const tab of agentTabs.filter(button=>button.textContent!=='Features')){tab.onclick();assert.equal(featurePanel.hidden,true)}
+// Disabled Settings tabs retain the ordinary card layout.
+ctx.state.featureFlags.settingsTabs=false;cards=[];
+vm.runInContext('render()',ctx);
+console.log('Agent-room settings are grouped under Features, hidden on other tabs and retain their save handler.');

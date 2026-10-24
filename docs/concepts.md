@@ -16,7 +16,7 @@ An installation currently has one company. Rooms organize discussion, participan
 
 The initial human is the owner. Other humans can only join through invitations issued under Settings → Company members. The owner assigns Developer or QA and grants shared-room access. Only the owner changes those roles and permissions. Members can edit their own display names. Display names are not identity: two people can have the same name and still be different accounts.
 
-Each human and registered bot identity has a personal room. Humans can access their own room and assigned shared rooms; the owner can access all rooms. Owner reads of another person's personal room are recorded. Bot identities currently follow connection registrations and do not have independent API credentials.
+Each human has a personal room. Registering an agent no longer adds an unused personal room to the room catalog by default. Existing agent rooms referenced by saved history or work remain available. Humans can access their own room and assigned shared rooms; the owner can access all rooms. Owner reads of another person's personal room are recorded. Bot identities currently follow connection registrations and do not have independent API credentials.
 
 Humans appear in the squad. The owner's room presence defaults to enabled and can be removed from shared rooms. Presence does not remove the owner's account permissions. Legacy seniority fields remain for compatibility; they are not authority. Structured disagreement and governing-agent delegation remain unfinished.
 
@@ -99,3 +99,24 @@ Human overrides, acceptance authority, and immutable history remain product requ
 | Edit reporting relationships | [Organization](organization.md) |
 | Adjust profiles, layout and display preferences | [Interface preferences](interface.md) |
 
+
+
+### Automatic agent-room compatibility
+
+Agents participate in shared rooms assigned by the owner; they do not need a
+personal room to run. `automaticAgentRooms` defaults **off**, is enforced in the
+server room catalog, and can be changed only by the owner through Settings → Features →
+Agent rooms. Changes apply on the next state load without a restart. Switching
+on restores the legacy automatic room catalog; switching off omits only unused
+implicit agent rooms. It never deletes events, moves tasks, cancels work or
+changes authentication, room permissions, retention or isolation.
+
+The controller still derives legacy agent rooms internally while replaying old
+events, so historical scope checks remain valid. After replay, it omits an
+implicit agent room only if no saved event references its identifier. References
+are retained conservatively across nested audit payloads, settings and removed
+work; an incidental matching string can therefore keep a room visible. Explicit
+shared rooms and human personal rooms are unaffected. Existing used agent rooms
+are retained as legacy spaces; consolidating them into outcome-based shared rooms
+requires a separate migration. This change does not introduce direct messages or
+require a deliverable field on rooms yet.
