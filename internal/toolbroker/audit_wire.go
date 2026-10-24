@@ -22,13 +22,14 @@ func ValidAuditScope(scope Scope, now time.Time) bool { return validScope(scope,
 // the model's callback channel. It contains hashes and bounded lifecycle metadata,
 // never actions or capabilities.
 type AuditFrame struct {
-	IdleStop *IdleStop `json:"idleStop,omitempty"`
-	Version  int       `json:"version"`
-	Sequence int       `json:"sequence"`
-	Session  string    `json:"session"`
-	Stage    string    `json:"stage"`
-	Intent   Intent    `json:"intent"`
-	Outcome  *Outcome  `json:"outcome,omitempty"`
+	Delegation *DelegationRequest `json:"delegation,omitempty"`
+	IdleStop   *IdleStop          `json:"idleStop,omitempty"`
+	Version    int                `json:"version"`
+	Sequence   int                `json:"sequence"`
+	Session    string             `json:"session"`
+	Stage      string             `json:"stage"`
+	Intent     Intent             `json:"intent"`
+	Outcome    *Outcome           `json:"outcome,omitempty"`
 }
 
 type auditAck struct {

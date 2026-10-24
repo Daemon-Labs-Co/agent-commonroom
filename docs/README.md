@@ -17,6 +17,9 @@ internal tested components and remaining release gates. The
 
 ## Use the workspace
 
+[Bounded delegation](task-delegations.md) documents authenticated assignment
+proposals, human review, inherited limits and provider integration gaps.
+
 [Conversation task proposals](task-proposals.md) separates suggestion capture,
 human review and draft creation from execution.
 

@@ -37,6 +37,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		}
 		st.EventCount++
 		switch kind {
+		case "task.delegation.proposed", "task.delegation.approved", "task.delegation.rejected":
+			if err := projectDelegation(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "governance.appointed":
 			if err := projectGovernance(&st, data); err != nil {
 				return st, err
@@ -247,6 +251,12 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		case "task.revised":
 			var v room.Task
 			json.Unmarshal(data, &v)
+			if v.DelegationID != "" {
+				d, ok := st.Delegations[v.DelegationID]
+				if !ok || d.Status != "Approved" || d.TaskID != v.ID || d.RoomID != v.RoomID || d.TaskDigest != delegationTaskDigest(v) || v.Assignee != d.DelegateID {
+					return st, errors.New("invalid delegated task scope")
+				}
+			}
 			if v.ProposalID != "" {
 				proposal, ok := st.TaskProposals[v.ProposalID]
 				if !ok || proposal.Status != "Approved" || proposal.TaskID != v.ID || proposal.RoomID != v.RoomID {
@@ -256,7 +266,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			found := false
 			for i, t := range st.Tasks {
 				if t.ID == v.ID {
-					if t.ProposalID != v.ProposalID {
+					if t.DelegationID != v.DelegationID || t.ProposalID != v.ProposalID {
 						return st, errors.New("task proposal provenance changed")
 					}
 					st.Tasks[i] = v
@@ -468,6 +478,12 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					return st, errors.New("coordination generation exhausted")
 				}
 				st.CoordinationEpoch++
+			}
+			if v.Name == "taskDelegation" && !v.Enabled {
+				if st.DelegationEpoch == int(^uint(0)>>1) {
+					return st, errors.New("delegation generation exhausted")
+				}
+				st.DelegationEpoch++
 			}
 			st.FeatureFlags[v.Name] = v.Enabled
 		case "agents.stop", "agents.resume":

@@ -130,7 +130,7 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			}
 		}
 		if v.ID == "" {
-			if v.ProposalID != "" {
+			if v.DelegationID != "" || v.ProposalID != "" {
 				http.Error(w, "Proposal provenance is controller-owned", 400)
 				return nil, false
 			}
@@ -148,6 +148,15 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 					}
 					if v.ProposalID != "" && v.ProposalID != old.ProposalID {
 						http.Error(w, "Proposal provenance cannot change", 400)
+						return nil, false
+					}
+					if v.DelegationID != "" && v.DelegationID != old.DelegationID {
+						http.Error(w, "Delegation provenance cannot change", 400)
+						return nil, false
+					}
+					v.DelegationID = old.DelegationID
+					if old.DelegationID != "" && (v.Title != old.Title || v.Criteria != old.Criteria || v.Assignee != old.Assignee || v.Reviewer != old.Reviewer) {
+						http.Error(w, "Delegated scope cannot expand; create independent work instead", 409)
 						return nil, false
 					}
 					v.ProposalID = old.ProposalID
