@@ -332,3 +332,47 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: valid stale-dialog finding fixed and verified locally, with
   one commit message. Nothing staged, committed, pushed, merged or posted by the
   agent; owner publishes on the same PR before current-head rereview.
+
+## Bounded delegation controller/supervisor increment
+
+- Active branch: `codex/governance-delegation`, clean base verified PR #58 merge
+  `e92d575aa477110e3e3253beb26b4f254ae76648`, matching reviewed fixed head
+  `c70e488a8ae449728b01f3c202cd83fad306318d`. Prior branches retained.
+- Added authenticated private supervisor assignment proposals, bound to the
+  human-dispatched pending task, paired job, exact room/company/source/target,
+  repository, parent deadline and actor/connection/participant revisions.
+- ToolSession overwrites claimed operation permissions with its actual parent
+  Authority snapshot. Child audit admission intersects that operation mask with
+  the child's own broker policy; read-only parent cannot grant write/patch/command.
+- Human approval waits for verified parent shutdown and task outcome, then
+  atomically reassigns only that task. It never launches the child. Separate
+  dispatch revalidates repository, task provenance and deadline; subdelegation
+  and generic task-scope expansion refuse. Source/target disable/revision,
+  coordinator transfer, expired lease and off/on invalidate affected authority.
+- Durable job task/dispatch/delegation identity survives replay and is checked at
+  admission/submission, tool acknowledgments, session metadata and result output.
+  Local flag-off cancellation retains normal fenced cleanup/recovery requirements.
+- `taskDelegation` defaults off, owner-only, server-enforced, no restart. History
+  persists when disabled; independent human work keeps existing permissions.
+- Added owner settings/review UI, strict version-3 private audit extension,
+  bounded/idempotent proposals, actual review/dispatch/stream regressions, Help,
+  API/user/setup documentation and malformed-frame/forged identity controls.
+- Final make test passed in 9.28 seconds; final make check passed in 19.53 seconds.
+  Observed wall-clock span 01:35:38–02:51:51 UTC on 24 October (1:16:13), including
+  workflow discussion and unmeasured waits; active execution time not separately
+  tracked. Earlier tests corrected replay owner derivation and synthetic wire
+  timestamps, and ensured permission-expansion refusal was tested without an
+  already-pending tool call masking the policy assertion.
+- Actual integration gap: current provider adapters do not yet emit the typed
+  request automatically. Private ToolSession/controller protocol and synthetic
+  dispatch are implemented, but no live provider/worker/browser/multi-controller
+  deployment was exercised. Production development barrier remains mandatory.
+  Full autonomous delegation and GOV-07/P0 release acceptance remain uncertified.
+- Publication must include these seven new files, previously untracked:
+  cmd/server/task_delegation.go; cmd/server/task_delegation_test.go;
+  docs/task-delegations.md; internal/toolbroker/delegation.go;
+  internal/toolbroker/delegation_test.go; tests/task-delegations.test.cjs;
+  web/task-delegations.js. Preserve all tracked changes too; nothing staged here.
+- Last notification: controller/supervisor one-hop delegation batch verified for
+  review with explicit provider integration limits and one commit message. Owner
+  signs/publishes/opens PR/merges; no agent commit/push/staging/GitHub messages.

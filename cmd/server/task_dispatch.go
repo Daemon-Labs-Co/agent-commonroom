@@ -121,6 +121,14 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Accepted tasks cannot be dispatched", 409)
 		return
 	}
+	if task.DelegationID != "" {
+		d, ok := st.Delegations[task.DelegationID]
+		repo, repoErr := s.delegationRepositoryFor(rid)
+		if !ok || !delegationCurrent(st, d) || repoErr != nil || repo != d.RepositoryDigest || req.Mode != "work" {
+			http.Error(w, "Delegation expired or scope changed", 409)
+			return
+		}
+	}
 	pid := task.Assignee
 	status := "Working"
 	instruction := "Work on this task within your authorised capabilities. Report blockers and results."
@@ -186,8 +194,19 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.active[p.ID] = true
-	turnCtx, cancel := context.WithTimeout(detachedInitiatorContext(r.Context()), 3*time.Minute)
+	parent := context.WithValue(detachedInitiatorContext(r.Context()), taskJobContextKey{}, taskJobBinding{TaskID: task.ID, DispatchID: dispatchID, DelegationID: task.DelegationID})
+	deadline := time.Now().Add(3 * time.Minute)
+	if task.DelegationID != "" && st.Delegations[task.DelegationID].ExpiresAt.Before(deadline) {
+		deadline = st.Delegations[task.DelegationID].ExpiresAt
+	}
+	turnCtx, cancel := context.WithDeadline(parent, deadline)
 	s.cancels[p.ID] = cancel
+	if task.DelegationID != "" {
+		if s.delegationTurns == nil {
+			s.delegationTurns = map[string]string{}
+		}
+		s.delegationTurns[p.ID] = task.DelegationID
+	}
 	go func() {
 		defer cancel()
 		turn := s.executeAgentTurn

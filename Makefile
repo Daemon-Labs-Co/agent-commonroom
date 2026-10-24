@@ -63,6 +63,8 @@ check: test-race
 	node --test tests/governance.test.cjs
 	node --check web/task-proposals.js
 	node --test tests/task-proposals.test.cjs
+	node --check web/task-delegations.js
+	node --test tests/task-delegations.test.cjs
 	node --check web/idle-policy.js
 	node --test tests/idle-policy.test.cjs
 	node --check web/features.js

@@ -54,6 +54,8 @@ func (s *server) managedExecutionJobContext(ctx context.Context, p room.Particip
 func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.Participant, repository string, policy func() (string, error), version int) context.Context {
 	job := room.ManagedJob{Version: 2, JobID: id(), RoomID: p.RoomID, ParticipantID: p.ID, ConnectionID: p.ConnectionID, Status: "allocated", AllocatedAt: time.Now().UTC()}
 	job.InitiatorID, _ = ctx.Value(actorContextKey{}).(string)
+	taskBinding, _ := ctx.Value(taskJobContextKey{}).(taskJobBinding)
+	job.TaskID, job.TaskDispatchID, job.DelegationID = taskBinding.TaskID, taskBinding.DispatchID, taskBinding.DelegationID
 	binding, coordinated := ctx.Value(coordinationContextKey{}).(coordinationBinding)
 	appointment := binding.Appointment
 	if coordinated {
@@ -91,7 +93,7 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 		if err != nil {
 			return errors.New("managed job state unavailable")
 		}
-		if s.agentsBlockedLocked(latest, p.RoomID) || coordinated && (!coordinationContextAllowed(ctx, latest, p) || job.InitiatorID != ownerID) {
+		if !managedTaskCurrent(latest, job) || s.agentsBlockedLocked(latest, p.RoomID) || coordinated && (!coordinationContextAllowed(ctx, latest, p) || job.InitiatorID != ownerID) {
 			return errors.New("managed execution is stopped")
 		}
 		if job.InitiatorID != "" {
@@ -111,6 +113,9 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 			job.IdleMinutes = idle.Minutes
 		}
 		job.CompanyID = latest.Company.ID
+		if !delegatedJobAllowed(latest, job) {
+			return errors.New("delegated job scope refused")
+		}
 		found := false
 		for _, member := range latest.Participants {
 			if member.ID == p.ID && member.RoomID == p.RoomID && member.ConnectionID == p.ConnectionID {
@@ -211,7 +216,7 @@ func (s *server) recordManagedJobAttemptLocked(jobID, status string, attempts in
 	if job.ShutdownConfirmed {
 		return nil
 	} // late uncertainty cannot reverse verified proof
-	if status == "submitted" && (!coordinationJobAllowed(st, job) || s.agentsBlockedLocked(st, job.RoomID)) {
+	if status == "submitted" && (!coordinationJobAllowed(st, job) || !delegatedJobAllowed(st, job) || s.agentsBlockedLocked(st, job.RoomID)) {
 		return errors.New("managed coordination revoked or execution stopped")
 	}
 	job.Status = status
@@ -255,6 +260,12 @@ func (s *server) recordManagedJobAttemptLocked(jobID, status string, attempts in
 }
 
 func validManagedJob(v room.ManagedJob) bool {
+	if v.DelegationID != "" && (!membershipPartPattern.MatchString(v.DelegationID) || v.TaskID == "" || !pairedLifecycleVersion(v.Version)) {
+		return false
+	}
+	if (v.TaskID == "") != (v.TaskDispatchID == "") || v.TaskID != "" && (!membershipPartPattern.MatchString(v.TaskID) || !membershipPartPattern.MatchString(v.TaskDispatchID) || v.InitiatorID != ownerID) {
+		return false
+	}
 	if v.CoordinationEpoch < 0 || v.GovernanceRevision == 0 && v.CoordinationEpoch != 0 || v.GovernanceRevision < 0 || v.GovernanceRevision == 0 && v.CoordinatorID != "" || v.GovernanceRevision > 0 && (v.CoordinatorID != v.ParticipantID || !membershipPartPattern.MatchString(v.CoordinatorID) || v.InitiatorID != ownerID || v.CompanyID == "") {
 		return false
 	}

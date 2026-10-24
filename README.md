@@ -197,3 +197,7 @@ existing permissions. Selection never grants extra access or bypasses isolation.
 Optional [conversation task proposals](docs/task-proposals.md) let the owner
 capture a suggestion and review its original source before creating a draft.
 Off by default; approval never starts execution or grants agent permissions.
+
+[Bounded delegation](docs/task-delegations.md) adds authenticated worker assignment
+proposals and human review without inherited extra permissions or automatic
+launch. Off by default; automatic provider emission remains unimplemented.

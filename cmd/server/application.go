@@ -11,7 +11,9 @@ import (
 )
 
 type server struct {
-	coordinationTurns map[string]room.GovernanceAppointment
+	delegationRepository func(string) (string, error)
+	delegationTurns      map[string]string
+	coordinationTurns    map[string]room.GovernanceAppointment
 	// Instance test seam; nil always uses the mandatory isolated execution path.
 	agentTurn func(context.Context, room.Participant, string, string) (string, error)
 	// Provider metadata boundaries; nil uses the production implementation.

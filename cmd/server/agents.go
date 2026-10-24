@@ -545,6 +545,7 @@ func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant
 	defer delete(s.active, p.ID)
 	defer delete(s.cancels, p.ID)
 	defer delete(s.coordinationTurns, p.ID)
+	defer delete(s.delegationTurns, p.ID)
 	if e := s.finishAgentTurnStateLocked(ctx, p, text, endpoint, err, taskID, dispatchID); e != nil {
 		if !errors.Is(e, errAuditConflict) {
 			s.tripIntegrityLocked()
@@ -579,7 +580,7 @@ func (s *server) finishAgentTurnStateLocked(ctx context.Context, p room.Particip
 		}
 		changes := []auditChange{}
 		p.Status = "Idle"
-		if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) || !coordinationContextAllowed(ctx, st, p) {
+		if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) || (!coordinationContextAllowed(ctx, st, p) || !delegationContextAllowed(ctx, st, p)) {
 			p.Status = "Stopped"
 			changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"}})
 		} else if err != nil || ctx.Err() != nil {
@@ -715,7 +716,7 @@ func (s *server) recordAgentSession(ctx context.Context, p room.Participant, mod
 		if err != nil {
 			return err
 		}
-		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) || !coordinationContextAllowed(ctx, st, p) {
+		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) || (!coordinationContextAllowed(ctx, st, p) || !delegationContextAllowed(ctx, st, p)) {
 			return errors.New("agent turn cancelled or blocked")
 		}
 		found := false

@@ -87,7 +87,7 @@ func (a *controllerToolAuditor) check(ctx context.Context, bound bool) (room.Sta
 	if pairedLifecycleVersion(job.Version) && job.RepositoryDigest != a.scope.RepositoryDigest {
 		return st, principal, participant, connection, toolbroker.ErrAudit
 	}
-	if ctx.Err() != nil || err != nil || repository == "" || repository != a.scope.RepositoryDigest || !exists || !coordinationJobAllowed(st, job) || job.InitiatorID != a.actorID || job.CompanyID != st.Company.ID || job.Status != "submitted" || job.ShutdownConfirmed || job.RoomID != a.scope.Room || job.ParticipantID != a.scope.Participant || job.ConnectionID != a.scope.Connection || job.Provider != a.scope.Provider || !job.Deadline.Equal(a.scope.Deadline) || !a.scope.Deadline.After(time.Now()) || a.server.agentsBlockedLocked(st, a.scope.Room) {
+	if ctx.Err() != nil || err != nil || repository == "" || repository != a.scope.RepositoryDigest || !exists || !delegatedJobAllowed(st, job) || !managedTaskCurrent(st, job) || !coordinationJobAllowed(st, job) || job.InitiatorID != a.actorID || job.CompanyID != st.Company.ID || job.Status != "submitted" || job.ShutdownConfirmed || job.RoomID != a.scope.Room || job.ParticipantID != a.scope.Participant || job.ConnectionID != a.scope.Connection || job.Provider != a.scope.Provider || !job.Deadline.Equal(a.scope.Deadline) || !a.scope.Deadline.After(time.Now()) || a.server.agentsBlockedLocked(st, a.scope.Room) {
 		return st, principal, participant, connection, toolbroker.ErrAudit
 	}
 	principal, exists = member(st, a.actorID)
@@ -132,6 +132,10 @@ func (a *controllerToolAuditor) RecordIntent(ctx context.Context, intent toolbro
 	st, _, _, _, err := a.check(ctx, true)
 	if err != nil {
 		return err
+	}
+	job := st.ManagedJobs[a.scope.JobID]
+	if job.DelegationID != "" && st.Delegations[job.DelegationID].ParentOperations&toolbroker.OperationMask(intent.Operation) == 0 {
+		return toolbroker.ErrAudit
 	}
 	if _, exists := st.ToolAudits[toolAuditKey(intent.Scope.JobID, intent.CallID)]; exists {
 		return toolbroker.ErrAudit

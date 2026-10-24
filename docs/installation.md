@@ -149,3 +149,13 @@ then captures a room suggestion and reviews its source in Tasks. Approval create
 an unassigned Draft, never an execution. Off preserves all history and tasks and
 refuses new captures/decisions; independent work retains its existing permissions.
 See [task proposals](task-proposals.md) for usage, API, permissions and limits.
+
+
+## Optional bounded delegation
+
+`taskDelegation` defaults off and is owner-controlled in Settings, without restart.
+Review controls appear in Tasks. Off invalidates old delegation authority while
+preserving history and independent human jobs. Provider adapters still need to
+emit the typed private supervisor request; this is not autonomous model delegation
+out of the box. See [bounded delegation](task-delegations.md) for setup, lifecycle,
+permissions, expiry/recovery and verification limits.

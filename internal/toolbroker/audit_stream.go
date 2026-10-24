@@ -123,7 +123,7 @@ func ServeAudit(parent context.Context, channel io.ReadWriteCloser, scope Scope,
 	terminal := false
 	for sequence := 1; sequence <= 2*MaxCalls+1; sequence++ {
 		var frame AuditFrame
-		if auditRead(reader, &frame) != nil || ctx.Err() != nil || terminal || (frame.Version != 1 && !(frame.Version == 2 && frame.Stage == "idle-stop")) || frame.Sequence != sequence || frame.Intent.Scope != scope || !digest(frame.Session, 16) {
+		if auditRead(reader, &frame) != nil || ctx.Err() != nil || terminal || (frame.Version != 1 && !(frame.Version == 2 && frame.Stage == "idle-stop") && !(frame.Version == 3 && frame.Stage == "delegation")) || frame.Sequence != sequence || frame.Intent.Scope != scope || !digest(frame.Session, 16) {
 			return ErrAudit
 		}
 		if session == "" {
@@ -134,25 +134,31 @@ func ServeAudit(parent context.Context, channel io.ReadWriteCloser, scope Scope,
 		var err error
 		switch frame.Stage {
 		case "intent":
-			if frame.Version != 1 || frame.IdleStop != nil || len(seen) >= MaxCalls || pending != nil || frame.Outcome != nil || seen[frame.Intent.CallID] || !ValidAuditIntent(frame.Intent, time.Now()) {
+			if frame.Version != 1 || frame.Delegation != nil || frame.IdleStop != nil || len(seen) >= MaxCalls || pending != nil || frame.Outcome != nil || seen[frame.Intent.CallID] || !ValidAuditIntent(frame.Intent, time.Now()) {
 				return ErrAudit
 			}
 			seen[frame.Intent.CallID] = true
 			pending = &frame.Intent
 			err = auditor.RecordIntent(ctx, frame.Intent)
 		case "outcome":
-			if frame.Version != 1 || frame.IdleStop != nil || pending == nil || *pending != frame.Intent || frame.Outcome == nil || !ValidAuditOutcome(*frame.Outcome) {
+			if frame.Version != 1 || frame.Delegation != nil || frame.IdleStop != nil || pending == nil || *pending != frame.Intent || frame.Outcome == nil || !ValidAuditOutcome(*frame.Outcome) {
 				return ErrAudit
 			}
 			err = auditor.RecordOutcome(ctx, frame.Intent, *frame.Outcome)
 			pending = nil
 		case "idle-stop":
 			idleAuditor, ok := auditor.(IdleAuditor)
-			if !ok || frame.Version != 2 || frame.IdleStop == nil || frame.Intent != (Intent{Scope: scope}) || pending != nil || frame.Outcome != nil || !ValidAuditIdleStop(scope, *frame.IdleStop, time.Now()) {
+			if !ok || frame.Delegation != nil || frame.Version != 2 || frame.IdleStop == nil || frame.Intent != (Intent{Scope: scope}) || pending != nil || frame.Outcome != nil || !ValidAuditIdleStop(scope, *frame.IdleStop, time.Now()) {
 				return ErrAudit
 			}
 			terminal = true
 			err = idleAuditor.RecordIdleStop(ctx, scope, *frame.IdleStop)
+		case "delegation":
+			handler, ok := auditor.(DelegationAuditor)
+			if !ok || frame.Version != 3 || frame.Delegation == nil || !ValidDelegation(*frame.Delegation) || pending != nil || frame.IdleStop != nil || frame.Outcome != nil || frame.Intent != (Intent{Scope: scope}) {
+				return ErrAudit
+			}
+			err = handler.RecordDelegation(ctx, scope, *frame.Delegation)
 		default:
 			return ErrAudit
 		}

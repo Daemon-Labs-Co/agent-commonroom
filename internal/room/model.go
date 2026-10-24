@@ -101,6 +101,7 @@ type Room struct {
 	Description          string               `json:"description"`
 }
 type Task struct {
+	DelegationID   string `json:"delegationId,omitempty"`
 	ProposalID     string `json:"proposalId,omitempty"`
 	DispatchID     string `json:"dispatchId,omitempty"`
 	DispatchStatus string `json:"dispatchStatus,omitempty"`
@@ -132,6 +133,35 @@ type TaskProposal struct {
 	Status          string `json:"status"`
 	Revision        int    `json:"revision"`
 	TaskID          string `json:"taskId,omitempty"`
+}
+
+// TaskDelegation is an assignment proposal, never an execution capability.
+type TaskDelegation struct {
+	SourceActorRevision        int       `json:"sourceActorRevision"`
+	DelegateActorRevision      int       `json:"delegateActorRevision"`
+	ParentOperations           uint8     `json:"parentOperations"`
+	ID                         string    `json:"id"`
+	CompanyID                  string    `json:"companyId"`
+	RoomID                     string    `json:"roomId"`
+	ParentJobID                string    `json:"parentJobId"`
+	SourceParticipantID        string    `json:"sourceParticipantId"`
+	SourceConnectionID         string    `json:"sourceConnectionId"`
+	SourceParticipantRevision  int       `json:"sourceParticipantRevision"`
+	SourceConnectionRevision   int       `json:"sourceConnectionRevision"`
+	TaskID                     string    `json:"taskId"`
+	TaskRevision               int       `json:"taskRevision"`
+	TaskDigest                 string    `json:"taskDigest"`
+	DispatchID                 string    `json:"dispatchId"`
+	DelegateID                 string    `json:"delegateId"`
+	DelegateConnectionID       string    `json:"delegateConnectionId"`
+	DelegateRevision           int       `json:"delegateRevision"`
+	DelegateConnectionRevision int       `json:"delegateConnectionRevision"`
+	RepositoryDigest           string    `json:"repositoryDigest"`
+	ExpiresAt                  time.Time `json:"expiresAt"`
+	Epoch                      int       `json:"epoch"`
+	Status                     string    `json:"status"`
+	Revision                   int       `json:"revision"`
+	ReviewedBy                 string    `json:"reviewedBy,omitempty"`
 }
 
 type Evidence struct {
@@ -181,7 +211,10 @@ type Actor struct {
 // ManagedJob is a safe, durable execution binding. Model data and arguments
 // never belong here; ShutdownConfirmed comes only from a fenced worker proof.
 type ManagedJob struct {
-	CoordinationEpoch int `json:"coordinationEpoch,omitempty"`
+	DelegationID      string `json:"delegationId,omitempty"`
+	TaskID            string `json:"taskId,omitempty"`
+	TaskDispatchID    string `json:"taskDispatchId,omitempty"`
+	CoordinationEpoch int    `json:"coordinationEpoch,omitempty"`
 	// Optional role dependency; never an additional resource permission.
 	CoordinatorID       string           `json:"coordinatorId,omitempty"`
 	GovernanceRevision  int              `json:"governanceRevision,omitempty"`
@@ -255,6 +288,8 @@ type GovernanceAppointment struct {
 }
 
 type State struct {
+	Delegations        map[string]TaskDelegation        `json:"-"`
+	DelegationEpoch    int                              `json:"-"`
 	TaskProposals      map[string]TaskProposal          `json:"-"`
 	CoordinationEpoch  int                              `json:"-"`
 	Governance         map[string]GovernanceAppointment `json:"-"`
