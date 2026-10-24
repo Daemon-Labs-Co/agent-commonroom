@@ -593,3 +593,106 @@ func TestPersonalRoomCustomNamesSurviveProposalReplayAndRenames(t *testing.T) {
 		}
 	}
 }
+
+func TestStalePersonalRoomSettingsCannotFreezeAutomaticNames(t *testing.T) {
+	t.Parallel()
+	for _, identity := range []string{"member", "owner", "connection"} {
+		t.Run(identity, func(t *testing.T) {
+			t.Parallel()
+			s, db, h := proposalFixture(t, true)
+			actorID := "member"
+			switch identity {
+			case "member":
+				db.seed("actor.revised", room.Actor{ID: actorID, Name: "Earlier", Kind: "human", Role: "Developer", Enabled: true})
+			case "owner":
+				actorID = ownerID
+				db.seed("human.profile.updated", map[string]string{"name": "Earlier"})
+			case "connection":
+				actorID = "bot-dialog"
+				db.seed("connection.created", room.Connection{ID: "dialog", Name: "Earlier", Protocol: "CLI", Endpoint: "codex"})
+			}
+			capturedProposal(t, h)
+			rid := "personal-" + actorID
+			readRoom := func() room.Room {
+				t.Helper()
+				w := mockRequest(h, "GET", "/api/state?room="+rid, "")
+				var st room.State
+				if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &st) != nil {
+					t.Fatal("room state unavailable", w.Code, w.Body.String())
+				}
+				for _, r := range st.Rooms {
+					if r.ID == rid {
+						return r
+					}
+				}
+				t.Fatal("room missing")
+				return room.Room{}
+			}
+			rename := func(name string) {
+				switch identity {
+				case "member":
+					db.seed("actor.name.updated", map[string]string{"id": actorID, "name": name})
+				case "owner":
+					db.seed("human.profile.updated", map[string]string{"name": name})
+				case "connection":
+					db.seed("connection.updated", room.Connection{ID: "dialog", Name: name, Protocol: "CLI", Endpoint: "codex"})
+				}
+			}
+			save := func(r room.Room) *httptest.ResponseRecorder {
+				body, err := json.Marshal(map[string]any{"kind": "room.updated", "payload": r})
+				if err != nil {
+					t.Fatal(err)
+				}
+				return mockRequest(h, "POST", "/api/events?room="+rid, string(body))
+			}
+			stale := readRoom()
+			rename("Current")
+			current := readRoom()
+			if stale.Revision != current.Revision || stale.NameVersion == "" || stale.NameVersion == current.NameVersion {
+				t.Fatal("derived-name precondition not independent of room revision")
+			}
+			stale.Description = "Only description edited"
+			before := db.snapshot()
+			w := save(stale)
+			if w.Code != 409 || !reflect.DeepEqual(before, db.snapshot()) {
+				t.Fatal("stale dialog froze name", w.Code, w.Body.String())
+			}
+			current.Description = "Fresh description"
+			w = save(current)
+			if w.Code != 200 {
+				t.Fatal(w.Code, w.Body.String())
+			}
+			rename("Latest")
+			latest := readRoom()
+			if latest.Name != "Latest · Personal" || latest.Description != "Fresh description" {
+				t.Fatal("description save disabled automatic labels", latest)
+			}
+			// A fresh intentional rename is still allowed and remains custom.
+			latest.Name = "Explicit custom name"
+			w = save(latest)
+			if w.Code != 200 {
+				t.Fatal(w.Code, w.Body.String())
+			}
+			rename("Newest")
+			custom := readRoom()
+			if custom.Name != "Explicit custom name" {
+				t.Fatal("explicit custom name lost", custom)
+			}
+			// Renaming the actor does not invalidate a dialog for an unchanged custom label.
+			rename("Final")
+			custom.Description = "Custom description"
+			w = save(custom)
+			if w.Code != 200 {
+				t.Fatal("custom label precondition changed unnecessarily", w.Code)
+			}
+			missing := readRoom()
+			missing.NameVersion = ""
+			if w = save(missing); w.Code != 409 {
+				t.Fatal("missing personal-name precondition accepted", w.Code)
+			}
+			if _, err := (&server{db: s.db}).load(t.Context()); err != nil {
+				t.Fatal("restart failed", err)
+			}
+		})
+	}
+}

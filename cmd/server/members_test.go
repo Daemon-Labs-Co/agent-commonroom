@@ -182,6 +182,7 @@ func TestPersonalLabelRefreshPreservesRoomSettingsAndActorAuthority(t *testing.T
 	}}
 	before := st.Rooms[1]
 	before.Name = "Current · Personal"
+	before.NameVersion = personalRoomNameVersion(before)
 	projectActors(&st)
 	projectActors(&st)
 	if !reflect.DeepEqual(st.Rooms[1], before) || st.Rooms[0].Name != "Custom shared name" {

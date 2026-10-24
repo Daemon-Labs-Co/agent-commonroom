@@ -195,6 +195,19 @@ func projectActors(st *room.State) {
 			st.Rooms = append(st.Rooms, room.Room{ID: rid, Name: a.Name + " · Personal", CompanyID: st.Company.ID, PersonalActorID: a.ID, HumanPresent: &present})
 		}
 	}
+	for i := range st.Rooms {
+		if st.Rooms[i].PersonalActorID != "" {
+			st.Rooms[i].NameVersion = personalRoomNameVersion(st.Rooms[i])
+		}
+	}
+}
+
+// A display-state precondition, never an authority token. Actor renames can
+// change derived room names without changing the saved room revision.
+func personalRoomNameVersion(r room.Room) string {
+	raw, _ := json.Marshal([3]string{r.ID, r.PersonalActorID, r.Name})
+	digest := sha256.Sum256(raw)
+	return base64.RawURLEncoding.EncodeToString(digest[:])
 }
 func (s *server) members(w http.ResponseWriter, r *http.Request) {
 	if requestActor(r) != ownerID {

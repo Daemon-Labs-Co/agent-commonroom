@@ -310,3 +310,25 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: custom-name persistence fix verified locally, ready for
   owner signing/publication on the same PR. Nothing staged, committed, pushed,
   merged or posted by the agent; await current-head rereview after publication.
+
+## PR #58 stale automatic-name dialog review fix
+
+- Reviewed exact head `0e6b203f08c0c3f799f968c25ba874846995ea82`, branch
+  `codex/governance-task-proposals`. PR #58 open; valid P2 `4364398490`:
+  a description-only save from before an actor rename could freeze its old
+  automatic room name because the saved room revision had not changed.
+- Personal rooms now expose a derived `nameVersion` display-state precondition.
+  Room updates require it to match the current room name/identity as well as the
+  ordinary room revision. Missing/stale values refuse with 409 and no writes.
+  This is not an authority credential; normal authentication/access checks remain.
+- Actual state/settings endpoint regressions cover member, owner and connection
+  renames, stale description saves, fresh description saves, later automatic
+  renames, explicit custom naming, unchanged custom-name dialogs and restart.
+  Existing room update clients spread state fields and carry the precondition.
+- make test passed in 9.02 seconds; make check passed in 19.06 seconds. Elapsed
+  approximately 3 minutes 15 seconds from 00:24:38 to 00:27:53 UTC, 24 October.
+  Database/provider boundaries remain mocked; no live browser/provider/deployment
+  verification or P0 certification is claimed.
+- Last notification: valid stale-dialog finding fixed and verified locally, with
+  one commit message. Nothing staged, committed, pushed, merged or posted by the
+  agent; owner publishes on the same PR before current-head rereview.

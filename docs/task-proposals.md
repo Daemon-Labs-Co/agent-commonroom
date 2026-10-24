@@ -144,3 +144,13 @@ it does not trust a client-supplied naming-mode flag. Personal rooms are derived
 from actors/connections already recorded before applying their historical updates.
 Only automatic labels refresh. Custom names, room identity, access and settings
 remain intact whether the room update precedes or follows proposal capture.
+
+A personal-room settings save must also match the name shown when the dialog
+opened. Actor renames can update automatic labels without changing the room's
+saved revision. `/api/state` therefore includes a `nameVersion` display-state
+precondition for personal rooms; include it unchanged in `room.updated` alongside
+the normal revision. It is not an authentication or authorization credential.
+A missing or outdated value returns 409 with a reload instruction and writes
+nothing. Refresh and reopen settings before saving. Unchanged custom labels keep
+the same name precondition through actor renames; ordinary room revision checks
+still protect other settings. Existing historical room events remain replayable.

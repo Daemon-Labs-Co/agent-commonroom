@@ -54,6 +54,7 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		if req.Kind == "room.created" {
 			v.Revision = 1
 			v.ContextExport = nil
+			v.NameVersion = ""
 			v.ID = id()
 		} else if !hasRoom(st, v.ID) {
 			http.Error(w, "Room not found", 404)
@@ -91,6 +92,11 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		}
 		for _, old := range st.Rooms {
 			if old.ID == v.ID {
+				if old.PersonalActorID != "" && (v.NameVersion == "" || v.NameVersion != old.NameVersion) {
+					http.Error(w, "Room name changed; reload settings before saving", 409)
+					return nil, false
+				}
+				v.NameVersion = old.NameVersion
 				if v.Revision != old.Revision {
 					http.Error(w, "Room changed; reload", 409)
 					return nil, false
