@@ -173,7 +173,7 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 			text += part
 		}
 	}
-	prompt, err := chatPrompt(scoped(st, rid), p, text)
+	prompt, err := taskDispatchPrompt(scoped(st, rid), p, text)
 	if err != nil {
 		http.Error(w, err.Error(), 413)
 		return

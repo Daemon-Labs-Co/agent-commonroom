@@ -57,8 +57,8 @@ The owner sets the flag using `feature.flag.updated` with `name: "roomOutcomes"`
 
 This increment records and displays human intent. It does not automatically link
 tasks to individual criteria, mark a room complete, evaluate evidence, expand
-agent permissions, change existing dispatch eligibility, or add outcome text to
-provider prompts. Those execution and completion integrations are separate work.
+agent permissions, change existing dispatch eligibility, or expand tool access. Optional task-provider context is described below; completion
+and evidence assessment integrations remain separate work.
 Changing the room definition does not rewrite approved task scopes or cancel
 running work. Human acceptance and existing task/delegation authorization remain
 in force. Definitions are not secrets or authority credentials; room access
@@ -69,3 +69,40 @@ Automated verification uses mocked storage and synthetic data. It covers flag
 states, owner/member permissions, required fields and limits, stale saves,
 legacy/personal rooms, omitted-field preservation, replay/restart and escaped UI
 rendering. It does not establish live provider or browser acceptance.
+
+
+## Optional task-provider context
+
+The owner can separately enable **Settings → Features → Workflows → Room
+deliverable context** (`roomOutcomeContext`, default **off**). This is an explicit
+export opt-in: dispatched task work and review may send the current shared-room
+outcome and acceptance criteria to the assigned provider. `roomOutcomes` must
+also be enabled. No restart is needed. Agents and invited members cannot change
+either setting.
+
+The controller includes only the dispatched room's definition, labeled as
+untrusted reference with its room ID and room revision. It does not replace the
+task's own acceptance criteria. The room's allowed-provider policy remains
+mandatory, and **Exclude references** also excludes this room definition.
+Personal rooms and undefined legacy rooms contribute no definition. Ordinary
+chat and workflow turns are unchanged by this setting.
+
+The complete prompt still has the 128 KiB limit. Oversized historical definitions
+or a combined-context overflow refuse dispatch before writing its intent or
+starting a worker. Metadata is bounded before serialization. Definitions are
+encoded as JSON reference content, so text cannot break its structural wrapper;
+the model still receives untrusted text, and actual authority remains enforced
+by the controller and tool broker.
+
+A queued dispatch uses the snapshot built at that dispatch. Later room edits or
+switching either flag off affect future dispatches; they do not change already
+queued prompts, recall provider context, cancel active work, accept a task, or
+rewrite delegated task scopes. Retrying an acknowledged dispatch with the same
+idempotency key does not create a new turn or refresh its snapshot. Shared-room
+access, approved repository boundaries, audit acknowledgment and mandatory
+container isolation remain unchanged.
+
+Tests exercise work/review dispatch, idempotent replay, room separation, both
+flags, provider denial, reference exclusion, personal-room exclusion, historical
+and combined-size refusal, and owner-only configuration using synthetic data and
+mocked storage/turn boundaries. No live provider or worker acceptance is implied.
