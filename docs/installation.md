@@ -159,3 +159,6 @@ preserving history and independent human jobs. Provider adapters still need to
 emit the typed private supervisor request; this is not autonomous model delegation
 out of the box. See [bounded delegation](task-delegations.md) for setup, lifecycle,
 permissions, expiry/recovery and verification limits.
+
+
+Optional room definitions: the owner can enable default-off `roomOutcomes` in Settings → Features → Workflows. No restart or data migration is required. Existing rooms can be defined gradually; [room outcomes](room-outcomes.md) documents server enforcement and limits.

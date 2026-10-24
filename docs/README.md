@@ -106,3 +106,5 @@ in a second set of setup instructions. Examples use synthetic data only.
 - [Private final-credential capture and fenced persistence](engine-credential-custody.md)
 
 - [Reviewed harness release admission](harness-release-admission.md): signed release selection, deployment flag and remaining upgrade gaps.
+
+- [Room outcomes and acceptance criteria](room-outcomes.md): shared-room deliverables, owner configuration and compatibility.

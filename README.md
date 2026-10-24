@@ -207,3 +207,5 @@ Agents participate in assigned work rooms; unused automatic agent personal rooms
 are omitted by default. Existing history and work remain available. The owner
 can restore the legacy catalog with `automaticAgentRooms`; see the
 [agent-room compatibility contract](docs/concepts.md#automatic-agent-room-compatibility).
+
+Shared rooms can carry a human-defined deliverable and acceptance criteria. Enable the default-off `roomOutcomes` setting to require both for new shared rooms; existing rooms and saved history remain usable. See [room outcomes](docs/room-outcomes.md).

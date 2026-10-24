@@ -177,3 +177,6 @@ Legacy agent rooms containing saved history, settings or work remain in the room
 list. Owners can restore unused automatic agent rooms with **Settings → Features → Agent
 rooms → Automatic agent rooms** (default Off). See the [compatibility and
 retention contract](concepts.md#automatic-agent-room-compatibility).
+
+
+With **Settings → Features → Workflows → Room outcomes** enabled, New room and Room settings collect a defined outcome and acceptance criteria for shared rooms. Room and Tasks show the definition to authorized members. The owner controls edits; saved definitions remain visible when the setting is off. See [room outcomes](room-outcomes.md).

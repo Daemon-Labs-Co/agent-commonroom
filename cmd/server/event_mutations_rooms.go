@@ -105,6 +105,9 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 				v.ContextExport = old.ContextExport
 			}
 		}
+		if !prepareRoomOutcome(w, st, req, &v) {
+			return nil, false
+		}
 		v.Name = strings.TrimSpace(v.Name)
 		p = v
 	case "task.revised":
