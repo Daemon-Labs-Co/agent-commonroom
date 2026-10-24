@@ -15,6 +15,7 @@ import (
 func (s *server) load(ctx context.Context) (room.State, error) {
 	ctx, cancel := s.storageContext(ctx)
 	defer cancel()
+	referencedAgentRooms := map[string]bool{}
 	activities := map[string]string{}
 	background := map[string][]room.BackgroundActivity{}
 	activityStarts := map[string]time.Time{}
@@ -35,6 +36,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		if err = rows.Scan(&kind, &data); err != nil {
 			return st, err
 		}
+		rememberAgentRoomReferences(data, referencedAgentRooms)
 		st.EventCount++
 		switch kind {
 		case "task.delegation.proposed", "task.delegation.approved", "task.delegation.rejected":
@@ -535,5 +537,6 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	if err := ctx.Err(); err != nil {
 		return st, err
 	}
+	omitUnusedAgentRooms(&st, referencedAgentRooms)
 	return st, rows.Err()
 }

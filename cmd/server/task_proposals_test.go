@@ -459,6 +459,8 @@ func TestProposalReplayRefreshesPersonalRoomLabelsAfterLaterRenames(t *testing.T
 		t.Run(proposalRoom, func(t *testing.T) {
 			t.Parallel()
 			s, db, h := proposalFixture(t, true)
+			// Exercise legacy automatic-name behavior explicitly.
+			db.seed("feature.flag.updated", map[string]any{"name": "automaticAgentRooms", "enabled": true})
 			db.seed("actor.revised", room.Actor{ID: "member", Kind: "human", Name: "Earlier member", Role: "Developer", Enabled: true})
 			db.seed("human.profile.updated", map[string]string{"name": "Earlier owner"})
 			db.seed("connection.created", room.Connection{ID: "renamed", Name: "Earlier connection", Protocol: "CLI", Endpoint: "codex"})
@@ -600,6 +602,8 @@ func TestStalePersonalRoomSettingsCannotFreezeAutomaticNames(t *testing.T) {
 		t.Run(identity, func(t *testing.T) {
 			t.Parallel()
 			s, db, h := proposalFixture(t, true)
+			// Exercise legacy automatic-name behavior explicitly.
+			db.seed("feature.flag.updated", map[string]any{"name": "automaticAgentRooms", "enabled": true})
 			actorID := "member"
 			switch identity {
 			case "member":

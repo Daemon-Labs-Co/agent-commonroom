@@ -201,3 +201,9 @@ Off by default; approval never starts execution or grants agent permissions.
 [Bounded delegation](docs/task-delegations.md) adds authenticated worker assignment
 proposals and human review without inherited extra permissions or automatic
 launch. Off by default; automatic provider emission remains unimplemented.
+
+
+Agents participate in assigned work rooms; unused automatic agent personal rooms
+are omitted by default. Existing history and work remain available. The owner
+can restore the legacy catalog with `automaticAgentRooms`; see the
+[agent-room compatibility contract](docs/concepts.md#automatic-agent-room-compatibility).

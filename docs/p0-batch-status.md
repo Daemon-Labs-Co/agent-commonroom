@@ -395,3 +395,35 @@ proof does not establish live daemon or descendant termination guarantees.
   worker launch verified; existing provider delegation integration gap remains.
 - Last notification: reviewer fix verified locally, ready for owner publication
   on PR #59 with one commit message. No staging, commit, push or GitHub messages.
+
+## Agent-room catalog simplification
+
+- Verified PR #59 merged reviewed head `4a81e22208e4b460e3f9be3e16a87320ee960908`
+  as `1f32e0718a012dc4a9962003dc24c4bab34a05af`; merged tree matches the reviewed
+  fix tree. Greptile passed on final head, previous P1 outdated, no new findings.
+- New branch `codex/no-automatic-agent-rooms` from that exact clean merged base.
+  Implements the user's decision that agents participate in work rooms instead
+  of automatically receiving unused personal rooms in the catalog.
+- Server omits unused implicit agent rooms after historical replay. Any saved
+  event reference conservatively retains a legacy room, including nested audit
+  scope, settings, removed tasks and messages. Agent identities, shared rooms,
+  human personal rooms and all persisted events remain intact. Historical replay
+  still derives legacy scope scaffolding; no migration or event deletion occurs.
+- Owner-only `automaticAgentRooms` compatibility flag defaults off; enabling
+  restores the old automatic catalog. Settings control, server admission and
+  both flag states are tested. No restart or permission/isolation change.
+- Regression coverage includes history preservation, nested references, restart,
+  off/on/off, unchanged human rooms/agent identities, owner/member permissions
+  and UI saving/defaults. Existing automatic-name regressions explicitly enable
+  compatibility mode; their first run correctly exposed the changed default.
+- Final make test passed in 9.03 seconds; final make check passed in 19.11 seconds.
+  Combined final check time 28.14 seconds. Total elapsed work time was not
+  separately measured. No live database/provider/browser integration exercised.
+  Mandatory production execution barrier and prior delegation integration gaps
+  remain; this does not certify any new P0 gate. Defined room deliverables and
+  human direct messages are separate, unimplemented design work.
+- New files to include: cmd/server/agent_rooms.go and
+  cmd/server/agent_rooms_test.go. Git helper confirmed expected scope, empty
+  index and clean whitespace. Last notification: batch verified locally and
+  ready for owner signing/publication with one commit message. Nothing staged,
+  committed, pushed, merged or posted by the agent.
