@@ -479,3 +479,62 @@ func TestDelegationFlagDefaultAndOwnerEnable(t *testing.T) {
 		t.Fatal("owner enable failed", w.Code)
 	}
 }
+
+// Review registration must follow the durably dispatched reviewer, even when
+// delegation is disabled and the assignee is a different participant.
+func TestDistinctTaskReviewerManagedRegistration(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		t.Run(fmt.Sprint(enabled), func(t *testing.T) {
+			t.Parallel()
+			s, db, _, scope, h := delegationFixture(t)
+			db.seed("feature.flag.updated", map[string]any{"name": "taskDelegation", "enabled": enabled})
+			db.seed("task.revised", room.Task{ID: "task", RoomID: "engineering", Title: "Review synthetic work", Criteria: "Synthetic criteria", Assignee: "source", Reviewer: "target", Status: "Assigned", Revision: 3})
+			s.taskReady = func(string) error { return nil }
+			result := make(chan error, 1)
+			s.taskTurn = func(ctx context.Context, p room.Participant, _, _ string) (string, error) {
+				jobCtx := s.managedExecutionJobContext(ctx, p, scope.RepositoryDigest, func() (string, error) { return scope.RepositoryDigest, nil })
+				reg := jobCtx.Value(managedJobContextKey{}).(managedJobRegistration)
+				err := reg.Register("worker", "claude")
+				if err == nil {
+					err = reg.Update("submitted")
+				}
+				if err == nil {
+					st, loadErr := s.load(ctx)
+					err = loadErr
+					if err == nil {
+						job := st.ManagedJobs[reg.JobID]
+						if p.ID != "target" || !managedTaskCurrent(st, job) {
+							err = fmt.Errorf("reviewer binding lost")
+						}
+						job.ParticipantID = "source"
+						if managedTaskCurrent(st, job) {
+							err = fmt.Errorf("assignee admitted as reviewer")
+						}
+						job.ParticipantID = "target"
+						st.Tasks[0].Reviewer = "source"
+						if managedTaskCurrent(st, job) {
+							err = fmt.Errorf("stale reviewer authority retained")
+						}
+					}
+				}
+				if err == nil {
+					err = reg.Update("shutdown_confirmed")
+				}
+				result <- err
+				return "Synthetic review result", err
+			}
+			w := dispatchRequest(h, "distinct-review", `{"taskId":"task","revision":3,"mode":"review"}`)
+			if w.Code != 202 {
+				t.Fatal(w.Code, w.Body.String())
+			}
+			select {
+			case err := <-result:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("review did not register")
+			}
+		})
+	}
+}

@@ -376,3 +376,22 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: controller/supervisor one-hop delegation batch verified for
   review with explicit provider integration limits and one commit message. Owner
   signs/publishes/opens PR/merges; no agent commit/push/staging/GitHub messages.
+
+## PR #59 distinct reviewer admission fix
+
+- Verified branch `codex/governance-delegation`, published head
+  `f656f82841fdf0d09cb72e89a6d58d359ff776a1`. PR open, Greptile check successful;
+  valid P1 feedback `4365756960` on that head was the sole finding.
+- Task authority now uses the durably recorded dispatch state: Working selects
+  the assignee, Reviewing selects the reviewer; other states grant no authority.
+  Exact task/room/dispatch/delegation and pending-outcome checks remain required.
+- Regression dispatches to a different reviewer, registers/submits the managed
+  job and verifies stale-reviewer and assignee-as-reviewer refusals. Runs with
+  delegation both disabled and enabled. Updated the technical/user contract.
+- make test passed in 9.59 seconds; make check passed in 20.54 seconds (30.13
+  seconds combined check execution). Work was interrupted by product discussion;
+  total elapsed implementation time was not reliably tracked.
+- Database and isolated execution boundaries remain mocked. No live provider or
+  worker launch verified; existing provider delegation integration gap remains.
+- Last notification: reviewer fix verified locally, ready for owner publication
+  on PR #59 with one commit message. No staging, commit, push or GitHub messages.

@@ -23,7 +23,16 @@ func managedTaskCurrent(st room.State, j room.ManagedJob) bool {
 		return j.TaskDispatchID == "" && j.DelegationID == ""
 	}
 	for _, t := range st.Tasks {
-		if t.ID == j.TaskID && t.RoomID == j.RoomID && t.DispatchID == j.TaskDispatchID && t.DispatchStatus == "pending" && t.Assignee == j.ParticipantID && t.DelegationID == j.DelegationID {
+		// Dispatch status is durably recorded before registration. Review turns
+		// belong to the reviewer; work turns belong to the assignee.
+		participant := ""
+		switch t.Status {
+		case "Working":
+			participant = t.Assignee
+		case "Reviewing":
+			participant = t.Reviewer
+		}
+		if participant != "" && t.ID == j.TaskID && t.RoomID == j.RoomID && t.DispatchID == j.TaskDispatchID && t.DispatchStatus == "pending" && participant == j.ParticipantID && t.DelegationID == j.DelegationID {
 			return true
 		}
 	}

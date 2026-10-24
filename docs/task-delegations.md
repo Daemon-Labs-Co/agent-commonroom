@@ -134,3 +134,11 @@ was exercised. Provider emission, reviewed production assembly and full GOV-07
 live acceptance remain outstanding. No P0 release gate is certified by synthetic
 acceptance. See [governance design](governance-model.md), [task proposals](task-proposals.md)
 and [P0 acceptance](p0-release-gate-acceptance.md).
+
+Task-bound work and review jobs retain their existing dispatch roles: a pending
+`Working` task admits its current assignee; a pending `Reviewing` task admits its
+current reviewer. Registration and subsequent audit checks use this durably saved
+state together with the exact task, dispatch, room and delegation identifiers.
+Changing the selected participant invalidates that job's task authority. This
+also applies when `taskDelegation` is off; independent human review does not
+require enabling delegation.
