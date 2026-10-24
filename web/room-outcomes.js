@@ -1,7 +1,9 @@
 // Room purpose is human-managed metadata, never an execution authorization.
 function roomOutcomeFields(room={}){
  if(state.featureFlags?.roomOutcomes!==true||room.personalActorId)return '';
- return '<label class="field">Defined outcome<textarea name="outcome" maxlength="2000" required>'+esc(room.outcome||'')+'</textarea></label><label class="field">Acceptance criteria<textarea name="acceptanceCriteria" maxlength="8000" required>'+esc(room.acceptanceCriteria||'')+'</textarea></label>';
+ // An existing undefined room can save unrelated settings without migration.
+ const required=!room.id||room.outcome||room.acceptanceCriteria?' required':'';
+ return '<label class="field">Defined outcome<textarea name="outcome" maxlength="2000"'+required+'>'+esc(room.outcome||'')+'</textarea></label><label class="field">Acceptance criteria<textarea name="acceptanceCriteria" maxlength="8000"'+required+'>'+esc(room.acceptanceCriteria||'')+'</textarea></label>';
 }
 function drawRoomOutcomes(){
  const main=$('#main');if(!main)return;

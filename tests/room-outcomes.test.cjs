@@ -21,3 +21,24 @@ test('only owner sees the default-off setting and it uses authenticated events',
  const member=harness({view:'Settings',owner:false});member.ctx.drawRoomOutcomes();assert.equal(member.html(),'');
  const page=fs.readFileSync('web/index.html','utf8');assert(page.indexOf('src="room-outcomes.js"')<page.indexOf('src="feature-flag-tabs.js"'));assert(page.indexOf('src="room-outcomes.js"')<page.indexOf('src="settings-tabs.js"'));
 });
+
+test('legacy room settings allow blank definitions while new and defined rooms require both fields',()=>{
+ const h=harness();
+ const legacy={id:'engineering',name:'Renamed legacy room',description:'Unrelated description'};
+ const fields=h.ctx.roomOutcomeFields(legacy);
+ const controls=[...fields.matchAll(/<textarea\b([^>]*)>(.*?)<\/textarea>/g)];
+ assert.equal(controls.length,2);
+ const payload={...legacy};
+ for(const [,attributes,value] of controls){
+  const name=attributes.match(/name="([^"]+)"/)[1];
+  // These are the constraints the browser checks before the existing form's
+  // submit handler can send Object.fromEntries(FormData).
+  assert(!/\brequired\b/.test(attributes)&&value==='');payload[name]=value;
+ }
+ assert.equal(payload.outcome,'');assert.equal(payload.acceptanceCriteria,'');
+ assert.equal(payload.description,'Unrelated description');
+ for(const room of [{},{id:'work',outcome:'Defined'},{id:'work',acceptanceCriteria:'Verify'},h.room]){
+  const requiredFields=[...h.ctx.roomOutcomeFields(room).matchAll(/<textarea\b([^>]*)>/g)];
+  assert.equal(requiredFields.length,2);for(const [,attributes]of requiredFields)assert.match(attributes,/\brequired\b/);
+ }
+});

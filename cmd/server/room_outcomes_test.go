@@ -115,11 +115,19 @@ func TestRoomOutcomePermissionsAndLegacy(t *testing.T) {
 	if w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
+	// The legacy browser form explicitly submits both blank textareas.
+	w = mockRequest(h, "POST", "/api/events", `{"kind":"room.updated","payload":{"id":"engineering","name":"Renamed legacy room","revision":1,"description":"Unrelated description","outcome":"","acceptanceCriteria":""}}`)
+	if w.Code != 200 {
+		t.Fatal("legacy blank-definition save blocked", w.Code, w.Body.String())
+	}
 	st, err := s.load(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, r := range st.Rooms {
+		if r.ID == "engineering" && (r.Name != "Renamed legacy room" || r.Description != "Unrelated description" || r.Outcome != "" || r.AcceptanceCriteria != "") {
+			t.Fatal("legacy save changed definition", r)
+		}
 		if r.PersonalActorID == ownerID {
 			r.Outcome = "Not a work room"
 			r.AcceptanceCriteria = "Not applicable"

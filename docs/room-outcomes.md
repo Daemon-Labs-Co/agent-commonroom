@@ -25,8 +25,9 @@ When enabled:
    tasks and assessing evidence.
 
 Existing rooms remain usable without an outcome, so enabling the feature does
-not require a bulk migration. The room settings form asks for both fields when
-adding its definition. Personal rooms are exempt. Only the owner can create or
+not require a bulk migration. The room settings form allows both fields to stay blank on an undefined
+existing room, so a name or description edit does not require migration. Once
+you add a definition, both fields must be filled; new rooms also require both. Personal rooms are exempt. Only the owner can create or
 edit a room definition; authorized members can read it. Agent connections and
 models cannot revise it through the room event API.
 

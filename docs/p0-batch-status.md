@@ -480,3 +480,24 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: room outcome increment verified locally with one commit
   message, ready for owner signing/publication. Nothing staged, committed,
   pushed, merged or posted by the agent.
+
+## PR #61 legacy room form compatibility fix
+
+- Verified clean `codex/room-outcomes` and PR #61 current reviewed head
+  `39d420b4ec81de6ed8e3679ba0094502434cec7f`. Open; Greptile check succeeded
+  with sole valid P1 `4368601346`: required browser fields blocked unrelated
+  saves on existing undefined shared rooms, despite server compatibility.
+- Undefined existing rooms now render both definition fields as optional. New
+  rooms and rooms with either saved definition field still require both. The
+  server continues refusing partial definitions and clearing defined outcomes.
+- Added generated-form constraint regression for legacy blank submissions versus
+  new/defined required fields, plus actual mocked HTTP save with explicit blank
+  fields and unrelated name/description changes. Updated usage documentation.
+- make test passed in 10.11 seconds; make check passed in 20.92 seconds. Observed
+  work span approximately 21:38:06–21:39:15 UTC on 24 October (about 69 seconds),
+  including review/check waits. No live browser/provider/database verification.
+- Git helper confirmed expected four-file fix scope before this checkpoint,
+  empty index, clean whitespace and no unrelated changes/new remote findings.
+- Last notification: valid P1 fixed and verified locally with one commit message;
+  owner signs and publishes on PR #61 for current-head rereview. Nothing staged,
+  committed, pushed, merged or posted by the agent.
