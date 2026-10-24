@@ -105,7 +105,7 @@ Human overrides, acceptance authority, and immutable history remain product requ
 
 Agents participate in shared rooms assigned by the owner; they do not need a
 personal room to run. `automaticAgentRooms` defaults **off**, is enforced in the
-server room catalog, and can be changed only by the owner through Settings →
+server room catalog, and can be changed only by the owner through Settings → Features →
 Agent rooms. Changes apply on the next state load without a restart. Switching
 on restores the legacy automatic room catalog; switching off omits only unused
 implicit agent rooms. It never deletes events, moves tasks, cancels work or

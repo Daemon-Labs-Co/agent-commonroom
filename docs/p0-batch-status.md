@@ -427,3 +427,23 @@ proof does not establish live daemon or descendant termination guarantees.
   index and clean whitespace. Last notification: batch verified locally and
   ready for owner signing/publication with one commit message. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## PR #60 Agent rooms Settings tab fix
+
+- Verified clean branch `codex/no-automatic-agent-rooms` and PR #60 published
+  head `710a6f09b110639db9952bea29fe0357c6ab1af5`. Open; Greptile check succeeded
+  with sole valid P2 `4367500538` on that exact head: Agent rooms was appended
+  after Settings grouping and therefore remained visible across all tabs.
+- Load the agent-room renderer before Settings grouping and categorize its card
+  under Features. Retain the original save control/handler and owner checks.
+  Update user documentation to Settings → Features → Agent rooms.
+- Regressions assert real script ordering, Features membership, visibility when
+  selecting Profile/Company/Retention/Help, retained save handler and disabled
+  Settings-tab fallback. Existing owner-only/default-off setting tests pass.
+- make test passed in 8.89 seconds; make check passed in 16.84 seconds. Observed
+  work span approximately 15:12:58–15:14:25 UTC on 24 October (about 1.5 minutes);
+  includes review/testing waits. No live browser/provider/database verification.
+- Git helper confirmed expected scope, empty index, no unrelated changes or new
+  remote findings. Last notification: valid P2 fixed and verified locally with
+  one commit message; owner signs/publishes on PR #60 for current-head rereview.
+  Nothing staged, committed, pushed, merged or posted by the agent.

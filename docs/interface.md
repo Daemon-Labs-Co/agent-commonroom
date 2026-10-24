@@ -174,6 +174,6 @@ Technical contract: `trackSquadCount` in `web/features.js` counts direct `.parti
 
 Agents join work rooms rather than receiving an empty personal room automatically.
 Legacy agent rooms containing saved history, settings or work remain in the room
-list. Owners can restore unused automatic agent rooms with **Settings → Agent
+list. Owners can restore unused automatic agent rooms with **Settings → Features → Agent
 rooms → Automatic agent rooms** (default Off). See the [compatibility and
 retention contract](concepts.md#automatic-agent-room-compatibility).
