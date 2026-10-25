@@ -116,3 +116,5 @@ Logical output/member labels are immutable scope metadata and cannot select
 filesystem paths. They reject absolute/traversal/noncanonical names; only the
 generated object ID selects a leaf. Trusted source adapters must verify those
 labels against actual isolated outputs. See [finite manifests](artifact-manifests.md).
+
+The internal [workspace capture foundation](workspace-source-capture.md) now computes actual bounded tree identity and verifies selected bytes against receipts. Its trusted production frozen-volume lease and transport are still missing; it does not enable public or managed file delivery.

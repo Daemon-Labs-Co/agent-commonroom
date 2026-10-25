@@ -148,3 +148,5 @@ public authenticated download, trusted format/content checks or delivery. Those
 production integrations remain required before managed file/bundle dispatch can
 be enabled. See [finite manifests](artifact-manifests.md),
 [storage accounting](storage-accounting.md) and [release readiness](release-readiness.md).
+
+The internal [workspace capture foundation](workspace-source-capture.md) now computes actual bounded tree identity and verifies selected bytes against receipts. Its trusted production frozen-volume lease and transport are still missing; it does not enable public or managed file delivery.
