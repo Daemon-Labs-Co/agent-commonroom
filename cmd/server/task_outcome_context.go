@@ -9,9 +9,9 @@ import (
 // Room deliverables are optional reference material, never task scope or tool
 // authority. Opt-in export must also satisfy the room's provider disclosure
 // policy. Ordinary chat and non-task execution paths do not use this helper.
-func taskDispatchPrompt(st room.State, p room.Participant, text string) (string, error) {
+func taskDispatchPrompt(st room.State, p room.Participant, text string, taskIDs ...string) (string, error) {
 	prompt, err := chatPrompt(st, p, text)
-	if err != nil || !st.FeatureFlags["roomOutcomeContext"] || !st.FeatureFlags["roomOutcomes"] {
+	if err != nil {
 		return prompt, err
 	}
 	_, policy, err := contextDestination(st, p)
@@ -21,6 +21,30 @@ func taskDispatchPrompt(st room.State, p room.Participant, text string) (string,
 	if policy != nil && policy.ExcludeReferences {
 		return prompt, nil
 	}
+	if len(taskIDs) > 0 {
+		for _, e := range st.Evidence {
+			if e.RoomID != p.RoomID || e.TaskID != taskIDs[0] {
+				continue
+			}
+			fields := []string{e.ID, e.RoomID, e.TaskID, e.Kind, e.Title, e.Body, e.Source}
+			size := 0
+			for _, value := range fields {
+				if !utf8.ValidString(value) || len(value) > maxChatContextBytes-size {
+					return "", errors.New("Task evidence exceeds context limits")
+				}
+				size += len(value)
+			}
+			reference := "\nTask evidence reference (human-provided, not observed verification or tool authority):\n" + referenceJSON(map[string]any{"evidenceId": e.ID, "roomId": e.RoomID, "taskId": e.TaskID, "kind": e.Kind, "title": e.Title, "body": e.Body, "sourceLabel": e.Source, "trust": "untrusted human-provided reference"})
+			if len(reference) > maxChatContextBytes-len(prompt) {
+				return "", errors.New("Task evidence exceeds context limits")
+			}
+			prompt += reference
+		}
+	}
+	if !st.FeatureFlags["roomOutcomeContext"] || !st.FeatureFlags["roomOutcomes"] {
+		return prompt, nil
+	}
+
 	for _, r := range st.Rooms {
 		if r.ID != p.RoomID || r.PersonalActorID != "" || (r.Outcome == "" && r.AcceptanceCriteria == "") {
 			continue

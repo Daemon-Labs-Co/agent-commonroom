@@ -34,12 +34,55 @@ func (b *cappedStatusOutput) Write(p []byte) (int, error) {
 // approved isolated SSH worker. Passwords and OAuth codes remain in Terminal.
 // Disabling its feature flag cannot disable execution isolation or restore a
 // host CLI fallback. Source forks CAN bypass this, BUT expose host credentials.
+// Durable uncertainty survives controller restart. Configuration/authentication
+// must retain the original connection until every bound job and task is settled.
+func participantHasUnsettledWork(st room.State, active map[string]bool, pid string) bool {
+	if active[pid] {
+		return true
+	}
+	for _, job := range st.ManagedJobs {
+		if job.ParticipantID == pid && !job.ShutdownConfirmed {
+			return true
+		}
+	}
+	for _, task := range st.Tasks {
+		if task.DispatchStatus != "pending" {
+			continue
+		}
+		if execution, ok := st.TaskExecutions[task.DispatchID]; ok {
+			if execution.ParticipantID == pid {
+				return true
+			}
+			continue
+		}
+		switch task.Status {
+		case "Working":
+			if task.Assignee == pid {
+				return true
+			}
+		case "Reviewing":
+			if task.Reviewer == pid {
+				return true
+			}
+		default:
+			if task.Assignee == pid || task.Reviewer == pid {
+				return true
+			}
+		}
+	}
+	return false
+}
 func connectionHasActiveAgent(st room.State, active map[string]bool, connection string) bool {
 	if active[verificationParticipant("", connection).ID] {
 		return true
 	}
+	for _, job := range st.ManagedJobs {
+		if job.ConnectionID == connection && !job.ShutdownConfirmed {
+			return true
+		}
+	}
 	for _, p := range st.Participants {
-		if p.ConnectionID == connection && active[p.ID] {
+		if p.ConnectionID == connection && participantHasUnsettledWork(st, active, p.ID) {
 			return true
 		}
 	}
@@ -132,7 +175,7 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if connectionHasActiveAgent(current, s.active, req.ConnectionID) {
-			http.Error(w, "Stop or finish this connection's active agents before signing out", 409)
+			http.Error(w, "Finish active agents or reconcile unresolved connection work before signing out", 409)
 			return
 		}
 		if s.append(r.Context(), "provider.logout_requested", map[string]string{"actorId": ownerID, "connectionId": req.ConnectionID, "provider": provider}) != nil {

@@ -16,11 +16,14 @@ import (
 )
 
 type taskJobContextKey struct{}
-type taskJobBinding struct{ TaskID, DispatchID, DelegationID string }
+type taskJobBinding struct {
+	TaskID, DispatchID, DelegationID, DefinitionDigest string
+	DefinitionEpoch                                    int
+}
 
 func managedTaskCurrent(st room.State, j room.ManagedJob) bool {
 	if j.TaskID == "" {
-		return j.TaskDispatchID == "" && j.DelegationID == ""
+		return j.TaskDispatchID == "" && j.DelegationID == "" && j.TaskDefinitionDigest == "" && j.TaskDefinitionEpoch == 0
 	}
 	for _, t := range st.Tasks {
 		// Dispatch status is durably recorded before registration. Review turns
@@ -32,14 +35,18 @@ func managedTaskCurrent(st room.State, j room.ManagedJob) bool {
 		case "Reviewing":
 			participant = t.Reviewer
 		}
-		if participant != "" && t.ID == j.TaskID && t.RoomID == j.RoomID && t.DispatchID == j.TaskDispatchID && t.DispatchStatus == "pending" && participant == j.ParticipantID && t.DelegationID == j.DelegationID {
-			return true
+		if participant != "" && (t.Definition == nil || st.FeatureFlags["taskDefinitions"] && j.TaskDefinitionEpoch == st.TaskDefinitionEpoch) && taskDefinitionDigest(t) == j.TaskDefinitionDigest && t.ID == j.TaskID && t.RoomID == j.RoomID && t.DispatchID == j.TaskDispatchID && t.DispatchStatus == "pending" && participant == j.ParticipantID && t.DelegationID == j.DelegationID {
+			execution, exists := st.TaskExecutions[t.DispatchID]
+			return t.Definition == nil || exists && taskExecutionPendingCurrent(st, t, execution)
 		}
 	}
 	return false
 }
 func delegationTaskDigest(t room.Task) string {
 	raw, _ := json.Marshal([4]string{t.ID, t.RoomID, t.Title, t.Criteria})
+	if t.Definition != nil {
+		raw, _ = json.Marshal([]string{string(raw), taskDefinitionDigest(t)})
+	}
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:])
 }

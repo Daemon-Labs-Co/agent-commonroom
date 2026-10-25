@@ -2,6 +2,7 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"agentroom/internal/taskcontract"
 	"agentroom/internal/toolbroker"
 	"context"
 	"errors"
@@ -134,6 +135,17 @@ func (a *controllerToolAuditor) RecordIntent(ctx context.Context, intent toolbro
 		return err
 	}
 	job := st.ManagedJobs[a.scope.JobID]
+	maxCalls := toolbroker.MaxCalls
+	for _, task := range st.Tasks {
+		if task.ID == job.TaskID && task.Definition != nil {
+			if !taskcontract.Allows(*task.Definition, intent.Operation) {
+				return toolbroker.ErrAudit
+			}
+			if task.Definition.ExecutionConstraints.MaxToolCalls < maxCalls {
+				maxCalls = task.Definition.ExecutionConstraints.MaxToolCalls
+			}
+		}
+	}
 	if job.DelegationID != "" && st.Delegations[job.DelegationID].ParentOperations&toolbroker.OperationMask(intent.Operation) == 0 {
 		return toolbroker.ErrAudit
 	}
@@ -149,7 +161,7 @@ func (a *controllerToolAuditor) RecordIntent(ctx context.Context, intent toolbro
 			count++
 		}
 	}
-	if count >= toolbroker.MaxCalls {
+	if count >= maxCalls {
 		return toolbroker.ErrAudit
 	}
 	now := time.Now().UTC()

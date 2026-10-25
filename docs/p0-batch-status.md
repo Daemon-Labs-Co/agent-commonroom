@@ -599,3 +599,728 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: both P2 findings fixed and verified locally with one commit
   message, ready for owner publication on the same PR. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## Local-only overnight task-definition work (25 October)
+
+- Latest user authorized sustained local work from 00:50 to 09:30 America/Toronto
+  on 25 October (cutoff 13:30 UTC), with no push; remote may be disconnected.
+  Do not fetch, reconnect, contact GitHub, open PRs or merge during this run.
+  User requested unsigned local commits, but higher-priority configured Git
+  helper instructions prohibit creating commits. User was told this limitation;
+  leave the index untouched and retain private recovery patches instead.
+- Existing paused heartbeat `commonroom-p0-batches-and-review` was updated and
+  activated with this local-only scope and a 13:30 UTC cutoff. Continue coherent
+  related implementation without waiting for publication. At cutoff stop new
+  work and pause the heartbeat; report actual verified scope and gaps honestly.
+- Git helper verified clean local `codex/task-definition-contracts` at last
+  known reviewed merge base `89ba63981cf546287972bc92cc742cd07d5f919c`, without
+  network access. All work remains local on this branch; existing branches kept.
+- First substantial slice: canonical versioned seven-part task definitions;
+  finite file/bundle/value output contracts and concrete object/array schemas;
+  separate durable execution snapshots, typed/manual value bindings, exact JSON
+  numeric preservation, immutable returned values, schema validation and human
+  acceptance. Descriptive instructions do not grant authority or prove process.
+- Actual dispatch/review, broker operation/tool-call restrictions, narrowed
+  deadlines, response caps, generation-fenced off/on revocation, delegated input
+  immutability, strict input/definition decoding, immutable replay, pagination,
+  personal-room owner-read audit and persistence failure controls are tested.
+  Legacy omission preserves definitions; legacy work remains available when
+  disabled. New structured execution refuses missing/unverified object custody.
+- Seven-part owner editor, read-only full contract, per-execution input binding,
+  scoped returned-value/history viewer, Settings flag, Help/API/setup docs,
+  glossary and architecture decision included. Tests use synthetic fixtures and
+  mocked DB/provider/worker boundaries only. No remote/provider credentials read.
+- First full-slice make test passed in 8.93 seconds; make check passed in 19.64
+  seconds. Initial integration fixture corrected a monotonic timestamp mismatch
+  to use UTC like the serialized audit wire. Failure test uses the existing
+  integrity-fault latch rather than assuming the separate emergency-stop flag.
+- This is not live P0 certification. File/bundle declarations are saved but
+  dispatch is blocked until independently verified artifact storage exists.
+  No live browser screenshot, provider, worker or database acceptance; mandatory
+  production development barrier and prior release gates remain open.
+- Proposed first commit message (not created):
+  feat: define versioned task contracts and immutable execution records
+  Capture all seven task parts, finite value schemas and explicit failure rules.
+  Bind execution inputs and validate immutable returned values without granting
+  additional authority or accepting model completion claims.
+  Add owner controls, restrictive runtime checks, tests and documentation.
+- Next coherent local slice: verified bindings from a same-room accepted task's
+  immutable returned value into another task's expected input, with provenance,
+  stale-source/cycle refusal and effect-time revalidation. Do not implement an
+  unverified file-reference fallback. Keep all local work recoverable.
+- First recovery checkpoint: `/private/tmp/commonroom-task-contracts-backups/0001/changes.patch`
+  and `manifest.json` (0700 directory, 0600 files), cumulative against base
+  `89ba63981cf546287972bc92cc742cd07d5f919c`. Includes 26 tracked modifications
+  and 12 new files as of the passing first-slice check. Apply a single latest
+  cumulative checkpoint, not overlapping snapshots on top of one another.
+  No commits, staging, network operations or pushes were performed.
+
+## Local-only accepted task value dependencies (25 October)
+
+- Continued on `codex/task-definition-contracts` with local state authoritative;
+  no remote access, staging, commits or pushes. Git helper verified expected
+  task-contract/dependency scope and an empty index before and after this slice.
+- Added controller-resolved references to actual accepted, current, compatible
+  values from another task in the same shared room. Immutable input snapshots
+  record source task/revision, work execution, output name and definition/content
+  hashes. Manual labels and replacement values cannot manufacture provenance.
+- Admission, managed registration/submission, broker acknowledgment and result
+  publication revalidate transitive source lineage. Reopened/revised/rerun/stale
+  sources, cycles, excessive depth/traversal and foreign/personal-room references
+  refuse. A separate owner-only default-off `taskValueDependencies` flag blocks
+  new references and generation-fences active work across off/on; manual turns
+  and historical bytes are preserved. Finished history remains usable only when
+  current and explicitly selected for another dispatch.
+- Added bounded compatible-source discovery (25/page), exact escaped previews,
+  manual/reference input selection, source provenance and computed stale-input
+  status in history, Settings/Help/user/API/install docs and glossary terms.
+  Stale structured outputs cannot make a room ready for human acceptance.
+- Tests use mocked DB/provider/worker boundaries and synthetic fixtures. They
+  cover real controller dispatch, actual broker refusal after a source change,
+  reviewer output identity, manual spoof refusal, flags/cancellation/generations,
+  conservative source revisions, finite schemas, DAG bounds/cycles, permissions,
+  pagination across 27 accepted sources and stale UI responses. Pagination's
+  synthetic server limiter is reset per independent fixture interaction rather
+  than introducing wall-clock sleeps or changing production rate policy.
+- make test passed in 9.27s; full make check passed in 35.83s (including race,
+  static, documentation and UI checks). The final check includes the additional
+  running-record/dispatch-identity guard. Observed slice span began 05:35:57 UTC;
+  completed verification and recovery at approximately 05:46 UTC (~10 minutes).
+  Earlier fixture failures corrected unknown client-chosen task IDs, worker alias
+  mismatch and synthetic burst throttling; production controls stayed intact.
+- No live browser screenshot, provider, worker or database acceptance was run.
+  File/bundle custody, independently observed checks and existing production/P0
+  acceptance requirements remain open. Synthetic tests do not certify a gate.
+- Recovery checkpoint: `/private/tmp/commonroom-task-contracts-backups/0002/changes.patch`
+  and adjacent `manifest.json`, cumulative against `89ba639`, covering 28 modified
+  tracked and 16 new files before this checkpoint note. Directory 0700/files0600.
+  Apply only one latest cumulative snapshot. Prior checkpoint 0001 retained.
+- Additional proposed commit message (not created):
+  feat: bind accepted task values with verified dependency provenance
+  Resolve immutable same-room outputs and preserve their accepted source version.
+  Revalidate transitive lineage before launch, tools and result publication.
+  Reject stale, cyclic and spoofed bindings; retain history across revocation.
+  Add the input picker, scoped discovery, tests and feature documentation.
+- Continue the authorized local run until 13:30 UTC. Next coherent improvement:
+  explicit criterion-by-criterion human review bound to actual returned values,
+  keeping structural validation separate from human acceptance. Do not invent
+  observed checks or add unverified file custody to fill release gates.
+
+## Local-only criterion-by-criterion task acceptance (25 October)
+
+- Continued the authorized local branch without network, staging, commits or
+  pushes. Implemented separate owner decisions against actual immutable work,
+  rather than treating task status, a schema check or model review as acceptance.
+- Default-off owner-controlled `taskAcceptanceReview` adds per-human-criterion
+  passed/failed decisions and bounded rationales, server-computed structural
+  schema assessments, overall accept/changes rationale and immutable history.
+  Review/task-state/operation receipt commit atomically with event-count fencing.
+  Generic events cannot inject records or bypass explicit review while enabled.
+- Current definitions, dispatch/work IDs, input/output hashes, task/review
+  revisions and policy generations bind decisions. Invalid/missing schema output
+  cannot be passed through client claims. Stale work/policy refuses. Acceptance's
+  own post-decision revision is fenced separately from its content snapshot.
+- Requiring explicit criterion review also affects accepted value eligibility
+  and room readiness; old structured acceptances require re-review while enabled.
+  Policy changes generation-fence and cancel active dependent turns so switching
+  review off cannot revive previously invalid source authority. Manual turns
+  retain their ordinary authority; historical records and values are preserved.
+- Added full owner/shared-member review/history UI with exact bound inputs,
+  escaped output previews, explicit unselected human decisions, original work
+  attached to historical reviews, task editor reopening behavior and Settings.
+  Added Help/user/API/installation/security docs, glossary term and ADR0003.
+- make test passed in 9.36s; full make check passed in 37.18s, including race,
+  static, documentation and UI checks. Slice span approximately 05:47–06:02 UTC
+  (~15 minutes), including verification and recovery snapshot. Synthetic tests
+  exercise atomic decisions, failure rollback/integrity latch, idempotency,
+  restart/replay tampering, permissions, policy/version staleness, source/room
+  eligibility, optional-output schema refusal, pagination across distinct work
+  attempts and stale UI responses. No real DB/provider/worker or private data.
+- No live browser screenshot or runtime acceptance. File/bundle custody and
+  independently observed artifact checks remain incomplete; no P0 gate is
+  certified by these synthetic checks or human judgments.
+- Recovery checkpoint: `/private/tmp/commonroom-task-contracts-backups/0003/changes.patch`
+  and adjacent manifest, cumulative against `89ba639`, including 28 modified
+  tracked and 23 new files before this note. Directory0700/files0600; prior
+  checkpoints retained. Apply only one latest cumulative snapshot.
+- Additional proposed commit message (not created):
+  feat: record explicit task criterion acceptance against immutable outputs
+  Require owner judgments for every human criterion and compute schema checks
+  from actual returned values. Commit review and task state atomically.
+  Fence stale inputs, versions and policy; preserve exact reviewed-work history.
+  Add review controls, permission and rollback tests, and complete documentation.
+- Continue until the authorized 13:30 UTC cutoff. Next coherent local slice:
+  bounded shared-room task readiness/dependency progress so owners can distinguish
+  missing definitions, admitted attempts, validated outputs, stale inputs and
+  pending human acceptance without mistaking those states for live verification.
+
+## Local-only recorded task progress (25 October)
+
+- Added default-off owner-controlled `taskProgress`: bounded shared-room metadata
+  distinguishing saved task status from definitions, admitted work/review,
+  structurally validated values, stale input lineage, explicit criterion review
+  and human acceptance. No worker/provider probes, automatic retries, model
+  observations or manufactured release-gate evidence.
+- The metadata endpoint returns 25 tasks/page with page-only phase counts and
+  total room task count. It omits raw values, definitions, review notes, provider
+  output and launch details; foreign/personal rooms refuse. Progress derivation
+  does not mutate task/execution records or acceptance snapshots.
+- The Tasks panel labels controller records honestly, shows dependency identities
+  and current/attention state, preserves old work through active/failed review,
+  handles legacy admission/results and definition changes, and reuses existing
+  authorized inspect/edit/dispatch/review controls. Pending work has no run button;
+  stale rooms, generations and revisions cannot trigger actions. Off blocks the
+  endpoint/hides the view without changing work, history or authority.
+- Added owner Settings, Help, user/API/setup/interface/spec documentation and
+  synthetic tests for actual dispatch-to-acceptance progression, legacy and
+  failed review, source invalidation, immutable derivation, flags, member/foreign/
+  personal access, bounded pagination, metadata privacy and stale UI handling.
+- make test passed in 9.54s; full make check passed in 37.24s, including race,
+  static, documentation and UI checks. Observed slice span 06:05:19–06:13 UTC
+  (~8 minutes), including verification and recovery. No live browser screenshot,
+  database/provider/worker acceptance or release gate certification.
+- Recovery checkpoint: `/private/tmp/commonroom-task-contracts-backups/0004/changes.patch`
+  and adjacent manifest, cumulative against `89ba639`, including 28 modified
+  tracked and 29 new files before this note. Directory0700/files0600. Apply only
+  one latest cumulative snapshot; checkpoints0001–0003 remain retained.
+- Additional proposed commit message (not created):
+  feat: show scoped task progress from durable execution and review records
+  Separate saved status from admitted attempts, validated values, stale inputs
+  and current human acceptance without inferring live worker activity.
+  Add bounded metadata, safe existing actions, tests and feature documentation.
+- Local-only run remains authorized until 13:30 UTC. Next delivery gap is actual
+  file/bundle custody. Investigate the existing worker workspace, storage ledger,
+  quota and artifact-export contracts before implementing; do not weaken the
+  current refusal or promote model paths into verified objects. An internal
+  tested custody foundation alone cannot make production artifact delivery ready.
+
+## Local-only internal byte custody foundation (25 October)
+
+- Investigated existing worker workspace identity/creator leases and storage
+  accounting. The code explicitly lacks a production complete-inventory adapter
+  and physical quota guarantee. Kept task file/bundle execution refused; no
+  provider export, HTTP upload/download or host workspace fallback was added.
+- Added internal `objectcustody` primitive for real bounded private inode bytes,
+  under mandatory trusted reservation/seal/read-authority/release-audit callbacks.
+  Reserve capacity and establish physical enforcement before reading/creation;
+  exclusive generated names, private owned root/files, no-follow/single-link
+  checks, actual size/stream/hash bounds, fsync and inode read-back verification
+  precede sealing. Reads verify actual bytes and require fresh authority/audit
+  acknowledgment before returning any content. Acknowledgment is not proof of
+  remote client receipt.
+- No automatic deletion, refund, adoption or retry. After reservation, uncertain
+  writes/bytes remain retained and charged with no success receipt. Forged,
+  foreign, unsealed, revoked, tampered, linked or weak-permission objects refuse.
+  Callers retain responsibility for isolated quiescent source provenance,
+  content/format policy, context-aware transport and real quota/ledger adapters.
+- Internal synthetic tests use private temporary files and mocked journal/
+  accounting only: exact16MiB/over-bound streams, quota-before-read, read-back
+  tampering, flush/seal/audit/cancellation failures, retained uncertainty, scope,
+  symlink/hardlink/mode/inode/size checks, typed nils, preexisting objects,
+  non-progressing streams, empty content and 24 concurrent independent objects.
+- make test passed in 8.68s; full make check passed in 32.80s, including race,
+  static, documentation and existing UI checks. Observed foundation span began
+  after 06:13 UTC and completed checks/recovery around 06:26 UTC (~13 minutes).
+  Actual production source/accounting/quota/journal adapters, crash-restart/live
+  custody, file format/manifests, public authorized delivery and runtime/P0
+  acceptance remain incomplete. This package alone certifies no release gate.
+- Recovery checkpoint: `/private/tmp/commonroom-task-contracts-backups/0005/changes.patch`
+  and adjacent manifest, cumulative against `89ba639`, including 29 modified
+  tracked and 32 new files before this note. Directory0700/files0600; index empty,
+  expected scope/clean whitespace, prior snapshots retained. No commits, staging,
+  network, remote actions or pushes by agent.
+- Additional proposed commit message (not created):
+  feat: add bounded internal byte custody with mandatory accounting and audit
+  Reserve before reading, verify persisted inode bytes and seal exact hashes.
+  Withhold unacknowledged reads and retain uncertain bytes and capacity.
+  Test filesystem, quota, scope and failure boundaries; keep production artifact
+  delivery blocked until real isolated-source and physical quota adapters exist.
+- Adjusted the existing heartbeat's schedule to exact UTC quarter hours through
+  13:30 (`BYMINUTE=0,15,30,45;BYSECOND=0`) so a cutoff run is included, preserving
+  its prompt/name/target/status. It remains active; the 13:30 UTC cutoff requires
+  stopping edits/new work, reporting honestly and pausing it. No duplicate timer.
+- Next coherent local delivery work: finite file/bundle manifests tied to actual
+  sealed receipt bytes, with registered bounded format validation and exact
+  company/room/task/execution/job/repository/revision/definition identity. Reject
+  missing/extra/duplicate members, stale/foreign receipt substitutions and
+  malformed/unsupported formats. Keep this an internal foundation until real
+  worker/accounting/quota adapters and audited public delivery exist; do not
+  relax dispatch refusal, activate fake production adapters or manufacture G07
+  observations. Continue useful local work until 13:30 UTC without publication.
+
+### 2026-10-25 06:41 UTC — finite internal artifact manifests
+
+- Continued local-only on `codex/task-definition-contracts`, base `89ba639`.
+  Git helper verified empty index, expected scope and clean whitespace. No
+  remote access, staging, commits, signing changes or pushes.
+- Added internal `artifactmanifest`: complete finite file/bundle claim preflight,
+  exact declared members, unique objects, bounded byte reservations and actual
+  sealed custody reads. Canonical sorted manifests bind contract, execution,
+  repository/revision, output/member names, actual hashes and structural formats.
+  Revalidation reads actual bytes and repeats current audit authorization; a
+  recomputed manifest digest alone cannot authorize substituted metadata.
+- Strengthened custody scope with exact logical output/member identity and safe
+  relative metadata names; names never select host paths. Trusted source adapters
+  must verify real origin, rather than trusting the metadata supplied by callers.
+- Registered bounded opaque, UTF-8 text/Markdown and strict JSON formats only.
+  Unsupported formats/parameters refuse before reads. No arbitrary decoders,
+  archive extraction, partial manifest, deletion/refund or semantic/check claims.
+- Tests use private temporary files, real custody primitives and a mocked journal:
+  canonical bundle ordering, missing/extra/duplicate/substituted claims, foreign
+  scope/revision, byte caps, malformed UTF-8/JSON, controls, revoked authority,
+  unsealed/tampered objects and failed release acknowledgment. Fixed fixture
+  constraints and an incorrect expected byte count found by the first test run.
+- Verified make test 8.75s; make check 33.83s (race/static/documentation/UI checks).
+  Logs `/private/tmp/commonroom-manifest-test.log` and
+  `/private/tmp/commonroom-manifest-check.log`. Observed slice 06:31–06:41 UTC,
+  approximately 10 minutes including continuation/context recovery.
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0006/changes.patch`
+  with adjacent manifest: cumulative against `89ba639`, 29 modified tracked and
+  35 new files before this note. Apply one latest cumulative patch, not each
+  overlapping snapshot. Private0700 directory/0600 files; earlier snapshots kept.
+- This is an internal foundation with documentation, not an exposed product
+  feature. Managed file/bundle dispatch remains refused. Actual isolated-source
+  export, production durable journal/accounting, complete inventory, physical
+  quota, crash recovery, retention/disposal, public audited delivery and live
+  acceptance are still missing. No release gate was certified by synthetic tests.
+- Additional prepared commit message (not created):
+  feat: bind finite artifact manifests to verified sealed output bytes
+  Validate exact file and bundle members against scoped custody receipts.
+  Recheck actual hashes, current authority and supported structural formats.
+  Preserve uncertain capacity and refuse incomplete or substituted outputs.
+  Document missing production adapters and retain managed file-delivery refusal.
+- Continue local-only development until 13:30 UTC. Next coherent scope: inspect
+  definition version-history visibility and related task lifecycle gaps without
+  relaxing artifact refusal or inventing production evidence. Heartbeat remains
+  active with the explicit cutoff; no publication wait is required.
+
+### 2026-10-25 06:48 UTC — retained task definition revisions
+
+- Verified local branch/base and unchanged expected scope through Git helper
+  before editing. Added read-only definition revision history, including saved
+  versions never executed; status/assignee-only events do not create versions.
+  Projection runs after task event validation, retains acknowledged contracts
+  and digest/replay-position metadata, and omits its map from global JSON state.
+- Authenticated room-scoped GET `/api/task-definition-history` returns ten newest
+  definitions and a task-local older-version cursor. Foreign rooms/tasks and bad
+  cursors refuse. Owner access to another person's personal history requires a
+  durable audit; failures disclose no versions. No restore/write/run operation.
+- Task cards expose paginated, escaped complete definitions with a late-room
+  response fence. Existing `taskDefinitions` flag remains default off and controls
+  contract changes/execution; switching it off preserves read-only versions,
+  matching execution-history retention. Updated user/API/Help-facing interface
+  documentation and README. No new database query or migration; replay remains
+  proportional to retained event history, which response paging does not solve.
+- Synthetic mocked-DB tests cover twelve unexecuted revisions, state-edit dedup,
+  original-version preservation, pagination, on/off reads, missing/foreign scope,
+  global-map omission, personal audit failure, failed save and mutation refusal.
+  Node checks cover escaped contents, pagination and late room responses. Fixed
+  the event-position integer width found by the initial compile check.
+- make test passed 9.08s; make check passed 37.24s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-definition-history-test.log` and
+  `/private/tmp/commonroom-definition-history-check.log`. Observed work span
+  06:44–06:48 UTC (~4 minutes). No live UI screenshot/runtime/DB/provider or
+  production artifact acceptance claimed; existing custody/live gaps remain.
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0007/changes.patch`
+  plus manifest, cumulative against `89ba639`: 29 modified tracked/37 new files
+  before this note. Private0700 directory/0600 files; prior snapshots preserved.
+  Index empty and whitespace clean. No commits/staging/network/push by agent.
+- Additional prepared commit message (not created):
+  feat: preserve browsable task definition revision history
+  Project acknowledged contract revisions independently of execution records.
+  Show unexecuted versions with scoped pagination and durable private-read audit.
+  Preserve read-only history when definitions are disabled; test failed saves,
+  permissions, retention, escaping and stale-room responses.
+- Continue authorized local work until13:30UTC; heartbeat remains active. Next
+  coherent scope should prioritize actual lifecycle/security gaps over cosmetic
+  history additions. File/bundle dispatch remains refused until real isolated
+  source, durable accounting/journal and physical quota integration exists; no
+  release gate has been marked passed by these synthetic foundations.
+
+### 2026-10-25 07:04 UTC — acceptance lineage traversal bounds
+
+- Git helper confirmed expected local branch/base/index/scope before edits.
+  Found that source acceptance metadata called the full acceptance snapshot,
+  which started another lineage walk inside the existing dependency walk. That
+  nested traversal reset shared path/depth/node budgets and could recurse on
+  corrupt cycles or repeat excessive work across dependency branches.
+- Split pure content snapshot/recorded decision matching from current acceptance.
+  Source selection checks metadata only; one shared bounded walk verifies actual
+  lineage. Current acceptance additionally requires valid current work and current
+  inputs, so matching a historical decision alone cannot authorize stale sources.
+  Existing room readiness/input resolution/output checks retain their safeguards.
+- Added defensive synthetic projected-state tests for healthy chains, exact depth
+  boundary, excessive depth, self/multi-node cycles, repeated DAG branches, stale
+  revisions and disabled dependencies. A 16-way repeated branch graph stops at
+  visited node129 rather than restarting budgets. Criterion-review off does not
+  disable lineage integrity. No DB, provider, worker or live data in these tests.
+  Updated technical acceptance docs; no new flag or supported bypass was added.
+- make test passed9.35s and make check passed37.05s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-acceptance-lineage-test.log` and
+  `/private/tmp/commonroom-acceptance-lineage-check.log`. Observed span
+  06:59–07:04 UTC (~5 minutes). No production runtime/P0 evidence claimed.
+- Secure recovery `/private/tmp/commonroom-task-contracts-backups/0008/changes.patch`
+  plus manifest, cumulative against89ba639, 29modified tracked/38new files before
+  this note. Directory0700/files0600; prior snapshots retained. Empty index and
+  clean whitespace; no staging, commits, network, remote actions or pushes.
+- Additional prepared commit message (not created):
+  fix: keep acceptance lineage validation within one shared traversal budget
+  Separate recorded decision snapshots from current dependency verification.
+  Refuse stale, cyclic, deep and repeated-branch graphs without recursive resets.
+  Preserve healthy acceptance and mandatory integrity bounds across flag states.
+- Continue local-only until13:30UTC; active heartbeat and artifact/live integration
+  gaps remain unchanged. Next useful inspection: managed task admission/result
+  authority against assignment, review-chain and policy changes, with synthetic
+  tests for any confirmed issue. Do not substitute model claims for artifact
+  origin, physical quota, independent observations or actual release acceptance.
+
+### 2026-10-25 07:21 UTC — managed submission authority and single use
+
+- Git helper verified expected local branch/base/index/scope before edits.
+  Confirmed registration and broker calls checked current task binding, but the
+  intervening managed submission journal transition omitted that check. Added
+  task-role/pending-dispatch/definition-generation/input-lineage revalidation.
+  Registration callback also refuses submission from cancelled/expired contexts.
+- Submission now requires an unused allocated job. Already submitted or terminal
+  jobs cannot authorize submission again; confirmed shutdown no longer returns
+  apparent submission success. Cleanup remains permitted after execution/task
+  revocation; confirmations stay idempotent and late uncertainty cannot reverse
+  verified shutdown. No optional flag disables these lifecycle safeguards.
+- Added mocked DB/turn/lifecycle tests: healthy control, separate existing reviewer
+  coverage, definition off/off-on, reconciled task, changed role, cancellation,
+  dependency off/off-on and revised source after allocation. Refused turns retain
+  cleanup and release no dependent outputs. Consumed/submitted/confirmed/uncertain
+  allocations cannot submit again or append a successful submission event.
+  Existing mandatory journal tests retain diagnostic flag-off coverage.
+- Updated task-definition technical/operations contract. No real worker, provider,
+  Docker, credentials or database participated. These are synthetic authority and
+  transition checks, not proof of physical cleanup or production/live readiness.
+- make test passed9.17s; make check passed38.20s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-submission-fence-test.log` and
+  `/private/tmp/commonroom-submission-fence-check.log`. Observed span
+  07:16–07:21UTC (~5minutes). Artifact/physical-quota/source/live gaps unchanged.
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0009/changes.patch`
+  plus manifest: cumulative against89ba639, 29modified tracked/39new files before
+  this note. Private0700 directory/0600 files, previous backups preserved. Empty
+  index and clean whitespace; no staging, commits, signing changes/network/push.
+- Additional prepared commit message (not created):
+  fix: revalidate managed task authority before single-use submission
+  Fence allocated jobs against revoked contracts, roles and input lineage.
+  Reject cancelled contexts and reuse of consumed or terminal allocations.
+  Preserve cleanup acknowledgment and test revocation windows with mocked workers.
+- Continue authorized local development until13:30UTC; heartbeat remains active.
+  Next inspection: durable result publication and actual task execution record
+  identity across review/current work, without relaxing existing artifact refusal
+  or mandatory container/source/quota/audit boundaries.
+
+### 2026-10-25 07:36 UTC — exact result/task publication binding
+
+- Git helper verified expected local branch/base/index/scope before edits.
+  Confirmed typed result context guarded definition/inputs but omitted full
+  execution company/identity/participant/role/state binding. Added shared typed
+  pending authority: exact task/room/attempt/delegation/definition/participant,
+  work-assignee vs review-reviewer role, expected Working/Reviewing state,
+  definition generation, pending dispatch, admitted task revision plus one,
+  running execution and current input lineage. Managed registration/submission/
+  broker checks and result context/validation reuse this predicate.
+- Start replay validates role/mode binding. Successful finish replay requires the
+  matching completed task transition at admitted task revision plus two. Old,
+  different-dispatch, wrong-role, wrong-state or partial pending completions refuse.
+  Failed/stopped history and the existing atomic audit publication remain intact.
+- New synthetic tests cover work and separate reviewer contexts with foreign or
+  mismatched company/task/room/attempt/participant/definition/epoch/delegation,
+  changed task revision/state/role and disabled definitions; complete vs partial
+  finish transitions; and actual mocked turns that return after a task role/state
+  change. Both typed outputs and raw agent result messages are withheld. Existing
+  distinct-reviewer dispatch and persistence-failure coverage still passes.
+- Updated technical task-definition documentation. This is mandatory integrity
+  enforcement under existing flags; no optional bypass or live provider launch.
+  Tests mock all DB/worker/provider behavior, with no private fixtures or P0 claims.
+- make test passed9.13s; make check passed39.32s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-result-binding-test.log` and
+  `/private/tmp/commonroom-result-binding-check.log`. Observed span
+  07:29–07:36UTC (~7minutes). Production artifact/source/quota/live gaps unchanged.
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0010/changes.patch`
+  plus manifest: cumulative against89ba639, 29modified tracked/40new files before
+  this note. Directory0700/files0600; prior snapshots preserved; index empty and
+  whitespace clean. No network, staging, commits, signing changes or pushes.
+- Additional prepared commit message (not created):
+  fix: bind typed results to the exact admitted task and assigned role
+  Share pending authority checks across managed execution and publication.
+  Require the completed task transition before replay accepts successful results.
+  Withhold outputs and messages after scope changes; test work and reviewer paths.
+- Continue authorized local-only work until13:30UTC; heartbeat remains active.
+  Next useful inspection: participant/connection scope changes and durable cleanup
+  proof at result publication, preserving unrelated edits and all mandatory
+  isolation/audit/quota safeguards. No artifact dispatch refusal is relaxed.
+
+### 2026-10-25 07:51 UTC — restart-safe connection/work guards
+
+- Git helper confirmed expected local branch/base/index/scope before edits.
+  Found connection mutation/sign-out/verification and participant reassignment
+  guards depended on local active maps, losing unsettled work on restart.
+- Extended the shared guard to durable jobs with unconfirmed shutdown, including
+  jobs whose participant was removed, and the actual role of pending typed/legacy
+  task dispatches. Connection edit/delete, credential sign-out and verification
+  retain original bindings; participant connection reassignment uses the same
+  durable work check. Diagnostic/task flag-off cannot disable this guard.
+- Verified shutdown alone does not clear a pending task. Explicit owner task
+  reconciliation and worker cleanup remain separate; no startup reset, automatic
+  reassignment, deletion, retry or manufactured cleanup proof. Read-only credential
+  status and the separately documented interactive login operation are unchanged.
+- Synthetic tests cover allocated/submitted/uncertain jobs with empty local maps,
+  removed participants, foreign IDs, confirmed cleanup, active work vs reviewer
+  role for typed/legacy tasks, and API edit/delete/reassignment refusal followed
+  by safe availability after mocked durable confirmation. All DB interactions
+  mocked; no provider, Terminal, SSH, credential or Docker command launched.
+- Updated connection sign-in/testing/task-definition docs and refusal messages.
+  Preserved existing sign-out message compatibility after wording assertions
+  caught an overly broad edit. This is mandatory retention/identity enforcement
+  under existing flags, with no new bypass or production readiness claim.
+- make test passed9.52s; make check passed37.61s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-connection-work-fence-test.log` and
+  `/private/tmp/commonroom-connection-work-fence-check.log`. Observed span
+  07:44–07:51UTC (~7minutes). No physical cleanup or live multi-controller
+  credential-mutation/dispatch concurrency was verified; artifact/quota gaps remain.
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0011/changes.patch`
+  plus manifest: cumulative against89ba639, 34modified tracked/41new files before
+  this note. Directory0700/files0600; previous backups preserved; empty index and
+  clean whitespace. No commits, staging, signing changes, network or pushes.
+- Additional prepared commit message (not created):
+  fix: retain connection bindings for durable unsettled work after restart
+  Guard connection changes, sign-out, verification and agent reassignment.
+  Require confirmed job shutdown and explicit pending-task reconciliation.
+  Test empty local maps and cleanup controls without live workers or credentials.
+- Continue local-only until13:30UTC; heartbeat remains active. Next inspection:
+  compare connection mutation/managed registration audit concurrency fences and
+  result scope against durable participant/connection state. Preserve mandatory
+  isolation, verified cleanup, accounting and artifact refusal throughout.
+
+### 2026-10-25 08:07 UTC — allocation/connection audit conflict classification
+
+- Git helper verified expected branch/base/index/scope before edits. Inspection
+  confirmed connection mutations already use prepareOperation's audit-head fence;
+  no redundant mutation fence was added. Managed allocation also compares the
+  same validated event count inside the atomic journal transaction.
+- Found registration classified an ordinary audit-head conflict as an integrity
+  outage, falsely stopping the application. It now returns errAuditConflict and
+  refuses allocation/launch without an integrity latch. Real persistence errors
+  retain fail-closed incident handling; no automatic provider retry was added.
+- Added deterministic two-controller/mock-DB interleavings for connection edit,
+  delete and participant reassignment in both commit orders. If allocation wins,
+  the stale mutation returns409 and original binding stays reserved. If mutation
+  wins, registration returns the conflict sentinel with no job/active allocation
+  or possible submitted transition. Exactly one operation commits; cleanup of a
+  winning job remains possible. Both controllers keep ordinary integrity state.
+- Updated connection-testing technical contract. No network, providers, credentials,
+  live PostgreSQL or physical worker used; mocked comparison/rollback code is not
+  a live distributed deployment certificate. Interactive authentication concurrency
+  and actual source/physical-quota/artifact integration remain separate gaps.
+- make test passed9.39s; make check passed38.51s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-connection-allocation-race-test.log` and
+  `/private/tmp/commonroom-connection-allocation-race-check.log`. Observed span
+  08:01–08:07UTC (~6minutes).
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0012/changes.patch`
+  plus manifest, cumulative against89ba639: 34modified tracked/42new files before
+  this note. Directory0700/files0600; prior snapshots retained; empty index and
+  whitespace clean. No staging, commits, signing changes, network or pushes.
+- Additional prepared commit message (not created):
+  fix: treat stale managed allocations as ordinary audit conflicts
+  Refuse losing allocations without falsely latching an integrity incident.
+  Verify connection edits and allocation cannot both commit stale checks.
+  Exercise both controller commit orders with mocked persistence and cleanup.
+- Continue local-only until13:30UTC; heartbeat remains active. Next useful scope:
+  record immutable participant/connection configuration identity on typed task
+  executions and fence pending authority against changes before registration or
+  result publication. Completed accepted value history must remain distinct from
+  current agent configuration; keep file/bundle dispatch refusal and live gaps.
+
+### 2026-10-25 11:14 UTC — verified admitted configuration identity checkpoint
+
+- Added immutable configurationVersion1 typed execution metadata: participant and
+  connection revisions/fingerprints, plus connection ID. Capture is server-owned;
+  pending registration/submission/tools/results compare stable current metadata.
+  Successful finish replay also refuses configuration changed before completion.
+- Stable profile hashing excludes threads, execution mode, status/telemetry,
+  disclosure projection and derived actor/company fields. Ordinary session updates
+  remain valid; changed instructions/profile revision/connection/provider/endpoint
+  refuse even if a corrupt event fails to increment revision. Negative revisions,
+  missing/duplicate configuration and unknown/partial formats refuse.
+- Retain version0 completed history without inventing configuration identity;
+  version0 pending work cannot resume/publish. Later settings edits do not erase
+  completed returned values. Review attempts record reviewer configuration while
+  preserving the separate original work/input/output identity.
+- Acknowledged local profile edits cancel local typed turns; failed saves do not.
+  Native session callback now checks typed authority, preventing stale threads
+  from attaching to newer profiles. Durable checks protect other controllers.
+  Cancellation still requires ordinary verified cleanup; no physical proof implied.
+- UI history displays escaped revision/fingerprint details and distinguishes older
+  unrecorded metadata. Updated task-definition and interface/Help-facing docs.
+  Tests cover stable/derived/session changes, missing/unknown identity, retained
+  values, actual mocked turn withholding, current replay, profile-save success/
+  failure cancellation and native session healthy/refused controls. Every database
+  and provider interaction mocked; no live worker or private data used.
+- make test passed9.36s; full make check passed38.04s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-task-configuration-test.log` and
+  `/private/tmp/commonroom-task-configuration-check.log`. Development observed
+  08:14–08:22UTC; check completion was retrieved at11:14UTC after an interruption.
+  Do not count the intervening elapsed span as continuous development or testing.
+- Git helper verified actual branch/base/index and expected scope at resume.
+  Recovery `/private/tmp/commonroom-task-contracts-backups/0013/changes.patch`
+  plus manifest: cumulative against89ba639, 34modified tracked/44new files before
+  this note. Directory0700/files0600; previous snapshots preserved; empty index,
+  clean whitespace; no staging, commits, signing changes, network or pushes.
+- Additional prepared commit message (not created):
+  feat: bind typed task attempts to immutable agent configuration identity
+  Record profile and connection revisions/fingerprints at admission.
+  Revoke stale pending results and native sessions while retaining completed values.
+  Test configuration changes, cancellation, legacy history and escaped metadata.
+- Continue local-only until13:30UTC. Production isolated-source export, actual
+  physical quota/accounting/journal integration, public artifact delivery and live
+  release acceptance remain incomplete. Next inspection: actor access and context
+  export policy revocation across pending typed task lifecycle. Heartbeat active.
+
+### 2026-10-25 11:22 UTC — typed context-policy revocation and personal replay
+
+- Added private per-room context-policy generations, advanced on acknowledged
+  policy edits and recorded in typed configuration metadata. Pending authority
+  requires the same generation and a currently allowed destination. Exclusion-only
+  edits and deny/allow cycles cannot revive an old attempt. Completed value history
+  is retained; new work requires explicit dispatch under current policy.
+- Local acknowledged policy edits cancel typed room turns; native session and
+  result checks refuse stale metadata on other controllers. Mandatory policy
+  enforcement remains independent of the editor flag. No context already sent
+  to a provider can be recalled; verified physical cleanup is still separate.
+- Fixed personal-room policy replay: derive a missing actor room before applying
+  its policy, preserving an acknowledged setting instead of silently losing it.
+  Existing final label refresh/custom-name preservation stays in place.
+- Synthetic tests cover allowed/denied destination, exclusion changes, policy
+  cycles, withheld native threads/results/messages and API personal-room replay.
+  All database/turn interactions mocked; no provider, credentials, live database
+  or worker operations. Updated task-definition technical/operations documentation.
+- make test passed9.69s; make check passed39.00s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-task-policy-test.log` and
+  `/private/tmp/commonroom-task-policy-check.log`. Observed resume/work span
+  11:14–11:22UTC (~8minutes including prior checkpoint recovery, not the earlier
+  interruption). No release acceptance or external deletion evidence manufactured.
+- Git helper verified branch/base/index/scope and secure cumulative recovery
+  `/private/tmp/commonroom-task-contracts-backups/0014/changes.patch` plus manifest,
+  against89ba639: 34modified tracked/45new files before this note. Directory0700,
+  files0600; prior snapshots retained; index empty and whitespace clean. No staging,
+  commits, signing changes, network or pushes.
+- Additional prepared commit message (not created):
+  fix: revoke typed task authority when room context policy changes
+  Bind attempts to durable policy generations and current export destinations.
+  Withhold stale native sessions and results across deny/allow cycles.
+  Preserve acknowledged personal-room policies during replay and retain history.
+- Continue local-only until13:30UTC; heartbeat remains active. Next inspection:
+  automatic evidence/reference inclusion in task prompts versus context exclusions,
+  and actor access revocation. Actual isolated artifact source/quota/journal/public
+  delivery/live acceptance gaps remain; no managed file refusal is relaxed.
+
+### 2026-10-25 11:35 UTC — task evidence reference exclusions
+
+- Git helper verified expected local branch/base/index/scope before edits.
+  Found task evidence was concatenated into primary instructions before reference
+  filtering. Removed that bypass: taskDispatchPrompt now appends exact room/task
+  evidence as separate bounded, escaped, explicitly untrusted reference JSON.
+- Reference exclusions apply independently of room-outcome export and policy
+  editor flags. Explicit current typed contracts/input bindings remain primary
+  input to an allowed provider. Automatic evidence no longer enters the primary
+  instruction or dispatch message. Record/source labels do not assert observed
+  verification, artifact custody or tool authority; no source URI is fetched.
+- Validate included historical evidence UTF-8 and byte bounds before encoding,
+  then enforce final escaped prompt size. Oversized/invalid included references
+  refuse before queueing; excluded oversized references do not block dispatch.
+  Foreign task/room evidence is omitted; no history or evidence is deleted.
+- Synthetic tests cover optional metadata states, exclusions with editor off,
+  scope, actual typed dispatch preserving explicit inputs, oversized data, invalid
+  UTF-8 and JSON escaping expansion. All database/provider interactions mocked.
+  Updated context-disclosure and task-definition operations/technical guides.
+- make test passed9.35s; make check passed38.17s including race/static/docs/UI.
+  Logs `/private/tmp/commonroom-task-evidence-test.log` and
+  `/private/tmp/commonroom-task-evidence-check.log`. Observed span
+  11:29–11:35UTC (~6minutes). No live provider/disclosure deletion or P0 evidence.
+- Recovery `/private/tmp/commonroom-task-contracts-backups/0015/changes.patch`
+  plus manifest: cumulative against89ba639, 36modified tracked/46new files before
+  this note. Directory0700/files0600; prior snapshots preserved; empty index and
+  clean whitespace. No staging, commits, signing changes, network or pushes.
+- Additional prepared commit message (not created):
+  fix: honor reference exclusions for automatic task evidence
+  Separate scoped human evidence from primary task instructions and bindings.
+  Bound escaped references and refuse invalid or oversized included material.
+  Verify policy, scope and explicit-input controls without live disclosure.
+- Continue local-only until13:30UTC; heartbeat remains active. Next inspection:
+  owner/agent actor access revocation across typed admission/session/result paths.
+  Actual artifact source/physical quota/durable journal/public delivery and live
+  acceptance remain incomplete; mandatory file dispatch refusal stays intact.
+
+### 2026-10-25 11:50 UTC — consolidated independent review
+
+- Used repository code-review skill for two parallel read-only axes over secure
+  cumulative0015 against verified89ba639 (HEAD/base unchanged; no commits). Local
+  user-authorized WIP/spec docs replace the skill's remote issue/HEAD-only path:
+  no GitHub/network/tracker lookup and no request to publish were made.
+- Standards: no hard documented-rule violations found. One optional P3 Duplicated
+  Code heuristic: task_definition_history.go and task_execution_api.go repeat
+  scoped task access/personal-room owner read-audit logic. A shared helper could
+  ease future maintenance; no demonstrated authorization bug. Deferred elective
+  refactoring to preserve the verified paths. Repository rules override heuristics.
+- Spec: no material findings confirmed. Versioned seven-part contracts, immutable
+  executions, human acceptance, dependency lineage, history and restricted runtime
+  authority align with documented scope; related security work is authorized.
+  Previously disclosed artifact/production adapter/live acceptance gaps remain.
+- Summary by axis: Standards0 hard/1 optional judgement call (duplicated scoped
+  history guard); Spec0 confirmed findings. Reviewers inspected source/patch/docs
+  only; they did not rerun tests or verify live runtime/DB/quota behavior. No code
+  changes followed review, so last make test9.35s/check38.17s remain applicable.
+- Actual review span approximately11:46–11:50UTC; earlier account API inspection
+  found no additional public owner/derived-agent disable path requiring a change.
+  This observation is not a blanket identity or security certification.
+- Local branch remains codex/task-definition-contracts, all source changes
+  uncommitted/unstaged; no network, signing changes, commits or pushes. Heartbeat
+  remains active until13:30UTC. Prepare final consolidated handoff and identify
+  actual remaining production dependencies without manufacturing gate evidence.
+
+### 2026-10-25 13:17 UTC — cutoff handoff prepared
+
+- No source changes since the evidence-disclosure checkpoint and independent
+  review. Subsequent heartbeats found no new actionable local finding; this
+  waiting period is not additional implementation or live acceptance evidence.
+- Last verified make test passed in 9.35 seconds and make check in 38.17 seconds.
+  Reviews found zero confirmed material spec defects and zero hard standards
+  violations; one optional duplication refactor remains deferred.
+- Consolidated prepared commit message (not created):
+
+  feat: define finite task contracts and scoped execution acceptance
+
+  Add versioned seven-part task definitions with owner editing and history.
+  Separate immutable execution records from contracts and bind exact input
+  values, accepted dependencies, returned values and criterion decisions.
+
+  Enforce participant, connection, context-policy and lifecycle fences across
+  admission, submission, tools, sessions and result publication. Honor evidence
+  reference exclusions and retain mandatory isolated execution.
+
+  Add bounded internal object custody and finite artifact manifests. Continue
+  refusing managed file and bundle dispatch until trusted production adapters
+  and durable accounting are integrated.
+
+  Include permission, flag-state, replay, race and failure-path coverage,
+  paginated progress/history interfaces, Help and operational documentation.
+
+- Remaining production scope: trusted isolated artifact export and actual source
+  identity, durable custody/accounting journal, complete storage inventory and
+  physical quota enforcement, crash reconciliation, retention/disposal and
+  authenticated audited delivery. Approved live workers/images/providers and
+  independently observed release-gate acceptance remain unverified. Synthetic
+  checks do not certify any P0 release gate. No live database/provider/SSH/Docker
+  or network verification was performed in this local-only run.
+- All changes remain uncommitted and unstaged on the feature branch. No commits,
+  signing bypass, pushes, remote reconnection or GitHub actions were performed.
+  Request final cumulative recovery snapshot0016 including this checkpoint;
+  apply only the latest cumulative patch against89ba639, not earlier snapshots
+  sequentially. Snapshot completion will be reported by the Git helper.
+- Heartbeat remains active to the authorized13:30UTC cutoff, then must pause.
+  At cutoff stop edits/new work and report this handoff without claiming that
+  the outstanding production integrations or live gates are complete.

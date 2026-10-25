@@ -4,6 +4,7 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"agentroom/internal/taskcontract"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -111,6 +112,19 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 		v.Name = strings.TrimSpace(v.Name)
 		p = v
 	case "task.revised":
+		// Validate the bounded nested definition before allocating the typed task's
+		// nested slices. Legacy payloads retain their existing compatibility.
+		var contractFields map[string]json.RawMessage
+		if json.Unmarshal(req.Payload, &contractFields) != nil {
+			http.Error(w, "Invalid task", 400)
+			return nil, false
+		}
+		if raw, exists := contractFields["definition"]; exists {
+			if _, err := taskcontract.Decode(raw); err != nil {
+				http.Error(w, err.Error(), 400)
+				return nil, false
+			}
+		}
 		var v room.Task
 		if json.Unmarshal(req.Payload, &v) != nil || strings.TrimSpace(v.Title) == "" {
 			http.Error(w, "Task title required", 400)
@@ -177,6 +191,9 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 				http.Error(w, "Task not found", 404)
 				return nil, false
 			}
+		}
+		if !prepareTaskDefinition(w, r, st, req, &v) {
+			return nil, false
 		}
 		p = v
 	case "evidence.created":

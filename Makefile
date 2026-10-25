@@ -63,6 +63,12 @@ check: test-race
 	node --test tests/governance.test.cjs
 	node --check web/task-proposals.js
 	node --test tests/task-proposals.test.cjs
+	node --check web/task-definitions.js
+	node --test tests/task-definitions.test.cjs
+	node --check web/task-acceptance.js
+	node --test tests/task-acceptance.test.cjs
+	node --check web/task-progress.js
+	node --test tests/task-progress.test.cjs
 	node --check web/room-outcome-review.js
 	node --test tests/room-outcome-review.test.cjs
 	node --check web/room-outcomes.js

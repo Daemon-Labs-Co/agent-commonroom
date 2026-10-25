@@ -166,3 +166,11 @@ Optional room definitions: the owner can enable default-off `roomOutcomes` in Se
 The separate `roomOutcomeContext` setting defaults off. Enable it only when the owner wants room deliverables included in task-provider context; `roomOutcomes` must also be on. Existing provider allowlists and reference-export exclusions remain enforced, with no restart.
 
 The default-off `roomOutcomeReview` setting enables human room-deliverable acceptance and reopening. It requires Room outcomes, with no restart. Existing history is preserved when disabled. See [room review](room-outcome-review.md) before enabling.
+
+Optional default-off `taskDefinitions` adds structured task contracts and immutable value execution records without a database migration or restart. Review [task definitions](task-definitions.md) before enabling; missing contracts and unsupported file/bundle custody block dispatch rather than falling back.
+
+Optional default-off `taskValueDependencies` adds [accepted task inputs](task-value-inputs.md) in shared rooms. It requires `taskDefinitions`, owner enablement, and no migration or restart. Off retains history/manual bindings and revokes dependent execution; off/on never revives an old allocation.
+
+Optional default-off `taskAcceptanceReview` adds [task criterion review](task-acceptance.md) in shared rooms, requiring `taskDefinitions` and owner enablement with no migration/restart. Existing structured acceptances need explicit current review for dependencies/room readiness while enabled. Off preserves history and ordinary owner acceptance; off/on invalidates open review dialogs.
+
+Optional default-off `taskProgress` adds [recorded task progress](task-progress.md) in shared rooms with owner-controlled enablement and no restart/migration. Off blocks the progress API and hides the view; tasks, execution and review authority are unaffected.

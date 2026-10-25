@@ -216,12 +216,46 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		operationError(w, err)
 		return
 	}
+	if req.Kind == "participant.updated" {
+		if participant, ok := p.(room.Participant); ok && s.taskDefinitionTurns[participant.ID] != "" {
+			if cancel := s.cancels[participant.ID]; cancel != nil {
+				cancel()
+			}
+		}
+	}
+
+	if req.Kind == "room.context_export.updated" {
+		for pid, eid := range s.taskDefinitionTurns {
+			if st.TaskExecutions[eid].RoomID == roomID {
+				if cancel := s.cancels[pid]; cancel != nil {
+					cancel()
+				}
+			}
+		}
+	}
+
 	if req.Kind == "feature.flag.updated" {
 		var flag struct {
 			Name    string `json:"name"`
 			Enabled bool   `json:"enabled"`
 		}
 		json.Unmarshal(req.Payload, &flag)
+		if (flag.Name == "taskValueDependencies" || flag.Name == "taskAcceptanceReview") && !flag.Enabled {
+			for pid, eid := range s.taskDefinitionTurns {
+				if hasTaskValueSources(st.TaskExecutions[eid].Inputs) {
+					if cancel := s.cancels[pid]; cancel != nil {
+						cancel()
+					}
+				}
+			}
+		}
+		if flag.Name == "taskDefinitions" && !flag.Enabled {
+			for pid := range s.taskDefinitionTurns {
+				if cancel := s.cancels[pid]; cancel != nil {
+					cancel()
+				}
+			}
+		}
 		if flag.Name == "taskDelegation" && !flag.Enabled {
 			for pid := range s.delegationTurns {
 				if cancel := s.cancels[pid]; cancel != nil {

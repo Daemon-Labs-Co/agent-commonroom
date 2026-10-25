@@ -38,7 +38,7 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 			}
 		}
 		if connectionHasActiveAgent(st, s.active, v.ID) {
-			http.Error(w, "Connection has active work or verification", 409)
+			http.Error(w, "Connection has active or unreconciled work; inspect job and task diagnostics", 409)
 			return nil, false
 		}
 		v.Actor = "human"
@@ -74,7 +74,7 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 			for _, old := range st.Connections {
 				if old.ID == v.ID {
 					if connectionHasActiveAgent(st, s.active, v.ID) {
-						http.Error(w, "Connection has active work or verification", 409)
+						http.Error(w, "Connection has active or unreconciled work; inspect job and task diagnostics", 409)
 						return nil, false
 					}
 					if v.Revision != old.Revision {
@@ -159,8 +159,8 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 					}
 					v.Revision++
 					if v.ConnectionID != b.ConnectionID {
-						if s.active[b.ID] {
-							http.Error(w, "Cannot reassign a working agent", 409)
+						if participantHasUnsettledWork(st, s.active, b.ID) {
+							http.Error(w, "Cannot reassign an agent with active or unreconciled work", 409)
 							return nil, false
 						}
 						v.ThreadID = ""

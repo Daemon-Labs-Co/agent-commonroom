@@ -88,3 +88,12 @@ Tests mock all database, readiness, idle and provider interactions. They cover
 transaction insert/commit failure, replay, stale revision, permissions, feature
 states, disclosure/capacity/stops, result failure and reconciliation. Live provider
 and deployment acceptance are not covered by these tests.
+
+
+## Structured task contracts
+
+With owner-enabled `taskDefinitions`, dispatch requires a canonical task definition and binds actual value inputs to a separate immutable attempt. Work responses must satisfy the declared output schemas; reviewers receive the original returned values. Structural validation never auto-accepts work. Off blocks structured execution and revokes active structured authority while preserving history. Legacy work remains available when off. See [the complete task contract](task-definitions.md), including file/bundle capability restrictions.
+
+Owner-enabled `taskValueDependencies` lets an input reference a current accepted task’s returned value in the same shared room. References resolve stored bytes, record provenance, and revalidate source lineage at effect/result time. Manual labels remain unverified. See [accepted task inputs](task-value-inputs.md) for flags, failure behavior and API.
+
+Optional `taskAcceptanceReview` requires explicit owner criterion decisions against exact outputs after work/review. Agent review remains advice and cannot accept a task. Acceptance and requests for changes never dispatch a turn. See [task criterion review](task-acceptance.md).

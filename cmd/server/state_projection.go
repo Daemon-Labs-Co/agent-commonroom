@@ -39,6 +39,14 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		rememberAgentRoomReferences(data, referencedAgentRooms)
 		st.EventCount++
 		switch kind {
+		case "task.acceptance.reviewed":
+			if err := projectTaskAcceptanceReview(&st, data); err != nil {
+				return st, err
+			}
+		case "task.execution.started", "task.execution.finished":
+			if err := projectTaskExecution(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "room.outcome.reviewed":
 			if err := projectRoomOutcomeReview(&st, data); err != nil {
 				return st, err
@@ -257,6 +265,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		case "task.revised":
 			var v room.Task
 			json.Unmarshal(data, &v)
+			if err := validateTaskDefinitionProjection(st, v, data); err != nil {
+				return st, err
+			}
 			if v.DelegationID != "" {
 				d, ok := st.Delegations[v.DelegationID]
 				if !ok || d.Status != "Approved" || d.TaskID != v.ID || d.RoomID != v.RoomID || d.TaskDigest != delegationTaskDigest(v) || v.Assignee != d.DelegateID {
@@ -282,6 +293,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			if !found {
 				st.Tasks = append(st.Tasks, v)
 			}
+			recordTaskDefinitionRevision(&st, v)
 		case "evidence.created":
 			var v room.Evidence
 			json.Unmarshal(data, &v)
@@ -402,8 +414,18 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				Policy room.ContextExportPolicy `json:"policy"`
 			}
 			json.Unmarshal(data, &v)
+			if !hasRoom(st, v.RoomID) {
+				projectActors(&st)
+			}
 			for i := range st.Rooms {
 				if st.Rooms[i].ID == v.RoomID {
+					if st.TaskContextPolicyEpochs == nil {
+						st.TaskContextPolicyEpochs = map[string]int{}
+					}
+					if st.TaskContextPolicyEpochs[v.RoomID] == int(^uint(0)>>1) {
+						return st, errors.New("context policy generation exhausted")
+					}
+					st.TaskContextPolicyEpochs[v.RoomID]++
 					st.Rooms[i].ContextExport = &v.Policy
 					st.Rooms[i].Revision++
 				}
@@ -484,6 +506,24 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					return st, errors.New("coordination generation exhausted")
 				}
 				st.CoordinationEpoch++
+			}
+			if v.Name == "taskAcceptanceReview" && !v.Enabled {
+				if st.TaskAcceptanceEpoch == int(^uint(0)>>1) {
+					return st, errors.New("task acceptance epoch exhausted")
+				}
+				st.TaskAcceptanceEpoch++
+			}
+			if v.Name == "taskValueDependencies" && !v.Enabled {
+				if st.ValueDependencyEpoch == int(^uint(0)>>1) {
+					return st, errors.New("value dependency epoch exhausted")
+				}
+				st.ValueDependencyEpoch++
+			}
+			if v.Name == "taskDefinitions" && !v.Enabled {
+				if st.TaskDefinitionEpoch == int(^uint(0)>>1) {
+					return st, errors.New("task definition epoch exhausted")
+				}
+				st.TaskDefinitionEpoch++
 			}
 			if v.Name == "taskDelegation" && !v.Enabled {
 				if st.DelegationEpoch == int(^uint(0)>>1) {

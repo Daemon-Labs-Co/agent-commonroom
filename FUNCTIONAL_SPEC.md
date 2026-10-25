@@ -270,3 +270,12 @@ required before production admission is opened.
 
 
 Room deliverable increment: shared rooms support owner-managed outcome and acceptance criteria under default-off `roomOutcomes`. Enabling it requires both for new shared rooms, while preserving legacy rooms. This metadata does not itself authorize execution or certify completion; see [the implemented contract](docs/room-outcomes.md).
+
+
+Canonical task model: a task definition consists of Task, Expected input contract, Process, Desired output contract, Acceptance criteria, Execution constraints and Failure contract. Actual input bindings, attempts and returned outputs are separate execution records. The owner controls completion acceptance; a model claim is not a deliverable. See [task definitions](docs/task-definitions.md) for the implemented version, supported data types and integration limits.
+
+With separately owner-enabled `taskValueDependencies`, structured work may bind actual immutable values from accepted tasks in the same shared room. The controller verifies provenance and transitive current versions before admission, tools and result publication. Source changes invalidate dependent authority; no automatic reruns or acceptance. See [accepted task inputs](docs/task-value-inputs.md).
+
+Optional default-off `taskAcceptanceReview` requires an explicit owner decision and rationale for each human criterion against immutable returned values, with controller-owned structural schema assessments. The review and task status commit atomically; changed inputs, outputs, versions or review policy refuse stale decisions. Review history survives disabling; neither human notes nor model findings manufacture observed verification. See [task criterion review](docs/task-acceptance.md).
+
+Default-off `taskProgress` provides bounded shared-room metadata for definitions, admitted attempts, validated returned values, input lineage and human acceptance. It derives from durable records without mutating tasks or probing workers; all actions reuse existing authorization. See [recorded task progress](docs/task-progress.md).

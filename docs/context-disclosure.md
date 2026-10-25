@@ -63,3 +63,14 @@ unknown destinations, foreign rooms, unsupported Project sharing, private origin
 human-only memory, explicit grants, both editor states and ordinary-edit bypasses.
 Real provider deletion/retention and prevention of all model inference are not
 claimed by these tests.
+
+Task work/review also applies **Exclude references** to automatically attached
+human evidence, independently of optional room-outcome export and the policy
+editor flag. Evidence is selected by exact room and task and appended as bounded,
+escaped reference JSON with its record/source labels. It is not an observed check,
+artifact receipt or authorization. Evidence is not copied into the main task
+instruction or the dispatch message as a way around exclusions. Explicit current
+requests, typed task contracts and deliberately bound input values remain primary
+input to an allowed provider, as documented above. Excluded oversized historical
+evidence does not block dispatch; included invalid/oversized reference content
+refuses before queueing. No provider fetch or artifact verification is implied.

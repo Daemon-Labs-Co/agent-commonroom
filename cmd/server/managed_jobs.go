@@ -56,6 +56,8 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 	job.InitiatorID, _ = ctx.Value(actorContextKey{}).(string)
 	taskBinding, _ := ctx.Value(taskJobContextKey{}).(taskJobBinding)
 	job.TaskID, job.TaskDispatchID, job.DelegationID = taskBinding.TaskID, taskBinding.DispatchID, taskBinding.DelegationID
+	job.TaskDefinitionDigest = taskBinding.DefinitionDigest
+	job.TaskDefinitionEpoch = taskBinding.DefinitionEpoch
 	binding, coordinated := ctx.Value(coordinationContextKey{}).(coordinationBinding)
 	appointment := binding.Appointment
 	if coordinated {
@@ -173,6 +175,9 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 			auditCtx = context.WithValue(auditCtx, actorContextKey{}, job.InitiatorID)
 		}
 		if err = s.append(context.WithValue(auditCtx, expectedEventCountKey{}, latest.EventCount), "worker.job.updated", job); err != nil {
+			if errors.Is(err, errAuditConflict) {
+				return errAuditConflict
+			}
 			s.tripIntegrityLocked()
 			return errors.New("managed job allocation audit failed; launch refused")
 		}
@@ -188,6 +193,9 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 		defer s.mu.Unlock()
 		if !registered {
 			return errors.New("managed job is not allocated")
+		}
+		if status == "submitted" && ctx.Err() != nil {
+			return errors.New("managed submission context is cancelled or expired")
 		}
 		if status != "submitted" && status != "shutdown_confirmed" && status != "shutdown_unconfirmed" {
 			return errors.New("invalid lifecycle transition")
@@ -214,9 +222,15 @@ func (s *server) recordManagedJobAttemptLocked(jobID, status string, attempts in
 		return errors.New("unknown managed job")
 	}
 	if job.ShutdownConfirmed {
+		if status == "submitted" {
+			return errors.New("confirmed worker job cannot be submitted again")
+		}
 		return nil
 	} // late uncertainty cannot reverse verified proof
-	if status == "submitted" && (!coordinationJobAllowed(st, job) || !delegatedJobAllowed(st, job) || s.agentsBlockedLocked(st, job.RoomID)) {
+	if status == "submitted" && job.Status != "allocated" {
+		return errors.New("managed submission requires an unused allocation")
+	}
+	if status == "submitted" && (!managedTaskCurrent(st, job) || !coordinationJobAllowed(st, job) || !delegatedJobAllowed(st, job) || s.agentsBlockedLocked(st, job.RoomID)) {
 		return errors.New("managed coordination revoked or execution stopped")
 	}
 	job.Status = status
@@ -260,6 +274,12 @@ func (s *server) recordManagedJobAttemptLocked(jobID, status string, attempts in
 }
 
 func validManagedJob(v room.ManagedJob) bool {
+	if v.TaskDefinitionEpoch < 0 || v.TaskDefinitionDigest == "" && v.TaskDefinitionEpoch != 0 {
+		return false
+	}
+	if v.TaskDefinitionDigest != "" && (v.TaskID == "" || !repositoryDigestPattern.MatchString(v.TaskDefinitionDigest)) {
+		return false
+	}
 	if v.DelegationID != "" && (!membershipPartPattern.MatchString(v.DelegationID) || v.TaskID == "" || !pairedLifecycleVersion(v.Version)) {
 		return false
 	}
