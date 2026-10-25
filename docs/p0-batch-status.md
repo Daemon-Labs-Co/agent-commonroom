@@ -1541,3 +1541,86 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: source capture foundation verified and ready for owner
   review/publication with the prepared message; production integration gaps above
   remain. No paid functionality was added to the open-source repository.
+
+### 2026-10-25 — retained workspace observation admission
+
+- Owner reported prior batch merged. Git helper verified PR66 merged reviewed
+  ef5d236 as3f9025c9f5eb26dc0688a4bad06276c71a610f92; local merge tree matches,
+  Greptile succeeded with no reviews/comments. Clean checkout and empty index;
+  created codex/frozen-workspace-export from that local base without fetching.
+- Implemented internal retained-workspace observation admission under the actual
+  exclusive creator job lock. Require an exact reconciled version4 record,
+  both recorded role IDs absent, retained created volume and durable private
+  cancellation tombstone. Busy ownership refuses without stopping a creator.
+- Every observation rechecks exact scalar/pair/volume metadata, lifetime, current
+  guard authorization and durable bounded-observation acknowledgment contract,
+  fixed role names/job inventory, exact single volume identity and no container
+  references. Repeat volume identity/reference inspection; share immutable volume
+  validation with existing disposal without granting removal authority.
+- Hold creator lock through callback and final checks; expire escaped handles
+  before releasing ownership on success, failure or panic. No data deletion,
+  refunds, adoption, cleanup proof, restart or byte-release authority introduced.
+- Tests seed both role IDs, perform real reconciler removal against mocked Docker
+  and retain the volume before observation. Actual synthetic private file locks
+  cover competing ownership, current authorization, cancellation/typed nils,
+  stale record/lifecycle/tombstone, missing/extra/replaced/attached volumes and
+  role collisions, callback failures/panics and expired observations. No real
+  database, provider, SSH, Docker daemon, private data or credentials used.
+- New operational/technical guide docs/retained-workspace-observation.md and
+  README/index/source-capture links describe usage, authority and limitations.
+  Mandatory internal security infrastructure adds no public feature or toggle.
+- This is NOT workspacesnapshot.FrozenLease or read-only root attestation.
+  Production controller guard/transport, isolated read-only export mount and
+  actual root binding, physical quota/full inventory, recovery/retention and
+  authenticated delivery still required. Managed file/bundle dispatch stays
+  blocked. Daemon administrators remain trusted; no live P0 gate is certified.
+- Repository code-review skill: Standards0 hard violations; optional duplicate
+  identity-predicate suggestion applied. Spec0 material findings; follow-up
+  inspection confirmed cancellation/scalar-identity/shared-cleanup changes without
+  regression. Reviewers did not rerun tests or certify production behavior.
+- Initial full check failed34.82s at the existing task-value-source pagination
+  test's30s suite timeout. Preserve /private/tmp/commonroom-frozen-check.log.
+  No timeout or assertion was relaxed; final rerun results follow below.
+- No staging, commits, pushes, fetches or signing changes. Automation stays paused.
+  Intermediate recovery /private/tmp/commonroom-frozen-workspace-backups/0001
+  contains the pre-refinement cumulative patch and manifest; final snapshot will
+  supersede it. Apply only one cumulative patch against3f9025c9, never sequentially.
+- Prepared commit message (not created):
+
+  feat: fence retained workspace observation with creator ownership
+
+  Hold the actual worker creator lock while authorizing observation of an exact
+  retained workspace. Require reconciled role absence and a durable cancellation
+  tombstone before inspecting the unchanged volume and all container references.
+
+  Recheck authority, record identity and parent lifetime across callback use.
+  Expire escaped observations and retain data on failure without granting disposal
+  or byte-release authority. Share volume identity checks with explicit cleanup.
+
+  Add synthetic daemon, lock, cancellation and failure-path tests and operational
+  documentation. Keep export blocked pending isolated read-only mount attestation
+  and production authorization, quota and delivery integrations.
+
+- Verification follow-up: the existing pagination race test timed out again on
+  the default rerun34.84s and with16parallel tests34.66s; increasing concurrency
+  did not resolve it and is not the final check configuration. Failure logs:
+  /private/tmp/commonroom-frozen-check-final.log and
+  /private/tmp/commonroom-frozen-check-parallel16.log.
+- Stack inspection identified repeated generic JSON decoding in historical agent
+  room reference scanning. Added a conservative replay fast path only when bytes
+  contain neither literal personal-bot- nor a Unicode escape. All possible encoded
+  references retain the original decoder. Regression cases preserve literal,
+  Unicode-escaped and previously recorded references. Spec read-only follow-up
+  found no correctness issue; no timeout/assertion/race instrumentation relaxed.
+- Final make test passed11.16s; full make check passed36.62s with original default
+  parallel8/timeout30s, including race/static/docs/UI. Final logs:
+  /private/tmp/commonroom-frozen-test.log and
+  /private/tmp/commonroom-frozen-check-optimized.log. Observed implementation from
+  source-file creation19:11UTC through final checks19:19UTC (~8minutes), plus
+  preceding merge/state inspection. No live runtime or P0 evidence manufactured.
+- Final cumulative recovery requested at /private/tmp/commonroom-frozen-workspace-
+  backups/0002 (patch plus manifest), superseding0001. Last notification: retained
+  workspace observation admission verified and ready for owner publication;
+  production isolated mount, authorization, quota and delivery gaps remain.
+- Add to prepared commit body: avoid unnecessary historical reference decoding
+  while preserving Unicode-escaped room references and existing retention rules.

@@ -128,3 +128,5 @@ journal adapters remain required and file/bundle dispatch continues to refuse.
 [Controller artifact custody journal](artifact-custody-journal.md) documents internal durable reservations, quota readiness, immutable receipts, read authorization and remaining production barriers.
 
 [Bounded workspace source capture](workspace-source-capture.md) describes actual tree identity, lazy member streams and the mandatory production frozen-lease gap.
+
+[Retained workspace observation](retained-workspace-observation.md) adds creator-lock and exact unattached-volume admission; it does not yet provide a frozen source mount.

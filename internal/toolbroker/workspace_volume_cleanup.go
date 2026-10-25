@@ -51,10 +51,10 @@ func RemoveWorkspaceVolume(ctx context.Context, runner DockerRunner, job, reposi
 		if candidate.CreatedAt == "" {
 			candidate.CreatedAt = v.CreatedAt
 		}
-		labels := map[string]string{"commonroom.managed": "true", "commonroom.execution": "separated-tool-v1", "commonroom.job": job, "commonroom.repository": repository, "commonroom.workspace.nonce": candidate.Nonce}
-		if !ValidWorkspaceVolume(job, candidate, true) || v.Name != name || v.Driver != "local" || v.Scope != "local" || v.Mountpoint != path.Join(dockerRoot, "volumes", name, "_data") || v.CreatedAt != candidate.CreatedAt || len(v.Options) != 0 || !sameMap(v.Labels, labels) {
+		if !validObservedWorkspaceVolume(v, job, repository, dockerRoot, candidate) {
 			return bound, ErrShutdownUnconfirmed
 		}
+
 		return candidate, nil
 	}
 	if observed != "" {
