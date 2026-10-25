@@ -16,7 +16,11 @@ can accept or reopen a deliverable.
 2. Finish and human-accept its tasks using the existing task review process.
 3. In the Room or Tasks view, choose **Review and accept deliverable**.
 4. Inspect the current definition, task snapshot and saved evidence shown in
-   the dialog. Independently verify any artifacts or claims; the application
+   the dialog. Each task includes its own acceptance criteria; evidence is labeled
+   with its task title/ID or as room-level evidence. Historical associations
+   missing from the current task set are labeled explicitly. Room names and
+   snapshot text render as text, including names containing angle brackets.
+   Independently verify any artifacts or claims; the application
    does not run acceptance tests or inspect external links for you.
 5. Record the evidence reviewed and your acceptance rationale, then save.
 

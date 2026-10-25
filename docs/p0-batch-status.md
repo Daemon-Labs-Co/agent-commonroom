@@ -578,3 +578,24 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: human room review increment verified locally with one
   commit message, ready for owner signing/publication. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## PR #63 review dialog rendering fixes
+
+- Verified clean branch `codex/room-outcome-review`, PR #63 exact published head
+  `f0e6fbc6223f47abf4c3cd39672dca895455d788`. Open; Greptile check succeeded
+  with two valid P2 comments: `4369306613` unescaped dialog room names, and
+  `4369306611` missing task criteria/evidence task association in review dialogs.
+- Both accept/reopen titles escape the current room name before the shared
+  HTML-based form helper receives it. Snapshot task cards show IDs, statuses and
+  criteria; evidence identifies task title/ID, room-level evidence, or a missing
+  historical association, with kind/source/body. All dynamic text is escaped.
+- Added regressions for both titles, markup-like names, multiple task criteria,
+  per-task/room-level/missing associations and escaped evidence. Updated guide.
+- make test passed in 9.29 seconds; make check passed in 19.38 seconds. Observed
+  work span approximately 02:07:43–02:09:05 UTC on 25 October (about 82 seconds),
+  including review/check waits. No live browser/provider/database verification.
+- Git helper confirmed expected three-file fix scope before this checkpoint,
+  empty index, clean whitespace and no unrelated edits/new remote findings.
+- Last notification: both P2 findings fixed and verified locally with one commit
+  message, ready for owner publication on the same PR. Nothing staged,
+  committed, pushed, merged or posted by the agent.

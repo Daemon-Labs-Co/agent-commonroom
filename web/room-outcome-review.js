@@ -15,14 +15,18 @@ function drawRoomOutcomeReview(){
   if(generation!==roomReviewGeneration||roomId!==rid||(view!=='Room'&&view!=='Tasks'))return;
   const panel=$('#room-review-status');if(!panel)return;
   const review=result.review||{},definition=result.definition||{};
-  const snapshotEvidence=(result.evidence||[]).map(e=>'<article><strong>'+esc(e.title||e.id)+'</strong><p style="white-space:pre-wrap">'+esc(e.body||'')+'</p><p>Source: '+esc(e.source||'Unspecified')+'</p></article>').join('');
-  const snapshotTasks=(result.tasks||[]).map(t=>'<p>'+esc(t.title)+' · '+esc(t.status)+'</p>').join('');
+  const taskNames=new Map((result.tasks||[]).map(t=>[t.id,t.title]));
+  const snapshotEvidence=(result.evidence||[]).map(e=>{
+   const association=e.taskId?'Task: '+(taskNames.get(e.taskId)||'Not in current task snapshot')+' ('+e.taskId+')':'Room-level evidence';
+   return '<article><strong>'+esc(e.title||e.id)+'</strong><p>'+esc(association)+'</p><p>Kind: '+esc(e.kind||'Unspecified')+'</p><p style="white-space:pre-wrap">'+esc(e.body||'')+'</p><p>Source: '+esc(e.source||'Unspecified')+'</p></article>';
+  }).join('');
+  const snapshotTasks=(result.tasks||[]).map(t=>'<article><strong>'+esc(t.title)+'</strong><p>Task ID: '+esc(t.id)+' · '+esc(t.status)+'</p><p style="white-space:pre-wrap">Acceptance criteria: '+esc(t.criteria||'Not defined')+'</p></article>').join('');
   panel.innerHTML='<p>Status: '+esc(result.status)+'</p>'+(review.note?'<p style="white-space:pre-wrap">Last human review: '+esc(review.note)+'</p><p>Reviewed by '+esc(review.reviewedBy)+' · '+esc(review.reviewedAt)+'</p>':'')+'<p>Requires a defined outcome and criteria, at least one task, and all room tasks accepted without pending dispatch. The owner must assess the evidence; task status alone does not prove delivery.</p>';
   if(!owner||!result.enabled)return;
   for(const action of ['accept','reopen']){
    if(action==='accept'&&(!result.ready||result.status==='Accepted')||action==='reopen'&&review.status!=='Accepted')continue;
    panel.insertAdjacentHTML('beforeend','<button id="room-review-'+action+'">'+(action==='accept'?'Review and accept deliverable':'Reopen deliverable')+'</button>');
-   $('#room-review-'+action).onclick=()=>form(action==='accept'?'Accept '+definition.name:'Reopen '+definition.name,'<p>'+esc(definition.outcome||'No current definition')+'</p><p>'+esc(definition.acceptanceCriteria||'No criteria')+'</p><h3>Task snapshot</h3>'+snapshotTasks+'<h3>Evidence snapshot</h3>'+snapshotEvidence+'<label class="field">'+(action==='accept'?'Evidence reviewed and acceptance rationale':'Reason for reopening')+'<textarea name="note" maxlength="4000" required></textarea></label><p>This records your decision. It does not launch agents, verify artifacts, grant permissions or dispose of data.</p>',async d=>{
+   $('#room-review-'+action).onclick=()=>form(action==='accept'?'Accept '+esc(definition.name||'Room'):'Reopen '+esc(definition.name||'Room'),'<p>'+esc(definition.outcome||'No current definition')+'</p><p>'+esc(definition.acceptanceCriteria||'No criteria')+'</p><h3>Task snapshot</h3>'+snapshotTasks+'<h3>Evidence snapshot</h3>'+snapshotEvidence+'<label class="field">'+(action==='accept'?'Evidence reviewed and acceptance rationale':'Reason for reopening')+'<textarea name="note" maxlength="4000" required></textarea></label><p>This records your decision. It does not launch agents, verify artifacts, grant permissions or dispose of data.</p>',async d=>{
     if(roomId!==rid){note('Room changed; reopen the review in the intended room.');return}
     await api('room-outcome-review?room='+encodeURIComponent(rid),{action,revision:review.revision||0,snapshot:result.snapshot,note:d.get('note')});await refresh();
    });
