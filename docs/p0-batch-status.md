@@ -1324,3 +1324,36 @@ proof does not establish live daemon or descendant termination guarantees.
 - Heartbeat remains active to the authorized13:30UTC cutoff, then must pause.
   At cutoff stop edits/new work and report this handoff without claiming that
   the outstanding production integrations or live gates are complete.
+
+### 2026-10-25 15:00 UTC — PR64 criterion-save review fix
+
+- User requested PR/Greptile inspection after the overnight cutoff. This permits
+  read-only GitHub review and this targeted local fix; automation stays paused.
+- Verified open PR64 and clean local codex/task-definition-contracts at matching
+  head90fee137f52ee8346ca0c4d425b2fbac3edc9a57. Greptile's current-head check
+  completed successfully but reported unresolved P1 comment4371217849, thread
+  PRRT_kwDOVETwiM6wCKAL. A green review check does not resolve its finding.
+- Finding valid: browser shared api helper omitted task-acceptance from operation
+  key generation although the server requires Idempotency-Key. Added endpoint;
+  preserved server authentication, permissions, CSRF and idempotency safeguards.
+- Regression drives the criterion decision form through the real api helper with
+  synthetic fetch responses for accept/changes and CSRF renewal. Asserts exact
+  request metadata/body and stable key/body across renewal retry. Prior tests
+  mocked api itself and therefore missed this integration. Documented retries.
+- Focused Node tests5/5 pass; make test0.76s; make check6.99s (cached Go packages,
+  actual UI/docs/static checks). Documentation check passed after final prose edit.
+  Logs /private/tmp/commonroom-pr64-review-test.log and
+  /private/tmp/commonroom-pr64-review-check.log. Observed work approximately
+  14:54–15:00UTC; no live browser/provider/DB acceptance established.
+- Fix remains unstaged/uncommitted for owner publication on the existing branch.
+  No commits, pushes, review replies or thread-resolution mutations performed.
+  Previously documented production/live integration gaps remain outstanding.
+- Last notification: targeted fix ready with prepared commit message:
+
+  fix: include operation keys when saving task criterion reviews
+
+  Generate an idempotency key for acceptance and changes requests through the
+  shared browser helper. Preserve the key when renewing an expired CSRF token.
+
+  Exercise the review form with the real request helper and synthetic responses,
+  and document retry behavior without weakening server validation.

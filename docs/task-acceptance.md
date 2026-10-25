@@ -125,7 +125,10 @@ receipt in one audit transaction with an event-count fence. A persistence failur
 commits neither decision nor status, withholds success and latches integrity stop;
 a concurrent state change returns 409 without forcing a review through. Exact
 idempotent replay acknowledges the original operation without another review.
-The task ID is part of the fingerprint, so a key cannot replay a different task.
+The browser generates one operation key for each review save, including both
+acceptance and changes requests, and retains it when refreshing an expired CSRF
+token and retrying that same request. The task ID is part of the fingerprint, so
+a key cannot replay a different task.
 Generic event requests cannot inject review records or accept structured tasks
 in place of criterion review while the feature is enabled.
 
