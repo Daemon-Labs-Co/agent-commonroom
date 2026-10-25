@@ -1,11 +1,11 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function harness({enabled=true,owner=true,view='Room',personal=false}={}){
- let html='',save;const calls=[],button={};
+ let html='',save;const calls=[],button={},contextButton={};
  const room={id:'work',personalActorId:personal?'human':'',outcome:'<untrusted outcome>',acceptanceCriteria:'Verify & review'};
- const ctx=vm.createContext({state:{currentActorId:owner?'local-owner':'member',featureFlags:{roomOutcomes:enabled},rooms:[room]},view,roomId:'work',render(){},$:s=>s==='#main'?{insertAdjacentHTML(_,value){html+=value}}:button,esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;'),form(_,body,fn){html+=body;save=fn},commit:async(...args)=>calls.push(args)});
+ const ctx=vm.createContext({state:{currentActorId:owner?'local-owner':'member',featureFlags:{roomOutcomes:enabled},rooms:[room]},view,roomId:'work',render(){},$:s=>s==='#main'?{insertAdjacentHTML(_,value){html+=value}}:s==='#room-outcome-context-setting'?contextButton:button,esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;'),form(_,body,fn){html+=body;save=fn},commit:async(...args)=>calls.push(args)});
  vm.runInContext(fs.readFileSync('web/room-outcomes.js','utf8'),ctx);
- return{ctx,room,button,calls,html:()=>html,save:()=>save(new Map([['enabled','on']]))};
+ return{ctx,room,button,contextButton,calls,html:()=>html,save:()=>save(new Map([['enabled','on']]))};
 }
 test('room outcome fields are escaped, bounded and unavailable for personal rooms or disabled flag',()=>{
  const h=harness();const fields=h.ctx.roomOutcomeFields(h.room);assert.match(fields,/&lt;untrusted outcome>/);assert.match(fields,/maxlength="2000" required/);assert.match(fields,/maxlength="8000" required/);
@@ -41,4 +41,8 @@ test('legacy room settings allow blank definitions while new and defined rooms r
   const requiredFields=[...h.ctx.roomOutcomeFields(room).matchAll(/<textarea\b([^>]*)>/g)];
   assert.equal(requiredFields.length,2);for(const [,attributes]of requiredFields)assert.match(attributes,/\brequired\b/);
  }
+});
+
+test('deliverable provider export is a separate default-off owner opt-in',async()=>{
+ const h=harness({view:'Settings'});h.ctx.drawRoomOutcomes();assert.match(h.html(),/Room deliverable context · Off/);h.contextButton.onclick();await h.save();assert.equal(h.calls[0][1].name,'roomOutcomeContext');assert.equal(h.calls[0][1].enabled,true);assert.match(h.html(),/Already-sent context and active turns are not recalled/);
 });

@@ -501,3 +501,37 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: valid P1 fixed and verified locally with one commit message;
   owner signs and publishes on PR #61 for current-head rereview. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## Room deliverable context in task dispatch
+
+- Verified PR #61 merged final reviewed head
+  `2041fca01940604934a76255a0408f9a01284f3e` as
+  `87862e27135f2df007c2043e7135b22629385fc3`; clean main and remote agree,
+  trees match, final-head Greptile passed with no new findings. Git helper
+  created `codex/room-outcome-dispatch` from that exact base.
+- Task work/review dispatch can include the current shared-room outcome and
+  acceptance criteria as JSON-encoded, labeled reference with room ID/revision.
+  Original task instructions and criteria remain separate; no scope, execution
+  permission, task acceptance or room completion is granted by this reference.
+- Separate owner-only `roomOutcomeContext` export opt-in defaults off and also
+  requires `roomOutcomes`. Server enforces both flags, provider allowlists,
+  reference exclusion, room/company boundaries and personal-room exclusion.
+  Ordinary chat/workflow paths unchanged. No restart; off affects future
+  dispatches and does not recall queued/provider context or cancel active work.
+- Historical metadata is bounded before JSON allocation; combined 128 KiB prompt
+  overflow refuses before dispatch writes/launch. Idempotent retries retain the
+  existing dispatch rather than generating another turn or updated snapshot.
+- Tests cover actual work/review dispatch through mocked isolated turns,
+  replay, snapshot semantics, all flag combinations, provider/reference denial,
+  cross-room/private exclusions, malformed historical size, combined overflow,
+  no-effects refusals and owner-only settings. User/technical Help docs updated.
+- make test passed in 10.26 seconds; make check passed in 21.27 seconds.
+  Observed implementation/check span about 21:50:38–21:52:50 UTC on 24 October
+  (about 2m12s), excluding initial merge/branch verification. No live provider,
+  worker, browser or database acceptance; existing P0/delegation gaps remain.
+- Git helper confirmed expected scope, clean whitespace and empty index; no
+  unrelated edits. Include new cmd/server/task_outcome_context.go and
+  cmd/server/task_outcome_context_test.go when publishing.
+- Last notification: task deliverable-context increment verified locally, ready
+  for owner signing/publication with one commit message. Nothing staged,
+  committed, pushed, merged or posted by the agent.

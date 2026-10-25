@@ -180,3 +180,6 @@ retention contract](concepts.md#automatic-agent-room-compatibility).
 
 
 With **Settings → Features → Workflows → Room outcomes** enabled, New room and Room settings collect a defined outcome and acceptance criteria for shared rooms. Room and Tasks show the definition to authorized members. The owner controls edits; saved definitions remain visible when the setting is off. See [room outcomes](room-outcomes.md).
+
+
+**Settings → Features → Workflows → Room deliverable context** is a separate, default-off owner opt-in for sending the current room definition to task providers. It also requires Room outcomes. Turning it off affects future dispatches; saved definitions remain visible. Provider disclosure restrictions still apply. See [task-provider context](room-outcomes.md#optional-task-provider-context).

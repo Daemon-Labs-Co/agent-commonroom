@@ -11,6 +11,10 @@ function drawRoomOutcomes(){
   const enabled=state.featureFlags?.roomOutcomes===true;
   main.insertAdjacentHTML('beforeend','<section class="card"><h3>Workflows · Room outcomes</h3><p>Define what a shared room should deliver and how humans will assess it. Existing rooms can be updated gradually.</p><button id="room-outcomes-setting" data-feature-flag="roomOutcomes">Room outcomes · '+(enabled?'On':'Off')+'</button></section>');
   $('#room-outcomes-setting').onclick=()=>form('Room outcomes','<label><input name="enabled" type="checkbox" '+(enabled?'checked':'')+'> Require an outcome and acceptance criteria for new shared rooms</label><p>Off preserves saved outcomes and disables editing them. This does not grant execution permissions or mark any work complete.</p>',d=>commit('feature.flag.updated',{name:'roomOutcomes',enabled:d.has('enabled')}));
+  const exportEnabled=state.featureFlags?.roomOutcomeContext===true;
+  main.insertAdjacentHTML('beforeend','<section class="card"><h3>Workflows · Room deliverable context</h3><p>Include the current room outcome and acceptance criteria as reference for task work and review. This sends them to the assigned provider and also requires Room outcomes to be on. Provider and reference-export restrictions still apply.</p><button id="room-outcome-context-setting" data-feature-flag="roomOutcomeContext">Room deliverable context · '+(exportEnabled?'On':'Off')+'</button></section>');
+  $('#room-outcome-context-setting').onclick=()=>form('Room deliverable context','<label><input name="enabled" type="checkbox" '+(exportEnabled?'checked':'')+'> Allow room deliverables in task provider prompts</label><p>Off omits this reference from future task dispatches. Already-sent context and active turns are not recalled. This never grants additional permissions.</p>',d=>commit('feature.flag.updated',{name:'roomOutcomeContext',enabled:d.has('enabled')}));
+
  }
  if(view!=='Room'&&view!=='Tasks')return;
  const room=state.rooms.find(r=>r.id===roomId);
