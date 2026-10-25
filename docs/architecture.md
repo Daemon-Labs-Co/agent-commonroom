@@ -170,3 +170,10 @@ Use [server structure](server-structure.md) for controller responsibilities,
 [security hardening](security-hardening.md) for required identity, database,
 transport and deadline controls. The UI remains order-sensitive shared plain
 JavaScript; a module split alone does not establish stronger trust boundaries.
+
+The internal [byte custody foundation](object-custody.md) verifies bounded private inode bytes behind mandatory accounting and audit callbacks. It is not connected to dispatch or public export; real isolated-source, complete inventory, physical quota and journal adapters remain missing. File/bundle task delivery continues to refuse.
+
+The internal [finite artifact manifest foundation](artifact-manifests.md) binds
+exact declared members to verified sealed bytes and registered structural formats.
+It is disconnected from managed/public delivery; actual source, quota and durable
+journal adapters remain required and file/bundle dispatch continues to refuse.

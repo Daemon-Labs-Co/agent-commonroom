@@ -183,3 +183,22 @@ syncs it before acknowledgment. Repair storage before retrying. These mandatory
 controls have no off switch and do not promise physical erasure, provider-wide
 revocation or hardware power-loss guarantees. Tests inject sync failures; live
 filesystem/hardware durability remains deployment-specific.
+
+## Preserve connections while work is unsettled
+
+Connection edits/deletion, credential sign-out and test-connection launches refuse
+while that connection has active local work, a pending task dispatch, or a durable
+managed job whose shutdown is unconfirmed. Participant reassignment to another
+connection has the same guard. This survives controller restart even when local
+active-turn maps are empty, and applies with diagnostic/task feature flags off.
+A job remains bound to its original connection even if its participant was removed.
+
+Inspect job diagnostics and use the existing authorized shutdown reconciliation.
+Pending task dispatches also need their explicit owner reconciliation. Confirming
+physical shutdown does not itself settle a pending task or accept its result.
+Once both are settled, ordinary edits/sign-out can proceed. Read-only credential
+presence checks are separate; this guard does not certify credential custody,
+authentication identity, physical cleanup or provider readiness. Interactive login
+remains the documented separate worker authentication operation, not a managed
+task. There is no automatic identity reassignment, history deletion or cleanup
+claim when the controller starts again.

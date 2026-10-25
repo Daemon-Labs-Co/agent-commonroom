@@ -12,6 +12,7 @@ import (
 
 type server struct {
 	delegationRepository func(string) (string, error)
+	taskDefinitionTurns  map[string]string
 	delegationTurns      map[string]string
 	coordinationTurns    map[string]room.GovernanceAppointment
 	// Instance test seam; nil always uses the mandatory isolated execution path.

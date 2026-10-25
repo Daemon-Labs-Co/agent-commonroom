@@ -44,7 +44,7 @@ func (s *server) managedVerification(ctx context.Context, c room.Connection, rid
 		err = s.workflowSafety(ctx, st, rid)
 	}
 	if err == nil && (s.active[p.ID] || connectionHasActiveAgent(st, s.active, c.ID)) {
-		err = errors.New("Connection has active work; wait before verification")
+		err = errors.New("Connection has active or unreconciled work; inspect job and task diagnostics before verification")
 	}
 	if err == nil {
 		err = s.agentAdmission(st, rid, 1)

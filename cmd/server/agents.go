@@ -546,6 +546,7 @@ func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant
 	defer delete(s.cancels, p.ID)
 	defer delete(s.coordinationTurns, p.ID)
 	defer delete(s.delegationTurns, p.ID)
+	defer delete(s.taskDefinitionTurns, p.ID)
 	if e := s.finishAgentTurnStateLocked(ctx, p, text, endpoint, err, taskID, dispatchID); e != nil {
 		if !errors.Is(e, errAuditConflict) {
 			s.tripIntegrityLocked()
@@ -578,9 +579,18 @@ func (s *server) finishAgentTurnStateLocked(ctx context.Context, p room.Particip
 				return e
 			}
 		}
+		if err == nil && taskID != "" {
+			for _, task := range st.Tasks {
+				if task.ID == taskID && task.Definition != nil {
+					if _, validationErr := structuredTaskResult(st, task, "Idle", text); validationErr != nil {
+						err = validationErr
+					}
+				}
+			}
+		}
 		changes := []auditChange{}
 		p.Status = "Idle"
-		if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) || (!coordinationContextAllowed(ctx, st, p) || !delegationContextAllowed(ctx, st, p)) {
+		if ctx.Err() == context.Canceled || s.agentsBlockedLocked(st, p.RoomID) || (!coordinationContextAllowed(ctx, st, p) || !delegationContextAllowed(ctx, st, p) || !taskDefinitionContextAllowed(ctx, st, p)) {
 			p.Status = "Stopped"
 			changes = append(changes, auditChange{Kind: "agent.stopped", Payload: map[string]string{"participantId": p.ID, "name": p.Name, "reason": "turn cancelled or emergency stop"}})
 		} else if err != nil || ctx.Err() != nil {
@@ -595,7 +605,7 @@ func (s *server) finishAgentTurnStateLocked(ctx context.Context, p room.Particip
 			changes = append(changes, auditChange{Kind: "message.created", Payload: room.Message{Provider: providerForEndpoint(endpoint), RoomID: p.RoomID, ID: id(), ActorID: p.ActorID, ActorType: "agent", Author: p.Name, Text: text, Created: time.Now().UTC()}})
 		}
 		changes = append(changes, auditChange{Kind: "participant.session", Payload: p})
-		changes = append(changes, taskOutcome(st, taskID, dispatchID, p.Status)...)
+		changes = append(changes, taskOutcome(st, taskID, dispatchID, p.Status, text)...)
 		if e := s.appendBatch(context.WithValue(context.Background(), expectedEventCountKey{}, st.EventCount), changes); errors.Is(e, errAuditConflict) {
 			continue
 		} else {
@@ -716,7 +726,7 @@ func (s *server) recordAgentSession(ctx context.Context, p room.Participant, mod
 		if err != nil {
 			return err
 		}
-		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) || (!coordinationContextAllowed(ctx, st, p) || !delegationContextAllowed(ctx, st, p)) {
+		if ctx.Err() != nil || st.Incident || s.agentsBlockedLocked(st, p.RoomID) || (!coordinationContextAllowed(ctx, st, p) || !delegationContextAllowed(ctx, st, p) || !taskDefinitionContextAllowed(ctx, st, p)) {
 			return errors.New("agent turn cancelled or blocked")
 		}
 		found := false

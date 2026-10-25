@@ -132,3 +132,19 @@ workspace credit release are atomic. Unbound charges remain. Unknown outcomes
 stay blocked. All nine disposal catalog drivers pass, including removal/absence failures,
 stale approval, retained-source cancellation and audit-history protection.
 Production allocation and live deployment acceptance remain pending.
+
+
+## Canonical task contract increment
+
+The default-off `taskDefinitions` feature adds seven-part finite contracts, bound value inputs, immutable attempt/output records, restrictive runtime checks and distinct human acceptance. File/bundle declarations do not admit execution without verified artifact custody. These are synthetic-tested foundations for G07, not production provider/artifact acceptance. See [task definitions](task-definitions.md).
+
+The separate default-off `taskValueDependencies` increment adds accepted same-room value provenance and transitive stale-source revocation. Its mocked dispatch/broker coverage does not establish live artifact custody or close G07. See [accepted task inputs](task-value-inputs.md).
+
+Default-off `taskAcceptanceReview` adds atomic criterion-by-criterion owner judgments and immutable reviewed-work history. These human judgments and controller structural checks do not establish independently observed runtime evidence or close G07. See [task criterion review](task-acceptance.md).
+
+An internal [byte custody foundation](object-custody.md) has synthetic filesystem/audit coverage but no production adapters. It neither admits file/bundle task execution nor certifies G04/G07/G09; real physical quota, source revision/custody and authorized export remain open.
+
+The internal [finite artifact manifest foundation](artifact-manifests.md) binds
+exact declared members to verified sealed bytes and registered structural formats.
+It is disconnected from managed/public delivery; actual source, quota and durable
+journal adapters remain required and file/bundle dispatch continues to refuse.

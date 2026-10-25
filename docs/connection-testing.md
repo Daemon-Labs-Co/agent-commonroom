@@ -126,3 +126,24 @@ proofs. They cover scope, draft boundaries, permissions/flags, streaming, failur
 cancellation and unknown shutdown without real provider, SSH or database access.
 UI tests check draft preservation and escaping. Real deployment timing, account
 access and controller/worker compatibility need separate live acceptance.
+
+Connection testing also refuses durable unconfirmed jobs and pending task
+allocations after a controller restart. Empty local activity maps do not prove
+that a connection is idle. Reconcile the original job and pending task before
+changing connection settings or launching verification; see
+[connection work guards](connection-sign-in.md#preserve-connections-while-work-is-unsettled).
+
+Connection edits/deletion and participant reassignment carry their validated audit
+head into the atomic write. Managed allocation does the same. If another controller
+commits first, the stale operation refuses: it cannot save a connection change
+based on an earlier idle observation or create an allocation against a stale
+snapshot. Allocation audit-head conflicts are ordinary concurrency conflicts,
+not evidence that the audit chain is corrupt. They refuse launch without falsely
+stopping the whole application; actual persistence failures retain fail-closed
+integrity handling. Reload before explicitly retrying. This does not add automatic
+provider execution retries or a distributed lock around interactive login.
+
+Deterministic tests interleave two mocked controllers in both commit orders for
+connection edit, delete and agent reassignment. They exercise the real journal
+comparison/rollback code through mocked database calls, not a live PostgreSQL
+server, worker or credential operation.

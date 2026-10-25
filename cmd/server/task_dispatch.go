@@ -2,6 +2,8 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"agentroom/internal/taskcontract"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -25,12 +27,18 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		TaskID   string `json:"taskId"`
-		Revision int    `json:"revision"`
-		Mode     string `json:"mode"`
+		TaskID   string                 `json:"taskId"`
+		Revision int                    `json:"revision"`
+		Mode     string                 `json:"mode"`
+		Inputs   []taskcontract.Binding `json:"inputs,omitempty"`
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 2048)
-	dec := json.NewDecoder(r.Body)
+	r.Body = http.MaxBytesReader(w, r.Body, 65536)
+	raw, readErr := io.ReadAll(r.Body)
+	if readErr != nil || !taskcontract.ValidJSON(raw, 65536) {
+		http.Error(w, "Invalid bounded dispatch JSON", 400)
+		return
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if dec.Decode(&req) != nil || dec.Decode(new(any)) != io.EOF || req.TaskID == "" || (req.Mode != "work" && req.Mode != "review" && req.Mode != "reconcile") {
 		http.Error(w, "Task, revision and work/review/reconcile mode required", 400)
@@ -121,6 +129,11 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Accepted tasks cannot be dispatched", 409)
 		return
 	}
+	execution, contractErr := prepareTaskExecution(st, task, req.Mode, req.Inputs, requestActor(r))
+	if contractErr != nil {
+		http.Error(w, contractErr.Error(), 409)
+		return
+	}
 	if task.DelegationID != "" {
 		d, ok := st.Delegations[task.DelegationID]
 		repo, repoErr := s.delegationRepositoryFor(rid)
@@ -158,22 +171,19 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Isolated worker unavailable; check connection diagnostics", 503)
 		return
 	}
-	text := instruction + " Task: " + task.Title + "\nAcceptance criteria: " + task.Criteria + "\nEvidence (human-provided):\n"
+	text := instruction + " Task: " + task.Title + "\nAcceptance criteria: " + task.Criteria + "\n"
 	if len(text) > maxChatContextBytes {
 		http.Error(w, "Task context exceeds 128 KiB", 413)
 		return
 	}
-	for _, e := range st.Evidence {
-		if e.TaskID == task.ID && e.RoomID == rid {
-			part := e.Kind + ": " + e.Title + "\n" + e.Body + "\n"
-			if len(part) > maxChatContextBytes-len(text) {
-				http.Error(w, "Task evidence exceeds 128 KiB", 413)
-				return
-			}
-			text += part
-		}
+	if execution != nil {
+		text += taskExecutionReference(st, *execution)
 	}
-	prompt, err := taskDispatchPrompt(scoped(st, rid), p, text)
+	if len(text) > maxChatContextBytes {
+		http.Error(w, "Task contract/input context exceeds 128 KiB", 413)
+		return
+	}
+	prompt, err := taskDispatchPrompt(scoped(st, rid), p, text, task.ID)
 	if err != nil {
 		http.Error(w, err.Error(), 413)
 		return
@@ -189,18 +199,41 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 	message := room.Message{ID: id(), RoomID: rid, ActorID: requestActor(r), ActorType: "human", Author: actor.Name, Text: "@" + p.Name + " " + text, Created: time.Now().UTC()}
 	response := map[string]any{"queued": 1, "taskId": task.ID, "revision": task.Revision, "dispatchId": dispatchID}
 	changes := []auditChange{{Kind: "task.revised", Payload: task}, {Kind: "message.created", Payload: message}, {Kind: "agent.activity", Payload: map[string]any{"participantId": p.ID, "activity": "Task: " + task.Title, "startedAt": time.Now().UTC()}}, {Kind: "participant.session", Payload: p}}
+	if execution != nil {
+		execution.ID = dispatchID
+		execution.ParticipantID = p.ID
+		if err := bindTaskExecutionConfiguration(st, p, execution); err != nil {
+			http.Error(w, err.Error(), 409)
+			return
+		}
+		changes = append(changes[:1], append([]auditChange{{Kind: "task.execution.started", Payload: *execution}}, changes[1:]...)...)
+	}
 	if err = s.appendBatch(withOperationResponse(ctx, 202, response), changes); err != nil {
 		operationError(w, err)
 		return
 	}
 	s.active[p.ID] = true
-	parent := context.WithValue(detachedInitiatorContext(r.Context()), taskJobContextKey{}, taskJobBinding{TaskID: task.ID, DispatchID: dispatchID, DelegationID: task.DelegationID})
-	deadline := time.Now().Add(3 * time.Minute)
+	definitionEpoch := 0
+	if execution != nil {
+		definitionEpoch = st.TaskDefinitionEpoch
+	}
+	parent := context.WithValue(detachedInitiatorContext(r.Context()), taskJobContextKey{}, taskJobBinding{TaskID: task.ID, DispatchID: dispatchID, DelegationID: task.DelegationID, DefinitionDigest: taskDefinitionDigest(task), DefinitionEpoch: definitionEpoch})
+	duration := 3 * time.Minute
+	if task.Definition != nil {
+		duration = time.Duration(task.Definition.ExecutionConstraints.MaxDurationSeconds) * time.Second
+	}
+	deadline := time.Now().Add(duration)
 	if task.DelegationID != "" && st.Delegations[task.DelegationID].ExpiresAt.Before(deadline) {
 		deadline = st.Delegations[task.DelegationID].ExpiresAt
 	}
 	turnCtx, cancel := context.WithDeadline(parent, deadline)
 	s.cancels[p.ID] = cancel
+	if execution != nil {
+		if s.taskDefinitionTurns == nil {
+			s.taskDefinitionTurns = map[string]string{}
+		}
+		s.taskDefinitionTurns[p.ID] = dispatchID
+	}
 	if task.DelegationID != "" {
 		if s.delegationTurns == nil {
 			s.delegationTurns = map[string]string{}
@@ -231,7 +264,7 @@ func taskDispatchEnabled(st room.State) bool {
 // taskOutcome never auto-accepts work or overwrites a different dispatch.
 // Pending intents survive restart and require explicit owner reconciliation;
 // they are not automatically replayed following uncertain external effects.
-func taskOutcome(st room.State, taskID, dispatchID, status string) []auditChange {
+func taskOutcome(st room.State, taskID, dispatchID, status string, text ...string) []auditChange {
 	if taskID == "" {
 		return nil
 	}
@@ -247,7 +280,7 @@ func taskOutcome(st room.State, taskID, dispatchID, status string) []auditChange
 			task.DispatchStatus = "failed"
 			task.DispatchDetail = "Agent stopped or failed; inspect agent diagnostics before retrying"
 		}
-		return []auditChange{{Kind: "task.revised", Payload: task}}
+		return append([]auditChange{{Kind: "task.revised", Payload: task}}, taskExecutionOutcome(st, taskID, dispatchID, status, text...)...)
 	}
 	return nil
 }

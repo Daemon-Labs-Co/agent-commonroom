@@ -186,3 +186,13 @@ With **Settings → Features → Workflows → Room outcomes** enabled, New room
 
 
 **Settings → Features → Workflows → Room outcome review** enables owner acceptance and reopening in Room and Tasks. The dialog shows the current definition, task and evidence snapshot, and requires a human rationale. Changed work shows Needs review. Members can read authorized history; see [room review](room-outcome-review.md).
+
+
+**Settings → Features → Workflows → Task definitions** enables the seven-part owner editor. Task cards show the complete read-only contract and an **Execution records and returned values** history control, plus **Definition revision history** for saved contracts even when never executed. History is paginated, read-only and retained when Task definitions is off. Actual inputs are supplied at dispatch rather than saved into the definition. See [task definitions](task-definitions.md).
+
+With owner-enabled `taskProgress`, the Tasks view starts with a paginated shared-room progress panel that distinguishes recorded facts from saved status and live verification. See [recorded task progress](task-progress.md).
+
+Typed execution history includes an **Admitted agent configuration** detail with
+profile/connection revisions and fingerprints. Saving an agent profile revokes its
+pending typed turn; session updates do not. Completed values remain history. See
+[configuration identity](task-definitions.md#admitted-agent-configuration).

@@ -17,6 +17,9 @@ internal tested components and remaining release gates. The
 
 ## Use the workspace
 
+[Task definitions](task-definitions.md) establishes finite input/process/output contracts and separate immutable execution records.
+- [Accepted task inputs](task-value-inputs.md): verified same-room value dependencies, provenance and stale-source refusal.
+
 [Bounded delegation](task-delegations.md) documents authenticated assignment
 proposals, human review, inherited limits and provider integration gaps.
 
@@ -110,3 +113,14 @@ in a second set of setup instructions. Examples use synthetic data only.
 - [Room outcomes and acceptance criteria](room-outcomes.md): shared-room deliverables, owner configuration and compatibility.
 
 - [Human room deliverable acceptance](room-outcome-review.md): owner decisions, evidence and stale-snapshot safeguards.
+
+- [Task criterion review](task-acceptance.md): explicit human decisions against exact task outputs and criteria.
+
+- [Recorded task progress](task-progress.md): scoped contract, attempt, input and human-review status without claiming live verification.
+
+- [Internal byte custody](object-custody.md): tested bounded storage foundation; production file/bundle delivery remains blocked.
+
+The internal [finite artifact manifest foundation](artifact-manifests.md) binds
+exact declared members to verified sealed bytes and registered structural formats.
+It is disconnected from managed/public delivery; actual source, quota and durable
+journal adapters remain required and file/bundle dispatch continues to refuse.

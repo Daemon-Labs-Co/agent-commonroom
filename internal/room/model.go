@@ -1,6 +1,7 @@
 package room
 
 import (
+	"agentroom/internal/taskcontract"
 	"encoding/json"
 	"regexp"
 	"strings"
@@ -103,19 +104,20 @@ type Room struct {
 	Description          string               `json:"description"`
 }
 type Task struct {
-	DelegationID   string `json:"delegationId,omitempty"`
-	ProposalID     string `json:"proposalId,omitempty"`
-	DispatchID     string `json:"dispatchId,omitempty"`
-	DispatchStatus string `json:"dispatchStatus,omitempty"`
-	DispatchDetail string `json:"dispatchDetail,omitempty"`
-	ID             string `json:"id"`
-	RoomID         string `json:"roomId"`
-	Title          string `json:"title"`
-	Criteria       string `json:"criteria"`
-	Assignee       string `json:"assignee"`
-	Reviewer       string `json:"reviewer"`
-	Status         string `json:"status"`
-	Revision       int    `json:"revision"`
+	Definition     *taskcontract.Definition `json:"definition,omitempty"`
+	DelegationID   string                   `json:"delegationId,omitempty"`
+	ProposalID     string                   `json:"proposalId,omitempty"`
+	DispatchID     string                   `json:"dispatchId,omitempty"`
+	DispatchStatus string                   `json:"dispatchStatus,omitempty"`
+	DispatchDetail string                   `json:"dispatchDetail,omitempty"`
+	ID             string                   `json:"id"`
+	RoomID         string                   `json:"roomId"`
+	Title          string                   `json:"title"`
+	Criteria       string                   `json:"criteria"`
+	Assignee       string                   `json:"assignee"`
+	Reviewer       string                   `json:"reviewer"`
+	Status         string                   `json:"status"`
+	Revision       int                      `json:"revision"`
 }
 
 // TaskProposal preserves the suggestion separately from a human task decision.
@@ -213,10 +215,12 @@ type Actor struct {
 // ManagedJob is a safe, durable execution binding. Model data and arguments
 // never belong here; ShutdownConfirmed comes only from a fenced worker proof.
 type ManagedJob struct {
-	DelegationID      string `json:"delegationId,omitempty"`
-	TaskID            string `json:"taskId,omitempty"`
-	TaskDispatchID    string `json:"taskDispatchId,omitempty"`
-	CoordinationEpoch int    `json:"coordinationEpoch,omitempty"`
+	DelegationID         string `json:"delegationId,omitempty"`
+	TaskID               string `json:"taskId,omitempty"`
+	TaskDispatchID       string `json:"taskDispatchId,omitempty"`
+	TaskDefinitionDigest string `json:"taskDefinitionDigest,omitempty"`
+	TaskDefinitionEpoch  int    `json:"taskDefinitionEpoch,omitempty"`
+	CoordinationEpoch    int    `json:"coordinationEpoch,omitempty"`
 	// Optional role dependency; never an additional resource permission.
 	CoordinatorID       string           `json:"coordinatorId,omitempty"`
 	GovernanceRevision  int              `json:"governanceRevision,omitempty"`
@@ -300,39 +304,115 @@ type RoomOutcomeReview struct {
 	ReviewedAt time.Time `json:"reviewedAt"`
 }
 
+// TaskAcceptanceReview records an owner decision against exact returned values;
+// schema checks are structural evidence, never a model's verification claim.
+type TaskCriterionAssessment struct {
+	CriterionID  string `json:"criterionId"`
+	Method       string `json:"method"`
+	OutputName   string `json:"outputName"`
+	OutputDigest string `json:"outputDigest,omitempty"`
+	Decision     string `json:"decision"`
+	Note         string `json:"note"`
+}
+type TaskAcceptanceReview struct {
+	CompanyID    string                    `json:"companyId"`
+	RoomID       string                    `json:"roomId"`
+	TaskID       string                    `json:"taskId"`
+	Revision     int                       `json:"revision"`
+	TaskRevision int                       `json:"taskRevision"`
+	ExecutionID  string                    `json:"executionId"`
+	DispatchID   string                    `json:"dispatchId"`
+	Snapshot     string                    `json:"snapshot"`
+	Action       string                    `json:"action"`
+	Note         string                    `json:"note"`
+	Assessments  []TaskCriterionAssessment `json:"assessments"`
+	ReviewedBy   string                    `json:"reviewedBy"`
+	ReviewedAt   time.Time                 `json:"reviewedAt"`
+}
+
+type TaskExecution struct {
+	ContextPolicyEpoch             int                       `json:"contextPolicyEpoch,omitempty"`
+	ConfigurationVersion           int                       `json:"configurationVersion,omitempty"`
+	ParticipantRevision            int                       `json:"participantRevision,omitempty"`
+	ParticipantConfigurationDigest string                    `json:"participantConfigurationDigest,omitempty"`
+	ConnectionID                   string                    `json:"connectionId,omitempty"`
+	ConnectionRevision             int                       `json:"connectionRevision,omitempty"`
+	ConnectionConfigurationDigest  string                    `json:"connectionConfigurationDigest,omitempty"`
+	InputAcceptanceEpoch           int                       `json:"inputAcceptanceEpoch,omitempty"`
+	ValueDependencyEpoch           int                       `json:"valueDependencyEpoch,omitempty"`
+	DelegationID                   string                    `json:"delegationId,omitempty"`
+	DefinitionEpoch                int                       `json:"definitionEpoch"`
+	ParentExecutionID              string                    `json:"parentExecutionId,omitempty"`
+	ID                             string                    `json:"id"`
+	CompanyID                      string                    `json:"companyId"`
+	RoomID                         string                    `json:"roomId"`
+	TaskID                         string                    `json:"taskId"`
+	TaskRevision                   int                       `json:"taskRevision"`
+	ParticipantID                  string                    `json:"participantId"`
+	InitiatorID                    string                    `json:"initiatorId"`
+	Mode                           string                    `json:"mode"`
+	Definition                     taskcontract.Definition   `json:"definition"`
+	DefinitionDigest               string                    `json:"definitionDigest"`
+	Inputs                         []taskcontract.BoundValue `json:"inputs"`
+	Outputs                        []taskcontract.BoundValue `json:"outputs"`
+	Status                         string                    `json:"status"`
+	ValidationError                string                    `json:"validationError,omitempty"`
+	ResponseDigest                 string                    `json:"responseDigest,omitempty"`
+	StartedAt                      time.Time                 `json:"startedAt"`
+	FinishedAt                     time.Time                 `json:"finishedAt,omitempty"`
+}
+
+// TaskDefinitionRevision is a projection of an acknowledged task.revised event.
+// EventPosition is replay order, not a timestamp or observed execution result.
+type TaskDefinitionRevision struct {
+	CompanyID     string                  `json:"companyId"`
+	RoomID        string                  `json:"roomId"`
+	TaskID        string                  `json:"taskId"`
+	Definition    taskcontract.Definition `json:"definition"`
+	Digest        string                  `json:"digest"`
+	EventPosition int64                   `json:"eventPosition"`
+}
+
 type State struct {
-	OutcomeReviews     map[string]RoomOutcomeReview     `json:"-"`
-	Delegations        map[string]TaskDelegation        `json:"-"`
-	DelegationEpoch    int                              `json:"-"`
-	TaskProposals      map[string]TaskProposal          `json:"-"`
-	CoordinationEpoch  int                              `json:"-"`
-	Governance         map[string]GovernanceAppointment `json:"-"`
-	IdleStopNotices    map[string]IdleStopNotice        `json:"-"`
-	AgentIdleSettings  AgentIdleSettings                `json:"agentIdleSettings"`
-	WorkspaceDisposals map[string]WorkspaceDisposal     `json:"-"`
-	ManagedStorage     *ManagedStorage                  `json:"-"`
-	HumanRevision      int                              `json:"humanRevision"`
-	EventCount         int64                            `json:"-"`
-	OperationReceipts  map[string]OperationReceipt      `json:"-"`
-	ManagedJobs        map[string]ManagedJob            `json:"-"`
-	ToolAudits         map[string]ManagedToolCall       `json:"-"`
-	ToolCalls          map[string]ToolCallAudit         `json:"-"`
-	Organization       OrganizationChart                `json:"organization"`
-	FeatureFlags       map[string]bool                  `json:"featureFlags"`
-	AgentsStopped      bool                             `json:"agentsStopped"`
-	AgentRoomStopped   bool                             `json:"agentRoomStopped"`
-	AgentStopRooms     []string                         `json:"-"`
-	Actors             []Actor                          `json:"actors"`
-	CurrentActorID     string                           `json:"currentActorId"`
-	Company            Company                          `json:"company"`
-	HumanCompanyID     string                           `json:"humanCompanyId"`
-	HumanTitle         string                           `json:"humanTitle"`
-	HumanName          string                           `json:"humanName"`
-	WorkflowRuns       []WorkflowRun                    `json:"workflowRuns"`
-	Workflows          []Workflow                       `json:"workflows"`
-	Rooms              []Room                           `json:"rooms"`
-	Tasks              []Task                           `json:"tasks"`
-	Evidence           []Evidence                       `json:"evidence"`
+	TaskContextPolicyEpochs map[string]int                      `json:"-"`
+	TaskDefinitionHistory   map[string][]TaskDefinitionRevision `json:"-"`
+	TaskAcceptanceReviews   map[string][]TaskAcceptanceReview   `json:"-"`
+	TaskAcceptanceEpoch     int                                 `json:"-"`
+	ValueDependencyEpoch    int                                 `json:"-"`
+	TaskDefinitionEpoch     int                                 `json:"-"`
+	TaskExecutions          map[string]TaskExecution            `json:"-"`
+	OutcomeReviews          map[string]RoomOutcomeReview        `json:"-"`
+	Delegations             map[string]TaskDelegation           `json:"-"`
+	DelegationEpoch         int                                 `json:"-"`
+	TaskProposals           map[string]TaskProposal             `json:"-"`
+	CoordinationEpoch       int                                 `json:"-"`
+	Governance              map[string]GovernanceAppointment    `json:"-"`
+	IdleStopNotices         map[string]IdleStopNotice           `json:"-"`
+	AgentIdleSettings       AgentIdleSettings                   `json:"agentIdleSettings"`
+	WorkspaceDisposals      map[string]WorkspaceDisposal        `json:"-"`
+	ManagedStorage          *ManagedStorage                     `json:"-"`
+	HumanRevision           int                                 `json:"humanRevision"`
+	EventCount              int64                               `json:"-"`
+	OperationReceipts       map[string]OperationReceipt         `json:"-"`
+	ManagedJobs             map[string]ManagedJob               `json:"-"`
+	ToolAudits              map[string]ManagedToolCall          `json:"-"`
+	ToolCalls               map[string]ToolCallAudit            `json:"-"`
+	Organization            OrganizationChart                   `json:"organization"`
+	FeatureFlags            map[string]bool                     `json:"featureFlags"`
+	AgentsStopped           bool                                `json:"agentsStopped"`
+	AgentRoomStopped        bool                                `json:"agentRoomStopped"`
+	AgentStopRooms          []string                            `json:"-"`
+	Actors                  []Actor                             `json:"actors"`
+	CurrentActorID          string                              `json:"currentActorId"`
+	Company                 Company                             `json:"company"`
+	HumanCompanyID          string                              `json:"humanCompanyId"`
+	HumanTitle              string                              `json:"humanTitle"`
+	HumanName               string                              `json:"humanName"`
+	WorkflowRuns            []WorkflowRun                       `json:"workflowRuns"`
+	Workflows               []Workflow                          `json:"workflows"`
+	Rooms                   []Room                              `json:"rooms"`
+	Tasks                   []Task                              `json:"tasks"`
+	Evidence                []Evidence                          `json:"evidence"`
 
 	Connections  []Connection  `json:"connections"`
 	Participants []Participant `json:"participants"`

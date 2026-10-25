@@ -213,3 +213,11 @@ Shared rooms can carry a human-defined deliverable and acceptance criteria. Enab
 Owners can separately opt in to `roomOutcomeContext` to include a room deliverable as bounded reference in task work/review prompts. It defaults off and respects provider/reference disclosure restrictions; see [task-provider context](docs/room-outcomes.md#optional-task-provider-context).
 
 Owners can enable default-off `roomOutcomeReview` to record human acceptance or reopening of a shared-room deliverable. Acceptance becomes stale when the room or its work changes. See [room deliverable review](docs/room-outcome-review.md).
+
+Structured tasks use a seven-part definition with finite input/output contracts, restrictive limits and a failure policy. Enable default-off `taskDefinitions` to use the editor, per-execution value bindings, immutable returned-value records and paginated saved definition history. File/bundle execution refuses pending verified artifact storage. See [task definitions](docs/task-definitions.md).
+
+See [accepted task inputs](docs/task-value-inputs.md) for verified same-room value dependencies.
+
+- [Task criterion review](docs/task-acceptance.md): explicit human decisions against exact task outputs and criteria.
+
+- [Recorded task progress](docs/task-progress.md): scoped contract, attempt, input and human-review status without claiming live verification.

@@ -32,7 +32,7 @@ func roomReviewSnapshot(st room.State, rid string) (string, bool) {
 	for _, t := range st.Tasks {
 		if t.RoomID == rid {
 			tasks = append(tasks, t)
-			if t.Status != "Accepted" || t.DispatchStatus == "pending" {
+			if t.Status != "Accepted" || t.DispatchStatus == "pending" || t.Definition != nil && (!taskHasValidCurrentOutput(st, t) || !taskHasCurrentAcceptance(st, t)) {
 				ready = false
 			}
 		}
@@ -145,7 +145,11 @@ func (s *server) roomOutcomeReview(w http.ResponseWriter, r *http.Request) {
 				evidence = append(evidence, item)
 			}
 		}
-		reply(w, map[string]any{"enabled": enabled, "snapshot": snapshot, "ready": ready, "status": roomReviewStatus(current, snapshot), "review": current, "definition": definition, "tasks": tasks, "evidence": evidence})
+		status := roomReviewStatus(current, snapshot)
+		if status == "Accepted" && !ready {
+			status = "Needs review"
+		}
+		reply(w, map[string]any{"enabled": enabled, "snapshot": snapshot, "ready": ready, "status": status, "review": current, "definition": definition, "tasks": tasks, "evidence": evidence})
 		return
 	}
 	var req struct {

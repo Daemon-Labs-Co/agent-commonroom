@@ -154,3 +154,6 @@ A missing or outdated value returns 409 with a reload instruction and writes
 nothing. Refresh and reopen settings before saving. Unchanged custom labels keep
 the same name precondition through actor renames; ordinary room revision checks
 still protect other settings. Existing historical room events remain replayable.
+
+
+When `taskDefinitions` is enabled, an approved proposal still creates a legacy Draft rather than inventing a contract. The owner defines its seven parts before dispatch. Existing proposal provenance remains immutable; see [task definitions](task-definitions.md).
