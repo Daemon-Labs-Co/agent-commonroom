@@ -211,3 +211,5 @@ can restore the legacy catalog with `automaticAgentRooms`; see the
 Shared rooms can carry a human-defined deliverable and acceptance criteria. Enable the default-off `roomOutcomes` setting to require both for new shared rooms; existing rooms and saved history remain usable. See [room outcomes](docs/room-outcomes.md).
 
 Owners can separately opt in to `roomOutcomeContext` to include a room deliverable as bounded reference in task work/review prompts. It defaults off and respects provider/reference disclosure restrictions; see [task-provider context](docs/room-outcomes.md#optional-task-provider-context).
+
+Owners can enable default-off `roomOutcomeReview` to record human acceptance or reopening of a shared-room deliverable. Acceptance becomes stale when the room or its work changes. See [room deliverable review](docs/room-outcome-review.md).

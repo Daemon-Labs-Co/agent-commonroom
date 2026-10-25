@@ -164,3 +164,5 @@ permissions, expiry/recovery and verification limits.
 Optional room definitions: the owner can enable default-off `roomOutcomes` in Settings → Features → Workflows. No restart or data migration is required. Existing rooms can be defined gradually; [room outcomes](room-outcomes.md) documents server enforcement and limits.
 
 The separate `roomOutcomeContext` setting defaults off. Enable it only when the owner wants room deliverables included in task-provider context; `roomOutcomes` must also be on. Existing provider allowlists and reference-export exclusions remain enforced, with no restart.
+
+The default-off `roomOutcomeReview` setting enables human room-deliverable acceptance and reopening. It requires Room outcomes, with no restart. Existing history is preserved when disabled. See [room review](room-outcome-review.md) before enabling.

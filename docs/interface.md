@@ -183,3 +183,6 @@ With **Settings → Features → Workflows → Room outcomes** enabled, New room
 
 
 **Settings → Features → Workflows → Room deliverable context** is a separate, default-off owner opt-in for sending the current room definition to task providers. It also requires Room outcomes. Turning it off affects future dispatches; saved definitions remain visible. Provider disclosure restrictions still apply. See [task-provider context](room-outcomes.md#optional-task-provider-context).
+
+
+**Settings → Features → Workflows → Room outcome review** enables owner acceptance and reopening in Room and Tasks. The dialog shows the current definition, task and evidence snapshot, and requires a human rationale. Changed work shows Needs review. Members can read authorized history; see [room review](room-outcome-review.md).

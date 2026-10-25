@@ -39,6 +39,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		rememberAgentRoomReferences(data, referencedAgentRooms)
 		st.EventCount++
 		switch kind {
+		case "room.outcome.reviewed":
+			if err := projectRoomOutcomeReview(&st, data); err != nil {
+				return st, err
+			}
 		case "task.delegation.proposed", "task.delegation.approved", "task.delegation.rejected":
 			if err := projectDelegation(&st, kind, data); err != nil {
 				return st, err
