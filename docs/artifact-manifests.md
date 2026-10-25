@@ -54,9 +54,11 @@ JSON structure is not proof that a human criterion or independent check passed.
 ## Required integration and verification
 
 Production still requires a trusted isolated worker export transport, real
-source/volume/revision identity, durable accounting and custody journal, complete
-retained-data inventory, enforced physical quota, retention/disposal workflow,
-and authenticated audited public delivery. No synthetic adapter may activate
+source/volume/revision identity, production accounting/custody guard assembly,
+complete retained-data inventory, enforced physical quota, retention/disposal workflow,
+and authenticated audited public delivery. The [controller journal](artifact-custody-journal.md)
+now records durable custody metadata but does not supply those production guards.
+No synthetic adapter may activate
 managed output delivery. Export cancellation must be transport-aware. Independent
 observed checks and owner acceptance remain separate from format validation.
 

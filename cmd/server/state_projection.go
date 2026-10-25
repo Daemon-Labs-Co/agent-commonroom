@@ -67,6 +67,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			if err := projectWorkspaceDisposal(&st, kind, data); err != nil {
 				return st, err
 			}
+		case "artifact.custody.reserved", "artifact.custody.ready", "artifact.custody.sealed", "artifact.custody.read":
+			if err := projectArtifactCustody(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "storage.inventory.recorded", "storage.reserved", "storage.released":
 			if err := projectManagedStorage(&st, kind, data); err != nil {
 				return st, err

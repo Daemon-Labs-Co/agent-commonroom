@@ -124,3 +124,5 @@ The internal [finite artifact manifest foundation](artifact-manifests.md) binds
 exact declared members to verified sealed bytes and registered structural formats.
 It is disconnected from managed/public delivery; actual source, quota and durable
 journal adapters remain required and file/bundle dispatch continues to refuse.
+
+[Controller artifact custody journal](artifact-custody-journal.md) documents internal durable reservations, quota readiness, immutable receipts, read authorization and remaining production barriers.
