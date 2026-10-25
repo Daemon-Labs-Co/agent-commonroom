@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -414,6 +415,10 @@ func TestArtifactJournalSealAndReadFailuresWithholdSuccessAndRetainBytes(t *test
 func TestArtifactJournalStaleControllerConflictIsNotIntegrityIncident(t *testing.T) {
 	t.Parallel()
 	s, db, ctx, scope := artifactJournalFixture(t, true)
+	s.integrityStopPath = filepath.Join(t.TempDir(), "integrity-stop")
+	live, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	s.cancels["conflict-probe"] = cancel
 	calls := 0
 	guard := &syntheticArtifactGuard{quota: func(context.Context, room.StorageReservation) error { calls++; return nil }}
 	s.db = &interleavedEventDB{eventDatabase: db, beforeBegin: func(context.Context) {
@@ -426,6 +431,12 @@ func TestArtifactJournalStaleControllerConflictIsNotIntegrityIncident(t *testing
 	}
 	if len(artifactState(t, s, ctx).ArtifactCustody) != 0 || artifactTotal(t, s, ctx) != 0 {
 		t.Fatal("conflict partially charged")
+	}
+	if live.Err() != nil {
+		t.Fatal("ordinary conflict cancelled work")
+	}
+	if _, err := os.Stat(s.integrityStopPath); !os.IsNotExist(err) {
+		t.Fatal("ordinary conflict persisted incident", err)
 	}
 	s.db = db
 }
@@ -716,5 +727,91 @@ func TestArtifactHistoricalSourceBindingsDoNotReevaluateDeadline(t *testing.T) {
 	event := artifactCustodyEvent{Version: 1, ActorID: ownerID, Intent: intent, Receipt: &receipt}
 	if err := validateArtifactTransition(st, "artifact.custody.sealed", event); err != nil {
 		t.Fatal("historical relationship rechecked wall clock", err)
+	}
+}
+
+func TestArtifactJournalAuditFailureCancelsWorkAndSurvivesRestart(t *testing.T) {
+	for _, stage := range []string{"reserve", "ready", "seal", "read"} {
+		t.Run(stage, func(t *testing.T) {
+			t.Parallel()
+			s, db, ctx, scope := artifactJournalFixture(t, true)
+			s.integrityStopPath = filepath.Join(t.TempDir(), "integrity-stop")
+			model, cancelModel := context.WithCancel(t.Context())
+			defer cancelModel()
+			workflow, cancelWorkflow := context.WithCancel(t.Context())
+			defer cancelWorkflow()
+			s.cancels["synthetic-probe"] = cancelModel
+			s.workflowLive = map[string]context.CancelFunc{"synthetic-workflow": cancelWorkflow}
+			guard := &syntheticArtifactGuard{}
+			if stage == "ready" {
+				guard.quota = func(context.Context, room.StorageReservation) error { db.failAt = "commit"; return nil }
+			}
+			j, _ := newControllerArtifactJournal(s, guard)
+			store, _ := artifactStore(t, j)
+			source := &artifactReadProbe{reader: strings.NewReader("synthetic artifact")}
+			if stage == "reserve" {
+				db.failAt = "commit"
+			}
+			if stage == "seal" {
+				source.onRead = func() { db.failAt = "commit" }
+			}
+			receipt, err := store.Put(ctx, scope, 128, source)
+			if stage == "read" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				calls := 0
+				guard.release = func(context.Context, room.State, objectcustody.Receipt) error {
+					calls++
+					if calls == 2 {
+						db.failAt = "commit"
+					}
+					return nil
+				}
+				bytes, readErr := store.Get(ctx, scope, receipt)
+				err = readErr
+				if bytes != nil {
+					t.Fatal("failed audit released bytes")
+				}
+			}
+			if err == nil || !s.integrityFault || model.Err() != context.Canceled || workflow.Err() != context.Canceled {
+				t.Fatal("audit failure did not stop/cancel", err)
+			}
+			info, statErr := os.Stat(s.integrityStopPath)
+			if statErr != nil || info.Mode().Perm() != 0600 {
+				t.Fatal("restart marker missing/private mode wrong", statErr)
+			}
+			db.failAt = ""
+			// Restart before any periodic probe can persist an incident. The
+			// rolled-back audit chain is healthy, so only the marker preserves
+			// the failed-persistence stop in this exact regression.
+			previous := ""
+			for _, event := range db.snapshot() {
+				if event.kind == "incident.opened" {
+					t.Fatal("restart fixture already has durable incident")
+				}
+				if event.previous != previous || event.hash != checksum(previous, event.kind, event.payload) {
+					t.Fatal("rollback damaged audit chain")
+				}
+				previous = event.hash
+			}
+			fresh := &server{db: db, integrityStopPath: s.integrityStopPath}
+			fresh.restoreIntegrityStop()
+			if !fresh.agentsBlockedLocked(room.State{}, scope.RoomID) {
+				t.Fatal("restart forgot failed required persistence")
+			}
+			freshJournal, _ := newControllerArtifactJournal(fresh, &syntheticArtifactGuard{})
+			fresh.mu.Lock()
+			_, currentErr := freshJournal.current(ctx, objectcustody.Intent{ObjectID: strings.Repeat("f", 32), Scope: scope, MaxBytes: 128}, false)
+			fresh.mu.Unlock()
+			if currentErr == nil {
+				t.Fatal("restarted controller granted custody authority")
+			}
+
+			s.checkIntegrityNow()
+			if !s.integrityFault {
+				t.Fatal("healthy audit probe auto-resumed")
+			}
+		})
 	}
 }

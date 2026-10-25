@@ -114,7 +114,13 @@ callbacks and therefore does not claim current runtime authority.
 Every append carries the loaded event count into the audit-chain transaction.
 Independent controllers cannot both commit from a stale head. Conflicts refuse
 without automatic retry or a false integrity incident; genuine persistence
-failures latch the controller's integrity stop. A reservation or ready append
+failures immediately invoke the shared integrity-stop handler: cancel active
+agent/workflow contexts and persist the private stop marker in the configured
+controller state directory. Startup restores that stop; a healthy audit probe
+alone cannot clear it. Explicit owner recovery still requires verified chain
+and worker shutdown. If marker storage fails, the process stays stopped and
+operators must repair storage before restarting; this is not cross-host durable
+incident coordination. A reservation or ready append
 failure grants no source I/O, a seal failure grants no successful receipt, and a
 release append failure grants no returned bytes. Another controller must reload
 and honor the durable state; no failed callback implies permission to recover by

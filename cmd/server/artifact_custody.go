@@ -337,7 +337,7 @@ func nilArtifactGuard(g artifactCustodyGuard) bool {
 func (j *controllerArtifactJournal) append(ctx context.Context, revision int64, kind string, event artifactCustodyEvent) error {
 	err := j.server.append(context.WithValue(ctx, expectedEventCountKey{}, revision), kind, event)
 	if err != nil && !errors.Is(err, errAuditConflict) {
-		j.server.integrityFault = true
+		j.server.tripIntegrityLocked()
 	}
 	return err
 }

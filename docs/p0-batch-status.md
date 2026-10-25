@@ -1432,3 +1432,51 @@ proof does not establish live daemon or descendant termination guarantees.
   Add synthetic lifecycle, permission, failure, restart and race coverage with
   operational documentation. Keep managed file delivery blocked until trusted
   production source, quota and release guards are integrated.
+
+### 2026-10-25 16:35 UTC — PR65 restart-safe custody integrity stop
+
+- User requested latest PR inspection while repository-publishing task planning
+  was pending. Verified clean local codex/artifact-custody-journal and open PR65
+  at matching9fe18ea23d2a10dd6004faabfbd815b9d8a436ba. Current-head Greptile
+  check succeeded but reported unresolved P1 comment4371497237, thread
+  PRRT_kwDOVETwiM6wCz_4. A successful check does not resolve that finding.
+- Finding valid: custody append set only volatile integrityFault. Route genuine
+  persistence failures through existing tripIntegrityLocked: persist private
+  restart marker immediately and cancel active agent/workflow contexts. Preserve
+  errAuditConflict exemption; do not cancel or persist an incident for stale CAS.
+- Real synthetic store tests fail each reserve/ready/seal/read append at commit;
+  verify no successful receipt/bytes, cancellation, private0600 marker and restored
+  stop before any periodic probe can record incident.opened. Verify rolled-back
+  chain remains healthy and a later healthy probe does not automatically resume.
+  Conflict control verifies no cancellation and no marker. Existing marker I/O
+  limitations remain: failed marker storage requires repair before restart; this
+  is not distributed cross-host incident coordination or worker shutdown proof.
+- Final make test passed10.64s; make check passed41.91s. Logs:
+  /private/tmp/commonroom-pr65-fix-test.log and
+  /private/tmp/commonroom-pr65-fix-check.log. Observed review/fix approximately
+  16:24–16:35UTC (~11minutes, including separate task-plan preparation).
+  All DB/provider behavior mocked; marker files and bytes synthetic temporary.
+- Also fulfilled user's requested paid publishing task breakdown as a separate
+  local planning artifact outside the PR worktree, preserving this review scope:
+  /Users/markdhas/.codex/visualizations/2026/10/20/01a15a38-ea1a-71c2-b1ed-d3897080ea81/repository-publishing-tasks.md
+  Contains16 planned tasks, each with all seven canonical definition parts,
+  dependencies and finite outputs. No app DB tasks, GitHub issues, paid runtime
+  implementation or credential operations were created. Third host, private
+  implementation repository and signing-custody choices remain explicit PUB-01
+  decisions. Mandatory free safeguards and separate commercial implementation
+  requirements are preserved.
+- Local fix remains unstaged/uncommitted for owner publication; no pushes,
+  signing changes, GitHub messages, resolution mutations or merges performed.
+  Overnight automation remains paused. Prior production artifact/live P0 gaps
+  remain unchanged. Last notification: PR65 fix and separate task plan ready.
+- Prepared commit message (not created):
+
+  fix: preserve custody audit failure stops across restart
+
+  Use the shared integrity-stop handler after required custody persistence
+  fails, immediately persisting the stop marker and cancelling active work.
+  Keep ordinary audit-head conflicts exempt from incident handling.
+
+  Cover reservation, quota readiness, sealing and read failures before periodic
+  incident recording. Verify restart blocking, cancellation and healthy-probe
+  behavior, and document the recovery boundary.
