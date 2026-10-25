@@ -69,3 +69,5 @@ seals and release-audit failure. They do not exercise live workers, provider
 accounts, a database, kernel quota, crash recovery or public download behavior.
 See [custody](object-custody.md), [task definitions](task-definitions.md),
 [architecture](architecture.md) and [release readiness](release-readiness.md).
+
+The internal [workspace capture foundation](workspace-source-capture.md) now computes actual bounded tree identity and verifies selected bytes against receipts. Its trusted production frozen-volume lease and transport are still missing; it does not enable public or managed file delivery.

@@ -1480,3 +1480,64 @@ proof does not establish live daemon or descendant termination guarantees.
   Cover reservation, quota readiness, sealing and read failures before periodic
   incident recording. Verify restart blocking, cancellation and healthy-probe
   behavior, and document the recovery boundary.
+
+### 2026-10-25 — bounded workspace source capture
+
+- Resumed the authorized OSS batch after the pricing discussion. PR65 previously
+  verified merged at eca099291a6df3608c4b0bf93299fa62630c6060, matching reviewed
+  07a3e2fd52c5bd221feac83e131e0c2b5702b509 with Greptile5/5 and no open findings.
+  Git helper reconfirmed codex/isolated-artifact-export at that base, empty index,
+  only the expected three new Go files before this resume's documentation edits.
+- Added internal actual bounded tree capture, generated source revision identity,
+  selected-member buffers and lazy custody readers. Require a trusted frozen
+  creator-volume lease; refuse unsafe paths/inodes/modes, caller revisions,
+  changed source, revoked authority and forged receipts. Git metadata is excluded
+  without executing Git. Whole-tree revalidation includes unrelated source files.
+- Synthetic integration connects actual temporary source bytes through real
+  custody storage/controller journal to finite manifest resolution/revalidation.
+  Assert quota readiness before stream consumption and retain uncertain objects
+  and charges when source changes during copying. All database/worker authorities
+  are mocked; no provider, credentials, Docker, SSH or live DB used.
+- Documented usage, bounds, digest meanings, separate bounded source-observation
+  authority versus new object reservation, permissions, failure behavior and
+  integration gaps in docs/workspace-source-capture.md and linked core guides.
+  Mandatory internal infrastructure adds no public capability or product toggle.
+- Two read-only code-review axes: Spec0 material findings; Standards0 hard
+  violations, one optional helper naming suggestion applied (validHexDigest).
+  Reviewers inspected source/tests/docs, without rerunning checks or live workers.
+- Production frozen-volume lease/transport, actual physical quota and complete
+  inventory, current source/seal/release assembly, crash reconciliation,
+  retention/disposal and authenticated public delivery remain outstanding.
+  Required file/bundle dispatch remains blocked. No P0 gate is certified.
+  macOS filename restrictions and exhaustive entry/tree bounds remain disclosed
+  verification limits; synthetic lease checks do not prove real writer fencing.
+- No staging, commits, pushes or signing changes. Scheduled automation remains
+  paused. Initial cumulative recovery: /private/tmp/commonroom-artifact-export-
+  backups/0001 (patch plus manifest); final recovery follows validation below.
+- Prepared commit message (not created):
+
+  feat: capture bounded workspace source for artifact custody
+
+  Derive revision identity from actual source files under a mandatory frozen
+  volume lease. Reject unsafe entries and stale authority, and expose exact
+  selected members through lazy bounded readers.
+
+  Bind captured bytes to durable custody receipts and finite manifests. Verify
+  reservation ordering and retain uncertain objects after copy-time changes.
+
+  Add synthetic mutation, permission, inode and failure coverage with technical
+  and operational documentation. Keep managed file delivery blocked pending
+  production worker, quota and delivery integrations.
+
+- Final validation: make test passed10.24s; make check passed42.42s, including
+  race, static, documentation and UI checks. Logs /private/tmp/commonroom-source-
+  capture-test.log and /private/tmp/commonroom-source-capture-check.log.
+  An initial restricted check failed to create the invalid-filename fixture
+  (EPERM); the approved full run passed without weakening the fixture assertion.
+  Observed source-file creation18:45UTC through final checks18:59UTC (~14minutes,
+  including the pricing interruption/resume; not a continuous runtime claim).
+  Final recovery requested at /private/tmp/commonroom-artifact-export-backups/0002;
+  apply only one cumulative patch against eca099291, not snapshots sequentially.
+- Last notification: source capture foundation verified and ready for owner
+  review/publication with the prepared message; production integration gaps above
+  remain. No paid functionality was added to the open-source repository.
