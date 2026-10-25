@@ -2,6 +2,7 @@ package main
 
 import (
 	"agentroom/internal/room"
+	"bytes"
 	"encoding/json"
 	"strings"
 )
@@ -11,6 +12,12 @@ import (
 // Any historical reference conservatively retains the room, including settings,
 // jobs, audit records and removed work; hiding a room must never erase history.
 func rememberAgentRoomReferences(data []byte, referenced map[string]bool) {
+	// A matching string must contain the literal ASCII prefix or a Unicode
+	// escape that can encode part of it. Avoid decoding unrelated event trees.
+	// Keep the full decoder for every possible escaped reference.
+	if !bytes.Contains(data, []byte("personal-bot-")) && !bytes.Contains(data, []byte(`\u`)) {
+		return
+	}
 	var value any
 	if json.Unmarshal(data, &value) != nil {
 		return

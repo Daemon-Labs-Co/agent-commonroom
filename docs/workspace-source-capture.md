@@ -73,3 +73,5 @@ current macOS test run.
 
 See [object custody](object-custody.md), [controller journal](artifact-custody-journal.md)
 and [finite manifests](artifact-manifests.md).
+
+[Retained workspace observation](retained-workspace-observation.md) adds creator-lock and exact unattached-volume admission; it does not yet provide a frozen source mount.

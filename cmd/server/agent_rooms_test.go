@@ -52,6 +52,8 @@ func TestAgentRoomReferenceRetention(t *testing.T) {
 		`{"roomId":"personal-bot-agent","taskId":"synthetic"}`,
 		`{"scope":{"room":"personal-bot-agent"}}`,
 		`{"nested":[{"roomId":"personal-bot-agent"}]}`,
+		`{"roomId":"\u0070ersonal-bot-agent"}`,
+		`{"roomId":"personal-\u0062ot-agent"}`,
 	} {
 		t.Run(payload, func(t *testing.T) {
 			t.Parallel()
@@ -79,5 +81,14 @@ func TestAutomaticAgentRoomFlagOwnerOnly(t *testing.T) {
 	w = mockRequest(h, "POST", "/api/events", `{"kind":"feature.flag.updated","payload":{"name":"automaticAgentRooms","enabled":false}}`)
 	if w.Code != 403 || len(db.snapshot()) != before {
 		t.Fatal("member changed catalog flag", w.Code)
+	}
+}
+
+func TestAgentRoomReferenceFastPathPreservesExistingReferences(t *testing.T) {
+	t.Parallel()
+	referenced := map[string]bool{"personal-bot-existing": true}
+	rememberAgentRoomReferences([]byte(`{"roomId":"engineering","nested":[{"text":"synthetic ordinary event\nwith escaped newline"}]}`), referenced)
+	if len(referenced) != 1 || !referenced["personal-bot-existing"] {
+		t.Fatal("unrelated replay changed retained history")
 	}
 }
