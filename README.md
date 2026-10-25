@@ -214,7 +214,7 @@ Owners can separately opt in to `roomOutcomeContext` to include a room deliverab
 
 Owners can enable default-off `roomOutcomeReview` to record human acceptance or reopening of a shared-room deliverable. Acceptance becomes stale when the room or its work changes. See [room deliverable review](docs/room-outcome-review.md).
 
-Structured tasks use a seven-part definition with finite input/output contracts, restrictive limits and a failure policy. Enable default-off `taskDefinitions` to use the editor, per-execution value bindings, immutable returned-value records and paginated saved definition history. File/bundle execution refuses pending verified artifact storage. See [task definitions](docs/task-definitions.md).
+Structured tasks use a seven-part definition with finite input/output contracts, restrictive limits and a failure policy. Enable default-off `taskDefinitions` to use the editor, per-execution value bindings, immutable returned-value records and paginated saved definition history. File/bundle execution refuses pending verified artifact storage. The internal [custody journal](docs/artifact-custody-journal.md) now persists reservations and receipts but still requires trusted source, physical quota and delivery integrations. See [task definitions](docs/task-definitions.md).
 
 See [accepted task inputs](docs/task-value-inputs.md) for verified same-room value dependencies.
 

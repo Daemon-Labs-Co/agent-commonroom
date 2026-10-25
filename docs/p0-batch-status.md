@@ -1357,3 +1357,78 @@ proof does not establish live daemon or descendant termination guarantees.
 
   Exercise the review form with the real request helper and synthetic responses,
   and document retry behavior without weakening server validation.
+
+### 2026-10-25 16:04 UTC — controller artifact custody journal batch
+
+- User authorized continuing after PR64. Verified PR64 merged at
+  c215c2337ac56c7b0e9ea5b964c90ac289ad126d; its tree exactly matched reviewed
+  e623a7e56d07d01a665678fe85497c3d12d9310f. Greptile5/5, original P1 resolved.
+  Git helper verified clean checkout and created codex/artifact-custody-journal
+  from that local merge; no fetch or remote reconnection was needed.
+- Implemented internal controller objectcustody.Journal. Atomically record exact
+  artifact charge plus object intent, acknowledge successful mandatory physical
+  setup separately, seal immutable exact receipts and durably acknowledge each
+  current-authorized byte release. Missing/uncertain setup never grants source
+  I/O, adoption/retry, cleanup or a refund. Same execution/output/member slot
+  cannot be re-reserved by changing object/revision/maximum metadata.
+- Source admission binds a submitted isolated workspace job to its current work
+  execution, definition, declared finite member, configuration/inputs/policy,
+  coordination/delegation and enabled human access. Emergency/integrity incidents
+  refuse. Reads enforce current human room access and trusted release policy
+  before inode read and before durable acknowledgment, withhold bytes on failure,
+  retain charges after shutdown and preserve historical metadata across flag off.
+- State.ArtifactCustody is private global-JSON-omitted replay metadata. Read audit
+  records retain actual human identity; summaries disclose no content. Every
+  append uses event-count CAS; conflicts do not latch false incidents and genuine
+  persistence failures latch the local controller integrity stop. Public generic
+  event injection refuses every new internal event kind.
+- Moved finite object metadata/validation/Journal interface into portable types.go;
+  actual byte-store platform restrictions and mandatory isolation remain intact.
+  Added user/operator/technical guide, updated architecture/index/README and
+  custody/manifest integration documentation. No product toggle is required for
+  this mandatory internal infrastructure; no public capability was enabled.
+- Tests use actual synthetic temporary inode bytes, mocked DB, synthetic task
+  turns and explicit synthetic guards. Cover durable ordering/restart, capacity,
+  unknown inventory, source/quota/setup/seal/read failures, actual permission
+  revocation between read phases, flags off, incidents, concurrent controllers,
+  immutable slots, forged receipts/actors/source/worker bindings, invalid replay,
+  shutdown retention, cancellation and nil guards. No provider/SSH/Docker/real DB.
+- Used repository code-review skill with separate read-only Standards/Spec axes
+  over Git-helper-generated cumulative0001. Standards found no hard violations
+  or actionable smells. Spec identified a P2 replay identity gap; fixed recorded
+  human/source/output and reservation-worker relationships without rechecking
+  wallclock/physical callbacks. Added non-vacuous forged-worker and expired-
+  historical-versus-current-authority tests. Follow-up Spec reinspection confirmed
+  the P2 resolved with no remaining Spec findings; reviewer inspected tests but
+  did not rerun them. Final axes: Standards0 hard/0 actionable smells, Spec0 open.
+- Final make test passed9.45s and make check passed40.23s; documentation tests
+  passed again after final wording cleanup. Logs /private/tmp/commonroom-artifact-
+  test.log and /private/tmp/commonroom-artifact-check.log. Observed development
+  approximately15:24–16:04UTC (~40minutes); no claim of continuous overnight work.
+- Production barriers remain: complete trusted live inventory, isolated frozen
+  source/root attestation, real physical quota and source/seal/release guard,
+  crash recovery/reconciliation, retention/disposal, authenticated public delivery
+  and trusted content/observed checks. Required file/bundle dispatch still refuses.
+  Optional output declarations/metadata do not establish an artifact was produced.
+  Synthetic checks do not certify G07 or any other live P0 gate.
+- All changes remain unstaged/uncommitted on the new feature branch; no commits,
+  pushes, GitHub messages, merges, live credentials or signing bypass. Scheduled
+  overnight automation remains paused. Intermediate recovery snapshot:
+  /private/tmp/commonroom-artifact-custody-backups/0001/changes.patch with manifest,
+  directories0700/files0600. Request final cumulative0002 after confirmed follow-up review;
+  apply only one cumulative patch againstc215c233, never sequential snapshots.
+- Prepared commit message (not created):
+
+  feat: persist controller artifact custody and audited byte release
+
+  Commit artifact reservations and immutable intents together, acknowledge
+  physical quota setup before source reads, and retain exact sealed receipts.
+  Recheck human/source authority and require durable read acknowledgments
+  before releasing verified bytes.
+
+  Fence concurrent controllers and replayed actor, execution, output and worker
+  identities. Retain uncertain charges and prevent automatic retries or refunds.
+
+  Add synthetic lifecycle, permission, failure, restart and race coverage with
+  operational documentation. Keep managed file delivery blocked until trusted
+  production source, quota and release guards are integrated.

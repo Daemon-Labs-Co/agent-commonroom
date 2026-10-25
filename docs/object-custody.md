@@ -3,8 +3,9 @@
 `internal/objectcustody` is a tested internal storage primitive. It is **not
 connected to managed dispatch, provider export, a public HTTP endpoint or task
 file/bundle outputs**. Those paths still refuse because real isolated-source,
-accounting, physical-quota and custody-journal adapters are missing. This
-foundation does not establish artifact origin, content format, secret isolation,
+complete inventory, physical-quota and production custody guards are missing.
+The [controller journal](artifact-custody-journal.md) now persists custody metadata.
+This foundation does not establish artifact origin, content format, secret isolation,
 observed checks or production/P0 readiness.
 
 ## Contract
@@ -68,7 +69,10 @@ authorized exact disposal; this component cannot perform that disposal.
 
 ## Required production integration
 
-No production `Journal` implementation exists. A real adapter must connect the
+A [controller journal adapter](artifact-custody-journal.md) now records durable
+charges, quota readiness, sealed receipts and read acknowledgments. It has no
+production source/quota/release guard and is not assembled into managed delivery.
+A real deployment must connect the
 existing event-count-fenced storage ledger and mandatory decimal account ceiling,
 complete trusted inventory of retained workspace/bundle/artifact data, verified
 physical quota backend, actual isolated tool-volume identity, frozen source

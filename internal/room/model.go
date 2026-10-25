@@ -374,6 +374,7 @@ type TaskDefinitionRevision struct {
 }
 
 type State struct {
+	ArtifactCustody         map[string]ArtifactCustodyObject    `json:"-"`
 	TaskContextPolicyEpochs map[string]int                      `json:"-"`
 	TaskDefinitionHistory   map[string][]TaskDefinitionRevision `json:"-"`
 	TaskAcceptanceReviews   map[string][]TaskAcceptanceReview   `json:"-"`
