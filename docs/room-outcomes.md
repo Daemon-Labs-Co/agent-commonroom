@@ -58,7 +58,7 @@ The owner sets the flag using `feature.flag.updated` with `name: "roomOutcomes"`
 This increment records and displays human intent. It does not automatically link
 tasks to individual criteria, mark a room complete, evaluate evidence, expand
 agent permissions, change existing dispatch eligibility, or expand tool access. Optional task-provider context is described below; completion
-and evidence assessment integrations remain separate work.
+and automated evidence assessment remain separate work. Optional [human acceptance](room-outcome-review.md) can record the owner’s judgment about a saved snapshot.
 Changing the room definition does not rewrite approved task scopes or cancel
 running work. Human acceptance and existing task/delegation authorization remain
 in force. Definitions are not secrets or authority credentials; room access

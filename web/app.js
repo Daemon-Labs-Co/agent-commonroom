@@ -1,7 +1,7 @@
 'use strict';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let state,csrf,view='Room',filter='All',recipient='room',lastRenderedMessageId=null;
 async function api(path,body){
- const operationId=body&&['events','agents','workflow-runs','governance','task-proposals','task-delegations'].includes(path.split('?')[0])?globalThis.crypto?.randomUUID?.():null;
+ const operationId=body&&['events','agents','workflow-runs','governance','task-proposals','task-delegations','room-outcome-review'].includes(path.split('?')[0])?globalThis.crypto?.randomUUID?.():null;
  const request=()=>fetch('/api/'+path,body?{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,...(operationId?{'Idempotency-Key':operationId}:{})},body:JSON.stringify(body)}:{});
  let r=await request();
  if(!r.ok){

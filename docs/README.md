@@ -108,3 +108,5 @@ in a second set of setup instructions. Examples use synthetic data only.
 - [Reviewed harness release admission](harness-release-admission.md): signed release selection, deployment flag and remaining upgrade gaps.
 
 - [Room outcomes and acceptance criteria](room-outcomes.md): shared-room deliverables, owner configuration and compatibility.
+
+- [Human room deliverable acceptance](room-outcome-review.md): owner decisions, evidence and stale-snapshot safeguards.

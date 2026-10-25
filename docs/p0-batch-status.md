@@ -535,3 +535,67 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: task deliverable-context increment verified locally, ready
   for owner signing/publication with one commit message. Nothing staged,
   committed, pushed, merged or posted by the agent.
+
+## Human room deliverable acceptance
+
+- Verified PR #62 merged reviewed head `545fdf98fbb60484702650845bda40f2d8254574`
+  as `c0d123bfd1c485f09244fdd028c7d9ac21f44366`; clean main and remote match,
+  merged tree equals reviewed tree, final-head Greptile passed with no findings.
+  Git helper created `codex/room-outcome-review` from that exact clean base.
+- Added owner-only human acceptance/reopening with a required evidence/rationale
+  note. Default-off `roomOutcomeReview` also requires `roomOutcomes`, is enforced
+  server-side, needs no restart and preserves history when disabled. Authorized
+  shared-room members can read status/notes; personal rooms are refused entirely
+  to avoid an alternate unaudited personal-history access path.
+- Review requires a defined shared deliverable, at least one task, all tasks
+  Accepted and no pending task dispatch. This is a human judgment, not automated
+  artifact validation, worker cleanup proof, permission, execution or disposal.
+- Digest binds company/room, room revision and definition, sorted full tasks and
+  evidence. Any room revision (even a label edit), task or evidence change marks
+  an old acceptance Needs review; reverting definition text cannot revive it.
+  Reopen records a reason without launching work. Review dialogs use definition,
+  tasks and evidence returned alongside that exact snapshot, not stale page data.
+- Strict bounded API, CSRF/owner checks, monotonic review revisions, operation
+  receipts, historical provenance validation and event-count commit fencing.
+  Generic event writes cannot inject review decisions. Concurrent flag changes
+  refuse; persistence failure cannot publish acceptance and trips integrity stop.
+- Room/Tasks controls and categorized Settings flag, escaped snapshot evidence,
+  stale-room guards, Help/API/user/setup documentation and regression tests added.
+  Tests cover healthy/reopen/restart, stale work, idempotency, missing/unaccepted/
+  pending tasks, flags, personal/foreign rooms, malformed input, member/CSRF
+  refusal, persistence failure and multi-controller commit conflict.
+- Final make test passed in 10.08 seconds; make check passed in 21.11 seconds.
+  Observed implementation/check span 00:58:22–01:05:23 UTC on 25 October (7m01s),
+  excluding initial merge/branch verification. Initial test expected 503 for an
+  insert failure; corrected to the existing atomic commit API's actual 500.
+- No live browser screenshot/acceptance, database, provider or worker exercise;
+  existing production isolation/delegation/P0 release gaps remain. Acceptance
+  cannot bypass retention or certify delivery automatically.
+- Git helper confirmed expected scope, empty index, clean whitespace and no
+  unrelated edits. Include five new files: cmd/server/room_outcome_review.go;
+  cmd/server/room_outcome_review_test.go; docs/room-outcome-review.md;
+  tests/room-outcome-review.test.cjs; web/room-outcome-review.js.
+- Last notification: human room review increment verified locally with one
+  commit message, ready for owner signing/publication. Nothing staged,
+  committed, pushed, merged or posted by the agent.
+
+## PR #63 review dialog rendering fixes
+
+- Verified clean branch `codex/room-outcome-review`, PR #63 exact published head
+  `f0e6fbc6223f47abf4c3cd39672dca895455d788`. Open; Greptile check succeeded
+  with two valid P2 comments: `4369306613` unescaped dialog room names, and
+  `4369306611` missing task criteria/evidence task association in review dialogs.
+- Both accept/reopen titles escape the current room name before the shared
+  HTML-based form helper receives it. Snapshot task cards show IDs, statuses and
+  criteria; evidence identifies task title/ID, room-level evidence, or a missing
+  historical association, with kind/source/body. All dynamic text is escaped.
+- Added regressions for both titles, markup-like names, multiple task criteria,
+  per-task/room-level/missing associations and escaped evidence. Updated guide.
+- make test passed in 9.29 seconds; make check passed in 19.38 seconds. Observed
+  work span approximately 02:07:43–02:09:05 UTC on 25 October (about 82 seconds),
+  including review/check waits. No live browser/provider/database verification.
+- Git helper confirmed expected three-file fix scope before this checkpoint,
+  empty index, clean whitespace and no unrelated edits/new remote findings.
+- Last notification: both P2 findings fixed and verified locally with one commit
+  message, ready for owner publication on the same PR. Nothing staged,
+  committed, pushed, merged or posted by the agent.

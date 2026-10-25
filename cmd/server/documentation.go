@@ -15,6 +15,7 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
+	{"room-outcome-review", "Human acceptance of room deliverables", "docs/room-outcome-review.md"},
 	{"room-outcomes", "Room outcomes and acceptance criteria", "docs/room-outcomes.md"},
 	{"task-delegations", "Bounded task delegation", "docs/task-delegations.md"},
 	{"task-proposals", "Conversation task proposals", "docs/task-proposals.md"},

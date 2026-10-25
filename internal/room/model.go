@@ -289,7 +289,19 @@ type GovernanceAppointment struct {
 	Revision      int    `json:"revision"`
 }
 
+type RoomOutcomeReview struct {
+	CompanyID  string    `json:"companyId"`
+	RoomID     string    `json:"roomId"`
+	Revision   int       `json:"revision"`
+	Snapshot   string    `json:"snapshot"`
+	Status     string    `json:"status"`
+	Note       string    `json:"note"`
+	ReviewedBy string    `json:"reviewedBy"`
+	ReviewedAt time.Time `json:"reviewedAt"`
+}
+
 type State struct {
+	OutcomeReviews     map[string]RoomOutcomeReview     `json:"-"`
 	Delegations        map[string]TaskDelegation        `json:"-"`
 	DelegationEpoch    int                              `json:"-"`
 	TaskProposals      map[string]TaskProposal          `json:"-"`
