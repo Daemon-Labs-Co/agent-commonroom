@@ -93,3 +93,5 @@ Production journal/controller/creator-lock assembly, full lifetime reference
 inventory, reviewed image build/live Linux mount verification, physical quota,
 actual source-root binding/FrozenLease, retention recovery and authenticated file
 delivery remain outstanding. No live P0 gate or production readiness is certified.
+
+The internal [durable probe journal](workspace-probe-journal.md) retains lifecycle uncertainty across restarts and counts unresolved probes during worker admission; production controller assembly remains required.
