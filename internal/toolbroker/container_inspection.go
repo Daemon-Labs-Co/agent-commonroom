@@ -55,6 +55,8 @@ type toolInspection struct {
 	RestartCount int
 	State        struct {
 		Running, Paused, Restarting, Dead *bool
+		OOMKilled                         *bool
+		ExitCode                          *int64
 		Error                             string
 		Status                            string
 	}
