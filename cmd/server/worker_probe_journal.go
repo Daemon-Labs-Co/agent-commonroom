@@ -76,7 +76,7 @@ func probeRecordName(i toolbroker.WorkspaceProbeIntent) string {
 	return ".probe-" + i.JobID + "-" + i.Challenge + ".record"
 }
 func validWorkerProbeRecord(r workerProbeRecord) bool {
-	if r.Version != 1 || !validWorkerProbeIntent(r.Intent) || len(r.Events) < 1 || len(r.Events) > 4 {
+	if r.Version != 1 || !validWorkerProbeIntent(r.Intent) || len(r.Events) < 1 || len(r.Events) > 6 {
 		return false
 	}
 	stage, id := "", ""
@@ -99,6 +99,18 @@ func validWorkerProbeRecord(r workerProbeRecord) bool {
 				return false
 			}
 			id = e.ID
+		case "recovery":
+			if (stage != "bound" && stage != "finish") || id == "" || e.ID != id || e.Absent {
+				return false
+			}
+		case "recovery-finish":
+			if stage != "recovery" || e.ID != id || !e.Absent {
+				return false
+			}
+		case "recovered":
+			if stage != "recovery-finish" || e.ID != id || !e.Absent {
+				return false
+			}
 		case "confirmed":
 			if stage != "finish" || !r.Events[len(r.Events)-2].Absent || !e.Absent || e.ID != id {
 				return false
@@ -166,7 +178,7 @@ func workerProbeCapacity(dir string, jobs []workerJobRecord, next int) error {
 		}
 	}
 	for _, r := range records {
-		if r.Events[len(r.Events)-1].Stage != "confirmed" {
+		if !workerProbeSettled(r) {
 			count++
 		}
 	}
@@ -207,7 +219,7 @@ func (j *workerProbeJournal) transition(ctx context.Context, i toolbroker.Worksp
 			return errWorkerProbeJournal
 		}
 		for _, old := range records {
-			if old.Intent.JobID == i.JobID && old.Events[len(old.Events)-1].Stage != "confirmed" {
+			if old.Intent.JobID == i.JobID && !workerProbeSettled(old) {
 				return errWorkerProbeJournal
 			}
 		}
@@ -262,4 +274,12 @@ func (j *workerProbeJournal) Bound(ctx context.Context, i toolbroker.WorkspacePr
 }
 func (j *workerProbeJournal) Finish(ctx context.Context, i toolbroker.WorkspaceProbeIntent, id string, absent bool) error {
 	return j.transition(ctx, i, workerProbeEvent{Stage: "finish", ID: id, Absent: absent})
+}
+
+func workerProbeSettled(r workerProbeRecord) bool {
+	if len(r.Events) == 0 {
+		return false
+	}
+	stage := r.Events[len(r.Events)-1].Stage
+	return stage == "confirmed" || stage == "recovered"
 }

@@ -42,6 +42,12 @@ func (l *workerWorkspaceObservation) Check(ctx context.Context) error {
 // Only the assembled probe may supply an exact stopped read-only helper here.
 // Ordinary Check retains the stronger zero-reference contract.
 func (l *workerWorkspaceObservation) checkProbe(ctx context.Context, probe *toolbroker.WorkspaceMountProbe, probeID string) error {
+	return l.checkWorkspace(ctx, probe, probeID, false)
+}
+func (l *workerWorkspaceObservation) checkRecovery(ctx context.Context, probe *toolbroker.WorkspaceMountProbe, probeID string) error {
+	return l.checkWorkspace(ctx, probe, probeID, true)
+}
+func (l *workerWorkspaceObservation) checkWorkspace(ctx context.Context, probe *toolbroker.WorkspaceMountProbe, probeID string, recovery bool) error {
 	if l == nil {
 		return errors.New("workspace observation unavailable")
 	}
@@ -89,13 +95,25 @@ func (l *workerWorkspaceObservation) checkProbe(ctx context.Context, probe *tool
 		expected := ""
 		if strings.HasPrefix(filter, "label=") {
 			expected = probeID
+			if recovery && remaining == "" {
+				expected = ""
+			}
 		}
 		if err != nil || remaining != expected {
 			return errors.New("workspace writer absence unverified")
 		}
 	}
 	if probeID != "" {
-		if probe == nil || probe.VerifyAdmission(ctx, probeID) != nil {
+		if probe == nil {
+			return errors.New("workspace probe unavailable")
+		}
+		var verifyErr error
+		if recovery {
+			_, verifyErr = probe.InspectRecovery(ctx, probeID)
+		} else {
+			verifyErr = probe.VerifyAdmission(ctx, probeID)
+		}
+		if verifyErr != nil {
 			return errors.New("workspace probe references unverified")
 		}
 	} else if err := toolbroker.VerifyRetainedWorkspace(ctx, l.runner, current.JobID, current.Pair.Repository, l.dockerRoot, current.Pair.Workspace.Identity); err != nil {
@@ -117,6 +135,20 @@ func retainedObservationRecord(r workerJobRecord) bool {
 // Callback failures/cancellation retain all objects and accounting; no cleanup
 // success, export receipt or release authority is inferred from this return value.
 func withWorkerWorkspaceObservation(ctx context.Context, dir string, expected workerJobRecord, dockerRoot string, runner toolbroker.DockerRunner, guard workerWorkspaceObservationGuard, use func(*workerWorkspaceObservation) error) error {
+	if use == nil {
+		return errors.New("workspace observation callback unavailable")
+	}
+	return withWorkerWorkspaceOwnership(ctx, dir, expected, dockerRoot, runner, guard, func(l *workerWorkspaceObservation) error {
+		if err := l.Check(ctx); err != nil {
+			return err
+		}
+		return use(l)
+	})
+}
+
+// Internal ownership primitive: use MUST first validate observation or exact-ID
+// recovery before acting. Final successful use always requires zero references.
+func withWorkerWorkspaceOwnership(ctx context.Context, dir string, expected workerJobRecord, dockerRoot string, runner toolbroker.DockerRunner, guard workerWorkspaceObservationGuard, use func(*workerWorkspaceObservation) error) error {
 	if ctx == nil || ctx.Err() != nil || !retainedObservationRecord(expected) || nilWorkerObservationDependency(runner) || nilWorkerObservationDependency(guard) || use == nil {
 		return errors.New("workspace observation dependencies unavailable")
 	}
@@ -133,9 +165,6 @@ func withWorkerWorkspaceObservation(ctx context.Context, dir string, expected wo
 	defer ownership.Close()
 	l := &workerWorkspaceObservation{active: true, lifetime: ctx, dir: dir, dockerRoot: dockerRoot, record: expected, runner: runner, guard: guard}
 	defer func() { l.mu.Lock(); l.active = false; l.mu.Unlock() }()
-	if err = l.Check(ctx); err != nil {
-		return err
-	}
 	if err = use(l); err != nil {
 		return err
 	}

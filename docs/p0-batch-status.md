@@ -1847,3 +1847,82 @@ proof does not establish live daemon or descendant termination guarantees.
   signing changes. Scheduled follow-up remains paused. Last notification: guarded
   workspace probe assembly verified and ready for owner publication; production
   authority, live-runtime, recovery, quota and source/delivery gaps remain above.
+
+## Recorded workspace probe recovery — 2026-10-26 UTC
+
+- User reported prior batch merged/pulled main. Actual Git/GitHub verification
+  confirmed PR70 merged reviewed headcdac8bd at
+  56c8328e094f66b82e500fc2e7d18b63e789283d. Local/remote main matched and trees
+  were identical. Greptile succeeded, no feedback. No fetch needed. Git helper
+  created clean codex/workspace-probe-recovery from the verified merged base.
+- Add explicit internal recovery of durably recorded helper IDs with fresh
+  authenticated cleanup permission, creator ownership and exact intent/volume
+  binding. No ID from begin/lost-create reply can be adopted by name or labels.
+  Already settled, busy, corrupt, changed/foreign and integrity-stopped attempts
+  refuse. No helper launch, workspace deletion, storage refund or source access.
+- Repeatedly inspect immutable helper ownership, exact retained volume and all
+  job/name/volume references. Permit only the known helper or complete absence
+  before removal; owned running/policy-drifted helpers may be stopped, never run.
+  Exact-ID removal reobserves absence. After removal all authority/confirmation
+  checks require zero references, including a returning owned helper. Final
+  ordinary observation runs before creator ownership is released.
+- Extend version1 history monotonically with recovery, recovery-finish and
+  recovered, within six-event bound. Durable intent/audit precedes removal;
+  durable absence/audit/current authority precedes local cleanup-slot commit.
+  Explicitly resumed recovery re-acknowledges historical stages without duplicate
+  history or launch. Unknown-ID histories and integrity-stop incidents remain
+  unresolved; no automatic stop-marker clearing, record repair or retention GC.
+- Refactor a private ownership primitive for initial observation vs exact-ID
+  recovery; existing ordinary Check and no-reference admission remain enforced.
+  Local worker capacity now recognizes confirmed/recovered terminal histories;
+  every other history stays charged. Post-commit authorization refusal withholds
+  operation success without re-charging acknowledged physically absent helpers.
+- Tests use actual private temporary journal/creator locks and existing synthetic
+  reconciled role fixtures with mocked Docker/controller boundaries. Cover owned
+  running/stopped/already absent/known-unbound helpers, durable removal ordering,
+  retries from both interrupted recovery stages, unknown/foreign identities,
+  changed volume, returning references, revocation, cancellation, audit/removal
+  failures, final checks, busy creator, stop marker and typed-nil refusal.
+  No live database, provider, Docker daemon, SSH, credentials or private data used.
+- New docs/workspace-probe-recovery.md plus README/index/journal/guarded-probe
+  links document configuration, permission/lifecycle contracts, retry semantics,
+  limits and gaps. Mandatory internal infrastructure adds no public endpoint/UI,
+  optional isolation flag, host/direct local/SSH or uncontained fallback.
+- Standards review:0 hard violations; optional unused field suggestion applied.
+  Spec review:0 material missing/wrong requirements. Reviews static; reviewers
+  did not run tests or certify live behavior.
+- Focused recovery, journal, observation, guarded-probe and broker tests passed.
+  Initial make test15.55s and full make check36.68s passed. Final make test16.08s
+  after additional refusal/known-unbound cases and review cleanup. Logs:
+  /private/tmp/commonroom-probe-recovery-{test,check,test-final,check-final}.log.
+- Remaining: production controller guard/transport/invocation, account-wide
+  physical admission, continuous reference enforcement, live Linux/helper
+  verification, lost-create unknown-ID recovery, integrity-incident remediation,
+  retention/compaction, frozen source-root authority, physical storage quota and
+  authenticated delivery. Required file/bundle dispatch stays blocked. No live
+  P0 gate or production/live readiness is certified by synthetic acceptance.
+- Recovery0001 /private/tmp/commonroom-probe-recovery-backups/0001 contains initial
+  cumulative patch/manifest against56c8328e, before final cleanup/checkpoint.
+  Final recovery0002 supersedes it; apply one cumulative patch, never both.
+- Prepared commit message (not created):
+
+  feat: recover recorded workspace probe containers safely
+
+  Reconcile interrupted helpers using durable exact container IDs and fresh
+  cleanup authority while holding creator ownership. Stop only the owned helper,
+  verify its absence and preserve the retained workspace and lifecycle history.
+
+  Persist recovery intent before removal and acknowledged cleanup before freeing
+  local capacity. Resume interrupted stages without duplicate history or launch.
+  Keep unknown IDs and integrity-stop incidents blocked without name adoption.
+
+  Add running, absent, retry, revocation and failure-path regressions.
+  Document remaining controller, live-runtime, unknown-ID, quota and delivery
+  integrations without granting source-byte or frozen-root authority.
+- Final full make check passed35.93s with unchanged parallel8/timeout30s and all
+  race/static/docs/UI checks. Source creation01:14:24UTC through final verification
+  01:30:56UTC (~16m32 elapsed implementation/validation, plus preceding merge/base
+  inspection). No staging/commits/pushes/signing changes; follow-up stays paused.
+  Last notification: explicit recorded-ID probe recovery verified and ready for
+  owner publication; unknown-ID/incident, production authority/live-runtime,
+  quota, frozen-source and delivery gaps remain above.
