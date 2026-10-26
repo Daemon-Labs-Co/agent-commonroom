@@ -223,3 +223,5 @@ See [accepted task inputs](docs/task-value-inputs.md) for verified same-room val
 - [Recorded task progress](docs/task-progress.md): scoped contract, attempt, input and human-review status without claiming live verification.
 
 The internal [read-only workspace mount probe](docs/readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.
+
+The internal [durable probe journal](docs/workspace-probe-journal.md) retains lifecycle uncertainty across restarts and counts unresolved probes during worker admission; production controller assembly remains required.

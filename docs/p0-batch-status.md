@@ -1693,3 +1693,81 @@ proof does not establish live daemon or descendant termination guarantees.
   No staging, commits, pushes or signing changes. Scheduled follow-up stays paused.
   Last notification: verified internal read-only mount probe ready for owner
   publication, with production export integrations explicitly still outstanding.
+
+## Durable workspace probe journal — 2026-10-26 UTC
+
+- User requested continuation and said to assume the prior batch merged. Actual
+  Git/GitHub inspection verified PR68 merged reviewed head1038f90 at
+  0c2f78602d0ee959c7748040ea70d2a43fabd961; Greptile succeeded, no feedback.
+  Local/remote main matched and reviewed/merged trees were identical. Git helper
+  fetched existing origin and created clean codex/workspace-probe-journal at that
+  verified merge. No staged or concurrent changes were overwritten.
+- Implement private workerProbeJournal with bounded versioned lifecycle history:
+  begin, optional exact-ID bound, finish uncertainty/absence and confirmed cleanup.
+  Persist complete files with file+directory sync under the actual shared worker
+  admission lock; keep prior events and reject reused identities/invalid sequences.
+- Reopen/replay after restart preserves unknown create outcomes and pending slots.
+  Corrupt/noncanonical/duplicate-field/unbounded/symlink/hardlink/public records
+  fail closed. Scan bounds:16384 directory entries,1024 records,8192bytes each.
+- Count unresolved probes in normal worker admission alongside conservative
+  retained creator-role charges. Confirmed actual absence plus durable controller
+  acknowledgment/current authority commits local slot release. A final check can
+  still withhold reports after that commit without re-charging a removed container.
+  No workspace disposal, object storage refund or source-byte authority introduced.
+- Persistence/audit ambiguity attempts a durable integrity-stop marker and invokes
+  mandatory live authority revocation. New probes and normal admission respect the
+  retained marker after restart. Cleanup evidence can still be retained while
+  release remains denied. No automatic reset, retry, reconciliation or history GC.
+- Mandatory trusted guard requires current human/task/export authority, actual
+  creator ownership, approved image/rootless daemon/full reference inventory,
+  durable controller audit/account-wide admission and live integrity stop. No
+  production guard/transport or creator/probe runtime assembly is supplied; local
+  journal tests are not production admission or physical quota evidence.
+- Tests use actual private synthetic temporary files and locks with synthetic
+  guards and mocked lifecycle Docker fixtures. Cover restart, exact volume/ID,
+  concurrent instances, capacity, revocation at every boundary including final
+  publication, audit/disk/ambiguous sync failures and corrupt/private replay.
+  No database/provider/SSH/live Docker/private data/credentials used.
+- New guide docs/workspace-probe-journal.md and README/index/mount-probe links
+  document usage, permission/security contracts, resource counts, recovery limits
+  and retained-state semantics. Mandatory internal infrastructure exposes no
+  product feature/UI and has no isolation off switch.
+- Standards review:0 hard violations/actionable heuristics. Spec review flagged
+  wording that conflated confirmed slot release with final report permission;
+  clarified the acknowledged commit point and added precise revocation-during-
+  publication regression. Reviewer confirmed resolved; no remaining Spec findings.
+  Reviews were static and did not rerun tests or certify production integrations.
+- Initial focused journal tests exposed non-private test directory modes; fixtures
+  now explicitly use0700. Initial make test passed13.17s, make check passed34.32s.
+  Final make test passed13.24s after review regression. Logs:
+  /private/tmp/commonroom-probe-journal-{test,check,test-final,check-final}.log.
+- Remaining: production guard/controller transport and creator/runtime assembly,
+  actual account/daemon admission, crash reconciliation and retention/compaction,
+  live reviewed Linux image verification, frozen source-root authority, physical
+  storage quota and authenticated delivery. File/bundle dispatch remains blocked.
+  No P0 release gate or production/live readiness is certified.
+- Recovery0001 /private/tmp/commonroom-probe-journal-backups/0001 contains initial
+  cumulative patch/manifest against0c2f7860, before final review fixes/checkpoint.
+  Final recovery0002 will supersede it; apply one cumulative patch, never both.
+- Prepared commit message (not created):
+
+  feat: persist workspace probe lifecycle and reserve worker capacity
+
+  Retain exact probe intents, container bindings and cleanup outcomes across
+  restarts in a bounded private journal. Preserve uncertain creation outcomes
+  and reject duplicate identities, invalid history and unsafe record files.
+
+  Count unresolved probes during normal worker admission. Release local slots
+  only after acknowledged cleanup, while independently rechecking permission
+  before returning reports. Stop admission on ambiguous persistence or audit.
+
+  Add restart, concurrency, capacity, revocation and failure-path regression
+  coverage. Document guard responsibilities and the remaining controller,
+  runtime, reconciliation, quota and file-delivery integrations.
+- Final make check passed34.94s with unchanged parallel8/timeout30s and full
+  race/static/documentation/UI checks. Source creation00:28:28UTC through final
+  verification00:38UTC (~9m33 elapsed implementation/validation, plus preceding
+  merge/base inspection). No staging/commits/pushes/signing changes; scheduled
+  follow-up remains paused. Last notification: durable probe lifecycle and local
+  capacity checkpoint verified and ready for owner publication; production
+  controller/runtime/recovery/quota/delivery gaps remain as listed above.

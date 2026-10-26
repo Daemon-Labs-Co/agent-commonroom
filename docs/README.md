@@ -132,3 +132,5 @@ journal adapters remain required and file/bundle dispatch continues to refuse.
 [Retained workspace observation](retained-workspace-observation.md) adds creator-lock and exact unattached-volume admission; it does not yet provide a frozen source mount.
 
 The internal [read-only workspace mount probe](readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.
+
+The internal [durable probe journal](workspace-probe-journal.md) retains lifecycle uncertainty across restarts and counts unresolved probes during worker admission; production controller assembly remains required.

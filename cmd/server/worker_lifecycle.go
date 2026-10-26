@@ -253,6 +253,9 @@ func admitWorkerRecord(ctx context.Context, dir string, record workerJobRecord, 
 	}
 	records, err := boundedWorkerRecords(dir)
 	if err == nil {
+		err = workerProbeCapacity(dir, records, workerContainerSlots(record))
+	}
+	if err == nil {
 		err = workerAdmission(records, containers, record)
 	}
 	if err == nil {
