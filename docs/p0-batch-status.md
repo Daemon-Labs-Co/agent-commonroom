@@ -1771,3 +1771,79 @@ proof does not establish live daemon or descendant termination guarantees.
   follow-up remains paused. Last notification: durable probe lifecycle and local
   capacity checkpoint verified and ready for owner publication; production
   controller/runtime/recovery/quota/delivery gaps remain as listed above.
+
+## Guarded retained-workspace probe — 2026-10-26 UTC
+
+- User reported previous batch merged/pulled. Actual Git/GitHub verification
+  confirmed PR69 merged reviewed head3d5f674 as
+  fcce04b2293552fbfe17b5d577e05d519186d8d3. Local/remote main matched; reviewed
+  and merged trees identical. Greptile succeeded, no feedback. No fetch needed.
+  Git helper created clean codex/guarded-workspace-probe from that verified base.
+- Assemble actual retained-workspace admission/creator lock, durable local probe
+  journal and fixed isolated helper into probeRetainedWorkerWorkspace. Generate
+  a fresh challenge internally and bind exact job/repository/volume/image metadata.
+  Keep ownership through admission, controller acknowledgments, execution, cleanup
+  and final ordinary observation; no private operation handle escapes.
+- Add narrowly scoped stopped-helper admission: full policy inspection and two
+  passes over exact volume identity/name/job/reference inventory, allowing only
+  the exact read-only helper ID. Fixed creator role names must remain absent.
+  Ordinary Check/VerifyRetainedWorkspace still require zero references, explicitly
+  covered by regression tests. No general attached-volume exception introduced.
+- Return an empty report on every failure, including final observation after
+  cleanup confirmation. Retain unknown create history/charges without adoption;
+  journal integrity stops propagate. Never dispose/refund the retained workspace.
+- Integration fixtures seed both actual recorded role IDs and reconcile exact
+  removal before probing. Real private temporary records/locks and journal/runtime
+  execute with mocked Docker/controller boundaries. Every lifecycle/guard call
+  asserts creator ownership remains held. Cover durable launch ordering, healthy
+  confirmation, revocation at final observation, competing references/returning
+  roles preventing start, policy/volume drift, forged reports, cancellation,
+  lost create replies, audit/cleanup failures and busy/typed-nil refusal.
+  Broker tests independently cover exact stopped/read-only helper admission and
+  unchanged ordinary zero-reference enforcement. No live DB/provider/Docker/SSH,
+  credentials or private fixtures used.
+- New guide docs/guarded-workspace-probe.md and README/index/observation/probe/
+  journal links document invocation, authority, lifecycle, failure handling and
+  limitations. This mandatory internal security infrastructure adds no public
+  endpoint/UI/feature flag or host/local/SSH/uncontained fallback.
+- Standards review:0 hard violations/actionable heuristic findings. Spec review:
+  0 material missing/wrong requirements. Reviews were static; reviewers did not
+  run tests or certify live behavior. Strengthened competing-reference/role
+  regressions to require refusal before execution, not merely withheld output.
+- Initial make test passed14.55s; initial full make check passed35.74s with original
+  parallel8/timeout30s and race/static/docs/UI verification. Final verification
+  follows below. Logs /private/tmp/commonroom-guarded-probe-{test,check,test-final,
+  check-final}.log. Focused assembled lifecycle/broker tests also passed.
+- Internal creator-lock/journal/helper assembly is now present. Remaining:
+  production controller guard/transport and invocation, actual account-wide
+  physical admission, continuous reference enforcement, reviewed live Linux
+  image/mount verification, crash reconciliation/retention, storage quota,
+  enduring frozen source-root authority and authenticated file delivery.
+  This returns an exited/removed helper's metadata report, NOT FrozenLease or
+  source bytes. Daemon administrators can race observations. Required file/bundle
+  dispatch remains blocked; no live P0 release gate or production readiness claimed.
+- Recovery0001 /private/tmp/commonroom-guarded-probe-backups/0001 contains initial
+  cumulative patch/manifest againstfcce04b2, before final assertions/checkpoint.
+  Final recovery0002 supersedes it; apply one cumulative patch, never both.
+- Prepared commit message (not created):
+
+  feat: assemble guarded retained-workspace mount probes
+
+  Hold actual creator ownership while connecting retained-volume admission,
+  durable probe journaling and the isolated read-only helper. Bind a fresh
+  challenge and allow only the exact stopped helper in workspace inventory.
+
+  Recheck role absence, volume identity and current authority through cleanup
+  and final observation. Withhold reports on failure while retaining workspace
+  data and uncertain lifecycle evidence. Preserve ordinary zero-reference checks.
+
+  Add integrated lock, journal, launch-ordering and failure-path regressions.
+  Document the remaining production controller, live-runtime, frozen-source,
+  quota, recovery and file-delivery integrations.
+- Final make test passed14.22s; final make check passed37.00s with unchanged
+  parallel8/timeout30s and full race/static/docs/UI checks. Source creation
+  00:54:42UTC through verification01:00:19UTC (~5m37 elapsed implementation/
+  validation, plus preceding merge/base inspection). No staging/commits/pushes/
+  signing changes. Scheduled follow-up remains paused. Last notification: guarded
+  workspace probe assembly verified and ready for owner publication; production
+  authority, live-runtime, recovery, quota and source/delivery gaps remain above.

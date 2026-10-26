@@ -188,3 +188,33 @@ func (p *WorkspaceMountProbe) Run(ctx context.Context) (proof workspacemount.Pro
 	}
 	return proof, nil
 }
+
+// VerifyAdmission verifies the exact stopped probe and retained-volume references
+// while the caller holds creator ownership. It never authorizes other attached
+// containers, running processes, source reads or an enduring FrozenLease.
+// The approved daemon/image remain trusted; administrators can race names.
+func (p *WorkspaceMountProbe) VerifyAdmission(ctx context.Context, id string) error {
+	if p == nil || ctx == nil || ctx.Err() != nil || !digest(id, 32) {
+		return ErrRejected
+	}
+	for pass := 0; pass < 2; pass++ {
+		c, err := p.inspect(ctx, id)
+		if err != nil || c.State.Status != "created" && c.State.Status != "exited" {
+			return ErrRejected
+		}
+		if p.verify(ctx, id, c.State.Status == "exited") != nil {
+			return ErrRejected
+		}
+		raw, err := p.capture(ctx, []string{"volume", "ls", "--filter", "label=commonroom.job=" + p.intent.JobID, "--filter", "label=commonroom.execution=separated-tool-v1", "--format", "{{.Name}}"}, MaxInspectionBytes)
+		if err != nil || strings.TrimSpace(string(raw)) != p.intent.Volume.Name {
+			return ErrRejected
+		}
+		for _, filter := range []string{"volume=" + p.intent.Volume.Name, "label=commonroom.job=" + p.intent.JobID, "name=^/" + p.name() + "$"} {
+			raw, err = p.capture(ctx, []string{"ps", "-a", "--no-trunc", "--filter", filter, "--format", "{{.ID}}"}, MaxInspectionBytes)
+			if err != nil || strings.TrimSpace(string(raw)) != id {
+				return ErrRejected
+			}
+		}
+	}
+	return ctx.Err()
+}

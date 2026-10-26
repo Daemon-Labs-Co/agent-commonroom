@@ -76,3 +76,5 @@ See [source capture](workspace-source-capture.md), [custody journal](artifact-cu
 and [mandatory isolation](architecture.md#mandatory-container-isolation-design-contract).
 
 The internal [read-only workspace mount probe](readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.
+
+The internal [guarded workspace probe](guarded-workspace-probe.md) now connects creator ownership, exact helper admission and durable cleanup into one operation; production controller transport and file export remain outstanding.

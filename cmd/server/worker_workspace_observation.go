@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -35,6 +36,12 @@ type workerWorkspaceObservation struct {
 }
 
 func (l *workerWorkspaceObservation) Check(ctx context.Context) error {
+	return l.checkProbe(ctx, nil, "")
+}
+
+// Only the assembled probe may supply an exact stopped read-only helper here.
+// Ordinary Check retains the stronger zero-reference contract.
+func (l *workerWorkspaceObservation) checkProbe(ctx context.Context, probe *toolbroker.WorkspaceMountProbe, probeID string) error {
 	if l == nil {
 		return errors.New("workspace observation unavailable")
 	}
@@ -79,11 +86,19 @@ func (l *workerWorkspaceObservation) Check(ctx context.Context) error {
 	}
 	for _, filter := range []string{"name=^/" + pairContainerName(current.JobID, "engine") + "$", "name=^/" + pairContainerName(current.JobID, "tool") + "$", "label=commonroom.job=" + current.JobID} {
 		remaining, err := pairInventory(ctx, l.runner, filter)
-		if err != nil || remaining != "" {
+		expected := ""
+		if strings.HasPrefix(filter, "label=") {
+			expected = probeID
+		}
+		if err != nil || remaining != expected {
 			return errors.New("workspace writer absence unverified")
 		}
 	}
-	if err := toolbroker.VerifyRetainedWorkspace(ctx, l.runner, current.JobID, current.Pair.Repository, l.dockerRoot, current.Pair.Workspace.Identity); err != nil {
+	if probeID != "" {
+		if probe == nil || probe.VerifyAdmission(ctx, probeID) != nil {
+			return errors.New("workspace probe references unverified")
+		}
+	} else if err := toolbroker.VerifyRetainedWorkspace(ctx, l.runner, current.JobID, current.Pair.Repository, l.dockerRoot, current.Pair.Workspace.Identity); err != nil {
 		return err
 	}
 	if ctx.Err() != nil || l.lifetime.Err() != nil {

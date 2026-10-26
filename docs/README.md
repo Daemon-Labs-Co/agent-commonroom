@@ -134,3 +134,5 @@ journal adapters remain required and file/bundle dispatch continues to refuse.
 The internal [read-only workspace mount probe](readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.
 
 The internal [durable probe journal](workspace-probe-journal.md) retains lifecycle uncertainty across restarts and counts unresolved probes during worker admission; production controller assembly remains required.
+
+The internal [guarded workspace probe](guarded-workspace-probe.md) now connects creator ownership, exact helper admission and durable cleanup into one operation; production controller transport and file export remain outstanding.
