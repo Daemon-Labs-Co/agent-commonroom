@@ -68,3 +68,5 @@ different workers, expired reservations, proof-based release, restart, disabled
 optional flags, concurrent registrations and stale-controller transaction
 conflicts. No database, real Docker workload or provider is used. Live
 multi-controller/worker acceptance remains unverified.
+
+The internal [account probe ledger](account-probe-capacity.md) now durably counts unresolved workspace helpers alongside managed jobs across workers; live controller transport and physical evidence remain required.

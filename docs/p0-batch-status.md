@@ -1926,3 +1926,77 @@ proof does not establish live daemon or descendant termination guarantees.
   Last notification: explicit recorded-ID probe recovery verified and ready for
   owner publication; unknown-ID/incident, production authority/live-runtime,
   quota, frozen-source and delivery gaps remain above.
+
+## Account-wide probe capacity ledger — 2026-10-26 UTC
+
+- User reported prior batch merged/pulled main. Actual Git/GitHub verification
+  confirmed PR71 merged reviewed head755a61a at
+  b1fb42a75deca50577560bd98d6e110f2c3d0d6f. Clean local main matched live remote;
+  reviewed/merged trees identical. Greptile succeeded with no reviews/comments.
+  Git helper created codex/account-probe-capacity at that base; no fetch needed.
+- Add internal controller probe ledger with append-only actor/company/room/worker
+  and exact intent/stage acknowledgments. Replay bounded histories into private
+  reservation state; derive slot release only from accepted absent cleanup stages.
+  Reuse worker lifecycle event schema and finite history validation.
+- Reserve one account slot before returning begin acknowledgment. Count unresolved
+  probes in ordinary managed-job admission alongside unresolved creator/job roles,
+  across workers/rooms/controllers under the existing four-container ceiling.
+  No deadline, shutdown label, retry, file deletion or feature flag refunds a probe.
+  Retained workspace/storage accounting remains independent and untouched.
+- Require enabled authenticated human room access and initiator/owner relationship.
+  Begin/bound enforce retained job/current task/delegation/governance/launch policy;
+  cleanup can be acknowledged during launch halts without granting new execution.
+  Integrity incidents still refuse. Missing cleanup context identity never implies
+  owner. Fresh physical worker/creator/volume/image/absence/recovery authorization
+  is mandatory via evidence validator; no production default or transport exists.
+- Revalidate duplicate acknowledgments and physical evidence without duplicate
+  events/charges. Reload after evidence, require unchanged revision and append
+  with DB expected-event-count fencing. Concurrent controllers cannot spend the
+  last slot twice. Ordinary conflicts do not trip integrity; persistence failure
+  uses controller integrity-stop handling. Public event injection is refused and
+  private intent/history is omitted from state responses.
+- Tests mock every database interaction and use synthetic physical evidence.
+  Cover restart replay, account quota/normal job admission, unknown/recovered
+  outcomes, concurrent/stale controllers, identity/malformed-history rejection,
+  human access/revocation, denied evidence, cleanup under launch stop, duplicate
+  revalidation, audit failure, private state and public injection refusal.
+  No live database, provider, Docker/SSH, credentials or private fixture used.
+- New docs/account-probe-capacity.md plus README/index/container-quota/journal
+  links document usage, defaults/permissions, accounting, concurrency, guard duties
+  and limitations. Mandatory security infrastructure has no optional product flag,
+  UI/HTTP command, host/direct local/SSH or uncontained execution fallback.
+- Standards review:0 hard violations/actionable heuristics; Spec review:0 material
+  findings. Static reviews did not rerun tests or certify physical/live behavior.
+- Focused controller/quota/journal tests passed. Initial make test16.38s; final
+  development make test15.97s; full make check35.26s passed with unchanged
+  parallel8/timeout30s and all race/static/docs/UI checks. Logs:
+  /private/tmp/commonroom-account-probe-{test,test-final,check}.log.
+- Remaining: authenticated worker/controller transport and invocation, production
+  physical evidence/admission and continuous reference enforcement, live Linux
+  image acceptance, unknown-ID/incident recovery, retention/compaction, physical
+  storage quota, frozen source-root authority and authenticated file delivery.
+  Durable controller accounting is implemented; no live account-wide admission
+  or P0 release gate is certified. Required file/bundle dispatch remains blocked.
+- Recovery0001 /private/tmp/commonroom-account-probe-backups/0001 contains initial
+  cumulative patch/manifest againstb1fb42a7 before checkpoint. Final recovery0002
+  supersedes it; apply one cumulative patch, never both.
+- Prepared commit message (not created):
+
+  feat: account for workspace probes across workers and controllers
+
+  Persist authenticated probe lifecycle acknowledgments and reserve account
+  capacity before helper creation. Count unresolved probes alongside managed
+  jobs under the shared container ceiling, retaining uncertain outcomes.
+
+  Revalidate current human authority and physical evidence on every acknowledgment.
+  Deduplicate retries, fence concurrent controllers by audit revision and release
+  only acknowledged absent helper slots. Preserve workspace storage charges.
+
+  Add restart, concurrency, permission, malformed-history and failure regressions.
+  Document mandatory production transport and physical-evidence integrations
+  without enabling file export or weakening containment.
+- Source creation03:14:27UTC through final checkpoint03:24:10UTC (~9m43 elapsed
+  implementation/verification, plus preceding base/scope inspection). No staging,
+  commits, pushes or signing changes; scheduled follow-up stays paused. Last
+  notification: account probe accounting verified and ready for owner publication;
+  production transport/physical evidence and source/delivery gaps remain above.
