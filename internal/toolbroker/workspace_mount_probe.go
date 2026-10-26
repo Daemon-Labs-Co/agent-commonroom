@@ -218,3 +218,67 @@ func (p *WorkspaceMountProbe) VerifyAdmission(ctx context.Context, id string) er
 	}
 	return ctx.Err()
 }
+
+// InspectRecovery admits only a durably known probe ID, present with exact
+// ownership or already absent, and no other workspace/job/name references.
+// Recovery may STOP an owned running or policy-drifted helper; it never starts
+// it or authorizes bytes. The trusted caller MUST hold creator ownership and
+// obtain durable current cleanup authorization before removal. No name adoption.
+func (p *WorkspaceMountProbe) InspectRecovery(ctx context.Context, id string) (bool, error) {
+	if p == nil || ctx == nil || ctx.Err() != nil || !digest(id, 32) {
+		return false, ErrRejected
+	}
+	absent := false
+	for pass := 0; pass < 2; pass++ {
+		raw, err := p.capture(ctx, []string{"ps", "-a", "--no-trunc", "--filter", "id=" + id, "--format", "{{.ID}}"}, MaxInspectionBytes)
+		found := strings.TrimSpace(string(raw))
+		if err != nil || found != "" && found != id {
+			return false, ErrRejected
+		}
+		if pass > 0 && absent != (found == "") {
+			return false, ErrRejected
+		}
+		absent = found == ""
+		if !absent {
+			if _, err := p.inspect(ctx, id); err != nil {
+				return false, err
+			}
+		}
+		raw, err = p.capture(ctx, []string{"volume", "ls", "--filter", "label=commonroom.job=" + p.intent.JobID, "--filter", "label=commonroom.execution=separated-tool-v1", "--format", "{{.Name}}"}, MaxInspectionBytes)
+		if err != nil || strings.TrimSpace(string(raw)) != p.intent.Volume.Name {
+			return false, ErrRejected
+		}
+		raw, err = p.capture(ctx, []string{"volume", "inspect", "--format", "{{json .}}", p.intent.Volume.Name}, MaxInspectionBytes)
+		var v toolVolumeInspection
+		if err != nil || decodeInspection(raw, &v) != nil || !validObservedWorkspaceVolume(v, p.intent.JobID, p.intent.Repository, p.root, p.intent.Volume) {
+			return false, ErrRejected
+		}
+		for _, filter := range []string{"volume=" + p.intent.Volume.Name, "label=commonroom.job=" + p.intent.JobID, "name=^/" + p.name() + "$"} {
+			raw, err = p.capture(ctx, []string{"ps", "-a", "--no-trunc", "--filter", filter, "--format", "{{.ID}}"}, MaxInspectionBytes)
+			if err != nil || strings.TrimSpace(string(raw)) != found {
+				return false, ErrRejected
+			}
+		}
+	}
+	if ctx.Err() != nil {
+		return false, ErrRejected
+	}
+	return absent, nil
+}
+
+// RemoveRecorded performs only exact-ID reconciliation, never create/start or
+// volume deletion. Callers must durably authorize recovery first. Absence is
+// reobserved with exact retained volume/reference checks before success.
+func (p *WorkspaceMountProbe) RemoveRecorded(ctx context.Context, id string) error {
+	if _, err := p.InspectRecovery(ctx, id); err != nil {
+		return err
+	}
+	if err := StopContainer(ctx, p.runner, id, func(ctx context.Context, id string) error { _, err := p.inspect(ctx, id); return err }); err != nil {
+		return err
+	}
+	absent, err := p.InspectRecovery(ctx, id)
+	if err != nil || !absent {
+		return ErrShutdownUnconfirmed
+	}
+	return nil
+}

@@ -43,12 +43,13 @@ A failed/unknown create keeps its begin and explicit uncertain finish. A lost
 supervisor retains its last known state. Neither restart nor time alone frees
 capacity. Intent IDs cannot be reused, even after confirmation; another challenge
 for the same creator is refused while an earlier attempt remains unresolved.
-Illegal, duplicate, out-of-order and mismatched transitions refuse. No automatic
-retry, record deletion, uncertainty reconciliation, refund or volume disposal is
-implemented. Such recovery requires an explicit future trusted operation.
+Illegal, duplicate, out-of-order and mismatched transitions refuse. The
+[recorded-ID recovery operation](workspace-probe-recovery.md) can now explicitly
+reconcile known helper IDs with fresh authority. There is no automatic retry,
+unknown-ID adoption, record deletion, refund or volume disposal.
 
 The shared `.admission.lease` serializes journal transitions and normal worker
-admission across processes. Unresolved probes count against the existing worker
+admission across processes. Unresolved probes, including pending recovery, count against the existing worker
 container ceiling alongside unresolved creator roles. Retained creator role slots
 remain conservatively charged, even after their individual containers disappear.
 Ordinary dispatch also rejects unreconciled live managed container inventory;
@@ -101,7 +102,7 @@ corrupt/private-file failures, revocation and ambiguous publication/audit failur
 `make test` and `make check` include these tests.
 
 Production controller guard/transport, account-wide and live daemon admission,
-production invocation of the guarded probe operation, crash reconciliation, retention/compaction,
+production invocation of the guarded probe operation, unknown-ID/incident reconciliation, retention/compaction,
 reviewed live Linux image verification, actual frozen source-root authority,
 physical storage quotas and authenticated delivery remain outstanding. Local
 journal tests certify neither physical quota nor any live P0 release gate.

@@ -76,7 +76,7 @@ provider, SSH, credentials or private data is used.
 This closes internal creator-lock/probe/journal assembly, not production controller
 transport. Current authorized guard integration, account-wide physical admission,
 continuous reference enforcement, reviewed live Linux image/mount acceptance,
-crash reconciliation/retention, physical storage quota, actual frozen source-root
+unknown-ID/incident recovery and retention, physical storage quota, actual frozen source-root
 binding and authenticated file delivery remain outstanding. Snapshot inventory
 checks cannot prevent a trusted daemon administrator from racing volume names or
 adding/removing references between observations. The exited-and-removed probe is
@@ -85,3 +85,5 @@ not a persistent source capability. No live P0 gate is certified.
 Source forks can replace runners, guards or private assembly and thereby invalidate
 managed isolation guarantees. Unsupported live platforms retain mandatory refusal;
 there is no host, direct local/SSH launch or automatic uncontained fallback.
+
+[Recorded probe recovery](workspace-probe-recovery.md) now reconciles interrupted known-ID helpers under creator ownership; unknown create replies remain unresolved.
