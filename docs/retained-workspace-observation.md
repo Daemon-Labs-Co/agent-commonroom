@@ -74,3 +74,5 @@ public delivery remain outstanding. No live P0 release gate is certified.
 
 See [source capture](workspace-source-capture.md), [custody journal](artifact-custody-journal.md)
 and [mandatory isolation](architecture.md#mandatory-container-isolation-design-contract).
+
+The internal [read-only workspace mount probe](readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.

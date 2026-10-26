@@ -130,3 +130,5 @@ journal adapters remain required and file/bundle dispatch continues to refuse.
 [Bounded workspace source capture](workspace-source-capture.md) describes actual tree identity, lazy member streams and the mandatory production frozen-lease gap.
 
 [Retained workspace observation](retained-workspace-observation.md) adds creator-lock and exact unattached-volume admission; it does not yet provide a frozen source mount.
+
+The internal [read-only workspace mount probe](readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.

@@ -1624,3 +1624,72 @@ proof does not establish live daemon or descendant termination guarantees.
   production isolated mount, authorization, quota and delivery gaps remain.
 - Add to prepared commit body: avoid unnecessary historical reference decoding
   while preserving Unicode-escaped room references and existing retention rules.
+
+## Read-only workspace mount probe — 2026-10-25
+
+- Previous PR67 verified merged at b0fea6387d7017b8afcb406db20f1698ef44711e;
+  reviewed head 5029bd0e0c917aeb1faec339c5a4d079a8476a9a had successful
+  Greptile and no comments/reviews. Existing origin/main was fetched before this
+  batch; the clean stale local main was moved to the verified base through the
+  Git helper. Current branch codex/readonly-workspace-export, no staging/commits.
+- Add a dedicated credential-free scratch helper and fixed Linux mount observer:
+  bounded kernel metadata, effective read-only workspace/rootfs checks, exact
+  mount and no submounts. No source bytes, arbitrary path or mount commands.
+- Add one-shot trusted rootless Docker probe runtime. Require exact retained
+  volume nonce/time/labels, immutable reviewed local image ID, fixed read-only
+  volume-nocopy mount, constrained resources/namespaces and no credentials/network.
+  Inspect before execution and after exit; bind durable intent and exact ID before
+  start; withhold reports until exact-ID removal/absence and final journal checks.
+- Begin/Bound/Finish remain mandatory trusted interfaces with no production
+  implementation. All successfully begun attempts record outcomes, including
+  empty-ID uncertainty on failed/lost create replies. Never adopt by name,
+  dispose the workspace, refund uncertain charges or retry the same probe.
+- Tests use synthetic daemon/journal/kernel observations only, including denied
+  authorization/persistence, policy drift, malformed/oversized/forged output,
+  cancellation, lost replies, exact-ID cleanup and uncertain absence. Every DB
+  interaction remains mocked; no live provider/Docker/SSH/private fixture used.
+  Image context/recipe checks verify deny-all inputs and scratch packaging.
+- Standards review: zero hard violations or actionable heuristic findings. Spec
+  review identified missing uncertain-outcome journaling before a valid create
+  reply; fixed and reviewer confirmed resolved, no other material findings.
+  Reviewers performed static inspection, not live verification.
+- New guide docs/readonly-workspace-mount-probe.md with README/index/admission
+  links documents configuration, usage, authority, failure semantics and gaps.
+  Mandatory internal isolation infrastructure has no public feature or off switch.
+- This is NOT FrozenLease, an exporter or an enduring root capability. Production
+  controller/journal and creator-lock assembly, full lifetime reference inventory,
+  actual physical quota, reviewed image/live Linux mount acceptance, source-root
+  binding, retention recovery and authenticated delivery remain outstanding.
+  Managed required file/bundle dispatch remains blocked; no P0 gate certified.
+- Initial make test passed12.37s and make check passed34.02s; a sandbox-only focused
+  rerun was refused compiler-cache access and passed after approved escalation.
+  After lifecycle correction final make test passed11.22s. Logs under
+  /private/tmp/commonroom-readonly-{test,check,test-final,check-final}.log.
+  Offline Linux cross-build passed (statically linked Linux ARM64 executable at
+  /private/tmp/commonroom-workspace-mount-probe-linux); no image was built/run.
+- Recovery0001: /private/tmp/commonroom-readonly-probe-backups/0001 contains a
+  cumulative patch/manifest against b0fea638, preceding final review fixes. Final
+  recovery0002 will supersede it; apply only one cumulative patch, not both.
+- Prepared commit message (not created):
+
+  feat: verify isolated read-only workspace mounts before export
+
+  Add a credential-free Linux helper that checks effective read-only workspace
+  and root mounts without reading source content. Package it in a restricted
+  scratch image with reviewed, digest-pinned build inputs.
+
+  Require durable probe intent and exact container binding before execution.
+  Verify retained volume identity and launch policy, then withhold reports until
+  exact-ID cleanup and final authorization acknowledgment succeed. Preserve
+  uncertain creation outcomes for reconciliation without adopting by name.
+
+  Cover lifecycle failures, policy drift, cancellation and malformed reports
+  with synthetic regression tests. Document the remaining production journal,
+  frozen-source, quota and delivery integrations; keep file export blocked.
+- Final full make check passed34.15s after the lifecycle fix, with unchanged
+  parallel8/timeout30s and all race/static/docs/UI checks. Final review/checkpoint
+  completed about22:29UTC. Source creation began19:37UTC (~2h52 wall-clock span,
+  including interrupted conversation time, not a claim of continuous execution).
+  No staging, commits, pushes or signing changes. Scheduled follow-up stays paused.
+  Last notification: verified internal read-only mount probe ready for owner
+  publication, with production export integrations explicitly still outstanding.

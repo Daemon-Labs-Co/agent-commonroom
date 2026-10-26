@@ -221,3 +221,5 @@ See [accepted task inputs](docs/task-value-inputs.md) for verified same-room val
 - [Task criterion review](docs/task-acceptance.md): explicit human decisions against exact task outputs and criteria.
 
 - [Recorded task progress](docs/task-progress.md): scoped contract, attempt, input and human-review status without claiming live verification.
+
+The internal [read-only workspace mount probe](docs/readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.
