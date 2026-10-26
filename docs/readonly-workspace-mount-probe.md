@@ -89,9 +89,11 @@ uncertain lifecycle outcomes. Parser/CLI tests use synthetic kernel metadata and
 injected observations. Image recipe/context checks and an offline Linux cross-build
 verify packaging inputs, not a running image.
 
-Production journal/controller/creator-lock assembly, full lifetime reference
+Production controller transport and invocation, full lifetime reference
 inventory, reviewed image build/live Linux mount verification, physical quota,
 actual source-root binding/FrozenLease, retention recovery and authenticated file
 delivery remain outstanding. No live P0 gate or production readiness is certified.
 
 The internal [durable probe journal](workspace-probe-journal.md) retains lifecycle uncertainty across restarts and counts unresolved probes during worker admission; production controller assembly remains required.
+
+The [guarded probe operation](guarded-workspace-probe.md) now holds creator ownership and connects the local journal with exact helper/reference checks through cleanup.

@@ -101,7 +101,9 @@ corrupt/private-file failures, revocation and ambiguous publication/audit failur
 `make test` and `make check` include these tests.
 
 Production controller guard/transport, account-wide and live daemon admission,
-creator-lock/probe runtime assembly, crash reconciliation, retention/compaction,
+production invocation of the guarded probe operation, crash reconciliation, retention/compaction,
 reviewed live Linux image verification, actual frozen source-root authority,
 physical storage quotas and authenticated delivery remain outstanding. Local
 journal tests certify neither physical quota nor any live P0 release gate.
+
+The [guarded probe operation](guarded-workspace-probe.md) now assembles this journal with actual creator ownership and the fixed helper; controller transport remains required.

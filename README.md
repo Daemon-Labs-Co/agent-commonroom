@@ -225,3 +225,5 @@ See [accepted task inputs](docs/task-value-inputs.md) for verified same-room val
 The internal [read-only workspace mount probe](docs/readonly-workspace-mount-probe.md) verifies an isolated Linux mount and exact helper cleanup; production export integration remains outstanding.
 
 The internal [durable probe journal](docs/workspace-probe-journal.md) retains lifecycle uncertainty across restarts and counts unresolved probes during worker admission; production controller assembly remains required.
+
+The internal [guarded workspace probe](docs/guarded-workspace-probe.md) now connects creator ownership, exact helper admission and durable cleanup into one operation; production controller transport and file export remain outstanding.

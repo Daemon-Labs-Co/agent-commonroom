@@ -339,3 +339,62 @@ func TestProbeRejectsInspectedPolicyDrift(t *testing.T) {
 }
 
 func outError(out io.Writer, s string) error { _, err := io.WriteString(out, s); return err }
+
+type probeAdmissionDocker struct {
+	f              *probeScenario
+	extra, replace bool
+	inspections    int
+}
+
+func (d *probeAdmissionDocker) Run(ctx context.Context, args []string, in []byte, out io.Writer) error {
+	if args[0] == "ps" {
+		raw := d.f.c.ID
+		if d.extra {
+			raw += "\n" + strings.Repeat("9", 64)
+		}
+		_, err := io.WriteString(out, raw)
+		return err
+	}
+	if args[0] == "volume" && args[1] == "ls" {
+		_, err := io.WriteString(out, d.f.v.Name)
+		return err
+	}
+	if args[0] == "volume" && args[1] == "inspect" {
+		d.inspections++
+		if d.replace && d.inspections > 1 {
+			d.f.v.CreatedAt = "2000-01-01T00:00:00Z"
+		}
+	}
+	return d.f.Run(ctx, args, in, out)
+}
+func TestWorkspaceProbeAdmissionAllowsOnlyExactStoppedReadOnlyHelper(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"created", "exited", "running", "extra", "writable", "replacement"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			f := newProbeScenario(t, "healthy")
+			d := &probeAdmissionDocker{f: f, extra: mode == "extra", replace: mode == "replacement"}
+			p, e := NewWorkspaceMountProbe(f.p.intent, d, f, f.p.root)
+			if e != nil {
+				t.Fatal(e)
+			}
+			f.p = p
+			switch mode {
+			case "exited":
+				f.started = true
+			case "running":
+				f.c.State.Status = "running"
+			case "writable":
+				f.c.Mounts[0].RW = probeBool(true)
+			}
+			err := p.VerifyAdmission(t.Context(), f.c.ID)
+			good := mode == "created" || mode == "exited"
+			if (err == nil) != good {
+				t.Fatalf("admission=%v", err)
+			}
+			if good && VerifyRetainedWorkspace(t.Context(), d, p.intent.JobID, p.intent.Repository, p.root, p.intent.Volume) == nil {
+				t.Fatal("ordinary unattached-volume admission weakened")
+			}
+		})
+	}
+}
