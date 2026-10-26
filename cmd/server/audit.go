@@ -58,6 +58,8 @@ func auditSummary(kind string, payload []byte) string {
 		return "Workspace disposal verified"
 	case "workspace.disposal.unconfirmed":
 		return "Workspace disposal outcome unconfirmed"
+	case "workspace.probe.acknowledged":
+		return "Workspace helper lifecycle acknowledged"
 	case "artifact.custody.reserved":
 		return "Artifact capacity and immutable identity reserved"
 	case "artifact.custody.ready":

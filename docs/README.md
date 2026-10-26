@@ -138,3 +138,5 @@ The internal [durable probe journal](workspace-probe-journal.md) retains lifecyc
 The internal [guarded workspace probe](guarded-workspace-probe.md) now connects creator ownership, exact helper admission and durable cleanup into one operation; production controller transport and file export remain outstanding.
 
 Internal [recorded probe recovery](workspace-probe-recovery.md) reconciles known helper IDs with fresh cleanup authority while preserving retained workspaces and unknown-ID uncertainty.
+
+The internal [account probe ledger](account-probe-capacity.md) now durably counts unresolved workspace helpers alongside managed jobs across workers; live controller transport and physical evidence remain required.

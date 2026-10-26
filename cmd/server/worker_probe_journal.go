@@ -1,6 +1,7 @@
 package main
 
 import (
+	"agentroom/internal/room"
 	"agentroom/internal/toolbroker"
 	"agentroom/internal/workspacemount"
 	"bytes"
@@ -31,11 +32,8 @@ type workerProbeGuard interface {
 	Acknowledge(context.Context, toolbroker.WorkspaceProbeIntent, workerProbeEvent) error
 	StopAuthority()
 }
-type workerProbeEvent struct {
-	Stage  string `json:"stage"`
-	ID     string `json:"id"`
-	Absent bool   `json:"absent"`
-}
+type workerProbeEvent = room.WorkspaceProbeEvent
+
 type workerProbeRecord struct {
 	Version int                             `json:"version"`
 	Intent  toolbroker.WorkspaceProbeIntent `json:"intent"`

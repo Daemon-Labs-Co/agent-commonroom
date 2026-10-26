@@ -101,10 +101,12 @@ cover restart replay, concurrent instances, exact binding, retained capacity,
 corrupt/private-file failures, revocation and ambiguous publication/audit failures.
 `make test` and `make check` include these tests.
 
-Production controller guard/transport, account-wide and live daemon admission,
+Production controller guard/transport and live daemon evidence,
 production invocation of the guarded probe operation, unknown-ID/incident reconciliation, retention/compaction,
 reviewed live Linux image verification, actual frozen source-root authority,
 physical storage quotas and authenticated delivery remain outstanding. Local
 journal tests certify neither physical quota nor any live P0 release gate.
 
 The [guarded probe operation](guarded-workspace-probe.md) now assembles this journal with actual creator ownership and the fixed helper; controller transport remains required.
+
+The internal [account probe ledger](account-probe-capacity.md) now durably counts unresolved workspace helpers alongside managed jobs across workers; live controller transport and physical evidence remain required.
