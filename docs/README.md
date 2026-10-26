@@ -140,3 +140,61 @@ The internal [guarded workspace probe](guarded-workspace-probe.md) now connects 
 Internal [recorded probe recovery](workspace-probe-recovery.md) reconciles known helper IDs with fresh cleanup authority while preserving retained workspaces and unknown-ID uncertainty.
 
 The internal [account probe ledger](account-probe-capacity.md) now durably counts unresolved workspace helpers alongside managed jobs across workers; live controller transport and physical evidence remain required.
+
+- [Workspace probe authority channel](workspace-probe-transport.md): bounded private
+  worker/controller control messages and remaining deployment integrations.
+- [Controller workspace probe authority](controller-workspace-probe-authority.md):
+  session-bound human authorization, durable observation and capacity integration.
+- [Workspace probe physical evidence](workspace-probe-physical-evidence.md):
+  lock-scoped actual container/volume inspection and remaining deployment limits.
+- [Isolated source capture](isolated-source-capture.md): fixed live read-only source
+  lease, bounded observation and remaining custody/deployment integrations.
+- [Source-to-custody transfer](source-custody-transfer.md): actual captured members,
+  quota-before-transfer ordering and retained partial failure semantics.
+- [Capture helper and channel](capture-helper-channel.md): fixed credential-free
+  executable, bounded private authorization/custody protocol and deployment gaps.
+
+- [Capture container admission](capture-container-admission.md): fixed two-volume
+  helper policy, exact inspection and remaining supervised-runtime requirements.
+- [Capture supervision](capture-supervision.md): one-shot durable lifecycle,
+  private stream ownership, exact cleanup and production assembly requirements.
+- [Capture worker private stream](capture-worker-stream.md): fixed rootless start,
+  supervisor-only stdio, sanitized exit status and process reaping.
+- [Interrupted capture recovery](capture-recovery.md): durable exact-ID cleanup,
+  conflict refusal, retained custody charges and unknown-ID limitations.
+- [Contract-derived capture selection](contract-capture-selection.md): exact required
+  file/bundle members, explicit optional outputs and actual format-validation tests.
+- [Controller capture authority](controller-capture-authority.md): current human/task
+  binding, independent physical evidence, durable grants and historical replay.
+- [Worker capture evidence](worker-capture-evidence.md): creator-scoped retained
+  record/helper inspection with mandatory durable binding and physical quota witness.
+- [Worker capture journal](worker-capture-journal.md): durable exact-ID lifecycle,
+  acknowledged recovery, shared admission capacity and conservative uncertainty.
+- [Controller capture ledger](controller-capture-ledger.md): durable lifecycle,
+  account-wide combined helper capacity, cleanup and replay fencing.
+- [Capture lifecycle evidence](capture-lifecycle-evidence.md): persisted worker
+  history, independent exact helper/absence checks and mandatory quota witness.
+
+- [Private capture authority transport](capture-authority-transport.md): bounded,
+  pinned lifecycle control streams, uncertain acknowledgment handling and deployment gaps.
+
+- [Pinned controller capture sessions](controller-capture-session.md): authenticated
+  principal/worker lifetime, current operation checks and exact durable history.
+
+- [Capture operation evidence](capture-operation-evidence.md): retained pre/post
+  history and read-only exact-identity inspection for controller session guards.
+
+- [Private sealed-object read channel](sealed-object-read-channel.md): finite
+  receipt-pinned byte transfer, independent verification and durable release guards.
+
+- [Pinned controller artifact read sessions](controller-artifact-read-session.md):
+  current human/worker/receipt authority and durable downstream release checks.
+
+- [Read-only sealed-object journal relay](sealed-read-journal-relay.md): credential-free
+  source authorization/audit over the owned private byte stream.
+
+- [Fixed isolated object reader](isolated-object-reader.md): receipt-only helper,
+  actual fixed Linux read-only mount checks, private journal relay and image limits.
+
+- [Object-reader container admission](object-reader-admission.md): fixed single
+  read-only mount policy and independent exact-ID/reference inventory passes.

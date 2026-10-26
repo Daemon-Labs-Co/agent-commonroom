@@ -171,6 +171,13 @@ func validateMembers(b Binding, members []Member) bool {
 	}
 	return true
 }
+
+// ValidSelection validates finite metadata only, without opening a root or
+// granting source authority. Capture still requires a live trusted frozen lease.
+func ValidSelection(b Binding, members []Member) bool {
+	return validBinding(b) && validateMembers(b, members)
+}
+
 func verify(ctx context.Context, root *os.Root, lease FrozenLease, b Binding) error {
 	if !active(ctx) || root == nil || absent(lease) || !validBinding(b) {
 		return ErrRefused

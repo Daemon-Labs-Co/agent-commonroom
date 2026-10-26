@@ -231,3 +231,98 @@ The internal [guarded workspace probe](docs/guarded-workspace-probe.md) now conn
 Internal [recorded probe recovery](docs/workspace-probe-recovery.md) reconciles known helper IDs with fresh cleanup authority while preserving retained workspaces and unknown-ID uncertainty.
 
 The internal [account probe ledger](docs/account-probe-capacity.md) now durably counts unresolved workspace helpers alongside managed jobs across workers; live controller transport and physical evidence remain required.
+
+Workspace file-delivery infrastructure includes a bounded private
+[probe authority channel](docs/workspace-probe-transport.md). This does not yet
+enable file/bundle task outputs; production authority, frozen-source capture,
+physical quotas and authenticated delivery remain required.
+The [worker-local physical validator](docs/workspace-probe-physical-evidence.md)
+now checks container/volume observations behind probe authorization. Deployed
+remote evidence routing and actual file delivery remain incomplete.
+[Isolated source capture](docs/isolated-source-capture.md) now has a fixed-root,
+live-authority lease implementation. The reviewed helper/runtime, physical quotas
+and authenticated output delivery still need integration before file tasks work.
+[Source-to-custody transfer](docs/source-custody-transfer.md) now joins capture and
+private object persistence, preserving uncertain charges on partial failures.
+It still requires real quota/runtime/controller assembly before file tasks work.
+The [capture helper](docs/capture-helper-channel.md) now has a bounded private
+supervisor protocol and separate scratch-image build definition. Runtime/image
+acceptance, physical quotas and public output delivery remain incomplete.
+
+Internal [capture-container admission](docs/capture-container-admission.md) now
+validates the fixed read-only source/private custody mounts and reviewed helper
+policy. Supervised launch, physical quotas and end-to-end file delivery remain
+incomplete; this infrastructure does not enable required file-task execution.
+The internal [capture supervisor](docs/capture-supervision.md) now orders durable
+creation/binding, private protocol execution and exact-ID cleanup before releasing
+metadata. Its daemon/stream and physical quota integration remains unfinished.
+The [capture worker stream](docs/capture-worker-stream.md) implements the fixed
+rootless helper start and private stdin/stdout adapter. It remains unwired to task
+dispatch pending physical quota, durable authority and live image acceptance.
+[Interrupted capture recovery](docs/capture-recovery.md) can reconcile an authorized
+recorded helper ID without restarting capture or deleting retained objects/volumes.
+Production journal/creator integration and unknown-ID incident handling remain open.
+[Contract-derived capture selection](docs/contract-capture-selection.md) now binds
+finite capture members to required task file/bundle contracts, with explicit optional
+outputs. This metadata binding and synthetic byte validation do not enable dispatch.
+[Controller capture authority](docs/controller-capture-authority.md) now binds source
+observations to the current human, task, worker and exact output contract, recording
+permission before acknowledgment. Mandatory deployed physical evidence remains open.
+[Worker capture evidence](docs/worker-capture-evidence.md) now independently inspects
+exact running helpers and retained source/custody identities under creator ownership.
+The deployed durable binding/physical-quota witness is still mandatory and missing.
+[Durable worker capture journals](docs/worker-capture-journal.md) now retain exact IDs
+and unconfirmed helper charges across interruption. Worker admission counts captures;
+controller/account transport and physical quota enforcement are still required.
+The [controller capture ledger](docs/controller-capture-ledger.md) now records helper
+lifecycle and includes captures in account-wide role/probe admission. Deployed
+physical/quota evidence and authenticated worker transition assembly remain open.
+[Capture lifecycle evidence](docs/capture-lifecycle-evidence.md) now matches local
+journal history and independently observes helper state/absence before controller
+acknowledgment. Real quota/account witnesses and full dispatch assembly remain open.
+
+The internal [capture authority transport](docs/capture-authority-transport.md)
+connects local lifecycle journals to separately authenticated controller guards over
+an owned private stream. Uncertain acknowledgments retain charges and stop authority.
+It does not establish deployment authentication or provide physical storage quotas;
+required file-task dispatch and artifact delivery remain blocked pending composition
+and live acceptance.
+
+[Pinned controller capture sessions](docs/controller-capture-session.md) now adapt
+private lifecycle streams to current permissions and the durable ledger. Session
+identities cannot be selected by message fields, and stopped sessions cannot revive.
+Deployment authentication and independently enforced physical quota witnesses remain
+required; this internal adapter does not enable file-task dispatch.
+
+The internal [capture operation observer](docs/capture-operation-evidence.md)
+checks retained history and exact container/volume references before and after
+lifecycle operations. Independent physical quota/account witnesses remain mandatory;
+metadata inspection alone does not enable file-task execution or prove live readiness.
+
+The internal [sealed-object read channel](docs/sealed-object-read-channel.md) transfers
+one receipt-pinned object over an already authenticated private stream. Receiving
+supervisors recheck actual bytes and require durable release authority before returning
+them. It supplies no public download route or deployed isolated reader; those and
+physical quota/transport assembly still block end-to-end artifact delivery.
+
+[Pinned artifact read sessions](docs/controller-artifact-read-session.md) connect the
+private byte channel to controller permissions and durable release records. They
+recheck access after evidence callbacks and permanently revoke stopped sessions.
+Actual isolated reader deployment, physical quota/account witnesses and public task
+artifact delivery remain incomplete; this adds no public download endpoint.
+
+The [read-only source journal relay](docs/sealed-read-journal-relay.md) lets a fixed
+isolated reader obtain controller permission and durable source release acknowledgment
+without database credentials. Its phase order and exact receipt are enforced on both
+peers; deployed reader image/mount/lifecycle and physical quota assembly remain open.
+
+The [fixed isolated object reader](docs/isolated-object-reader.md) now has a credential-free
+entrypoint, read-only kernel mount lease and separate image recipe. It rechecks the actual
+view around controller authorization and sealed reads. Static Linux compilation passed;
+container build/live acceptance, supervised reader lifecycle and physical quota assembly
+remain incomplete. File-task dispatch remains blocked.
+
+[Object-reader admission](docs/object-reader-admission.md) now verifies exact helper
+image/volume identities, strict read-only policy and independent reference inventories.
+It observes metadata only; supervised lifecycle/account admission, actual quotas and
+live acceptance still require assembly before task artifact delivery can be enabled.

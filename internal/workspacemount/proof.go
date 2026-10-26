@@ -1,4 +1,4 @@
-// Package workspacemount observes a fixed isolated Linux workspace mount. Its
+// Package workspacemount observes fixed isolated Linux workspace/custody mounts. Its
 // report is not authentication, a source root, writer fencing or FrozenLease.
 // Callers MUST bind the reviewed helper/container and hold creator ownership.
 // A fork CAN run the helper on a host, BUT invalidates managed isolation claims.
@@ -34,7 +34,12 @@ func ValidProof(p Proof, challenge string) bool {
 // mountID accepts only one explicit read-only workspace mount and no submounts.
 // Unicode/path escapes in mountinfo are not needed for this fixed path; decode
 // kernel octal escapes before checking for workspace descendants.
-func mountID(raw []byte) (int, error) {
+func mountID(raw []byte) (int, error) { return mountIDAt(raw, "/workspace") }
+
+func mountIDAt(raw []byte, root string) (int, error) {
+	if root != "/workspace" && root != "/objects" {
+		return 0, ErrRefused
+	}
 	if len(raw) == 0 || len(raw) > MaxMountInfoBytes {
 		return 0, ErrRefused
 	}
@@ -64,10 +69,10 @@ func mountID(raw []byte) (int, error) {
 		if !ok {
 			return 0, ErrRefused
 		}
-		if strings.HasPrefix(mounted, "/workspace/") {
+		if strings.HasPrefix(mounted, root+"/") {
 			return 0, ErrRefused
 		}
-		if mounted != "/workspace" {
+		if mounted != root {
 			continue
 		}
 		if id != 0 {

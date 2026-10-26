@@ -94,6 +94,7 @@ func main() {
 	mux.HandleFunc("/api/task-input-sources", s.taskInputSources)
 	mux.HandleFunc("/api/task-acceptance", s.taskAcceptance)
 	mux.HandleFunc("/api/task-progress", s.taskProgress)
+	mux.HandleFunc("/api/task-repository-links", s.taskRepositoryLinks)
 	mux.HandleFunc("/api/governance", s.governance)
 	mux.HandleFunc("/api/task-proposals", s.taskProposals)
 	mux.HandleFunc("/api/task-delegations", s.taskDelegations)

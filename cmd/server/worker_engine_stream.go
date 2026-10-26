@@ -67,18 +67,21 @@ func openEngineCommand(ctx context.Context, command func(context.Context) *exec.
 	s := &engineCommandStream{in: in, out: out, cancel: cancel, done: make(chan struct{})}
 	go func() {
 		// Raw CLI errors may contain private host paths and are never returned.
-		cmd.Wait()
+		if cmd.Wait() != nil {
+			s.waitErr = toolbroker.ErrExecution
+		}
 		close(s.done)
 	}()
 	return s, nil
 }
 
 type engineCommandStream struct {
-	in     io.WriteCloser
-	out    io.ReadCloser
-	cancel context.CancelFunc
-	done   chan struct{}
-	once   sync.Once
+	in      io.WriteCloser
+	out     io.ReadCloser
+	cancel  context.CancelFunc
+	done    chan struct{}
+	waitErr error
+	once    sync.Once
 }
 
 func (s *engineCommandStream) Read(p []byte) (int, error)  { return s.out.Read(p) }
@@ -89,3 +92,22 @@ func (s *engineCommandStream) Close() error {
 }
 
 var _ toolbroker.EngineStreamRunner = dockerCLIRunner{}
+
+// Wait reports the sanitized CLI outcome after process reaping without closing
+// stdout: final buffered protocol bytes remain readable. Container exit/absence
+// must still be independently inspected by CaptureRuntime. Cancellation is not
+// proof of success; Close remains responsible for interrupting I/O and joining.
+func (s *engineCommandStream) Wait(ctx context.Context) error {
+	if ctx == nil {
+		return toolbroker.ErrRejected
+	}
+	select {
+	case <-s.done:
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return s.waitErr
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}

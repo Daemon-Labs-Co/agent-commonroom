@@ -31,8 +31,9 @@ no references before creation, exact read-only helper before start, and independ
 exact-ID absence before release. It must verify current cleanup permission for
 recovery, never trust an `absent` boolean from a model or unauthenticated worker.
 The callback only validates; it must not allocate containers, release capacity or
-re-enter controller/admission locks. Production transport/evidence implementation
-and connection to worker guards remain outstanding.
+re-enter controller/admission locks. The controller guard and bounded private channel now connect these interfaces to
+the worker probe assembly; a worker-local physical validator is implemented; deployed peer authentication
+and remote evidence routing remain outstanding.
 
 ## Durable accounting and acknowledgment
 
@@ -92,3 +93,11 @@ live account-wide admission. Required file/bundle dispatch remains blocked and
 no live P0 gate is certified. Source forks can falsify trusted evidence or bypass
 accounting; such changes invalidate managed isolation claims. There is no host
 or automatic uncontained execution fallback.
+
+The [probe authority channel](workspace-probe-transport.md) now provides bounded
+private request/acknowledgment transport and a channel-bound worker probe assembly.
+Deployed peer authentication, physical evidence and controller guard composition
+remain mandatory; there is no default authority or enabled public export route.
+The [controller guard assembly](controller-workspace-probe-authority.md) additionally
+pins the authenticated worker inside ledger validation and records current metadata
+authorizations durably. It still requires independently verified physical evidence.

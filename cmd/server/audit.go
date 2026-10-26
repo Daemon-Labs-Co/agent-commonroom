@@ -58,6 +58,14 @@ func auditSummary(kind string, payload []byte) string {
 		return "Workspace disposal verified"
 	case "workspace.disposal.unconfirmed":
 		return "Workspace disposal outcome unconfirmed"
+	case "task.repository_links.updated":
+		return "Owner updated task repository references"
+	case "workspace.capture.acknowledged":
+		return "An isolated output capture lifecycle was durably acknowledged"
+	case "workspace.capture.authorized":
+		return "An isolated output capture received source observation authorization"
+	case "workspace.probe.authorized":
+		return "Workspace metadata probe authorization recorded"
 	case "workspace.probe.acknowledged":
 		return "Workspace helper lifecycle acknowledged"
 	case "artifact.custody.reserved":

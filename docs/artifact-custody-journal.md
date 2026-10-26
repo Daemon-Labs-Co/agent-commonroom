@@ -31,7 +31,7 @@ new capacity only through all normal admission checks.
 
 Existing task flags continue to apply to source work: turning off Task definitions,
 changing participant/connection/policy/input authority, coordination revocation,
-delegation revocation, emergency stop or ending the submitted job prevents new
+delegation revocation, emergency stop, confirmed shutdown/disposal or expiry of the original job deadline prevents new
 source reservation/sealing. Optional diagnostics flags cannot disable custody
 accounting. Stored objects and charges remain retained. Reading a sealed retained
 object uses current human room authorization and the trusted current export
@@ -80,7 +80,8 @@ ID; logical output names never select controller filesystem paths.
    and object intent in one account audit event. It uses the complete storage
    inventory and mandatory decimal 5,000,000,000-byte account ceiling. Unknown
    inventory, exhausted capacity and malformed/foreign bindings refuse. Only a
-   currently submitted workspace job bound to the exact active work execution,
+   currently submitted or fenced retained (`shutdown_unconfirmed`) workspace job
+   within its original deadline and bound to the exact active work execution,
    task definition and declared finite file/member may reserve. Review jobs and
    undeclared/value outputs cannot create artifacts. A human initiator or owner
    must have current room access.
@@ -150,3 +151,8 @@ be enabled. See [finite manifests](artifact-manifests.md),
 [storage accounting](storage-accounting.md) and [release readiness](release-readiness.md).
 
 The internal [workspace capture foundation](workspace-source-capture.md) now computes actual bounded tree identity and verifies selected bytes against receipts. Its trusted production frozen-volume lease and transport are still missing; it does not enable public or managed file delivery.
+
+The [fixed-root isolated capture lease](isolated-source-capture.md) now provides
+a live source-view implementation for a reviewed capture helper. A retained job
+phase alone is not physical proof: all source, quota and release guards still apply.
+Expired retained attempts do not gain a renewed deadline or fresh export authority.

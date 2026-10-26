@@ -77,8 +77,14 @@ func validWorkerProbeRecord(r workerProbeRecord) bool {
 	if r.Version != 1 || !validWorkerProbeIntent(r.Intent) || len(r.Events) < 1 || len(r.Events) > 6 {
 		return false
 	}
+	return validWorkerHelperEvents(r.Events)
+}
+func validWorkerHelperEvents(events []workerProbeEvent) bool {
+	if len(events) < 1 || len(events) > 6 {
+		return false
+	}
 	stage, id := "", ""
-	for _, e := range r.Events {
+	for _, e := range events {
 		switch e.Stage {
 		case "begin":
 			if stage != "" || e.ID != "" || e.Absent {
@@ -110,7 +116,7 @@ func validWorkerProbeRecord(r workerProbeRecord) bool {
 				return false
 			}
 		case "confirmed":
-			if stage != "finish" || !r.Events[len(r.Events)-2].Absent || !e.Absent || e.ID != id {
+			if stage != "finish" || !events[len(events)-2].Absent || !e.Absent || e.ID != id {
 				return false
 			}
 		default:
@@ -169,7 +175,11 @@ func workerProbeCapacity(dir string, jobs []workerJobRecord, next int) error {
 	if err != nil {
 		return err
 	}
-	count := next
+	captureSlots, err := workerCaptureSlots(dir)
+	if err != nil {
+		return err
+	}
+	count := next + captureSlots
 	for _, job := range jobs {
 		if !workerJobSettled(job) {
 			count += workerContainerSlots(job)

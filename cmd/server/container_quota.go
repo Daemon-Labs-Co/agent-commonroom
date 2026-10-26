@@ -27,7 +27,7 @@ func admitManagedContainerQuota(st room.State, next room.ManagedJob) error {
 	if st.Company.ID == "" || next.CompanyID != st.Company.ID || !validManagedJob(next) || next.ShutdownConfirmed {
 		return errors.New("managed container quota identity unavailable")
 	}
-	probes, err := controllerProbeSlots(st)
+	probes, err := controllerHelperSlots(st)
 	if err != nil {
 		return err
 	}

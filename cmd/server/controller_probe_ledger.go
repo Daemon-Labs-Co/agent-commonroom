@@ -78,7 +78,7 @@ func controllerProbeSlots(st room.State) (int, error) {
 	return count, nil
 }
 func admitControllerProbeQuota(st room.State) error {
-	slots, err := controllerProbeSlots(st)
+	slots, err := controllerHelperSlots(st)
 	if err != nil {
 		return err
 	}

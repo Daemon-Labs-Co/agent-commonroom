@@ -2000,3 +2000,992 @@ proof does not establish live daemon or descendant termination guarantees.
   commits, pushes or signing changes; scheduled follow-up stays paused. Last
   notification: account probe accounting verified and ready for owner publication;
   production transport/physical evidence and source/delivery gaps remain above.
+
+## Overnight MVP workflow integration — 2026-10-26
+
+- Owner authorized sustained MVP implementation until Monday 26 October 2026
+  10:00 America/Toronto (14:00 UTC), prioritizing secure task execution, real file
+  deliverables and human review. Public MVP target November 5; proposed features
+  excluded. Scheduled follow-up reactivated with explicit cutoff/pause instruction.
+- Git helper verified base37c8ce69e3e289ab1116099c5522781396b64397, empty index,
+  no PR on prior repository-link branch. Created codex/mvp-deliverable-integration
+  at same HEAD carrying unrelated link WIP untouched. That WIP remains incomplete
+  and excluded from this batch; backup /private/tmp/commonroom-repository-links-backups/0001.
+- First integration slice: bounded private probe authority channel and real worker
+  probe assembly over it. Exact retained creator/intent binding, canonical length
+  framing, monotonic sequences, authorization/observation/durable acknowledgments,
+  detached callback records, owned-stream cancellation and poisoned-link refusal.
+  Five-second exchange/two-minute session ceilings; no reconnect/replay on ambiguity.
+- Tests cover actual probe/journal lifecycle over synthetic streams with mocked
+  Docker and failed begin/bound/finish audits, invalid/oversized/truncated/duplicate
+  frames, replay, foreign binding, wrong replies, cancellation and authority stop.
+  No live database/provider/Docker/SSH/private data used. New user/technical contract:
+  docs/workspace-probe-transport.md. Mandatory infrastructure adds no optional
+  isolation switch or public export endpoint.
+- make test passed15.86s; full make check in progress at checkpoint preparation.
+  Source work started04:43 UTC. Publication/complete status pending full checks.
+- Next integration priorities: independently authenticated deployed peer and actual
+  controller guard/evidence assembly, frozen source capture and authenticated
+  delivery. Channel parsing supplies no physical evidence and no FrozenLease;
+  required file/bundle outputs remain blocked. No live gate certified.
+- User retains signing/publication. No staging/commits/pushes. Continue coherent
+  related local implementation without waiting for publication until cutoff, keeping
+  recoverable checkpoints and preserving unrelated link edits.
+- Verified first slice: full make check passed37.45s (race/static/docs/UI included),
+  after make test15.86s. Work04:43:07–04:48:01UTC (~4m54 initial implementation
+  and verification). Logs /private/tmp/commonroom-probe-transport-{test,check}.log.
+  Prepared message: feat: connect workspace probes to bounded private authority channels.
+  Remaining deployed authority/source/delivery gaps above stay explicitly blocked.
+- Recovery checkpoint: /private/tmp/commonroom-mvp-integration-backups/0001
+  contains cumulative changes.patch and manifest.json (including explicitly excluded
+  link WIP); separate original link backup retained. Index empty, whitespace clean.
+  Last notification: overnight cutoff scheduled and first transport slice verified;
+  continue toward deployed authorization and actual deliverables, not publication.
+
+### Session-bound controller probe authority — overnight continuation
+
+- Continued04:49:12UTC after actual time/local branch/index inspection; prior WIP
+  unchanged apart from last checkpoint append. No competing implementation detected.
+- Added actual controller guard assembly behind the private channel: pin original
+  authenticated human, worker, retained record and exact intent; reauthorize enabled
+  room access, initiator/owner, current task/definition/delegation/coordination and
+  launch/integrity policy. Canceled sessions cannot revive via fresh contexts.
+- Commit bounded workspace.probe.authorized metadata before observation/authorization
+  success. Hash the retained record, keep generic public audit summaries, replay
+  historical identity without clock-sensitive live delegation expiry. Reload after
+  independent physical evidence and fence append by event revision. Persistence
+  failure trips integrity; ordinary conflicts refuse without a false incident.
+- Compose lifecycle acknowledgment with account ledger and pin session worker inside
+  the ledger's fenced snapshot, avoiding a worker-substitution race. Actual physical
+  evidence remains mandatory externally supplied infrastructure, never frame/model
+  claims. No optional containment toggle, public event sink, source bytes, file-output
+  enablement or source-root authority added.
+- Tests connect real controller guard/ledger, private channel, worker journal and
+  probe lifecycle with mocked DB/Docker and synthetic temporary retained jobs.
+  Cover durable replay, slot release after absence, human/room/agent restrictions,
+  cancellation/revocation during evidence, changed worker/record, stale task/revision,
+  on/off optional feature states, public injection and actual audit commit failures.
+- New docs/controller-workspace-probe-authority.md and transport/account/index links
+  describe setup, exact trust responsibilities, permission/flag behavior and remaining
+  integration gaps. make test18.57s and make check39.22s passed before final integrated
+  begin/bound/finish commit-failure additions; final verification in progress.
+- Next priorities remain deployed authenticated peer and physical evidence assembly,
+  continuous reference enforcement, source freezing/capture, physical quota and
+  authenticated deliverable delivery/review. No live acceptance gate certified.
+- Final make test passed19.36s and full make check passed42.81s after integrated
+  audit-failure cases. Logs /private/tmp/commonroom-controller-workspace-{test-final,check-final}.log.
+  Source work04:49:12–04:57UTC (~8 minutes implementation/verification).
+  Prepared cumulative message (not committed):
+
+  feat: connect retained workspace probes to durable controller authority
+
+  Bind private probe channels to the authenticated human, exact worker, retained
+  creator record and fresh intent. Revalidate task permissions and independent
+  physical evidence before durably acknowledging metadata observations.
+
+  Fence concurrent authorization by audit revision and connect lifecycle events
+  to account-wide capacity. Reject replay, substituted identities and canceled
+  sessions; stop authority on uncertain audit outcomes without releasing slots.
+
+  Exercise controller, channel, worker journal and mocked container cleanup
+  together, including begin/bound/finish persistence failures. Document remaining
+  deployed authentication, physical evidence, frozen-source and delivery gaps.
+
+- No staging/commits/pushes; continue related local implementation through cutoff.
+- Final cumulative recovery checkpoint /private/tmp/commonroom-mvp-integration-backups/0002
+  supersedes0001 for restore (apply one cumulative patch only). Manifest labels
+  excluded link WIP. Empty index, whitespace clean, no commits/pushes. Last
+  notification: controller authority/channel/journal integration verified; next
+  work remains actual deployed physical evidence and source/delivery integration.
+
+### Lock-scoped physical workspace evidence — 2026-10-26 overnight
+
+- Continued05:00:12UTC after instructions/time and Git-helper inspection. Branch
+  codex/mvp-deliverable-integration remains at37c8ce69, index empty, no associated
+  PR or competing edits. Prior cumulative recovery0002 preserved.
+- Implement worker-local physical validator backed by the actual creator ownership
+  callback. Pin authenticated worker, independently reviewed image, immutable record,
+  root/runner and callback lifetime. Re-read record/cancellation fence before/after
+  Docker metadata inspection; refuse escaped/expired/fabricated ownership.
+- Factor existing record/fence and complete inventory checks for reuse without
+  recursive authorization or observation-mutex reentry. Ordinary zero-reference
+  checks remain unchanged. Ownership scope now expires before actual lease release.
+  Authority factory runs under creator ownership; pending setup refuses all grants.
+- Validate exact read-only helper policy, retained volume identity and complete
+  role/job/name/volume inventories via existing broker inspections. A pre-bound
+  named candidate is inspected only, never adopted into history/launched/removed
+  by name; durable exact-ID bound acknowledgment still precedes execution.
+- Require lifecycle acknowledgment to match the actual private local journal's last
+  event. Absent finish independently proves exact ID absence plus zero references;
+  frame booleans cannot release capacity. Unknown attached helpers remain blocked
+  and charged; no recovery authority or source-byte/FrozenLease capability is added.
+- Integrated tests now use actual physical validator + controller guard/ledger +
+  private channel + worker journal/runtime with mocked Docker/DB/provider boundaries.
+  Fixtures assert real controller records before create/start. Healthy control frees
+  only confirmed helper slot; extra/returning refs, writable/replaced volumes, forged
+  proof, cleanup failure, lost create, false absence, unrecorded stages, wrong image/
+  worker/volume and expired ownership refuse. No live providers/Docker/SSH/private data.
+- New docs/workspace-probe-physical-evidence.md and README/index/authority/account
+  links describe configuration, trust, mandatory checks and remaining gaps. This is
+  internal mandatory isolation/audit infrastructure with no product off switch.
+- make test passed19.04s; full make check passed39.25s, including race/static/docs/UI.
+  Logs /private/tmp/commonroom-probe-physical-{test,check}.log. Source work began
+  05:00:12UTC; final verification about05:10UTC (~10 minutes).
+- Remaining: deployed authenticated peer/evidence routing across controller/worker,
+  continuous writer fencing, live Linux image acceptance, frozen source capture,
+  physical quota and authenticated file delivery/review. Worker-local physical code
+  exists; it is not remote attestation or proof against trusted daemon administrators.
+  Required file/bundle dispatch remains blocked; no live release gate certified.
+- Prepared cumulative commit subject: feat: verify workspace probes with lock-scoped physical evidence.
+  Preserve original human/worker binding, durable audit/channel/capacity integration
+  and actual physical metadata checks in one eventual reviewable commit. No commits,
+  staging, pushes or publication. Continue related local work through14:00UTC cutoff.
+- Cumulative recovery /private/tmp/commonroom-mvp-integration-backups/0003 supersedes
+  earlier cumulative snapshots; apply one only. Index empty, whitespace clean;
+  excluded link WIP labeled in manifest. Last notification: physical validator and
+  integrated failure cases verified. Next work should prioritize isolated source
+  capture/delivery and the deployed evidence connection needed for that path.
+
+### Fixed isolated source lease and retained custody phase — overnight
+
+- Continued05:14:13UTC after actual UTC/instructions/checkpoint and Git-helper
+  verification of unchanged scope against0003. No PR, staged or concurrent edits.
+- Add internal workspacecapture.WithFrozenSource: production opens only fixed
+  /workspace with actual kernel mount checks and mandatory live supervisor authority.
+  Pin root identity, execution/import/volume binding and mount ID/challenge; recheck
+  kernel/root evidence before and after authorization on every verification/read.
+  No host-path parameter, configurable kernel observer, old-probe substitution or
+  permissive authority. Root/lease expire at callback exit/error/panic/cancellation.
+- Lease authority lasts at most30s with propagated deadline; cooperative callbacks
+  and future supervised process deadlines are explicitly required. Actual scanner
+  computes bounded tree revision and lends lazy selected bytes; physical custody
+  reservation/quota must still precede consumption. No persisted file delivery yet.
+- Found real lifecycle mismatch: custody admitted only submitted jobs although the
+  capture path requires fenced retained workspaces. Admit shutdown_unconfirmed only
+  while original task and deadline remain current, with all mandatory source/quota/
+  seal guards. Allocated, confirmed, expired, stale/revoked and physically denied
+  sources still refuse. No renewed deadline or fresh export grant is inferred.
+- Tests use synthetic temporary files and explicit mocked kernel/supervisor/DB
+  boundaries: actual source bytes/revision, changed/writable mounts, replaced root,
+  missing/typed-nil authority, malformed contracts, symlinks/missing members, revoked
+  reads, bounded deadlines, escaped reader and callback error/panic expiry. Custody
+  regressions cover retained source phase, stale/expired/disabled/denied controls.
+- Initial tests caught missing deadline propagation to authority contexts; fixed.
+  One expiry fixture originally changed a live mock registration's immutable job
+  binding; corrected to evaluate expired state directly without corrupting its
+  active mock turn. Required suites passed afterward; no acceptance fabricated.
+- Docs isolated-source-capture.md plus source/custody/physical/README/index links
+  describe configuration, permissions, mandatory infrastructure/no toggle, bounds,
+  trusted callback duties and remaining gaps. No user-visible UI change.
+- Source-only make test22.67s / make check33.62s passed. Final cumulative make test
+  passed21.93s and make check36.63s after custody phase changes, including race/static/
+  docs/UI. Logs /private/tmp/commonroom-isolated-capture-{test-final,check-final}.log.
+  Work05:14:13–about05:24UTC (~10 minutes implementation/verification).
+- Remaining: reviewed capture executable/image, running-view runtime validation and
+  supervised stream, authenticated live controller/worker writer fencing, physical
+  workspace/object quota, custody transfer and authenticated output delivery/review.
+  Required file/bundle dispatch stays blocked; no live P0 gate or readiness claimed.
+- Prepared cumulative subject: feat: bind isolated source capture to live authority and retained custody.
+  Keep controller/channel/physical evidence slices in the same eventual commit.
+  No staging, commits, pushes or publication; continue related work through cutoff.
+- Recovery checkpoint /private/tmp/commonroom-mvp-integration-backups/0004 supersedes
+  prior cumulative patches; apply one only. Empty index, whitespace clean; excluded
+  repository links remain labeled/preserved. Last notification: fixed source lease
+  and retained custody compatibility verified; proceed to reviewed helper/runtime
+  and custody transfer without enabling incomplete public file functionality.
+
+### Source-to-custody transfer — 2026-10-26 overnight
+
+- Continued05:29:13UTC after actual time/rules/checkpoint and Git-helper verification
+  against0004, empty index and no PR/concurrent edits. Cutoff remains14:00UTC.
+- Add workspacecapture.CaptureToCustody with supervisor-owned finite Request and
+  full snapshot/receipt result only after all members and final source checks pass.
+  Production still uses fixed /workspace; private object-root descriptor and actual
+  durable quota/source/seal journal are mandatory. No public release route added.
+- Bind storage intents to computed execution/revision, exact declared member names
+  and maxima. Source lazy readers are consumed only after durable reservation and
+  physical quota acknowledgment. Revalidate complete source after quota setup and
+  verify actual receipt against captured bytes before external seal acknowledgment.
+- Bound transfer/journal contexts to capture lease ceiling. Freeze input member
+  metadata before callbacks. Release methods on the private adapter always refuse.
+  Actual kernel quota, output format validation and live journal composition remain
+  mandatory external integrations, not inferred from directory modes or counters.
+- Return no result/receipt prefix on failure. Once a store attempt begins, report
+  unconfirmed; preserve all prior durable reservations, unsealed inodes and individually
+  sealed objects. A later member failure does not refund either member or retry it.
+- Tests use synthetic temporary sources/object roots and mocked kernel/supervisor/
+  quota/journal boundaries. Verify actual stored bytes/digests/scopes, quota-before-
+  create ordering, missing/typed-nil journal, source mutation/revocation during quota,
+  seal failure, post-seal revocation, second-member failure and retained accounting,
+  fabricated receipts, undeclared output scope and denied release methods.
+- New docs/source-custody-transfer.md and README/index/source links cover setup,
+  permissions/mandatory checks, ordered transfer, conservative partial failures and
+  limitations. No optional security toggle, UI, host/provider fallback or enabled
+  file task. No real DB/Docker/provider/SSH/private data used or live evidence claimed.
+- make test passed22.43s; full make check passed34.58s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-custody-{test,check}.log. Work05:29:13–05:35:50UTC
+  (~6m37 implementation/verification before checkpoint/backup).
+- Remaining: reviewed capture helper executable/image and supervised stream, running
+  capture-view physical validation, deployed authenticated authority/evidence, physical
+  workspace/object quotas, controller custody journal composition, format validation,
+  recovery and authenticated file delivery/review. Required file/bundle dispatch
+  remains blocked. No complete MVP workflow or live release gate certified.
+- Prepared cumulative subject: feat: capture isolated task outputs into durable private custody.
+  Continue coherent related implementation through cutoff; no staging/commits/pushes.
+- Cumulative recovery /private/tmp/commonroom-mvp-integration-backups/0005 supersedes
+  earlier cumulative snapshots (apply one only), with excluded link WIP labeled.
+  Index empty, whitespace clean. Last notification: source-to-custody transfer and
+  conservative failure accounting verified; proceed to reviewed helper/stream and
+  live physical quota/authority assembly, keeping public file dispatch blocked.
+
+### Capture helper/private control protocol — overnight continuation
+
+- Continued05:44:47UTC after actual UTC/rules/checkpoint and Git-helper verification
+  against0005, empty index/no PR/concurrent changes.06:01/06:14 heartbeats steered
+  this same active implementation; no competing run or branch was started.
+- Add bounded authenticated-supervisor channel for observe/reserve/seal/finish.
+  Pin immutable finite Request digest, version, monotonic sequence and exact payload
+  kind. Canonical framing rejects unknown/duplicate/alternate fields before callbacks.
+  Limits:128KiB frames,4096 messages,30s session and5s exchanges. No source bytes,
+  provider commands, release/read operation, reconnect or automatic retry exist.
+- Parent rechecks live authority and durable journal callbacks before acknowledgments;
+  requires observation before reserve, exact selected members/maxima/one revision,
+  unique member/object IDs, exact reserved seals and complete unchanged receipt set
+  on finish. After a journal reservation attempt, protocol failure is unconfirmed;
+  charges/partial files/individual seals remain retained. Wrong replies/denial/cancel
+  poison the client and stop local authority. Completed local calls cannot replay.
+- Add fixed cmd/workspace-capture executable: one bounded canonical base64url Request,
+  only /workspace source and /objects custody root, supervisor-owned stdio, generic
+  failure diagnostic, SIGTERM/SIGINT and35s cancellation context. Production uses
+  actual CaptureToCustody; test-only capture dependency explicitly mocks kernel path.
+  Supervising runtime must still enforce actual process termination/cleanup.
+- Add separate docker/capture/Dockerfile: reviewed digest-pinned official-layout Go
+  compiler, offline/no-network build, scratch helper only, UID/GID1000, owned fixed
+  roots and GPL/Go license notices. Old probe image unchanged. No image was built,
+  pulled, approved or launched, and no provider/DB/SSH/private fixture was used.
+- Tests exercise actual synthetic capture/store/private-channel bytes and receipts,
+  quota/seal denials, wrong/malformed/truncated/oversized frames, replay/binding/mount/
+  revision substitution, duplicate members/IDs/seals, unreserved/changed seals,
+  incomplete/changed finish, message bound, cancellation and wrong acknowledgments.
+  CLI tests verify argument/root refusal and real store/channel wiring with explicit
+  mocked kernel capture. All physical quota/journal/supervisor boundaries mocked.
+- Added source metadata-only ValidSelection validator (no root/authority), canonical
+  request tags and bounded helper request decode. Full docs/capture-helper-channel.md
+  plus README/index/transfer links document usage, flags/no toggle, permissions,
+  mandatory trust, report-vs-delivery distinction and gaps.
+- make test passed22.67s; make check passed36.00s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-helper-{test,check}.log. Offline Linux amd64
+  cross-build passed; binary /private/tmp/commonroom-workspace-capture-linux-amd64
+  is a static ELF, SHA256 fddaf6a34485f406ea25ed5f0eb0ec3ac9418f5464cd3f221d4e7dc01dcd227b.
+  Build elapsed not separately timed; compilation is not live/image acceptance.
+  Work05:44:47–about06:29UTC (~44 minutes implementation/verification).
+- Remaining: reviewed image build/acceptance, supervised container/stream/running-view
+  admission, deployed authenticated authority/evidence and controller journal assembly,
+  real physical source/object quotas, content/format validation, recovery and public
+  authenticated delivery/review. Parent must verify helper exit/cleanup/current policy
+  before publishing metadata report. Required file/bundle tasks remain blocked; no
+  live P0 gate, public delivery or complete MVP workflow certified.
+- Prepared cumulative subject: feat: supervise isolated source capture and private custody acknowledgments.
+  Owner retains staging/signing/publication. Continue related local work to14:00UTC.
+- Cumulative recovery /private/tmp/commonroom-mvp-integration-backups/0006/changes.patch
+  and manifest saved;18 modified tracked/23 new files, empty index, whitespace clean.
+  Excluded repository-link WIP remains labeled; apply one cumulative snapshot only.
+  Last notification: helper protocol/full checks and Linux compilation verified;
+  next work is supervised capture-container admission/lifecycle, with physical quota
+  and deployed authority gaps still blocking required file-task dispatch.
+
+### Capture-container admission — overnight continuation
+
+- Resumed06:35:32UTC after actual time/rules/checkpoint and Git-helper verification.
+  Branch codex/mvp-deliverable-integration, empty index; only prior checkpoint append
+  differs from0006. No network/publication or concurrent implementation detected.
+- Added CaptureContainerPlan: finite canonical request, reviewed image-ID pin,
+  exact retained source/custody volume identities and fixed create arguments.
+  Read-only /workspace, writable private /objects, read-only root, UID/GID1000,
+  no network/capabilities/restart/logs/extra environment, bounded process/memory/CPU.
+  The non-TTY interactive channel belongs solely to the trusted supervisor.
+- Pure inspection accepts only exact recorded IDs in created/running/exited phases,
+  successful state, exact command/request/image/labels and both nonce/time-bound local
+  volumes, with no driver options or extra mounts/privileges/resources.
+- Bounded VerifyAdmission performs two independently fetched metadata/inventory passes;
+  both volume references, job and helper-name inventories must contain exactly the
+  recorded ID. Source/custody volume catalogs must each match their recorded name.
+  Returning writers, second-pass drift, unavailable/canceled daemon and extra volumes
+  fail closed. This does not create/start/adopt/remove containers or release storage.
+- Tests use only synthetic Docker metadata and mocked runner: valid fixed arguments/
+  phases; source writable, custody readonly/replaced/bind-options/nonce, extra/duplicate
+  mounts, sockets/network/privilege/TTY/environment/command/image/OOM/exit/resource
+  substitutions, malformed metadata, bad phases/IDs, typed-nil dependencies, inventory
+  collisions and cancellation. Initial unused fixture variable corrected; focused pass.
+- Full make test passed21.81s; make check passed35.89s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-admission-{test,check}.log. Earlier test before
+  inventory addition also passed22.65s. Work06:35:32–about06:41UTC (~5m30).
+- Full docs/capture-container-admission.md and README/index/helper links explain
+  usage, trusted caller/permission/current-policy duties and mandatory no-toggle
+  boundary. No user execution capability or product switch was introduced.
+- Remaining: supervised durable lifecycle/stream wiring, object-volume provisioning,
+  independent real physical quotas/current-authority composition, image/live acceptance,
+  recovery, content validation and public authenticated delivery/human review. Exact
+  inspection is not quota proof or writer fencing without exclusive creator ownership.
+  Required file-task dispatch remains blocked; no live release gate certified.
+- Prepared cumulative subject: feat: supervise isolated capture and enforce exact container admission.
+  Continue authorized local MVP work through14:00UTC; owner retains publication.
+- Recovery0007 saved at /private/tmp/commonroom-mvp-integration-backups/0007/;
+  cumulative patch/manifest, excluded link WIP labeled,18 modified tracked/26 new
+  files, empty index and clean whitespace. Prior recovery snapshots preserved.
+  Last notification: capture-container admission/inventory checks verified; continue
+  to supervised lifecycle and physical quota/authority assembly without publication.
+
+### Capture lifecycle supervision — overnight continuation
+
+- Resumed06:47:14UTC after actual clock/rules/checkpoint and Git-helper comparison
+  with0007: same branch/empty index, only checkpoint append, no concurrent edits.
+- Added one-shot CaptureRuntime with mandatory trusted rootless runner, private
+  starter/process, lifecycle/current-authority and custody dependencies. No default
+  daemon starter, permissive authority or host/provider stream fallback exists.
+- Begin must durably admit capacity/creation while holding creator ownership,
+  fencing writers and establishing physical quotas. Fixed creation is attempted
+  once; exact created admission precedes durable Bind, and Bind precedes Start.
+  Lost replies/preexisting names retain unknown identity; no name adoption/removal.
+- Runtime independently repeats exact running-container/volume/reference admission
+  before every private protocol authority acknowledgment, then invokes the current
+  guard. After a complete report it waits for successful exit and exited admission.
+  No report leaves Run before stream close, exact-ID removal, repeated absence/
+  retained-volume identity/catalog checks and final durable Finish succeed.
+- Five-second independent cleanup deadline;35-second outer operation; shorter
+  protocol/physical inspection bounds remain. Any failure after accepted begin
+  returns zero report plus unconfirmed custody error. Charges/objects/volumes remain;
+  no retry/refund/deletion. Owned policy-drifted containers may be stopped only after
+  exact ID/name/image/labels ownership check; unknown containers stay unadopted.
+- Tests use only mocked Docker/starter/journals/authority and in-memory protocol
+  streams with synthetic receipts. Cover actual lifecycle ordering, current physical
+  checks, one-shot behavior, begin/bind/start/authority/reserve/seal/wait/cleanup/
+  finish failures, lost creation, preexisting names, returning references, replaced
+  volumes, running policy drift, typed-nil/canceled admission and returned-error
+  stream closure. No live bytes/quota/container/provider/DB acceptance is claimed.
+- make test passed21.77s; make check passed37.69s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-runtime-{test,check}.log. Work06:47:14–about
+  06:54UTC (~7 minutes). Full docs/capture-supervision.md and README/index/admission
+  links document configuration, permissions, no-toggle boundary, failure and gaps.
+- Remaining: real approved daemon/start-stream adapter, image acceptance, durable
+  deployed creator/account/journal assembly, physically enforced source/object
+  quotas, custody-volume provisioning/ownership, recovery, content/format checks,
+  authenticated delivery and human review. Required file-task dispatch remains
+  blocked. Synthetic lifecycle tests do not certify production/live readiness.
+- Prepared cumulative subject: feat: supervise isolated output capture through durable cleanup.
+  Continue authorized local MVP work to14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0008/ saved, cumulative
+  patch/manifest with excluded link WIP labeled.18 modified tracked/29 new files,
+  empty index, whitespace clean; no unexpected changes/removals. Apply one snapshot.
+  Last notification: durable capture lifecycle/cleanup and full checks verified;
+  next production integration remains daemon stream, physical quota and authority.
+
+### Worker capture-stream adapter — overnight continuation
+
+- Resumed06:59:45UTC after actual clock/rules/checkpoint and Git-helper comparison
+  with0008: same branch/empty index, only checkpoint append, no concurrent changes.
+- Added dockerCLIRunner.StartCapture implementing CaptureStarter: validate live
+  context/exact immutable ID before invocation; revalidate existing approved local
+  rootless daemon; fixed docker start --attach --interactive ID only. No shell,
+  arbitrary executable/model/provider pipes/context overrides/SSH/fallback path.
+  Environment remains PATH/HOME/XDG_RUNTIME_DIR only; stderr never forwarded.
+- Reused existing owned process-pipe plumbing, retaining final buffered stdout after
+  CLI exit. Added synchronized Wait outcome: sanitized nonzero process error,
+  cancellation refusal, repeatable wait, without prematurely closing stdout.
+  Close interrupts I/O and joins the child waiter. CaptureRuntime still independently
+  inspects actual container exit and exact absence; CLI exit alone is insufficient.
+- Tests execute only synthetic Go test-helper processes via private factory; no
+  Docker/provider/SSH/DB calls. Cover duplex bytes, final ack after exit, sanitized
+  failure/stderr isolation, canceled wait, joined repeated close, exact arguments/
+  environment, canceled/invalid ID before daemon, nil factory/command and failed
+  executable. Existing engine-stream tests pass with shared plumbing unchanged.
+- Focused tests passed; make test passed20.65s and make check passed38.71s including
+  race/static/docs/UI. Logs /private/tmp/commonroom-capture-stream-{test,check}.log.
+  Work06:59:45–07:03UTC (~3m15). Full docs/capture-worker-stream.md and README/index/
+  supervision links document usage, trusted permissions, no-toggle isolation and gaps.
+- Adapter now exists but is not wired into task dispatch: deployed durable creator/
+  lifecycle/current-authority composition, actual physical source/object quotas,
+  custody-volume provisioning, reviewed image/live acceptance, recovery/content
+  validation and authenticated delivery/human review remain. No real image/process
+  or complete file-task workflow was accepted; required file tasks stay blocked.
+- Prepared cumulative subject: feat: supervise isolated capture with a private rootless worker stream.
+  Continue local MVP work through14:00UTC; no staging/commits/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0009/ saved, cumulative
+  patch/manifest with excluded link WIP labeled.19 modified tracked/32 new files,
+  empty index and whitespace clean; no unexpected changes/removals.
+  Last notification: private rootless worker stream verified with synthetic processes
+  and full checks; production quota/authority/dispatch composition remains next.
+
+### Interrupted capture reconciliation — overnight continuation
+
+- Resumed07:14:43UTC after actual clock/rules/checkpoint and Git-helper verification:
+  same branch/empty index, only checkpoint differs from0009; no concurrent changes.
+- Added one-shot CaptureRecovery with mandatory current cleanup journal and approved
+  runner, no starter/source reader/object writer/release/volume deletion API.
+  Begin matches durable exact ID/request/image/object-volume identity and creator
+  ownership before daemon calls. Unknown/missing IDs cannot be discovered by name.
+- Shared captureInspector between runtime cleanup and recovery: two observations of
+  exact ID presence/absence, ownership for present helpers, both retained volume
+  identities/nonces/times/driver/mountpoints, exact job/name/volume references and
+  volume catalogs. Inconsistent observations, foreign identity or other references
+  refuse removal. Owned policy drift permits exact-ID stopping only, never execution.
+- Recovery removes a known present helper or rechecks known absence, then requires
+  durable Finish acknowledgment. Ten-second operation/five-second final-journal
+  bounds. Failure returns unconfirmed custody state; storage/objects/charges remain.
+  A physically removed helper with failed final persistence still is not a success.
+- Tightened ordinary BeginCapture to pass the reviewed image explicitly for durable
+  comparison, matching recovery. No default/permissive journal was introduced.
+- Synthetic mocked tests cover present/absent/drifted helper, exact removal, foreign
+  image/labels, replaced volumes, extra/returning references/catalogs, removal/final
+  persistence failure, durable authority/ID/image mismatch before daemon, canceled/
+  missing IDs, typed-nil dependencies and no reuse. No real DB/Docker/provider/data.
+- make test passed19.68s; make check passed37.58s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-recovery-{test,check}.log. Work07:14:43–about
+  07:19UTC (~4m15). Full docs/capture-recovery.md and README/index/supervision links
+  cover usage, permissions, mandatory no-toggle boundary, failure and limitations.
+- Remaining: deployed durable lifecycle/recovery/current-authority/account/creator
+  composition, unknown-ID incident handling, physical quota/provisioning, reviewed
+  image/live acceptance, content/format validation and public delivery/human review.
+  Reconciliation certifies neither released storage nor complete/publishable output.
+  Required file tasks remain blocked; synthetic coverage is not live readiness.
+- Prepared cumulative subject: feat: supervise isolated capture and reconcile interrupted helpers safely.
+  Continue local MVP work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0010/ saved, cumulative
+  patch/manifest; excluded link WIP preserved/labeled.19 modified tracked/36 new
+  files, empty index and clean whitespace; no unexpected changes/removals.
+  Last notification: exact-ID interrupted recovery/full checks verified; deployed
+  quota/authority integration, unknown-ID handling and delivery remain incomplete.
+
+### Contract-derived capture selection — overnight continuation
+
+- Began inspection07:28:44UTC; resumed same work07:44:16 after heartbeat interruption.
+  Git helper verified against0010: same feature branch/empty index, only checkpoint
+  append, no concurrent changes. Rules/checkpoint read; actual clock rechecked.
+- Existing artifactmanifest format validation was already present. Added the missing
+  metadata bridge: ContractRequest derives all required file/bundle members from
+  the exact definition digest and explicit optional file/bundle choices only.
+  Names/paths/limits come from the contract, canonically sorted, with existing
+ 32-member/16MiB aggregate/path/source restrictions. No silent required omission.
+- ValidateContractRequest compares against independently loaded current definition;
+  refuses required omissions, altered path/output/limit/definition, duplicates or
+  noncanonical order. Unknown/duplicate optional choices, required/value-as-optional,
+  Git paths, cross-output path aliases and aggregate quota overflow fail closed.
+  This is metadata infrastructure, not launch/read authority or a new user feature.
+- Tests connect actual synthetic source capture/store to existing manifest Resolve
+  and Revalidate. Stored-byte tampering is rejected even with unchanged metadata;
+  validly sealed non-JSON bytes fail JSON format validation. Denials retain actual
+  objects, receipts and charges. Kernel/authority/quota/journal boundaries mocked;
+  no DB/container/provider/private-data calls or production readiness claim.
+- Focused tests passed; make test passed21.11s; make check passed36.03s including
+  race/static/docs/UI. Logs /private/tmp/commonroom-contract-capture-{test,check}.log.
+  Wall interval07:28:44–about07:49UTC (~20m15 including interruption); implementation
+  after07:45 resumed assessment approximately4 minutes before checkpoint.
+- Full docs/contract-capture-selection.md and README/index links describe configuration,
+  required/optional semantics, permissions/current-definition duties, existing flags,
+  mandatory boundary, limits and remaining integration. No product flag is enabled.
+- Remaining: parent/current-definition/authority composition, physical quota and volume
+  provisioning, durable lifecycle/account/creator wiring, reviewed image/live acceptance,
+  unknown-ID incident handling and authenticated delivery/human review. Actual format
+  validator exists and is now exercised with captured bytes; production wiring remains
+  incomplete. Required file tasks remain blocked; no live P0 gate certified.
+- Prepared cumulative subject: feat: bind isolated output capture to exact task contracts and durable custody.
+  Continue authorized local MVP work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0011/ saved, cumulative
+  patch/manifest with excluded link WIP preserved/labeled.19 modified tracked/39 new
+  files, empty index, whitespace clean; no unexpected changes/removals.
+  Last notification: contract-derived capture plus actual synthetic format/integrity
+  validation verified; production quota/authority/delivery integration still pending.
+
+### Durable controller capture observation — overnight continuation
+
+- Resumed08:00:15UTC after actual clock/rules/checkpoint and Git-helper verification
+  against0011: same feature branch/empty index, only checkpoint append, no concurrency.
+- Added private controllerCaptureAuthority implementing source observation authority.
+  Pins authenticated human/worker session, detached retained record and contract
+  request; refuses absent infrastructure/typed-nil evidence, wrong binding/challenge,
+  canceled lifetime and attempted principal substitution. No public constructor/API.
+- Before every grant, reload/check current enabled human room permission and owner/
+  initiator, worker/provider/job/retained source/execution/definition/member set,
+  original deadline and task/delegation/coordination/flag policy; reject incident,
+  launch block or integrity fault. Independent physical evidence remains mandatory
+  for actual reviewed helper/volume/mount, creator lease, writer fence and quota.
+- After evidence, recheck fresh state and append workspace.capture.authorized with
+  audit-revision fencing before acknowledgment. Conflicts do not trip integrity;
+  persistence uncertainty does. Cancellation after persistence withholds the grant.
+  Event stores finite metadata/record digest, no source bytes/credentials/capability.
+- Added audit-only projection/summary; historical identity/contract/proof validation
+  has no current deadline/flag/physical dependency. Current policy remains separate.
+  Public authorization injection refused. Existing repository-link WIP preserved.
+- Mocked tests cover durable replay, detached inputs, pinned actor, evidence/binding/
+  proof/worker/session/agent/missing-actor denials, taskDefinitions off, CAS conflict,
+  failed persistence/integrity stop, current-vs-historical expiry/incident/member/
+  definition checks and missing infrastructure. Initial synthetic membership scope,
+  state-map clone, valid expired timeline and flag-map fixture errors corrected;
+  no product guard was loosened. No DB/provider/Docker/private/live acceptance used.
+- Final make test passed19.67s and make check passed38.41s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-controller-capture-final-{test,check}.log. Earlier full
+  pass19.52/38.84 preceded missing-infrastructure hardening; repeated for that change.
+  Work08:00:15–about08:11UTC (~10m45). Full docs/controller-capture-authority.md plus
+  README/index describe setup, permissions, flags, failure contracts and live gaps.
+- Remaining: deployed independent physical capture evidence, lifecycle/custody/account/
+  creator assembly, physical quotas/volume provisioning, reviewed image/live acceptance,
+  unknown-ID incident handling, authenticated delivery/review. Real inspection/journal
+  latency within channel deadlines is unmeasured. Required file dispatch remains
+  blocked; mocked grants are not proof of production source isolation or live P0 gates.
+- Prepared cumulative subject: feat: bind isolated capture to durable current task authorization.
+  Continue local MVP work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0012/ saved, cumulative
+  patch/manifest with excluded link WIP preserved/labeled.19 modified tracked/42 new
+  files, empty index, clean whitespace; no unexpected scope/removals.
+  Last notification: durable current-task capture authority and full checks verified;
+  deployed physical quota/evidence, lifecycle assembly and delivery remain incomplete.
+
+### Worker-local capture evidence — overnight continuation
+
+- Resumed08:16:14UTC after actual clock/rules/checkpoint and Git-helper comparison
+  with0012: same feature branch/empty index, only checkpoint append, no concurrent edits.
+- Added workspaceCapturePhysicalEvidence scoped to actual worker creator ownership/
+  lifetime, reviewed image, detached retained record, request and object-volume identity.
+  Constructor rejects missing ownership/binding guard and source/job/repository drift.
+  This observer has no launch/removal/byte-read/accounting mutation API.
+- Each check pins current worker/job/execution/definition/company/room and exact
+  request/proof, rereads actual retained record/fences, requires independent durable
+  binding/quota/private-proof witness, verifies exact running helper/two volumes/full
+  references/catalogs twice, rereads fences, then requires witness again with the
+  same ID. Expiry, record replacement or post-inspection revocation refuses evidence.
+- Mandatory capturePhysicalBindingGuard must independently prove local/controller
+  exact bound identity, reviewed image/object volume, charges/actual physical quotas
+  and proof origin on owned private helper channel. No permissive/default/deployed
+  witness is supplied; metadata counters/labels are never physical quota proof.
+- Tests hold actual synthetic creator locks and retained files, with mocked Docker,
+  quota/binding/private-proof evidence. Cover healthy passes, denied quota before
+  inspection, post-inspection denial, missing/foreign/changed IDs, writable source,
+  extra references, replaced volume, changed retained record, forged proof and expired/
+  missing ownership. An invalid diagnostic fixture was corrected to a valid changed
+  timestamp; no production check was weakened. No real DB/Docker/provider/private data.
+- Focused tests passed; make test passed18.69s; make check passed38.25s including
+  race/static/docs/UI. Logs /private/tmp/commonroom-capture-evidence-{test,check}.log.
+  Work08:16:14–about08:22UTC (~5m45). Full docs/worker-capture-evidence.md and README/
+  index/controller links document setup, trust/permissions, no-toggle boundary and gaps.
+- Remaining: deployed durable binding/physical quota/private-proof witness, account/
+  creator/lifecycle/custody composition, actual quota/volume provisioning, reviewed
+  image/latency/live acceptance, unknown-ID incident handling and public delivery/
+  human review. Required file dispatch remains blocked; no live release gate certified.
+- Prepared cumulative subject: feat: bind isolated output capture to creator-scoped physical evidence.
+  Continue local MVP work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0013/ saved, cumulative
+  patch/manifest with excluded link WIP preserved/labeled.19 modified tracked/45 new
+  files, empty index, whitespace clean; no unexpected changes/removals.
+  Last notification: creator-scoped capture evidence/full checks verified; deployed
+  durable quota/binding witness and end-to-end composition remain mandatory gaps.
+
+### Durable worker capture journal and admission accounting — overnight continuation
+
+- Resumed08:30:57UTC after actual clock/rules/checkpoint and Git-helper verification
+  against0013: same feature branch/empty index, only checkpoint append, no concurrency.
+- Added workerCaptureJournal implementing lifecycle/recovery journals under actual
+  creator ownership/lifetime. Finite request/image/object-volume intent and exact ID
+  histories persist/sync before controller acknowledgment. Detached callback inputs
+  prevent mutation of pinned metadata. Guard must authenticate source/cleanup, actual
+  quota/image/creator and account-wide admission; no permissive/default guard exists.
+- Begin/bound/finish preserve uncertainty; only acknowledged durable confirmed/recovered
+  markers release helper slots. Unknown IDs are never adopted. Known-ID recovery is
+  explicit; failed/non-absent recovery stays charged. Second unsettled capture per job,
+  replay, substituted intent and malformed state-machine histories are refused.
+- Existing worker/probe admission now includes every unsettled capture in its shared
+  conservative four-container ceiling. Corrupt/noncanonical/private-file violations
+  block admission. Ambiguous local/controller persistence writes the shared integrity
+  stop and independently revokes authority; ordinary permission denial does not.
+- Shared helper-event validation with the existing probe journal. Added metadata-only
+  ValidCaptureMetadata for durable record replay without inventing an observed daemon
+  root; actual root/physical validation stays separate. No source bytes/observations,
+  quota release, public capability or product flag is manufactured.
+- Synthetic private-file/actual-lock tests with mocked guards cover durable-before-ack,
+  confirmation, known recovery, unknown retention, slot counting, authority denials,
+  second-capture block, local/remote persistence and confirmation failures, replay,
+  identity substitution, malformed/noncanonical/symlink/unsafe-mode records. Existing
+  capture/probe tests pass; no DB/Docker/provider/private-data interaction used.
+- make test passed21.92s; make check passed36.85s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-journal-{test,check}.log. Work08:30:57–about
+  08:38UTC (~7 minutes). Full docs/worker-capture-journal.md and README/index cover
+  setup, permissions/flags, failure accounting, limits and remaining integration.
+- Remaining: deployed controller capture/account ledger and authenticated transition
+  transport, actual physical quota/private-proof witness and volume provisioning,
+  reviewed image/latency/live acceptance, unknown-ID incident handling and authenticated
+  delivery/human review. Required file tasks remain blocked; local files and mocked
+  acknowledgments do not certify a complete workflow or live P0 gate.
+- Prepared cumulative subject: feat: durably journal isolated captures and retain admission charges.
+  Continue local MVP work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0014/ saved, cumulative
+  patch/manifest with excluded link WIP preserved/labeled.20 modified tracked/48 new
+  files, empty index, whitespace clean; no unexpected scope/removals.
+  Last notification: durable capture journal/admission accounting and full checks
+  verified; controller/account transport, physical quota and delivery remain open.
+
+### Controller capture ledger/account capacity — overnight continuation
+
+- Started08:43:43UTC after clock/rules/checkpoint and Git-helper comparison with0014.
+  Subsequent heartbeats steered the same active implementation. Resumed11:16:45UTC
+  to finish checkpoint after interruption; Git helper reconfirmed expected scope,
+  empty index/clean whitespace and no concurrent changes. No new branch/run.
+- Added private room WorkspaceCaptureReservation and shared finite CaptureIntent.
+  Controller ledger binds exact task execution/definition/request/image/object-volume
+  intent and current human permission, requires independent physical/local evidence,
+  reloads policy/capacity after evidence and appends with audit-revision fencing.
+  Creation/binding applies deadline/task/delegation/coordination/flags/launch checks;
+  fresh authorized cleanup may proceed with product flags/launches off.
+- Ordinary role allocation, metadata-probe and capture admission now count both helper
+  families against the same account-wide four-container ceiling. Uncertain captures
+  remain charged across workers/rooms. Only durably verified helper absence releases
+  its helper slot, never object/source storage. Unknown IDs are not adopted.
+- Added audit projection/summary, current retry idempotence and duplicate audit-event
+  rejection. Captures require exact finite definition/member bindings; malformed
+  record/release bits block allocation. Worker-only confirmation markers are refused.
+  Evidence callback slices are detached; public lifecycle injection is rejected.
+- Mocked tests cover durable replay, combined role/probe/capture capacity, unknown
+  retention/known recovery, physical/principal/definition/member/flag denials, CAS,
+  persistence/integrity stop, flags-off cleanup, malformed release/history and callback
+  mutation. No actual DB/container/provider/private fixtures or live evidence used.
+- make test passed22.97s. Initial make check failed31.60s at vet after race tests passed:
+  shared external CaptureIntent alias exposed two unkeyed initializers. Corrected to
+  keyed fields; final make test passed2.23s and make check passed11.37s (cached tests,
+  full remaining static/docs/UI checks). Logs /private/tmp/commonroom-controller-capture-ledger-*
+  and final-* logs. Implementation08:43–08:52 (~9m); checkpoint resumed11:16 after gap,
+  not continuous coding across the entire elapsed interval.
+- Full docs/controller-capture-ledger.md and README/index document usage, permissions,
+  flags, capacity/recovery and gaps. Preserved unrelated repository-link WIP in model/
+  shared projection; no publication/staging. Current scope22 tracked modified/53 new.
+- Remaining: deployed authenticated transition transport/guard, independent local/
+  physical lifecycle evidence, physical source/object quota and volume provisioning,
+  end-to-end creator/custody composition, image/latency/live acceptance, unknown-ID
+  incident resolution and authenticated delivery/human review. Required file dispatch
+  remains blocked; no synthetic acknowledgment is claimed as live P0 acceptance.
+- Prepared cumulative subject: feat: account for isolated capture lifecycle across workers.
+  Continue authorized local work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0015/ saved, cumulative
+  patch/manifest with excluded link WIP preserved/labeled.22 modified tracked/53 new
+  files, empty index, whitespace clean; prior snapshots retained.
+  Last notification: controller capture ledger/combined account admission and full
+  checks verified; live quota/evidence, authenticated transition wiring and delivery
+  remain incomplete. Cached final timings explicitly distinguished above.
+
+### Independent capture lifecycle evidence — overnight continuation
+
+- Resumed11:31:16UTC after actual clock/rules/checkpoint and Git-helper verification
+  against0015: same feature branch/empty index, only checkpoint append, no concurrency.
+- Added creator-scoped workspaceCaptureLedgerEvidence. Before acknowledgment it
+  requires exact persisted canonical worker capture history/intent and candidate
+  transition, retained record/fences, current worker/job/execution binding and a
+  mandatory independent lifecycle/quota/account witness. Copies detach callbacks.
+- Begin requires zero references to both retained volumes/job/helper name; bound
+  requires strict created-helper admission for the durable exact ID. Finish/recovery
+  inspect only known IDs; claimed absence must actually be observed. Unknown IDs
+  are never discovered/adopted. Observers perform no lifecycle or byte-read effects.
+- After physical calls, reread retained fences/local history and require witness again.
+  Revocation, changed history/record, extra references, expired scope and false absence
+  refuse acknowledgment. Local terminal confirmation markers are stripped only for
+  exact controller-history comparison; they cannot invent missing transitions.
+- Added bounded read-only plan VerifyNoReferences/InspectRecorded using shared
+  runtime/recovery inspection. No removal/release/host fallback or optional bypass.
+  Actual deployed operation-specific quota/account/current-authority witness remains
+  mandatory and missing; metadata alone never proves physical storage limits.
+- Tests use actual synthetic private local journals/creator locks with mocked Docker/
+  quota/account witnesses: vacant begin, created bind, known recovery, actual/false
+  absence, corrupt/mismatched history, denied quota, revocation, extra refs, missing/
+  expired scope; no real DB/provider/container/private data. Existing tests pass.
+- make test passed21.56s; make check passed36.95s including race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-lifecycle-evidence-{test,check}.log. Work11:31:16
+  –11:37:43UTC (~6m27). Full docs/capture-lifecycle-evidence.md and README/index/
+  controller ledger links cover configuration, permissions/flags, failure and gaps.
+- Remaining: deployed authenticated transition transport/guard, actual physical quota/
+  account witness and volume provisioning, end-to-end creator/custody orchestration,
+  image/latency/live acceptance, unknown-ID incident handling and authenticated artifact
+  delivery/human review. Required file tasks remain blocked; no live P0 gate certified.
+- Prepared cumulative subject: feat: verify persisted capture lifecycle before releasing helper capacity.
+  Continue local work through14:00UTC; no staging/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0016/ saved, cumulative
+  patch/manifest with excluded link WIP preserved/labeled.22 modified tracked/56 new
+  files, empty index, clean whitespace; no unexpected scope/removals.
+  Last notification: local-history/actual-absence lifecycle evidence and full checks
+  verified; deployed quota/account witness and end-to-end delivery still incomplete.
+
+### Private capture authority stream — overnight continuation
+
+- Resumed11:42:01UTC after actual clock/rules/checkpoint and Git-helper verification:
+  same feature branch/HEAD, empty index; only checkpoint differed from0016.
+- Added bounded private capture journal guard client/server protocol. Both sides pin
+  exact retained creator/room/job/source/request/image/object intent; current authority,
+  physical quota/account evidence and controller persistence remain mandatory external
+  guards. No listener or deployment authentication is invented from message metadata.
+- Canonical128KiB framed JSON, sequential matching acknowledgments, strict operation/
+  event/history shapes, five-second exchanges, two-minute/64-exchange session cap.
+  Callback metadata is detached. Invalid/uncertain responses close the owned stream
+  and stop local authority once; established server termination revokes its guard.
+  No reconnect, automatic replay, source bytes or host/container isolation bypass.
+- Synthetic pipe/journal integration covers full begin/bound/finish persistence and
+  slot release, denied acknowledgment retaining its charge/integrity stop, substituted
+  records/intents/history, invalid stages/versions/operations/sequences, malformed JSON,
+  bounds, cancellation, poisoned reuse and callback mutation. External boundaries
+  remain mocked; no DB/container/provider/private data used.
+- make test passed (cmd/server22.084s; total wrapper duration not instrumented).
+  make check passed39.65s wall including race/static/docs/UI. Logs:
+  /private/tmp/commonroom-capture-authority-transport-{test,check}.log.
+  Work11:42:01–11:45:35UTC (~3m34). Full transport docs plus README/index updated.
+- Remaining: authenticated deployment stream/session establishment, operation-specific
+  controller guard/quota/account composition, physical quotas/volume provisioning,
+  end-to-end creator/custody/delivery/human review, actual rootless image/latency/live
+  acceptance and unknown-ID incident handling. File-task dispatch remains blocked;
+  synthetic transport tests do not establish production/live P0 acceptance.
+- Prepared cumulative subject: feat: enforce private capture lifecycle authority exchanges.
+  Continue authorized local work through14:00UTC; no stage/commit/publication.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0017/changes.patch and
+  manifest saved0700/0600;22 modified tracked/59 new, empty index/clean whitespace.
+  Expected transport paths only; excluded repository-link WIP preserved/labeled.
+  Last notification: private capture control stream and full checks verified;
+  deployment authentication, actual quota enforcement and end-to-end delivery remain
+  incomplete. No commit or publication performed.
+
+### Pinned controller capture session — overnight continuation
+
+- Resumed11:47:17UTC after actual clock/rules/checkpoint and Git-helper verification:
+  same feature branch/HEAD, empty index, only checkpoint changed since0017.
+- Added concrete workerCaptureJournalGuard adapter around current controller policy
+  and durable capture ledger. Authenticated setup pins human, worker, creator record,
+  finite intent and lifetime; per-call contexts cannot substitute the principal.
+- Operation prechecks require independent current creator/physical quota/account
+  evidence and reloaded policy/audit revision. Only next/latest transition can be
+  rechecked, never an old idempotent event used as fresh operation authority. Capacity
+  remains unreserved until the separate durable lifecycle acknowledgment succeeds.
+- Acknowledgment pins exact received local history inside the ledger's fenced snapshot;
+  truncated/substituted history is refused before physical evidence. All controller
+  writes still require current permissions, capacity and independent transition evidence.
+- Session stop permanently cancels its lifetime and trips controller integrity. Clearing
+  a global fault cannot revive the old session. Flags-off cleanup remains separately
+  authorized; begin/bound still require current feature/task/launch/deadline policy.
+  No public listener, authentication assumption, source-byte grant or isolation bypass.
+- Mocked DB/evidence tests cover full lifecycle/retry, principal pinning, wrong worker/
+  record/intent, stale history, canceled lifetime, physical denial, missing/agent actor,
+  flags-off admission/cleanup, audit conflict/persistence failure, callback mutation and
+  permanent stop. No real DB/container/provider or private data used.
+- make test passed24.83s wall; make check passed38.06s wall including race/static/docs/UI.
+  Logs /private/tmp/commonroom-controller-capture-session-{test,check}.log.
+  Full docs/controller-capture-session.md plus README/index updated.
+- Remaining: deployed authenticated stream establishment, concrete operation-specific
+  physical quota/account witness composition and actual quota/volume provisioning,
+  end-to-end isolated creator/custody/artifact delivery/human review, image/latency/live
+  acceptance and unknown-ID incident handling. Required file-task dispatch remains
+  blocked. Synthetic session tests certify no live P0 gate.
+- Prepared cumulative subject: feat: pin capture lifecycle sessions to authenticated controller authority.
+  Continue authorized local work through14:00UTC; no staging/commit/publication.
+- Work11:47:17–11:52:19UTC (~5m02). Recovery0018 saved under
+  /private/tmp/commonroom-mvp-integration-backups/0018/ with cumulative patch/manifest,
+  excluded repository-link WIP preserved/labeled;22 tracked modified/62 new files,
+  empty index/clean whitespace,0700/0600. No publication/staging/commits.
+  Last notification: pinned controller lifecycle session adapter and full checks
+  verified; actual deployment/quota composition and end-to-end delivery remain open.
+
+### Creator-scoped capture operation observer — overnight continuation
+
+- Resumed11:58:44UTC after actual clock/rules/checkpoint and Git-helper verification:
+  same feature branch/HEAD, empty index; only checkpoint differed from0018.
+- Added concrete session-evidence adapter combining retained operation history checks
+  with existing independent persisted-transition evidence. Requires actual active
+  creator lease and mandatory operation/lifecycle physical quota/account witness;
+  does not synthesize a deployment witness or trust labels as quota proof.
+- Prechecks reread retained creator/cancellation/integrity fences and canonical local
+  capture history. Proposed event must extend valid history or exactly match latest
+  transition; settled records cannot start new work, unknown IDs cannot be adopted.
+- Independent permission before physical calls, shared exact-identity read-only begin/
+  bound/finish/recovery inspection, then reread complete local history/fences and
+  witness again. Changed history/record, extra references, false absence, revocation
+  and expired lifetime fail closed. Detached callback copies preserve pinned metadata.
+  Observers perform no lifecycle effects, reads of artifact bytes or quota refunds.
+- Tests use actual temporary synthetic creator leases/private journals and mocked
+  Docker/witnesses. Cover each stage before/after persistence, denied/revoked witness,
+  unexpected refs, corrupt/changed history, changed/foreign creator, wrong worker,
+  expiry/integrity latch, old transition reuse, unknown-ID recovery and missing scope.
+  No real DB/container/provider/credentials/private messages used.
+- make test passed24.68s wall; make check passed40.27s wall with race/static/docs/UI.
+  Logs /private/tmp/commonroom-capture-operation-evidence-{test,check}.log.
+  Work11:58:44–12:03:07UTC (~4m23, verification completed immediately afterward).
+  Full docs/capture-operation-evidence.md plus README/index/session guide updated.
+- Remaining: deployed authenticated stream setup, actual operation-specific quota/
+  account witnesses and physical quota/volume provisioning, end-to-end isolated
+  execution/custody/artifact delivery/human review, reviewed rootless image/latency/live
+  acceptance and unknown-ID incidents. Required file-task dispatch remains blocked;
+  no synthetic evidence is claimed as a live P0 gate pass.
+- Prepared cumulative subject: feat: verify retained capture history before lifecycle operations.
+  Continue local work through14:00UTC; no stage/commit/publication. Git helper verified
+  expected scope only,22 tracked modified/65 new, empty index/clean whitespace.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0019/ saved with cumulative
+  patch/manifest0700/0600; excluded repository-link WIP preserved/labeled;22 modified
+  tracked/65 new files, empty index/clean whitespace. No staging/commit/publication.
+  Last notification: creator-scoped operation observer and all checks verified;
+  actual quota enforcement/deployment composition and artifact delivery remain open.
+
+### Receipt-pinned sealed-object read channel — overnight continuation
+
+- Resumed12:14:14UTC after clock/rules/checkpoint and Git-helper verification against
+  0019: same feature branch/HEAD, empty index; only checkpoint append, no concurrency.
+- Added one-object private read protocol in objectcustody. Both peers require trusted
+  already-authenticated setup pinned to exact scope/sealed receipt; no object path,
+  URI, public endpoint or model-selected identity is accepted. Authentication is not
+  inferred from wire fields; isolated reader orchestration remains unassembled.
+- Canonical4096-byte headers distinguish request/response, followed by receipt-bounded
+  raw content (maximum16MiB). Receiver verifies exact receipt/length/SHA-256 and EOF;
+  malformed metadata, truncation, extra bytes and incomplete end fail closed. Each
+  side has30-second context lifetime with owned-stream cancellation/close.
+- Source reader must verify actual sealed custody bytes and durably authorize release.
+  Receiver requires separate current authorization and durable final acknowledgment
+  before returning verified bytes. Every attempted transfer failure returns nil bytes
+  and stops receiver authority. No reconnect/retry/refund/delete/isolation fallback.
+  Acknowledgments authorize release, never prove user receipt/task completion/acceptance.
+- Tests transfer actual temporary synthetic sealed custody objects over in-memory pipes;
+  cover empty/binary data, both sides' permission/audit denials, digest tamper, truncation,
+  trailing bytes, wrong receipt/version/operation, hostile headers/bounds, missing guards
+  and cancellation. Stored objects/charges survive failures. No real DB/Docker/provider,
+  credentials or private messages used.
+- make test passed27.26s wall; make check passed42.35s wall with race/static/docs/UI.
+  Logs /private/tmp/commonroom-sealed-object-read-channel-{test,check}.log.
+  Work12:14:14–12:19:40UTC (~5m26). Full docs/sealed-object-read-channel.md and README/index
+  document setup, permissions, no optional bypass, wire/release semantics and live gaps.
+- Remaining: deployed authenticated streams, isolated reader/helper/receiving controller
+  guard assembly, real quota/account witnesses and physical volume provisioning,
+  end-to-end isolated task artifact delivery/human review, rootless image/latency/live
+  acceptance and unknown-ID incident handling. Required file-task dispatch remains
+  blocked; actual synthetic bytes do not certify production/live P0 readiness.
+- Prepared cumulative subject: feat: verify private sealed artifact reads before release.
+  Continue local work through14:00UTC; no staging/commit/publication. Git helper verified
+  expected scope only,22 tracked modified/68 new, empty index/clean whitespace.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0020/ saved0700/0600 with
+  cumulative patch/manifest; excluded link WIP preserved/labeled,22 modified tracked/
+  68 new files, empty index/clean whitespace. No stage/commit/publication.
+  Last notification: actual synthetic sealed-byte transfer and full checks verified;
+  deployed isolated reader/controller release assembly and physical quotas remain open.
+
+### Pinned controller artifact read session — overnight continuation
+
+- Resumed12:30:45UTC after clock/rules/checkpoint and Git-helper verification against
+  0020: same feature branch/HEAD, empty index, only checkpoint append/no concurrency.
+- Added concrete receiving-side private-read guard pinned to authenticated human,
+  approved worker, exact sealed receipt and lifetime. Per-call contexts cannot choose
+  another principal; worker/job/output/revision/content substitution is refused.
+- Adapter uses existing controller custody authorization/ledger, mandatory independent
+  isolated-reader/root/export/retention/physical quota/account evidence, and reloads
+  access/receipt/reservation/audit revision after that callback. Stale or revoked
+  evidence cannot grant metadata approval or durable release acknowledgment.
+- ReadChannel verifies actual bytes before final controller acknowledgment; controller
+  persistence failure retains objects/charges and trips existing integrity stop.
+  Scoped transfer stop is nonblocking permanent session cancellation, not an invented
+  global persistence failure. New contexts cannot revive it. Read-only guard refuses
+  source validation/quota establishment/seal, preventing accidental write authority.
+- Synthetic integration joins actual temporary sealed objects, mocked controller DB/
+  custody journal and private pipes, proving both source/receiving release records.
+  Tests cover identity/receipt/scope/worker denials, canceled/stopped lifetime, denied
+  physical witness, callback-time incident revocation, audit revision changes, incident/
+  integrity stops, persistence failure and flags-off retained human reads. Existing
+  policy keeps retained reads available when task editing is off; all security checks
+  remain mandatory. No real DB/Docker/provider/private data/credentials used.
+- Initial focused test incorrectly expected a valid receipt acknowledgment to fail
+  after a rejected unrelated scope argument. Corrected only that expectation; valid
+  scope/receipt operations remain independent until explicit stop. Focused tests pass.
+- make test passed24.62s wall; make check passed40.71s wall including race/static/docs/UI.
+  Logs /private/tmp/commonroom-controller-artifact-read-session-{test,check}.log.
+  Full docs/controller-artifact-read-session.md plus README/index updated.
+- Remaining: deployed authenticated stream and isolated reader/helper orchestration,
+  actual independent release/quota/account witnesses and physical volume provisioning,
+  end-to-end task artifact delivery/human review, reviewed rootless image/latency/live
+  acceptance and unknown-ID incidents. Required file-task dispatch remains blocked;
+  actual synthetic bytes with controller code do not certify live P0 readiness.
+- Prepared cumulative subject: feat: bind artifact release to authenticated controller read sessions.
+  Continue local work through14:00UTC; no stage/commit/publication. Git helper verified
+  expected scope only,22 tracked modified/71 new, empty index/clean whitespace.
+- Work12:30:45–12:37:37UTC (~6m52). Recovery0021 saved under
+  /private/tmp/commonroom-mvp-integration-backups/0021/ with cumulative patch/manifest
+  0700/0600; excluded link WIP preserved/labeled,22 tracked modified/71 new files,
+  empty index/clean whitespace. No staging/commit/publication.
+  Last notification: pinned receiving controller release guard and actual synthetic
+  byte-channel integration/full checks verified; deployed reader and quota gaps remain.
+
+### Credential-free source read-journal relay — overnight continuation
+
+- Resumed12:44:17UTC after clock/rules/checkpoint and Git-helper verification against
+  0021: same feature branch/HEAD, empty index; only checkpoint append/no concurrency.
+- Added read-only source journal client for the trusted isolated reader's actual store
+  Get. It obtains current authorization and durable source release acknowledgment over
+  the same supervisor-owned private byte stream, without DB credentials or a permissive
+  local journal. Exact scope/receipt, lifetime, replies and phase are pinned.
+- Parent read protocol permits only source-authorize -> durable source-acknowledge ->
+  object, rejecting repeats/skips/substitution/incomplete phases; final actual byte/
+  EOF verification and separate receiving acknowledgment remain mandatory. Direct
+  trusted readers retain their own mandatory journal. No model/path/host fallback.
+- Relay exchanges have5-second deadlines/current lifetime cancellation; uncertainty
+  poisons/closes the stream and stops local authority once. Reserve/Seal always refuse.
+  Failed source/receiver transfer retains original object/charge and any authorization
+  history; acknowledgments never prove user receipt/task completion/human acceptance.
+- Tests relay actual temporary synthetic custody objects through store Get/private pipes,
+  and join the real controller read session/custody ledger with mocked DB/evidence.
+  Cover both source/receiving durable records, denied source acknowledgment, phase-order
+  attacks, substituted replies, dead lifetime, poisoned reuse and read-only enforcement.
+  No real DB/Docker/provider/private data/credentials used; no live gate claimed.
+- make test passed27.42s wall; make check passed41.36s wall with race/static/docs/UI.
+  Logs /private/tmp/commonroom-sealed-read-journal-relay-{test,check}.log.
+  Full docs/sealed-read-journal-relay.md plus channel guide/README/index updated.
+- Remaining: fixed isolated reader entrypoint/image, actual kernel read-only mount/root
+  observation, supervised reader lifecycle/account admission, deployed authentication,
+  real release/quota/account witnesses and physical provisioning, end-to-end task
+  delivery/human review and rootless image/latency/live acceptance/unknown-ID incidents.
+  Required file-task dispatch remains blocked. This slice completes the journal relay,
+  not the deployed reader runtime; synthetic integration is not live P0 acceptance.
+- Prepared cumulative subject: feat: relay sealed-object source reads through durable controller authority.
+  Continue local work through14:00UTC; no stage/commit/publication. Git helper verified
+  expected scope only,22 tracked modified/74 new, empty index/clean whitespace.
+- Work12:44:17–12:52:29UTC (~8m12). Recovery0022 saved under
+  /private/tmp/commonroom-mvp-integration-backups/0022/ with cumulative patch/manifest
+  0700/0600; excluded link WIP preserved/labeled,22 tracked modified/74 new files,
+  empty index/clean whitespace. No stage/commit/publication.
+  Last notification: read-only source journal relay/controller byte integration and
+  full checks verified; fixed deployed reader/runtime/kernel/quota assembly remain open.
+
+### Fixed isolated object-reader helper — authorized continuation
+
+- User explicitly requested the next task/continued work. Resumed12:56:00UTC after
+  clock/rules/checkpoint and Git-helper verification against0022: same branch/HEAD,
+  empty index, checkpoint append only/no concurrency.13:03 heartbeat joined this
+  active implementation; no competing run started.
+- Added fixed credential-free objectread package/command and separate scratch image
+  recipe. One bounded canonical receipt/challenge argument, fixed /objects, private
+  supervisor stdio,30-second read/35-second process lifetime; no root/command/provider/
+  DB credential/host fallback inputs. Invalid args fail with generic diagnostics.
+- Actual Linux ObserveObjects checks UID/GID1000, safe owned directory, read-only
+  root/statfs and one explicit read-only /objects mount without stacked/submounts.
+  Existing /workspace behavior preserved; private parser permits only two fixed roots.
+  Unsupported platforms refuse. Local kernel reports remain evidence, not remote
+  authentication, volume identity or physical quota/writer-fencing proof.
+- Descriptor-pinned read lease checks mount proof and fixed/open-root inode before/
+  after controller authorization/audit and actual sealed-store reads. Changed mount/
+  root, writable view, challenge mismatch, revocation/cancel return no bytes. Read-only
+  source journal still obtains durable source acknowledgment; no write/refund API.
+- Tests use temporary actual synthetic sealed files, mocked mount/controller boundaries
+  and pipes. Cover byte relay, writable mount/root, bad challenge, mount/identity change
+  during authorization, revocation, cancellation after source acknowledgment, command
+  canonical/finite decoding and mount parser attacks. No real DB/Docker/provider/private
+  data used; no container image built/pulled/launched or live gate claimed.
+- Offline static Linuxamd64 build passed: /private/tmp/commonroom-object-read-linux-amd64
+  SHA256 cd8b8701cd0b803831a432e2e12c8859ab06d232881a41a5dfedf634ff2f075c.
+  This is a compiler artifact, not a reviewed/runtime-observed image identity.
+- make test passed27.22s wall; make check passed40.85s wall with race/static/docs/UI.
+  Logs /private/tmp/commonroom-isolated-object-reader-{test,check}.log.
+  Work12:56:00–13:03:16UTC (~7m16). Full docs/isolated-object-reader.md plus README/index.
+- Remaining: reader plan/admission/lifecycle/account recovery, deployed authentication,
+  actual release/quota/account witnesses and physical provisioning, end-to-end task
+  artifact delivery/human review, reviewed rootless image/latency/live acceptance and
+  unknown-ID incidents. Required file-task dispatch remains blocked.
+- Prepared cumulative subject: feat: add a fixed read-only isolated artifact reader.
+  Continue through14:00UTC; no stage/commit/publication. Git helper verified expected
+  scope only,26 tracked modified/80 new, empty index/clean whitespace.
+- Recovery /private/tmp/commonroom-mvp-integration-backups/0023/ saved0700/0600 with
+  cumulative patch/manifest; excluded link WIP preserved/labeled,26 tracked modified/
+  80 new files, empty index/clean whitespace. Last notification: fixed reader helper,
+  mocked mount/relay tests and offline static build/full checks verified. Continuing
+  reader admission work; no stage/commit/publication.

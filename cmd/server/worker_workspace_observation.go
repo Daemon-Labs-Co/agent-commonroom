@@ -33,6 +33,7 @@ type workerWorkspaceObservation struct {
 	record          workerJobRecord
 	runner          toolbroker.DockerRunner
 	guard           workerWorkspaceObservationGuard
+	ownership       *workerLease
 }
 
 func (l *workerWorkspaceObservation) Check(ctx context.Context) error {
@@ -61,24 +62,9 @@ func (l *workerWorkspaceObservation) checkWorkspace(ctx context.Context, probe *
 	defer stop()
 	defer cancel()
 	ctx = child
-	current, err := readWorkerRecord(l.dir, l.record.JobID)
-	if err != nil || !sameWorkerFenceBinding(current, l.record) || !retainedObservationRecord(current) || current.Pair.Workspace.Identity != l.record.Pair.Workspace.Identity || current.Pair.Engine != l.record.Pair.Engine || current.Pair.Tool != l.record.Pair.Tool {
-		return errors.New("workspace observation binding changed")
-	}
-	scalar, wanted := current, l.record
-	scalar.Pair = nil
-	wanted.Pair = nil
-	if scalar != wanted {
-		return errors.New("workspace observation record changed")
-	}
-	latch, err := openPrivateRegular(filepath.Join(l.dir, current.JobID+".cancel"), os.O_RDONLY, 8192)
+	current, err := readRetainedWorkspaceObservation(l.dir, l.record)
 	if err != nil {
-		return errors.New("workspace cancellation unverified")
-	}
-	raw, readErr := io.ReadAll(io.LimitReader(latch, 7))
-	closeErr := latch.Close()
-	if readErr != nil || closeErr != nil || string(raw) != "cancel" {
-		return errors.New("workspace cancellation unverified")
+		return err
 	}
 	// Give the guard a detached record: callbacks must not be able to mutate the
 	// immutable lease binding through Pair/Workspace pointers.
@@ -90,8 +76,43 @@ func (l *workerWorkspaceObservation) checkWorkspace(ctx context.Context, probe *
 	if l.guard.AuthorizeWorkspaceObservation(ctx, copy) != nil || ctx.Err() != nil || l.lifetime.Err() != nil {
 		return errors.New("workspace observation unauthorized")
 	}
+	if err := verifyRetainedWorkspaceReferences(ctx, current, l.dockerRoot, l.runner, probe, probeID, recovery); err != nil {
+		return err
+	}
+	if ctx.Err() != nil || l.lifetime.Err() != nil {
+		return errors.New("workspace observation cancelled")
+	}
+	return nil
+}
+func readRetainedWorkspaceObservation(dir string, expected workerJobRecord) (workerJobRecord, error) {
+	if !retainedObservationRecord(expected) {
+		return workerJobRecord{}, errControllerProbe
+	}
+	current, err := readWorkerRecord(dir, expected.JobID)
+	if err != nil || !sameWorkerFenceBinding(current, expected) || !retainedObservationRecord(current) || current.Pair.Workspace.Identity != expected.Pair.Workspace.Identity || current.Pair.Engine != expected.Pair.Engine || current.Pair.Tool != expected.Pair.Tool {
+		return workerJobRecord{}, errors.New("workspace observation binding changed")
+	}
+	scalar, wanted := current, expected
+	scalar.Pair = nil
+	wanted.Pair = nil
+	if scalar != wanted {
+		return workerJobRecord{}, errors.New("workspace observation record changed")
+	}
+	latch, err := openPrivateRegular(filepath.Join(dir, current.JobID+".cancel"), os.O_RDONLY, 8192)
+	if err != nil {
+		return workerJobRecord{}, errors.New("workspace cancellation unverified")
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(latch, 7))
+	closeErr := latch.Close()
+	if readErr != nil || closeErr != nil || string(raw) != "cancel" {
+		return workerJobRecord{}, errors.New("workspace cancellation unverified")
+	}
+	return current, nil
+}
+
+func verifyRetainedWorkspaceReferences(ctx context.Context, current workerJobRecord, dockerRoot string, runner toolbroker.DockerRunner, probe *toolbroker.WorkspaceMountProbe, probeID string, recovery bool) error {
 	for _, filter := range []string{"name=^/" + pairContainerName(current.JobID, "engine") + "$", "name=^/" + pairContainerName(current.JobID, "tool") + "$", "label=commonroom.job=" + current.JobID} {
-		remaining, err := pairInventory(ctx, l.runner, filter)
+		remaining, err := pairInventory(ctx, runner, filter)
 		expected := ""
 		if strings.HasPrefix(filter, "label=") {
 			expected = probeID
@@ -116,14 +137,12 @@ func (l *workerWorkspaceObservation) checkWorkspace(ctx context.Context, probe *
 		if verifyErr != nil {
 			return errors.New("workspace probe references unverified")
 		}
-	} else if err := toolbroker.VerifyRetainedWorkspace(ctx, l.runner, current.JobID, current.Pair.Repository, l.dockerRoot, current.Pair.Workspace.Identity); err != nil {
+	} else if err := toolbroker.VerifyRetainedWorkspace(ctx, runner, current.JobID, current.Pair.Repository, dockerRoot, current.Pair.Workspace.Identity); err != nil {
 		return err
 	}
-	if ctx.Err() != nil || l.lifetime.Err() != nil {
-		return errors.New("workspace observation cancelled")
-	}
-	return nil
+	return ctx.Err()
 }
+
 func retainedObservationRecord(r workerJobRecord) bool {
 	return validWorkerRecord(r) && r.Version == workerWorkspaceLifecycleVersion && r.Status == "shutdown_unconfirmed" && !r.ShutdownConfirmed && r.Pair != nil && r.Pair.Workspace != nil && !r.Pair.Workspace.Removed && toolbroker.ValidWorkspaceVolume(r.JobID, r.Pair.Workspace.Identity, true) && r.Pair.Engine.CreationStarted && r.Pair.Tool.CreationStarted && validPairContainerID(r.Pair.Engine.ID) && validPairContainerID(r.Pair.Tool.ID) && r.Pair.Engine.Absent && r.Pair.Tool.Absent
 }
@@ -163,7 +182,9 @@ func withWorkerWorkspaceOwnership(ctx context.Context, dir string, expected work
 		return errors.New("workspace creator busy")
 	}
 	defer ownership.Close()
-	l := &workerWorkspaceObservation{active: true, lifetime: ctx, dir: dir, dockerRoot: dockerRoot, record: expected, runner: runner, guard: guard}
+	lifetime, expire := context.WithCancel(ctx)
+	defer expire()
+	l := &workerWorkspaceObservation{ownership: ownership, active: true, lifetime: lifetime, dir: dir, dockerRoot: dockerRoot, record: expected, runner: runner, guard: guard}
 	defer func() { l.mu.Lock(); l.active = false; l.mu.Unlock() }()
 	if err = use(l); err != nil {
 		return err

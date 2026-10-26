@@ -57,10 +57,18 @@ func artifactActor(st room.State, ctx context.Context, rid string) bool {
 	a, ok := member(st, actor)
 	return ok && a.Enabled && a.Kind == "human" && canAccess(st, actor, rid)
 }
+
+// A fenced retained workspace may be captured while the original task attempt
+// and deadline are still current. Status is not physical proof: the mandatory
+// source guard must independently verify isolation, writer absence and quota.
+// Confirmed shutdown/disposal and expired attempts grant no fresh source rights.
+func artifactCaptureJobStatus(job room.ManagedJob) bool {
+	return !job.ShutdownConfirmed && (job.Status == "submitted" || job.Status == "shutdown_unconfirmed")
+}
 func artifactSourceJob(st room.State, intent objectcustody.Intent) (room.ManagedJob, bool) {
 	scope := intent.Scope
 	j, ok := st.ManagedJobs[scope.JobID]
-	if !objectcustody.ValidIntent(intent) || !ok || !validManagedJob(j) || j.Version != workerWorkspaceLifecycleVersion || j.ShutdownConfirmed || j.Status != "submitted" || !time.Now().Before(j.Deadline) || j.CompanyID != scope.CompanyID || j.CompanyID != st.Company.ID || j.RoomID != scope.RoomID || j.RepositoryDigest != scope.RepositoryDigest || j.TaskID != scope.TaskID || j.TaskDispatchID != scope.ExecutionID || j.TaskDefinitionDigest != scope.DefinitionDigest || (!managedTaskCurrent(st, j) || !coordinationJobAllowed(st, j) || !delegatedJobAllowed(st, j)) {
+	if !objectcustody.ValidIntent(intent) || !ok || !validManagedJob(j) || j.Version != workerWorkspaceLifecycleVersion || j.ShutdownConfirmed || !artifactCaptureJobStatus(j) || !time.Now().Before(j.Deadline) || j.CompanyID != scope.CompanyID || j.CompanyID != st.Company.ID || j.RoomID != scope.RoomID || j.RepositoryDigest != scope.RepositoryDigest || j.TaskID != scope.TaskID || j.TaskDispatchID != scope.ExecutionID || j.TaskDefinitionDigest != scope.DefinitionDigest || (!managedTaskCurrent(st, j) || !coordinationJobAllowed(st, j) || !delegatedJobAllowed(st, j)) {
 		return j, false
 	}
 	if !artifactRecordedSource(st, intent) {
@@ -219,7 +227,7 @@ func validateArtifactTransition(st room.State, kind string, v artifactCustodyEve
 		job := st.ManagedJobs[v.Intent.Scope.JobID]
 		execution := st.TaskExecutions[v.Intent.Scope.ExecutionID]
 		actor := v.ActorID
-		if job.Status != "submitted" || job.ShutdownConfirmed || (actor != ownerID && actor != job.InitiatorID) {
+		if !artifactCaptureJobStatus(job) || job.ShutdownConfirmed || (actor != ownerID && actor != job.InitiatorID) {
 			return errArtifactCustody
 		}
 		pending := false
