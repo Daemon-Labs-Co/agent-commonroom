@@ -331,3 +331,8 @@ Supervised capture keeps its attached process stream open until successful exit 
 exited-container verification; protocol failure or cancellation still interrupts it.
 See the [capture lifecycle contract](docs/capture-supervision.md). This ordering fix
 does not enable file dispatch or replace live container acceptance.
+
+[Task repository references](docs/task-repository-links.md) provide a default-off,
+API-only list of GitHub issue/branch/commit/PR links per shared-room task. Enabled
+humans with room access may read; only the owner may edit. References are not verified
+deliverables or repository execution/push authority. The guide is available in Help.

@@ -205,3 +205,12 @@ data. No public storage-management operation or physical quota backend is enable
 yet. Do not fabricate inventory, edit the journal or delete retained volumes to
 restore capacity. Production development stays gated pending physical enforcement
 and exact approved disposal.
+
+## Task repository reference configuration
+
+`taskRepositoryLinks` is off by default. The owner may enable/disable this API-only
+feature through an authenticated `feature.flag.updated` event, without restart or
+migration. Disabling blocks reads and writes while retaining references/history.
+See [task repository references](task-repository-links.md) for API requests, current
+revision/CSRF/operation-key requirements and permission/URL limitations. It requires
+no GitHub credentials or outbound integration and grants no repository authority.

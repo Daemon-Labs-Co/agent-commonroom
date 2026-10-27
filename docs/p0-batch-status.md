@@ -3028,3 +3028,37 @@ proof does not establish live daemon or descendant termination guarantees.
   /private/tmp/commonroom-pr73-capture-close-backup/0001/ against2650035.
   Last notification: P1 fixed locally, make test and unchanged full-check retry pass;
   owner must sign/push before new remote review. No staging/commit/publication.
+
+### PR73 P2 repository-reference completion — local review fix
+
+- User authorized bringing the published repository-link feature in line with the
+  completion rules. PR73 observed open at 9f8b9964bc2751ff9ba01f403fd69f62373de289;
+  Greptile comment 4383947445/thread PRRT_kwDOVETwiM6wgbxD reviewed that commit.
+  Validated missing coverage/documentation locally; feedback grants no publication
+  authority. Earlier capture-close P1 is resolved/outdated on that head.
+- Git helper verified a clean checkout and empty index before switching to existing
+  codex/mvp-deliverable-integration at the exact PR head. Preserved existing behavior;
+  no endpoint changes, staging, commits, pushes or GitHub messages.
+- Added mocked endpoint tests for default/off/on retention, save/clear/replay,
+  revision/idempotency conflicts, owner/member/agent/room authority, CSRF, direct
+  event refusal, strict JSON/body/link limits, URL restrictions and failed persistence.
+  Fixtures are synthetic; no real DB, Docker, provider or external request used.
+- Added docs/task-repository-links.md with user/API examples, permissions, audit,
+  revisions, limits and feature-flag contract; linked README, concepts, operations,
+  documentation index and in-app Help. taskRepositoryLinks defaults off, owner-only
+  changes, no restart, retained history/data when off. The feature remains API-only;
+  no dedicated editing dialog/Settings switch or verified repository evidence implied.
+- Focused endpoint tests passed. make test passed in 26.76s. Initial make check
+  passed race tests but failed vet on four unkeyed test literals (35.67s); corrected
+  to explicit fields. Full make check retry passed in 12.56s with race/static/docs/UI
+  checks. Logs: /private/tmp/commonroom-pr73-repository-links-test.log and
+  /private/tmp/commonroom-pr73-repository-links-check{,-retry}.log.
+- Work observed 04:07:53–04:14:29 UTC (~6m36s). Integration gaps remain: API-only
+  reference editing, no external URL verification, and previously recorded isolated
+  reader lifecycle/quota/deployment/live acceptance gaps. Mocked checks do not certify
+  live readiness; required file-task dispatch remains blocked.
+- Recovery patch/manifest requested at
+  /private/tmp/commonroom-pr73-repository-links-backup/0001/ against 9f8b996.
+  Prepared commit message: test: complete task repository reference coverage and documentation
+  Last notification: tests and full checks pass; missing documentation and API coverage
+  ready locally for Mark's review/signing/publication. Scheduled heartbeat stays paused.

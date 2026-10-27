@@ -82,6 +82,8 @@ Separate projects and complete project permissions do not exist yet. Non-owner m
 
 ## Tasks, evidence, and workflows
 
+The optional [task repository references API](task-repository-links.md) records human-maintained GitHub links. It defaults off and has no dedicated editing UI yet. Links do not grant repository authority or prove delivery/acceptance.
+
 Tasks have an assignee, optional reviewer, criteria, status, and revision. Evidence entries record human-provided Changes, Checks, Artifacts, or Review. They are assertions supplied by a person, not automatically verified tool results. Automatic QA transitions, evidence collection, and file uploads are pending.
 
 Workflows belong to rooms. Add nodes, connect outputs to inputs, edit properties, save versions, and Validate. Validation reports structural/assignment problems; Save accepts incomplete drafts. Run is available when the owner enables `workflowExecution`. Supported sequential nodes execute with bounded timeouts, explicit review outcomes and human gates. Parallel nodes, retries and cross-room handoffs are rejected or unavailable. See [workflow execution](workflow-execution.md).
