@@ -39,6 +39,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 		rememberAgentRoomReferences(data, referencedAgentRooms)
 		st.EventCount++
 		switch kind {
+		case "task.repository_links.updated":
+			if err := projectTaskRepositoryLinks(&st, data); err != nil {
+				return st, err
+			}
 		case "task.acceptance.reviewed":
 			if err := projectTaskAcceptanceReview(&st, data); err != nil {
 				return st, err
@@ -65,6 +69,18 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 		case "workspace.disposal.proposed", "workspace.disposal.claimed", "workspace.disposal.revoked", "workspace.disposal.succeeded", "workspace.disposal.unconfirmed":
 			if err := projectWorkspaceDisposal(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "workspace.capture.acknowledged":
+			if err := projectControllerCapture(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.capture.authorized":
+			if err := projectControllerCaptureAuthorization(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.probe.authorized":
+			if err := projectControllerProbeAuthorization(&st, data); err != nil {
 				return st, err
 			}
 		case "workspace.probe.acknowledged":

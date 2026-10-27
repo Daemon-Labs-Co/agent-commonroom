@@ -14,8 +14,10 @@ view, fence every other writer, enforce current access/export policy and durably
 authorize bounded source observation. Existing workspace storage must already be
 accounted. A read-only handle alone does not fence another writable mount.
 
-No production lease implementation is included. Tests explicitly use synthetic
-leases. A source fork supplying a host root or dishonest lease invalidates the
+The scanner itself supplies no lease. The [fixed-root capture assembly](isolated-source-capture.md)
+now combines actual kernel/root checks with mandatory live supervisor authority;
+its reviewed helper/runtime and deployed authority transport remain integrations.
+Scanner unit tests explicitly use synthetic leases. A source fork supplying a host root or dishonest lease invalidates the
 isolation guarantee; there is no default lease, host fallback or isolation toggle.
 
 ## Content and bounds
@@ -63,7 +65,8 @@ This mandatory internal security infrastructure has no product feature flag and
 exposes no new user controls. Existing task flags and permissions remain enforced.
 Users cannot yet export task files through this package.
 
-Production needs a trusted frozen-volume lease and isolated transport, real
+Production still needs the fixed-root lease connected to its reviewed running
+helper and authenticated supervisor/writer-fencing transport, real
 physical quota and complete inventory, current source/seal/release policy assembly,
 crash reconciliation, retention/disposal and authenticated audited public delivery.
 Live Linux worker acceptance remains unverified. Synthetic mutation tests cannot

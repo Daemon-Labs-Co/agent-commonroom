@@ -815,3 +815,93 @@ func TestArtifactJournalAuditFailureCancelsWorkAndSurvivesRestart(t *testing.T) 
 		})
 	}
 }
+
+func TestArtifactCustodyFencedRetainedSourcePhase(t *testing.T) {
+	t.Parallel()
+	for _, status := range []string{"submitted", "shutdown_unconfirmed", "allocated", "shutdown_confirmed"} {
+		t.Run(status, func(t *testing.T) {
+			t.Parallel()
+			s, db, ctx, scope := artifactJournalFixture(t, true)
+			st := artifactState(t, s, ctx)
+			job := st.ManagedJobs[scope.JobID]
+			job.Status = status
+			job.ShutdownConfirmed = status == "shutdown_confirmed"
+			db.seed("worker.job.updated", job)
+			sourceChecks := 0
+			guard := &syntheticArtifactGuard{source: func(ctx context.Context, st room.State, i objectcustody.Intent) error {
+				sourceChecks++
+				if st.ManagedJobs[scope.JobID].Status != status {
+					t.Fatal("source phase substituted")
+				}
+				return nil
+			}}
+			journal, err := newControllerArtifactJournal(s, guard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			store, _ := artifactStore(t, journal)
+			reader := &artifactReadProbe{reader: strings.NewReader("synthetic retained output")}
+			receipt, err := store.Put(ctx, scope, 128, reader)
+			if status == "submitted" || status == "shutdown_unconfirmed" {
+				if err != nil || sourceChecks < 2 || receipt.Bytes != int64(len("synthetic retained output")) {
+					t.Fatal("current fenced phase refused", err, sourceChecks, receipt)
+				}
+				if artifactTotal(t, s, ctx) != 128 {
+					t.Fatal("artifact capacity not retained")
+				}
+			} else {
+				if err == nil || reader.reads != 0 || sourceChecks != 0 {
+					t.Fatal("inactive job gained source rights", err, reader.reads, sourceChecks)
+				}
+			}
+		})
+	}
+}
+func TestArtifactCustodyRetainedPhaseStillRequiresCurrentAuthority(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"expired", "source denied", "feature off", "task changed"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			s, db, ctx, scope := artifactJournalFixture(t, true)
+			st := artifactState(t, s, ctx)
+			job := st.ManagedJobs[scope.JobID]
+			job.Status = "shutdown_unconfirmed"
+			if mode == "expired" {
+				job.AllocatedAt = time.Now().Add(-2 * time.Minute)
+				job.Deadline = time.Now().Add(-time.Minute)
+				st.ManagedJobs[scope.JobID] = job
+				intent := objectcustody.Intent{ObjectID: strings.Repeat("1", 32), Scope: scope, MaxBytes: 128}
+				if _, allowed := artifactSourceJob(st, intent); allowed {
+					t.Fatal("expired retained source admitted")
+				}
+				return
+			}
+			db.seed("worker.job.updated", job)
+			if mode == "feature off" {
+				db.seed("feature.flag.updated", map[string]any{"name": "taskDefinitions", "enabled": false})
+			}
+			if mode == "task changed" {
+				task := st.Tasks[0]
+				task.Title = "changed synthetic task"
+				task.Revision++
+				task.DispatchStatus = "failed"
+				db.seed("task.revised", task)
+			}
+			guard := &syntheticArtifactGuard{source: func(context.Context, room.State, objectcustody.Intent) error {
+				if mode == "source denied" {
+					return errors.New("synthetic physical denial")
+				}
+				return nil
+			}}
+			journal, err := newControllerArtifactJournal(s, guard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			store, _ := artifactStore(t, journal)
+			reader := &artifactReadProbe{reader: strings.NewReader("synthetic")}
+			if _, err := store.Put(ctx, scope, 128, reader); err == nil || reader.reads != 0 {
+				t.Fatal("retained phase bypassed authority", err, reader.reads)
+			}
+		})
+	}
+}

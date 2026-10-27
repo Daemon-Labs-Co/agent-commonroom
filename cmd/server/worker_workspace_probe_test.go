@@ -26,6 +26,7 @@ type assembledProbeFixture struct {
 	events                            []workerProbeEvent
 	afterFinishObservations           int
 	cancel                            context.CancelFunc
+	durable                           func(string) bool
 }
 
 func (f *assembledProbeFixture) checkLock() {
@@ -112,7 +113,7 @@ func (f *assembledProbeFixture) Run(ctx context.Context, args []string, in []byt
 		if !slices.Contains(args, "type=volume,src="+f.record.Pair.Workspace.Identity.Name+",dst=/workspace,readonly,volume-nocopy") {
 			f.t.Fatal("workspace mount not fixed read-only/no-copy")
 		}
-		if len(f.events) != 1 || f.events[0].Stage != "begin" {
+		if (f.durable == nil && (len(f.events) != 1 || f.events[0].Stage != "begin")) || (f.durable != nil && !f.durable("begin")) {
 			f.t.Fatal("creation before durable acknowledgment")
 		}
 		f.exists = true
@@ -127,7 +128,7 @@ func (f *assembledProbeFixture) Run(ctx context.Context, args []string, in []byt
 		}
 		return json.NewEncoder(out).Encode(f.inspection())
 	case "start":
-		if !slices.Equal(args, []string{"start", "--attach", f.id}) || len(f.events) != 2 || f.events[1].Stage != "bound" {
+		if !slices.Equal(args, []string{"start", "--attach", f.id}) || (f.durable == nil && (len(f.events) != 2 || f.events[1].Stage != "bound")) || (f.durable != nil && !f.durable("bound")) {
 			f.t.Fatal("start before exact durable binding")
 		}
 		f.started = true

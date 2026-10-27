@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"io"
 )
 
 // workerWorkspaceProbeGuard binds trusted current controller authorization,
@@ -75,16 +76,85 @@ func (g *guardedWorkspaceProbe) Finish(ctx context.Context, i toolbroker.Workspa
 // No public route, source bytes, host mount/fallback or FrozenLease is returned.
 // A source fork CAN substitute dishonest guards/runners, BUT loses these claims.
 func probeRetainedWorkerWorkspace(ctx context.Context, dir string, record workerJobRecord, dockerRoot string, runner toolbroker.DockerRunner, image string, guard workerWorkspaceProbeGuard) (workspacemount.Proof, error) {
+	return probeRetainedWorkerWorkspaceAuthority(ctx, dir, record, dockerRoot, runner, image, func(*workerWorkspaceObservation, toolbroker.WorkspaceProbeIntent) (workerWorkspaceProbeGuard, func(), error) {
+		return guard, func() {}, nil
+	})
+}
+
+// probeRetainedWorkerWorkspaceChannel binds a fresh challenge to a private channel
+// before observations. Creator ownership covers all guarded actions. connect MUST authenticate the approved peer and
+// construct its controller guard independently; it must never use model streams.
+// This is an internal assembly seam, not an enabled SSH/public export endpoint.
+func probeRetainedWorkerWorkspaceChannel(ctx context.Context, dir string, record workerJobRecord, dockerRoot string, runner toolbroker.DockerRunner, image string, connect func(context.Context, workerJobRecord, toolbroker.WorkspaceProbeIntent) (io.ReadWriteCloser, error), stop func()) (workspacemount.Proof, error) {
+	if connect == nil || stop == nil {
+		return workspacemount.Proof{}, errWorkerProbeJournal
+	}
+	return probeRetainedWorkerWorkspaceAuthority(ctx, dir, record, dockerRoot, runner, image, func(_ *workerWorkspaceObservation, i toolbroker.WorkspaceProbeIntent) (workerWorkspaceProbeGuard, func(), error) {
+		stream, err := connect(ctx, record, i)
+		if err != nil {
+			if !nilWorkerObservationDependency(stream) {
+				stream.Close()
+			}
+			return nil, nil, err
+		}
+		client, err := newProbeAuthorityClient(stream, record, i, stop)
+		if err != nil {
+			if !nilWorkerObservationDependency(stream) {
+				stream.Close()
+			}
+			return nil, nil, err
+		}
+		return client, func() { stream.Close() }, nil
+	})
+}
+
+// pendingWorkspaceProbeGuard refuses until trusted setup completes under actual
+// creator ownership. It never supplies default authorization while connecting.
+type pendingWorkspaceProbeGuard struct {
+	guard workerWorkspaceObservationGuard
+}
+
+func (g *pendingWorkspaceProbeGuard) AuthorizeWorkspaceObservation(ctx context.Context, r workerJobRecord) error {
+	if nilWorkerObservationDependency(g.guard) {
+		return errWorkerProbeJournal
+	}
+	return g.guard.AuthorizeWorkspaceObservation(ctx, r)
+}
+
+func probeRetainedWorkerWorkspaceAuthority(ctx context.Context, dir string, record workerJobRecord, dockerRoot string, runner toolbroker.DockerRunner, image string, authority func(*workerWorkspaceObservation, toolbroker.WorkspaceProbeIntent) (workerWorkspaceProbeGuard, func(), error)) (workspacemount.Proof, error) {
 	var proof workspacemount.Proof
-	if ctx == nil || ctx.Err() != nil || nilWorkerObservationDependency(guard) {
+	if ctx == nil || ctx.Err() != nil || authority == nil {
 		return proof, errors.New("workspace probe dependencies unavailable")
 	}
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
 		return proof, err
 	}
-	err := withWorkerWorkspaceObservation(ctx, dir, record, dockerRoot, runner, guard, func(lease *workerWorkspaceObservation) error {
-		intent := toolbroker.WorkspaceProbeIntent{JobID: lease.record.JobID, Repository: lease.record.Pair.Repository, Volume: lease.record.Pair.Workspace.Identity, Image: image, Challenge: hex.EncodeToString(nonce)}
+	if !retainedObservationRecord(record) {
+		return proof, errWorkerProbeJournal
+	}
+	intent := toolbroker.WorkspaceProbeIntent{JobID: record.JobID, Repository: record.Pair.Repository, Volume: record.Pair.Workspace.Identity, Image: image, Challenge: hex.EncodeToString(nonce)}
+	if !validWorkerProbeIntent(intent) {
+		return proof, errWorkerProbeJournal
+	}
+	var closeAuthority func()
+	defer func() {
+		if closeAuthority != nil {
+			closeAuthority()
+		}
+	}()
+	pending := &pendingWorkspaceProbeGuard{}
+	err := withWorkerWorkspaceOwnership(ctx, dir, record, dockerRoot, runner, pending, func(lease *workerWorkspaceObservation) error {
+		guard, closeGuard, err := authority(lease, intent)
+		closeAuthority = closeGuard
+		if err != nil || nilWorkerObservationDependency(guard) || closeAuthority == nil {
+			return errWorkerProbeJournal
+		}
+		pending.guard = guard
+		if err := lease.Check(ctx); err != nil {
+			return err
+		}
+
 		g := &guardedWorkspaceProbe{active: true, intent: intent, lease: lease, guard: guard}
 		defer func() { g.active = false }()
 		journal, err := newWorkerProbeJournal(dir, g)

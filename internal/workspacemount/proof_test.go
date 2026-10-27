@@ -53,3 +53,31 @@ func TestProofBinding(t *testing.T) {
 		}
 	}
 }
+
+func TestFixedObjectMountParser(t *testing.T) {
+	t.Parallel()
+	root := "1 0 0:1 / / ro - overlay overlay ro\n"
+	object := "2 1 0:2 / /objects ro,nosuid - ext4 /dev/synthetic rw\n"
+	for _, tc := range []struct {
+		name, raw string
+		good      bool
+	}{
+		{"read only", root + object, true},
+		{"writable", root + strings.Replace(object, "ro,nosuid", "rw", 1), false},
+		{"missing", root, false},
+		{"workspace is not objects", root + strings.Replace(object, "/objects", "/workspace", 1), false},
+		{"submount", root + object + "3 2 0:3 / /objects/nested ro - tmpfs tmpfs ro\n", false},
+		{"escaped submount", root + object + `3 2 0:3 / /objects/a\040b ro - tmpfs tmpfs ro` + "\n", false},
+		{"stacked", root + object + strings.Replace(object, "2 1", "3 1", 1), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			id, err := mountIDAt([]byte(tc.raw), "/objects")
+			if (err == nil) != tc.good || tc.good && id != 2 {
+				t.Fatal(id, err)
+			}
+		})
+	}
+	if _, err := mountIDAt([]byte(root+object), "/home"); err == nil {
+		t.Fatal("arbitrary host mount accepted")
+	}
+}
