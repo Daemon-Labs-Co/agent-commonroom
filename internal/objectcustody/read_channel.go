@@ -106,11 +106,28 @@ func readChannelContent(raw []byte, r Receipt) bool {
 // The raw body is finite, rehashed, and withheld until current durable release
 // acknowledgment. Any uncertainty returns nil and stops receiving-side authority.
 // There is no reconnect, retry, path/URI selection or host execution fallback.
-func ReadChannel(ctx context.Context, stream io.ReadWriteCloser, scope Scope, receipt Receipt, guard ReadReleaseGuard) (raw []byte, err error) {
+func ReadChannel(ctx context.Context, stream io.ReadWriteCloser, scope Scope, receipt Receipt, guard ReadReleaseGuard) ([]byte, error) {
+	return readChannel(ctx, stream, scope, receipt, guard, true)
+}
+
+// ReadSupervisedChannel borrows the private attached helper stream. On success it
+// leaves the stream open so its owner can Wait for actual process exit and inspect
+// exited policy before Close joins the pumps. Error/cancellation still closes it.
+// Returned bytes remain private: the owner MUST confirm cleanup and current durable
+// release authority before downstream delivery. Mandatory isolation has no fallback.
+func ReadSupervisedChannel(ctx context.Context, stream io.ReadWriteCloser, scope Scope, receipt Receipt, guard ReadReleaseGuard) ([]byte, error) {
+	return readChannel(ctx, stream, scope, receipt, guard, false)
+}
+
+func readChannel(ctx context.Context, stream io.ReadWriteCloser, scope Scope, receipt Receipt, guard ReadReleaseGuard, closeOnSuccess bool) (raw []byte, err error) {
 	if ctx == nil || ctx.Err() != nil || readChannelAbsent(stream) || readChannelAbsent(guard) || !validReceipt(receipt) || scope != receipt.Intent.Scope {
 		return nil, ErrRefused
 	}
-	defer stream.Close()
+	defer func() {
+		if closeOnSuccess || err != nil {
+			_ = stream.Close()
+		}
+	}()
 	success := false
 	defer func() {
 		if !success {

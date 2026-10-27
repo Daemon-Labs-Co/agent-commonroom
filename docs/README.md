@@ -201,3 +201,6 @@ The internal [account probe ledger](account-probe-capacity.md) now durably count
 
 - [Task repository references](task-repository-links.md): default-off API, owner
   configuration, room permissions, safe URL limits, revisions and audit behavior.
+
+- [Supervised isolated artifact reads and recovery](object-reader-supervision.md):
+  exact-ID helper lifecycle, withheld bytes, durable release and interrupted cleanup.

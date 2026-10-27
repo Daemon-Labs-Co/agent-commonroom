@@ -73,9 +73,10 @@ mount/root substitution during authorization, revocation, cancellation after sou
 audit, canonical command decoding and mount parser attacks. No real database,
 Docker daemon, provider, credential or private message is used.
 
-Supervised reader container planning/admission/lifecycle/account recovery, deployed
-private authentication, actual release/quota/account witnesses and physical volume
-provisioning remain incomplete. End-to-end task delivery/human review, reviewed image/
+Reader planning/admission and [supervised lifecycle/known-ID recovery](object-reader-supervision.md)
+now have tested infrastructure. Production lifecycle journal assembly, deployed private
+authentication, actual release/quota/account witnesses and physical volume provisioning
+remain incomplete. End-to-end task delivery/human review, reviewed image/
 latency/live acceptance and unknown-ID incident handling remain required. File-task
 dispatch stays blocked. A source fork can replace private views/guards or execute on
 a host and invalidate mandatory isolation; no supported fallback permits it.

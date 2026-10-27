@@ -3062,3 +3062,73 @@ proof does not establish live daemon or descendant termination guarantees.
   Prepared commit message: test: complete task repository reference coverage and documentation
   Last notification: tests and full checks pass; missing documentation and API coverage
   ready locally for Mark's review/signing/publication. Scheduled heartbeat stays paused.
+
+### Isolated artifact-reader lifecycle and known-ID recovery — local batch
+
+- User reported PR73 merged and authorized the next stage. Git helper verified
+  PR73 merged at 6ea7ab83c21c25f877187e790785408f9252a68b; merge tree exactly matches
+  final reviewed head f642c0371d0419983eeced75228d83a72bc7b112. Greptile succeeded;
+  historical close-before-Wait and missing tests/docs findings are included in
+  the merged fixes. No fetch was needed. Clean checkout/empty index before creating
+  codex/isolated-reader-lifecycle from the verified merged base.
+- Added one-shot isolated reader runtime: mandatory durable capacity/creator/export
+  admission before daemon calls, exact retained-volume/reference preflight, durable
+  ID binding before start, repeated actual created/running/exited admission, source
+  read-journal relay, byte digest verification, successful Wait before Close/join,
+  exact owned cleanup and repeated absence/catalog checks. Final durable lifecycle
+  finish and current release acknowledgment precede returned bytes.
+- Added supervised read-channel ownership preserving standalone ReadChannel behavior.
+  Successful protocol leaves the attached stream open until Wait/exited checks;
+  error/cancellation still closes promptly. EOF may coincide with successful actual
+  exit; acknowledgment admits only strict running or successfully exited policy.
+  Authorization/admission is rechecked before and after callbacks.
+- Added known-ID-only recovery with independent durable cleanup authority. It can
+  stop an owned policy-drifted helper but never adopt an unknown/name-discovered ID,
+  read/publish bytes, delete retained volumes or refund storage. Failed/lost creation
+  replies, conflicting references, cleanup/journal/release failures retain uncertainty.
+- Tests use mocked Docker/lifecycle/permission boundaries and joined synthetic private
+  pipes with actual finite read/journal protocol bytes. Cover lifecycle order, EOF
+  exit timing, dependency/permission refusal, cancellation, changed callback policy,
+  invalid/lost IDs, corrupted bytes, failed exit/Close/cleanup/final acknowledgment,
+  volume/reference replacement and present/absent/foreign recovery. Initial focused
+  race run found concurrent Close state in the test process; fixed the mock using
+  atomic state and a shared completion signal. Final focused race checks pass2.71s.
+  No real database, Docker daemon, provider, private data or credentials were used.
+- Full documentation: docs/object-reader-supervision.md linked in Help, README/index,
+  operations and existing helper/admission guides. Mandatory isolation infrastructure
+  has no feature flag/off switch/fallback. No public API/product capability enabled;
+  existing controller guards still enforce human access and retained flag-off reads.
+- make test passed before fixture work29.17s/28.58s and after it33.30s (server30.198s);
+  final handoff repeat passed1.56s with cached packages. Full make check is NOT green:
+  default runs timed out in the existing aggregate cmd/server30s race budget36.99s,
+  31.38s and35.82s wall. Supported TEST_PARALLEL=16 also timed out33.21s. No data-race
+  diagnostic remained; later timeout stacks show queued tests and synthetic worker
+  file/directory fsync work. No deadlines, durability checks or test cases weakened.
+- Removed repeated pagination fixture orchestration: one actual mocked owner/work/
+  acceptance journey supplies synthetic task/execution replay templates with fresh
+  identities/audit metadata. Production projection and all27-source pagination,
+  review provenance and schema assertions remain. Focused pagination race passes
+  2.756s package/8.11s wall; this reduces setup but does not solve aggregate timing.
+- All652 server Test functions verified across two disjoint race partitions with
+  the same parallel8/deadline30s:346 first partition passed14.551s package/16.02s wall;
+  306 second passed20.772s/21.59s; source inventory confirmed zero omitted names.
+  Other packages passed race checks in the full runs. Remaining make check static,
+  documentation and UI targets passed separately7.20s (make -o test-race check);
+  this is explicitly not a successful single full make check invocation.
+- Logs: /private/tmp/commonroom-reader-lifecycle-{test,test-final,test-verified,
+  test-handoff,focused-race,check,check-retry,check-verified,check-parallel16,
+  static-ui-check}.log; server partitions commonroom-reader-server-race-{am,nz}.log;
+  pagination commonroom-reader-pagination-regression.log, all under /private/tmp/.
+  Observed UTC work window04:28:18–05:05:02 (~36m44s); no overnight automation resumed.
+- Incomplete: aggregate full-check timing needs follow-up; production authenticated
+  runner/starter and durable local/controller/account journal implementations,
+  actual physical quotas/release witnesses/provisioning, unknown-ID incidents,
+  reviewed images/live acceptance and end-to-end artifact delivery/human review.
+  Required file-task dispatch remains blocked. Synthetic tests certify none of these
+  deployed/live gates. This batch completes supervisor/recovery infrastructure only.
+- Recovery target: /private/tmp/commonroom-reader-lifecycle-backup/0001/ against
+  6ea7ab83. Prepared commit message: feat: supervise isolated artifact reads and recovery
+  Last notification: supervisor/recovery implemented with tests/docs; targeted and
+  partitioned race/static/UI checks pass, single-run full-check timeout remains
+  explicit. Changes remain local/unstaged; Mark signs/publishes. No commit, push,
+  merge, GitHub message or security/retention bypass performed.
