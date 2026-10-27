@@ -70,10 +70,15 @@ Callbacks must cooperate with cancellation and must not reenter their stream.
 
 ## Failure and recovery
 
-The runtime is one-shot. Reads are bounded to 35 seconds overall; each admission
+The runtime is one-shot. Active reads are bounded to 35 seconds; each admission
 has a five-second bound, byte transfer has a 30-second bound and cleanup has a
-separate five-second context so caller cancellation cannot skip cleanup. The
-underlying adapters must honor these deadlines. All errors withhold bytes and stop
+separate five-second context so caller cancellation cannot skip cleanup. Lifecycle
+finish gets a fresh, independent five-second background context: an exhausted
+cleanup deadline must still allow the journal to durably record uncertainty. A
+cleanup timeout does not itself prove journal persistence failed. A genuine finish
+failure remains an integrity failure; neither case releases bytes or refunds storage.
+Cleanup and finish can together add up to ten seconds after active read cancellation.
+The underlying adapters must honor these deadlines. All errors withhold bytes and stop
 the affected read authority. Errors after lifecycle admission retain an unconfirmed
 outcome; failed finish/cleanup/final acknowledgment cannot turn verified bytes into
 a successful release. Stored objects and their charges remain retained.
@@ -101,9 +106,12 @@ and joined private pipes carrying real finite protocol bytes with the source jou
 relay. Coverage includes success ordering, EOF/exit timing, all lifecycle failures,
 permission refusal, cancellation, invalid/lost IDs, corrupted bytes, policy drift, cleanup and
 final acknowledgment failures, retained uncertainty and known-ID recovery conflicts.
+Deterministically expired/canceled cleanup contexts verify that finish still receives
+a live bounded context and records uncertainty; actual finish failures remain visible.
 The existing controller-session tests separately cover human room/export authority
 and retained reads with optional flags off. No database, Docker daemon or provider
-is launched; no private data or credentials are used. These tests do not certify a deployed container or live P0 acceptance.
+is launched; no private data or credentials are used. These tests do not certify a
+deployed container or live P0 acceptance.
 
 Still required: authenticated production runner/starter and lifecycle-journal
 assembly, actual physical quota/account/release witnesses and storage provisioning,

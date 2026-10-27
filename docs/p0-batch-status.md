@@ -3132,3 +3132,44 @@ proof does not establish live daemon or descendant termination guarantees.
   partitioned race/static/UI checks pass, single-run full-check timeout remains
   explicit. Changes remain local/unstaged; Mark signs/publishes. No commit, push,
   merge, GitHub message or security/retention bypass performed.
+
+### PR74 P1 independent reader-finish deadline — local review fix
+
+- PR74 is open at bbbe374db042600deae719c6806a49f9aadd9e84. Git helper verified
+  clean main and switched to existing codex/isolated-reader-lifecycle at that exact
+  head before edits; index empty, no unrelated changes overwritten.
+- Current-head Greptile review PRR_kwDOVETwiM8AAAABUgEPDQ was COMMENTED at
+  2026-10-27T16:32:58Z. Check completed successfully at16:33:01Z; this is review
+  completion, not approval. No GitHub Actions runs exist on this head. Only finding:
+  comment4391383352/thread PRRT_kwDOVETwiM6wyGX8, unresolved, reviewed bbbe374.
+- Validated the P1: cleanup and FinishObjectRead shared one five-second context.
+  Exhausting cleanup could hand persistence an expired context, falsely converting
+  cleanup uncertainty into a journal persistence failure/integrity stop.
+- Extracted the existing cleanup/finish sequence and gave FinishObjectRead a fresh
+  independent five-second background context, matching the recovery contract.
+  Cleanup still records false absence on uncertainty, bytes stay withheld and
+  actual finish failures remain visible. No refund, retry, flag or isolation bypass.
+- Deterministic expired/canceled cleanup regressions failed before the fix and pass
+  afterward; also verify a live bounded finish context, preserved genuine journal
+  failure, zero daemon actions on expired cleanup and no release/false absence.
+  Tests do not sleep five seconds or add a configurable production timeout seam.
+  Existing lifecycle tests cover error propagation and withheld bytes. All DB/
+  Docker/provider boundaries remain mocked with synthetic metadata/private pipes.
+- Updated docs/object-reader-supervision.md: active read budget, separate cleanup
+  and finish budgets, uncertainty versus persistence failure and regression coverage.
+- Focused race tests for all TestObjectRead scenarios passed (1.378s package).
+  make test passed31.88s wall. Full make check remains NOT green: existing aggregate
+  cmd/server30s race deadline expired (35.87s wall), with queued capture-authority
+  tests and no new race diagnostic; other packages, including toolbroker, passed.
+  No limits/tests/durability checks weakened. Remaining static/docs/UI targets
+  passed separately7.06s via make -o test-race check, not a full-check success.
+  Logs: /private/tmp/commonroom-pr74-finish-deadline-{test,check,static-ui}.log.
+- Observed work window16:47:11–16:51:14 UTC (~4m03s). Prior production assembly,
+  physical quotas/witnesses, public delivery/live acceptance and aggregate test-suite
+  timing gaps remain; file-task dispatch stays blocked. No live acceptance claimed.
+- Recovery target: /private/tmp/commonroom-pr74-finish-deadline-backup/0001/ against
+  bbbe374. Prepared commit message: fix: separate reader cleanup and journal deadlines
+  Last notification: the sole current-head P1 is fixed locally with regressions/docs;
+  tests and static/UI pass, full-check timeout remains explicit. Mark must sign/push
+  before new remote review. No staging, commit, push, review-thread resolution,
+  GitHub message, merge or automation resume performed.

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type objectReadRuntimeFixture struct {
@@ -330,5 +331,57 @@ func TestObjectReadRuntimeExitAtProtocolEOF(t *testing.T) {
 	raw, err := r.Run(t.Context())
 	if err != nil || string(raw) != "abc" || !f.finished || f.acknowledgments != 3 || !f.absent {
 		t.Fatal("successful helper EOF/exit refused", err)
+	}
+}
+
+// This journal observes the context actually supplied to the persistence boundary.
+// Its embedded fixture still checks exact request/ID and process-close ordering.
+type objectReadDeadlineJournal struct {
+	*objectReadRuntimeFixture
+	activeFinish bool
+}
+
+func (j *objectReadDeadlineJournal) FinishObjectRead(ctx context.Context, q objectread.Request, id string, absent bool) error {
+	deadline, bounded := ctx.Deadline()
+	remaining := time.Until(deadline)
+	j.activeFinish = ctx.Err() == nil && bounded && remaining > 0 && remaining <= 5*time.Second
+	if !j.activeFinish {
+		return ctx.Err()
+	}
+	return j.objectReadRuntimeFixture.FinishObjectRead(ctx, q, id, absent)
+}
+func TestObjectReadCleanupExhaustionStillJournalsUncertainty(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"expired", "canceled", "journal-failure"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			r, f := newObjectReadRuntimeFixture(t, "")
+			f.begun = true
+			f.exists = true
+			j := &objectReadDeadlineJournal{objectReadRuntimeFixture: f}
+			r.lifecycle = j
+			// Supply the deterministic end state of an exhausted cleanup budget;
+			// no sleep, real daemon or permissive production clock seam is needed.
+			cleanup, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+			defer cancel()
+			if mode == "canceled" {
+				c, stop := context.WithCancel(context.Background())
+				stop()
+				cleanup = c
+			}
+			if mode == "journal-failure" {
+				f.mode = "finish"
+			}
+			err := r.cleanupAndFinish(cleanup, f.c.ID)
+			if !errors.Is(err, ErrShutdownUnconfirmed) || !j.activeFinish || !f.finished || f.absent {
+				t.Fatal("cleanup exhaustion prevented recording uncertainty", err, j.activeFinish, f.finished, f.absent)
+			}
+			if f.calls != 0 || f.removed || f.acknowledgments != 0 {
+				t.Fatal("expired cleanup removed or released an artifact")
+			}
+			if mode == "journal-failure" && !errors.Is(err, ErrRejected) {
+				t.Fatal("journal failure swallowed", err)
+			}
+		})
 	}
 }

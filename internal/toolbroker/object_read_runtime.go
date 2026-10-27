@@ -85,15 +85,7 @@ func (r *ObjectReadRuntime) Run(ctx context.Context) (raw []byte, err error) {
 		}
 		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
 		defer stop()
-		removal := error(ErrShutdownUnconfirmed)
-		if id != "" {
-			removal = StopContainer(cleanup, r.physical.runner, id, r.physical.owned)
-			if removal == nil {
-				removal = r.physical.absent(cleanup, id)
-			}
-		}
-		finish := r.lifecycle.FinishObjectRead(cleanup, p.request, id, removal == nil)
-		err = errors.Join(err, removal, finish, ctx.Err(), child.Err())
+		err = errors.Join(err, r.cleanupAndFinish(cleanup, id), ctx.Err(), child.Err())
 		if err == nil {
 			err = r.guard.AcknowledgeRead(child, p.request.Receipt)
 		}
@@ -138,6 +130,24 @@ func (r *ObjectReadRuntime) Run(ctx context.Context) (raw []byte, err error) {
 		return nil, err
 	}
 	return raw, nil
+}
+
+// cleanupAndFinish keeps observed cleanup uncertainty distinct from journal
+// persistence failure. No cleanup result grants release or refunds storage.
+func (r *ObjectReadRuntime) cleanupAndFinish(cleanup context.Context, id string) error {
+	removal := error(ErrShutdownUnconfirmed)
+	if id != "" {
+		removal = StopContainer(cleanup, r.physical.runner, id, r.physical.owned)
+		if removal == nil {
+			removal = r.physical.absent(cleanup, id)
+		}
+	}
+	// Cleanup may have consumed its entire deadline. Recording that uncertainty
+	// must get its own bounded opportunity, even if the caller was canceled.
+	finishCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stop()
+	finish := r.lifecycle.FinishObjectRead(finishCtx, r.physical.plan.request, id, removal == nil)
+	return errors.Join(removal, finish)
 }
 
 type objectReadRunningGuard struct {
