@@ -345,3 +345,54 @@ func TestCaptureChannelBoundsObservationMessages(t *testing.T) {
 		t.Fatal("unbounded control stream", authority.calls)
 	}
 }
+
+type supervisedCaptureTestStream struct {
+	net.Conn
+	entered chan struct{}
+	reading atomic.Bool
+	closed  atomic.Bool
+}
+
+func (s *supervisedCaptureTestStream) Read(raw []byte) (int, error) {
+	if !s.reading.Swap(true) {
+		close(s.entered)
+	}
+	return s.Conn.Read(raw)
+}
+func (s *supervisedCaptureTestStream) Close() error { s.closed.Store(true); return s.Conn.Close() }
+func TestSupervisedCaptureChannelStillClosesOnFailure(t *testing.T) {
+	t.Parallel()
+	for _, mode := range []string{"canceled", "malformed"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			view, binding, members := captureFixture(t)
+			request := Request{binding, members, view.proof.Challenge}
+			left, right := net.Pipe()
+			defer left.Close()
+			stream := &supervisedCaptureTestStream{Conn: right, entered: make(chan struct{})}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			journal := &transferJournal{}
+			done := make(chan channelResult, 1)
+			go func() {
+				report, err := ServeSupervisedCaptureChannel(ctx, stream, request, &fixtureAuthority{}, journal)
+				done <- channelResult{report, err}
+			}()
+			<-stream.entered
+			if mode == "canceled" {
+				cancel()
+			} else {
+				digest, _ := RequestDigest(request)
+				_ = controlWrite(left, captureFrame{Version: 1, Sequence: 2, BindingDigest: digest, Operation: "observe", Proof: &view.proof})
+			}
+			select {
+			case result := <-done:
+				if result.err == nil || result.report.Version != 0 || !stream.closed.Load() || journal.charged != 0 {
+					t.Fatal("failed supervised stream left active", result.err)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("failed supervised stream did not unblock")
+			}
+		})
+	}
+}

@@ -124,7 +124,7 @@ func (r *CaptureRuntime) Run(ctx context.Context) (report workspacecapture.Repor
 	if err = r.plan.VerifyAdmission(child, r.runner, id, "running"); err != nil {
 		return report, err
 	}
-	report, err = workspacecapture.ServeCaptureChannel(child, process, r.request(), captureRunningAuthority{r, id}, r.custody)
+	report, err = workspacecapture.ServeSupervisedCaptureChannel(child, process, r.request(), captureRunningAuthority{r, id}, r.custody)
 	if err != nil {
 		return report, err
 	}

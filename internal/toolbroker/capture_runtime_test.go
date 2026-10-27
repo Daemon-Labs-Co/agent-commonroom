@@ -11,6 +11,7 @@ import (
 	"net"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -21,14 +22,22 @@ type captureRuntimeFixture struct {
 	exists, begun, bound, started, finished, absent, removed bool
 	reserves, seals, observations                            int
 	process                                                  *mockCaptureProcess
+	exitedChecks                                             atomic.Int32
 }
 type mockCaptureProcess struct {
 	net.Conn
-	f    *captureRuntimeFixture
-	done chan error
+	f          *captureRuntimeFixture
+	done       chan error
+	closed     atomic.Bool
+	waited     atomic.Bool
+	earlyClose atomic.Bool
 }
 
 func (p *mockCaptureProcess) Wait(ctx context.Context) error {
+	if p.closed.Load() {
+		return ErrRejected
+	}
+	p.waited.Store(true)
 	select {
 	case err := <-p.done:
 		if err != nil {
@@ -109,6 +118,10 @@ func (f *captureRuntimeFixture) Run(ctx context.Context, args []string, in []byt
 		f.t.Fatal("daemon before begin")
 	}
 	switch args[0] {
+	case "inspect":
+		if f.c.State.Status == "exited" {
+			f.exitedChecks.Add(1)
+		}
 	case "create":
 		if !slices.Equal(args, f.p.CreateArgs()) {
 			f.t.Fatal("launch policy changed")
@@ -157,7 +170,7 @@ func (f *captureRuntimeFixture) StartCapture(ctx context.Context, id string) (Ca
 	f.c.State.Status = "running"
 	f.c.State.Running = probeBool(true)
 	parent, helper := net.Pipe()
-	p := &mockCaptureProcess{parent, f, make(chan error, 1)}
+	p := &mockCaptureProcess{Conn: parent, f: f, done: make(chan error, 1)}
 	f.process = p
 	go func() {
 		defer helper.Close()
@@ -244,6 +257,9 @@ func TestCaptureRuntimeFailureWithholdsReports(t *testing.T) {
 			if mode == "cleanup" && f.absent {
 				t.Fatal("claimed failed cleanup absent")
 			}
+			if f.process != nil && !f.process.closed.Load() {
+				t.Fatal("failed process stream left open")
+			}
 			if mode == "seal" && f.reserves != 1 {
 				t.Fatal("lost attempted charge")
 			}
@@ -284,5 +300,29 @@ func TestCaptureRuntimeFailedStreamIsClosed(t *testing.T) {
 	case <-f.process.done:
 	case <-time.After(time.Second):
 		t.Fatal("helper I/O was not interrupted")
+	}
+}
+
+// Closing the production attached stream cancels its command. Model that behavior
+// deterministically: a close before Wait must not count as a successful exit.
+func (p *mockCaptureProcess) Close() error {
+	if p.closed.Swap(true) {
+		return nil
+	}
+	if !p.waited.Load() || p.f.exitedChecks.Load() < 2 {
+		p.earlyClose.Store(true)
+	}
+	return p.Conn.Close()
+}
+func TestCaptureRuntimeWaitsAndVerifiesExitBeforeClose(t *testing.T) {
+	t.Parallel()
+	runtime, fixture := newCaptureRuntimeFixture(t, "")
+	report, err := runtime.Run(t.Context())
+	if err != nil || len(report.Receipts) != 1 {
+		t.Fatal("completed capture discarded", err)
+	}
+	process := fixture.process
+	if !process.waited.Load() || !process.closed.Load() || process.earlyClose.Load() || fixture.exitedChecks.Load() < 2 {
+		t.Fatal("process closed before successful wait and exited admission")
 	}
 }

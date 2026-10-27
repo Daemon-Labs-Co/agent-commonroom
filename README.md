@@ -326,3 +326,8 @@ remain incomplete. File-task dispatch remains blocked.
 image/volume identities, strict read-only policy and independent reference inventories.
 It observes metadata only; supervised lifecycle/account admission, actual quotas and
 live acceptance still require assembly before task artifact delivery can be enabled.
+
+Supervised capture keeps its attached process stream open until successful exit and
+exited-container verification; protocol failure or cancellation still interrupts it.
+See the [capture lifecycle contract](docs/capture-supervision.md). This ordering fix
+does not enable file dispatch or replace live container acceptance.

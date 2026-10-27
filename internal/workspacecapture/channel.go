@@ -240,7 +240,21 @@ func (c *CaptureChannel) Finish(ctx context.Context, result CapturedObjects) err
 // callbacks succeed. Its result is private metadata, not public delivery: callers
 // must still verify helper exit/cleanup and policy before publishing it. Callbacks
 // must not reenter this same stream. Partial writes/seals survive transport errors.
-func ServeCaptureChannel(ctx context.Context, stream io.ReadWriteCloser, request Request, authority Authority, journal objectcustody.Journal) (report Report, err error) {
+func ServeCaptureChannel(ctx context.Context, stream io.ReadWriteCloser, request Request, authority Authority, journal objectcustody.Journal) (Report, error) {
+	return serveCaptureChannel(ctx, stream, request, authority, journal, true)
+}
+
+// ServeSupervisedCaptureChannel borrows the supervisor's attached process stream.
+// On protocol success it leaves that stream open: the caller MUST wait for actual
+// successful process exit, verify exited-container policy, and finally close/join
+// the process before owned cleanup/report release. Error/cancellation still closes
+// the stream promptly. Authentication, custody and mandatory isolation are unchanged;
+// this does not permit model pipes, a host launch or an unsupervised fallback.
+func ServeSupervisedCaptureChannel(ctx context.Context, stream io.ReadWriteCloser, request Request, authority Authority, journal objectcustody.Journal) (Report, error) {
+	return serveCaptureChannel(ctx, stream, request, authority, journal, false)
+}
+
+func serveCaptureChannel(ctx context.Context, stream io.ReadWriteCloser, request Request, authority Authority, journal objectcustody.Journal, closeOnSuccess bool) (report Report, err error) {
 	attempted := false
 	defer func() {
 		if err != nil && attempted {
@@ -254,7 +268,11 @@ func ServeCaptureChannel(ctx context.Context, stream io.ReadWriteCloser, request
 	request.Members = append([]workspacesnapshot.Member(nil), request.Members...)
 	ctx, cancel := context.WithTimeout(ctx, MaxLifetime)
 	defer cancel()
-	defer stream.Close()
+	defer func() {
+		if closeOnSuccess || err != nil {
+			_ = stream.Close()
+		}
+	}()
 	closeIO := context.AfterFunc(ctx, func() { stream.Close() })
 	defer closeIO()
 	reserved := map[string]objectcustody.Intent{}

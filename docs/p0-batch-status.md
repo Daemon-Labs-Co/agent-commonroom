@@ -2989,3 +2989,42 @@ proof does not establish live daemon or descendant termination guarantees.
   80 new files, empty index/clean whitespace. Last notification: fixed reader helper,
   mocked mount/relay tests and offline static build/full checks verified. Continuing
   reader admission work; no stage/commit/publication.
+
+### PR73 P1 capture process-close ordering — local review fix
+
+- User explicitly authorized continuing the PR fix after the scheduled cutoff; the
+  heartbeat remains paused. Remote PR73 is open at2650035ae39e6360d7764ccb1d8510c5a5a3c856.
+  Greptile thread PRRT_kwDOVETwiM6wYLkV/comment4380432816 reviewed that exact commit.
+  Finding validated against code, not treated as permission to push/post/merge.
+- Git helper found clean main37c8ce69 and switched to existing PR branch
+  codex/mvp-deliverable-integration at exact2650035, with clean index/checkout before
+  edits. No main edits or unrelated/staged changes were overwritten.
+- Reproduced completed-report loss with a deterministic attached-process regression:
+  Close cancels an unjoined command, so Wait fails if protocol closes it first.
+- Added supervised capture protocol entrypoint that leaves successful process streams
+  open until runtime Wait and exited-container inspection finish. Runtime retains
+  final close/join and exact owned cleanup. Existing standalone owned-stream API
+  keeps its prior close-on-return contract. Errors/cancellation still close promptly.
+- Regression checks successful Wait plus both exited admission passes before closure,
+  failed runtime stream closure, active protocol cancellation/malformed frames and
+  zero report/custody charge on early refusal. All Docker/DB/provider boundaries mocked;
+  synthetic private pipes only. No live acceptance or changed security/flag policy.
+- Updated README and capture lifecycle technical contract. Mandatory isolation has no
+  toggle/fallback; no product capability was enabled by this lifecycle ownership fix.
+- Focused regression failed before fix and passes afterward. make test passed27.44s.
+  Initial make check timed out in cmd/server at30s (value-source discovery test and
+  queued server tests), no data-race diagnostic; reported wall2949.19s includes an
+  interruption/stall interval and is not continuous implementation time. Unchanged
+  retry passed37.82s with original timeout and race/static/docs/UI coverage intact.
+  Logs /private/tmp/commonroom-pr73-capture-close-{test,check,check-retry}.log.
+- Remaining integration gaps unchanged: deployment authentication, actual physical
+  quotas/account witnesses, reader lifecycle/recovery and end-to-end public artifact
+  delivery/human review/live acceptance. File-task dispatch remains blocked.
+- Prepared commit message: fix: keep capture process open until exit verification completes
+  No staging/commit/push/GitHub messages or merge performed. Owner publication is
+  required before Greptile can review this fix on a new remote head.
+- Final Git-helper verification: exactly seven intended files, clean whitespace,
+  empty index/no untracked files. Recovery patch/manifest saved0700/0600 at
+  /private/tmp/commonroom-pr73-capture-close-backup/0001/ against2650035.
+  Last notification: P1 fixed locally, make test and unchanged full-check retry pass;
+  owner must sign/push before new remote review. No staging/commit/publication.

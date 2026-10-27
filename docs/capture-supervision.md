@@ -20,7 +20,13 @@ may start only the supplied immutable ID and must return exclusively owned, non-
 helper stdin/stdout; it may not create/replace containers or borrow provider streams.
 Its process `Wait` must observe actual successful exit and join pumps; `Close` must
 promptly interrupt I/O and join pumps, including on failure. A returned stream remains owned even when start also returns an error.
-The runtime closes it before container cleanup.
+The runtime closes it before container cleanup. It uses
+`ServeSupervisedCaptureChannel`, which leaves a successful attached stream open
+through `Wait` and both exited-container admission passes. Closing an attached
+command cancels it, so protocol completion alone must not close that process.
+Protocol errors/cancellation still close promptly; the runtime owns final closure
+and joining on all outcomes. The standalone `ServeCaptureChannel` retains its
+owned-stream close-on-return contract for callers without a supervised process.
 
 The lifecycle is:
 
@@ -66,7 +72,8 @@ identities/catalogs must still match, with no attached job/name/volume reference
 
 Tests use mocked Docker, starter, quota/audit and authority boundaries, synthetic
 metadata/receipts and an in-memory private protocol stream. They prove lifecycle
-ordering and report suppression, not actual storage bytes, kernel quotas, physical
+ordering (including wait/exited verification before close), cancellation/error closure
+and report suppression, not actual storage bytes, kernel quotas, physical
 shutdown, image provenance or live Linux readiness. Actual byte transfer is covered
 separately by the synthetic source/custody tests.
 
