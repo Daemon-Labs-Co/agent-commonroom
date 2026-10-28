@@ -3277,3 +3277,194 @@ proof does not establish live daemon or descendant termination guarantees.
   Last notification: sole current-head P1 fixed locally, regressions/test/full check
   retry pass. Mark must sign/push for new remote review. No staging/commit/push,
   GitHub messages/thread resolution, merge or automation resume performed.
+
+### Controller artifact-reader account ledger — local implementation checkpoint
+
+- User authorized continuing the defined tasks. Git helper verified PR75 MERGED:
+  final reviewed/fixed head47d8960da89766c636d4fd263710411606d20f5b, merge/main
+  11fbf6aa6ad4856f94efef03a2ba593afa121339; merge tree exactly matches final head.
+  P1 thread resolved, final-head Greptile succeeded01:32:53Z; no new feedback or
+  Actions runs. Clean main/empty index before creating codex/controller-reader-ledger.
+  No fetch, staging, commit, push, merge or GitHub message performed.
+- Added private controller reader ledger and replay model. Begin/bound require
+  exact sealed receipt, unreleased object reservation, recorded source/job/room/
+  company/worker and current human authority. Cleanup grants no read permission;
+  independent evidence must verify actual ownership, quota, volume and exact-ID
+  absence. No permissive evidence adapter or deployed transport was added.
+- Added readers to account-wide helper/container quota alongside probes and
+  captures; unresolved same-job capture/read attempts exclude each other in both
+  directions. Malformed accounting refuses admission. Atomic audit-head fencing
+  prevents concurrent controller over-admission. Actual persistence failure trips
+  integrity; ordinary revision conflict does not. Ledger state stays out of public
+  JSON and the event kind cannot be injected through the public event endpoint.
+- Exact latest-transition retries repeat current authorization and physical evidence
+  without duplicate audit entries, including interrupted known-ID recovery. Earlier
+  checkpoints cannot reopen settled readers. Unknown IDs/uncertain absence retain
+  capacity; no storage refund, worker confirmation, byte release or task acceptance
+  is manufactured. History bounded to1024 readers/five controller events per reader.
+- Tests cover normal replay/release, unknown retention, eight recovery retries,
+  fresh evidence refusal, wrong-ID refusal, editing-off retained reads/cleanup,
+  identity/source/receipt substitution, canceled/missing/agent authority, revocation,
+  audit failure/conflict, concurrent controllers, capture exclusion, combined quota,
+  malformed/private history, public injection and detached callback events.
+  All DB/Docker/provider interactions mocked; temporary synthetic files only.
+- Added docs/controller-object-read-ledger.md with user/operator behavior, private
+  integration contract, permissions, replay/retry/limits, mandatory infrastructure
+  flag exemption and gaps. Linked README/index/operations/in-app Help and updated
+  worker-journal/supervisor guides. No optional isolation switch or host/SSH fallback.
+- Focused tests passed0.848s package. Initial focused race run used Go's default
+  parallelism and encountered existing custody fixture refusals with a large log
+  timestamp gap; the supported parallel8 focused reader/capture/probe race run
+  passed3.333s package. No fixture deadline or production security check weakened.
+- Initial sandboxed make test failed29.08s and make check failed48.73s: synthetic
+  local sockets and unusual temporary filenames were denied by the sandbox, with
+  related existing worker fixture failures. Authorized unsandboxed reruns with
+  the same mocked boundaries PASSED: make test46.00s; full make check38.69s,
+  including all race/static/build-policy/documentation/UI/Help checks. Go cache
+  directed to /private/tmp/commonroom-go-cache; no real provider/DB/daemon launched.
+  Logs /private/tmp/commonroom-controller-reader-{focused,focused-race,
+  focused-race-retry,test,check,test-unsandboxed,check-unsandboxed}.log.
+- Source birth observed2026-10-28T04:25:42Z; final verification observed about
+  11:55:51 UTC. This wall window includes large unexplained timestamp/suspension gaps
+  and must not be represented as continuous coding time. Command durations above
+  are measured monotonic wall times; no reliable active-work elapsed total exists.
+- Remaining: authenticated transport/session and worker/runtime assembly, actual
+  physical quota/custody/export witnesses, independent object-only ownership after
+  workspace disposal, unknown-ID incident handling, reviewed deployment/live
+  acceptance and public file delivery/human review. Required file-task dispatch
+  remains blocked. Synthetic checks do not certify live release gates.
+- Recovery target /private/tmp/commonroom-controller-reader-ledger-backup/0001/
+  against11fbf6aa. Prepared commit: feat: account for isolated artifact-reader lifecycles
+  Last notification: controller accounting/recovery/quota batch and full checks
+  pass locally; ready for Mark to review/sign/publish. No staging/commit/push or
+  paid implementation added; existing automation remains paused.
+
+### Reader authority bridge, physical evidence and worker runtime — continued local batch
+
+- User explicitly authorized sustained same-branch continuation without stopping
+  for publication. Git helper initially verified codex/controller-reader-ledger at
+  11fbf6aa with the prior ledger batch intact and empty index. During this work,
+  owner commit e38fd0228fae02ba7fd71c511da67919ae0beeaf published the ledger/session/
+  transport increment (19 files); PR76 merged as a6b7d678554ce0933e85d438400058f7b71edbe3.
+  Checkout stayed on the existing feature branch; concurrent owner publication
+  was preserved. No agent staging, commit, push, fetch, merge or GitHub message.
+- PR76 review gap: Greptile submission PRR_kwDOVETwiM8AAAABUzHLog reported the
+  50-credit trial limit; it did NOT review the code. No checks, Actions runs,
+  inline findings or conversation comments were observed. A merge is not review
+  approval or live acceptance; this meaningful gap was surfaced to Mark.
+- Added pinned controller sessions with original human/worker/creator/intent
+  authority, independent operation/acknowledgment evidence and complete-history
+  fencing. Stale or substituted local histories refuse. Scoped cancellation
+  cannot revive reads or recovery; only finish-uncertainty metadata can be recorded
+  afterward under current authority, never absence/release or exported bytes.
+- Added canonical bounded object-read-v1 private control frames, exact monotonic
+  sequence, protocol discriminator, 32-KiB frames,64-exchange/two-minute session
+  and five-second active exchanges. This protocol REQUIRES prior deployment
+  authentication; it does not establish peer identity from metadata. Lost/denied/
+  malformed exchanges poison the one-shot link and retain uncertain capacity.
+- Added bounded single-reader EOF watching using the existing private stream pump.
+  Idle control loss cancels authority between exchanges. Worker read/recovery
+  assembly follows both control and actual creator lifetimes; canceled authority
+  withholds bytes and never substitutes for keeping/joining the actual creator lease.
+  Normal channel close is scoped revocation, not a global integrity incident;
+  actual controller persistence failures still trip the existing global latch.
+- Added workspaceObjectReadEvidence tying unchanged retained metadata/cancellation
+  latch and actual private local reader records to repeated read-only daemon
+  observations. Independent operation/lifecycle witnesses repeat before/after
+  inspection; changed/corrupt history, stale identities, false absence, writable
+  mounts and extra references/catalogs refuse. Actual physical quota/export/creator
+  evidence remains mandatory and has no permissive default. Added read-only
+  ObjectReadContainerPlan.InspectRecorded; it discovers/adopts/deletes nothing.
+- Added worker runtime assembly using the mandatory journal, fixed isolated reader,
+  same-daemon starter and independent byte-release guard. Synthetic integration
+  connects actual local/controller journals, private frames, physical observations,
+  finite byte protocol, exit, joined Close, cleanup and final current release.
+  Cleanup/exit/Close/export/audit/control/creator failures withhold bytes.
+- Added cleanup-only worker assembly with no starter, byte-release/export, object
+  deletion or refund capability. Integration covers present/already-absent known
+  IDs, failed cleanup followed by fresh-session retry, fresh denial, wrong/unknown
+  IDs, foreign observations and editing flags off. Stops/unknown-ID incidents are
+  not auto-cleared. Both local and controller charges remain on uncertainty.
+- Implemented dockerCLIRunner.StartObjectRead using the shared fixed-ID helper start
+  command and process owner: per-call verified local rootless daemon, reduced
+  environment, no shell/alternate executable/SSH fallback, sanitized errors/stderr,
+  final stdout preserved through Wait and joined process ownership on Close.
+  Synthetic subprocess tests verify behavior; no real Docker/provider was launched.
+- Full guide docs/reader-authority-bridge.md covers user/operator behavior, setup
+  order, current authority, private protocol/limits, evidence, cleanup, lifetimes,
+  source-level bypass risks, mandatory infrastructure flag exemption and remaining
+  deployment limits. Linked Help/README/index/operations and aligned existing guides.
+  No new public API/UI, product toggle, paid capability or optional isolation path.
+- Focused race checks passed: pinned sessions/protocol3.542s and4.082s package;
+  combined physical/session/protocol6.131s; recorded-ID observer1.262s; complete
+  worker/recovery/protocol6.544s; creator lifetime5.032s; starter/runtime/protocol
+  5.029s. Earlier development make test PASSED34.96s and pre-EOF full make check
+  PASSED48.24s. Final full verification after all runtime/recovery/lifetime/starter
+  changes PASSED: make test34.92s, make check49.91s (race, vet, build-policy,
+  documentation, UI and Help). All DB/Docker/provider boundaries mocked; temporary
+  synthetic fixtures/private pipes and synthetic subprocesses only. Authorized
+  unsandboxed execution was used for required temporary socket/file operations.
+- Logs under /private/tmp/commonroom-reader-{session-focused,session-focused-final,
+  bridge-physical-focused,observation-focused,runtime-bridge-focused,
+  recovery-bridge-focused,creator-bridge-focused,stream-focused,idle-eof-focused,
+  bridge-test,bridge-check,assembly-final-test,assembly-final-check}.log.
+- Observed source timestamps: session18:50:00 UTC, evidence22:52:30, runtime22:56:05;
+  final verification observation23:10:51 UTC on28 October2026. The full source
+  window includes a large timestamp gap and is not reliable continuous active-work
+  elapsed time. The evidence/assembly-to-verification subwindow is ~18m21s; actual
+  measured command durations are recorded above. No invented live/runtime evidence.
+- Remaining: deployment-authenticated transport setup, actual physical quota/
+  custody/export/creator witnesses, reviewed images and starter deployment/live
+  verification, production service wiring, independent object-only ownership after
+  source disposal, unknown-ID/stop-marker incident reconciliation and public
+  artifact delivery/human acceptance. Required file-task dispatch stays blocked.
+  No live P0 gate or production readiness certified by synthetic integration.
+- Recovery target /private/tmp/commonroom-reader-authority-bridge-backup/0001/
+  against actual current HEAD (owner e38fd02 unless advanced concurrently).
+  Prepared commit: feat: assemble verified isolated artifact reads and recovery
+  Last notification: substantial bridge/evidence/runtime/recovery/starter work and
+  final full checks pass; real deployment/witness gaps and Greptile credit limit
+  remain explicit. Local changes unstaged; Mark retains publication control.
+  Existing automation remains paused.
+
+### PR78 merge conflicts with reverted reader foundation — resolved locally
+
+- Current PR78 head abecf1dfb22d2a76d0b5304b2a9334d62c48778e was open and
+  CONFLICTING/DIRTY against main f45f6642715640c29e17cfaff2b22f8677040e49.
+  PR77 explicitly reverted PR76 (revert9667896), deleting the ledger/session/
+  transport foundation needed by the newer bridge. PR77 contained no additional
+  rationale/comments. Started from a clean feature branch and empty index.
+- Owner delegated the resolution choice after being told restoration would undo
+  the explicit revert. Retained the complete feature tree and restored its required
+  foundation; did not discard the newer runtime/recovery implementation. Git helper
+  performed a reversible no-commit merge of origin/main and resolved all13 paths.
+  HEAD stays abecf1df; MERGE_HEAD stays f45f664. Before this checkpoint append,
+  index/worktree exactly matched HEAD, zero unmerged entries/markers and clean
+  whitespace. Result compared with main:29 files,+3493/-8. No unrelated edits.
+- Current-head review PRR_kwDOVETwiM8AAAABUzS9ig reports Greptile trial-credit
+  exhaustion only; no actual review, checks or Actions approval was observed.
+  Independent static Standards and Spec reviews of the pinned PR patch found
+  no additional actionable findings (zero per axis). They did not run tests or
+  certify deployment. No GitHub comments/review-thread changes were posted.
+- Resolved-tree make test PASSED34.89s and full make check PASSED45.22s, including
+  race, vet, build-policy, docs, UI and Help checks. All DB/Docker/provider
+  boundaries remain mocked; synthetic temporary files/private channels/subprocesses
+  only. Authorized unsandboxed validation permitted required local socket fixtures;
+  no real daemon/provider/database or private data/credentials used.
+  Logs /private/tmp/commonroom-pr78-resolved-{test,check}.log. Measured verification
+  window23:32:25–23:33:45 UTC on28 October2026 (~80.11s), not total wall time of
+  the earlier clarification/review. The user-decision interval was not timed as
+  implementation work.
+- Merge remains UNCOMMITTED; Mark must sign the merge commit and push before
+  GitHub can observe cleared conflicts. Agent created no commit/push, PR merge,
+  signing bypass or protection change. Checkpoint append is left unstaged for Mark.
+  Prepared message: fix: resolve reader bridge conflicts with main
+- Initial recovery manifest /private/tmp/commonroom-pr78-merge-backup/0001/manifest.json;
+  complete prospective tree patch /private/tmp/commonroom-pr78-review/proposed-resolution.patch.
+  Final resolved/checkpoint recovery target /private/tmp/commonroom-pr78-resolved-backup/0001/.
+  Restore instructions must preserve this checkpoint before aborting an uncommitted
+  merge. All prior deployment-authentication, physical witness/quota, reviewed-image,
+  live acceptance and public delivery gaps remain; file-task dispatch stays blocked.
+- Last notification: all13 conflicts resolved locally and required full checks pass;
+  ready for owner staging/checkpoint inclusion, signed merge commit and push.
+  Greptile credit-limit/review gap remains explicit; automation remains paused.

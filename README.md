@@ -346,5 +346,15 @@ acceptance remain incomplete; file-task dispatch stays blocked.
 The [durable worker reader journal](docs/worker-object-read-journal.md) records
 reader ownership before launch and retains capacity until cleanup is durably
 acknowledged. Readers and capture helpers share conservative admission accounting.
-This initial adapter requires a retained workspace; controller/account transport,
+This initial adapter requires a retained workspace; authenticated controller transport,
 physical quota witnesses and public artifact delivery remain incomplete.
+
+The [controller reader ledger](docs/controller-object-read-ledger.md) now records
+account-wide reader capacity and exact-ID cleanup alongside probes/captures.
+It requires independent trusted evidence; no deployed transport or artifact
+delivery capability is enabled by this infrastructure.
+
+The [reader authority bridge](docs/reader-authority-bridge.md) connects pinned human/worker
+sessions, bounded private control frames, local/daemon observations and the isolated
+worker runtime. Deployment authentication, real witnesses, verified starter deployment and public delivery
+remain incomplete; its assembled tests use synthetic private channels and mocked daemons.

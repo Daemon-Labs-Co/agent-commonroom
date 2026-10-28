@@ -234,3 +234,14 @@ an admission refusal or infer a storage refund from helper cleanup. The
 exact-ID recovery, canceled-read metadata and the independent controller/account
 services still required. Existing directories need no migration; missing records
 mean no reader capacity was reserved, not evidence that an artifact was delivered.
+
+The [controller reader ledger](controller-object-read-ledger.md) mirrors reader
+transitions into the account audit chain. Missing/uncertain cleanup retains the
+helper charge. Authenticated transport and independent physical evidence remain
+required before production assembly; local metadata is not an absence witness.
+
+The [reader authority bridge](reader-authority-bridge.md) describes private control
+channel ownership, strict frame limits and scoped revocation. Keep the creator
+lease and original principal pinned; never expose a control socket to containers
+or reconnect an uncertain link to bypass reconciliation. Actual transport
+authentication, physical quota witnesses and reviewed starters remain deployment work.

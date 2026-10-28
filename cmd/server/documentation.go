@@ -15,6 +15,8 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
+	{"reader-authority-bridge", "Artifact-reader authority bridge", "docs/reader-authority-bridge.md"},
+	{"controller-object-read-ledger", "Controller artifact-reader ledger", "docs/controller-object-read-ledger.md"},
 	{"worker-object-read-journal", "Durable artifact-reader journal", "docs/worker-object-read-journal.md"},
 	{"object-reader-supervision", "Isolated artifact reads and recovery", "docs/object-reader-supervision.md"},
 	{"task-repository-links", "Task repository references (API)", "docs/task-repository-links.md"},
