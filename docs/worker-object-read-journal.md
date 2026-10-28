@@ -102,11 +102,7 @@ escaped lease refusal, identity/room substitution, malformed records, local/cont
 write failures and fresh-attempt rules. No real database, Docker daemon, provider,
 private message or credential is used. Existing capture tests exercise compatibility.
 
-The [controller reader ledger](controller-object-read-ledger.md) now provides
-private account-wide lifecycle accounting with mandatory independent evidence.
-It is not an authenticated transport or deployed guard.
-
-Still required: authenticated controller transport and session assembly,
+Still required: controller/account reader ledger and authenticated transport,
 independent physical quota/custody/release witnesses, runtime/journal orchestration,
 object-only ownership after source disposal, unknown-ID incident reconciliation,
 reviewed rootless deployment/live acceptance and public artifact delivery/human

@@ -60,8 +60,6 @@ func auditSummary(kind string, payload []byte) string {
 		return "Workspace disposal outcome unconfirmed"
 	case "task.repository_links.updated":
 		return "Owner updated task repository references"
-	case "artifact.reader.acknowledged":
-		return "Isolated artifact reader lifecycle acknowledged; delivery not confirmed"
 	case "workspace.capture.acknowledged":
 		return "An isolated output capture lifecycle was durably acknowledged"
 	case "workspace.capture.authorized":

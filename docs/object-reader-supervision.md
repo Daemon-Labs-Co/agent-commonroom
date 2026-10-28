@@ -115,9 +115,7 @@ deployed container or live P0 acceptance.
 
 The [worker journal](worker-object-read-journal.md) now supplies local durable
 records and shared capacity under a retained-workspace creator lease.
-The [controller reader ledger](controller-object-read-ledger.md) adds private
-account-wide lifecycle accounting, with independent evidence still mandatory.
-Still required: authenticated production runner/starter and controller session
+Still required: authenticated production runner/starter, controller/account journal
 assembly, actual physical quota/account/release witnesses and storage provisioning,
 unknown-ID incident handling, reviewed rootless images and live acceptance, public
 artifact delivery and human review integration. Required file-task dispatch remains

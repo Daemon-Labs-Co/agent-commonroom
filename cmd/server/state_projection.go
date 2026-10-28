@@ -71,10 +71,6 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			if err := projectWorkspaceDisposal(&st, kind, data); err != nil {
 				return st, err
 			}
-		case "artifact.reader.acknowledged":
-			if err := projectControllerObjectRead(&st, data); err != nil {
-				return st, err
-			}
 		case "workspace.capture.acknowledged":
 			if err := projectControllerCapture(&st, data); err != nil {
 				return st, err

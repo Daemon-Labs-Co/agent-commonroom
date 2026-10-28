@@ -109,11 +109,6 @@ func validateControllerCaptureEvent(st room.State, v controllerCaptureEvent) (ro
 				return zero, false, errControllerCapture
 			}
 		}
-		for _, r := range st.ObjectReads {
-			if r.Intent.Request.Receipt.Intent.Scope.JobID == v.Intent.Request.Binding.Execution.JobID && !r.Released {
-				return zero, false, errControllerCapture
-			}
-		}
 		old = room.WorkspaceCaptureReservation{Version: 1, CompanyID: v.CompanyID, RoomID: v.RoomID, Worker: v.Worker, ActorID: v.ActorID, Intent: v.Intent}
 	}
 	old.Events = append(append([]workerProbeEvent(nil), old.Events...), v.Event)
@@ -217,11 +212,7 @@ func controllerHelperSlots(st room.State) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	readers, err := controllerObjectReadSlots(st)
-	if err != nil {
-		return 0, err
-	}
-	return probes + captures + readers, nil
+	return probes + captures, nil
 }
 
 func copyControllerCaptureReservation(r room.WorkspaceCaptureReservation) room.WorkspaceCaptureReservation {
