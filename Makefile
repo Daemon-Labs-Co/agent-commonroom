@@ -6,13 +6,15 @@ run:
 build:
 	go build -o bin/commonroom ./cmd/server
 
+# This deadline covers an entire package, including hundreds of parallel tests.
+# It does not replace the shorter operation-specific deadlines asserted in tests.
 TEST_PARALLEL ?= 8
 
 test:
-	go test -parallel $(TEST_PARALLEL) -timeout 30s ./...
+	go test -parallel $(TEST_PARALLEL) -timeout 90s ./...
 
 test-race:
-	go test -race -parallel $(TEST_PARALLEL) -timeout 30s ./...
+	go test -race -parallel $(TEST_PARALLEL) -timeout 90s ./...
 
 # Pending cases are visible here; this does not prove release readiness.
 test-p0-plan:
@@ -24,7 +26,7 @@ test-p0-ready:
 
 coverage:
 	@mkdir -p coverage
-	go test -parallel $(TEST_PARALLEL) -timeout 30s -coverprofile=coverage/go.out ./...
+	go test -parallel $(TEST_PARALLEL) -timeout 90s -coverprofile=coverage/go.out ./...
 	go tool cover -func=coverage/go.out
 
 check: test-race

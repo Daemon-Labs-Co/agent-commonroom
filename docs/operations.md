@@ -224,3 +224,13 @@ retain capacity and require incident reconciliation; never adopt an ID by name o
 refund storage from a missing helper alone. No product feature is enabled by this
 infrastructure, and file-task dispatch remains blocked pending production assembly
 and live acceptance.
+
+## Reader lifecycle records
+
+Keep `.object-read-<job>-<challenge>.record` files with the private worker state;
+unknown/unfinished records retain container capacity. Never delete them to clear
+an admission refusal or infer a storage refund from helper cleanup. The
+[worker reader-journal guide](worker-object-read-journal.md) describes supported
+exact-ID recovery, canceled-read metadata and the independent controller/account
+services still required. Existing directories need no migration; missing records
+mean no reader capacity was reserved, not evidence that an artifact was delivered.

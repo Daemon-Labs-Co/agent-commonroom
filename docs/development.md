@@ -30,7 +30,7 @@ make secrets
 make build
 ```
 
-`make test` runs fast Go tests. `make check` adds race detection, Go vet, Python build-policy tests and JavaScript/bootstrap/UI/Help tests. `make coverage` writes an ignored `coverage/go.out` report. Go tests run in parallel with a 30-second timeout; `TEST_PARALLEL` defaults to 8. Use `go test -count=1 -shuffle=on ./...` to check test-order independence.
+`make test` runs fast Go tests. `make check` adds race detection, Go vet, Python build-policy tests and JavaScript/bootstrap/UI/Help tests. `make coverage` writes an ignored `coverage/go.out` report. Go tests run in parallel with a 90-second aggregate timeout per package; `TEST_PARALLEL` defaults to 8. The server package has more than 650 test functions, including durable temporary-file tests; its previous 30-second aggregate limit expired despite passing race partitions. Individual test and production-operation deadlines remain independent and are not extended by this ceiling. The dedicated P0 acceptance targets retain their 30-second bounds. Use `go test -count=1 -shuffle=on ./...` to check test-order independence.
 
 All database interactions in tests are mocked in memory through `eventDatabase`. Tests never connect to PostgreSQL, create schemas, or insert database records; database environment settings are ignored. The mock covers query/scan/stream errors, transaction failures, rollback, serialization of concurrent audit appends, state projection, and HTTP authorization/validation. The invitation flow now runs on every test invocation rather than skipping behind an integration setting.
 

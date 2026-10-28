@@ -170,6 +170,15 @@ func (j *workerCaptureJournal) transition(ctx context.Context, event workerProbe
 				return errWorkerProbeJournal
 			}
 		}
+		readers, err := readWorkerObjectReadRecords(j.dir)
+		if err != nil {
+			return j.fail()
+		}
+		for _, old := range readers {
+			if old.Intent.Request.Receipt.Intent.Scope.JobID == j.record.JobID && !objectReadRecordSettled(old) {
+				return errWorkerProbeJournal
+			}
+		}
 		jobs, err := boundedWorkerRecords(j.dir)
 		if err != nil || workerProbeCapacity(j.dir, jobs, 1) != nil {
 			return errWorkerProbeJournal
