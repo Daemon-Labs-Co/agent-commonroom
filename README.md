@@ -319,12 +319,12 @@ peers; deployed reader image/mount/lifecycle and physical quota assembly remain 
 The [fixed isolated object reader](docs/isolated-object-reader.md) now has a credential-free
 entrypoint, read-only kernel mount lease and separate image recipe. It rechecks the actual
 view around controller authorization and sealed reads. Static Linux compilation passed;
-container build/live acceptance, supervised reader lifecycle and physical quota assembly
-remain incomplete. File-task dispatch remains blocked.
+container build/live acceptance, production reader lifecycle assembly and physical
+quota enforcement remain incomplete. File-task dispatch remains blocked.
 
 [Object-reader admission](docs/object-reader-admission.md) now verifies exact helper
 image/volume identities, strict read-only policy and independent reference inventories.
-It observes metadata only; supervised lifecycle/account admission, actual quotas and
+It observes metadata only; production lifecycle/account admission, actual quotas and
 live acceptance still require assembly before task artifact delivery can be enabled.
 
 Supervised capture keeps its attached process stream open until successful exit and
@@ -336,3 +336,9 @@ does not enable file dispatch or replace live container acceptance.
 API-only list of GitHub issue/branch/commit/PR links per shared-room task. Enabled
 humans with room access may read; only the owner may edit. References are not verified
 deliverables or repository execution/push authority. The guide is available in Help.
+
+[Supervised isolated reads and recovery](docs/object-reader-supervision.md) now
+withhold artifact bytes until successful helper exit, exact-ID cleanup, durable
+lifecycle finish and a final permission acknowledgment. Known-ID recovery performs
+cleanup only. Production authentication/quota assembly, public delivery and live
+acceptance remain incomplete; file-task dispatch stays blocked.

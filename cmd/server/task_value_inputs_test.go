@@ -435,7 +435,8 @@ func TestDependencyFlagCycleCancelsOnlyDependentTurns(t *testing.T) {
 
 func TestTaskValueSourceDiscoveryPaginatesAcceptedValuesAndRetainsReviewIdentity(t *testing.T) {
 	t.Parallel()
-	s, _, h, st, target, b := valueDependencyFixture(t)
+	s, db, h, st, target, b := valueDependencyFixture(t)
+	pageTemplate := db.snapshot()
 	// Reviewing an already-produced result preserves its original output identity.
 	source := st.Tasks[0]
 	source.Status = "Submitted"
@@ -462,40 +463,80 @@ func TestTaskValueSourceDiscoveryPaginatesAcceptedValuesAndRetainsReviewIdentity
 	if err != nil || bound[0].Provenance.ExecutionID != b.Source.ExecutionID {
 		t.Fatal("review changed output identity", err)
 	}
-	s.taskTurn = func(context.Context, room.Participant, string, string) (string, error) {
-		return `{"result":"<page value>"}`, nil
-	}
+	// One full owner/dispatch/acceptance journey above supplies the replay template.
+	// Pagination needs distinct validated sources, not 26 repetitions of dispatch
+	// orchestration and its quadratic history reloads. Seed only task/execution
+	// events in this in-memory mock with fresh identities and audit metadata. The
+	// real state projector and source endpoint still validate every cloned record.
 	for i := 0; i < 26; i++ {
-		// Pagination fixtures are independent owner interactions, not a burst-rate
-		// test. Reset only this synthetic server's limiter rather than sleeping.
-		s.mu.Lock()
-		s.requestBudgets = nil
-		s.mu.Unlock()
-		d := syntheticDefinition()
-		task := room.Task{RoomID: "engineering", Title: fmt.Sprintf("Synthetic source %02d", i), Status: "Assigned", Assignee: "dev", Reviewer: "dev", Definition: &d}
-		reviseValueTask(t, h, task)
-		st, err = s.load(t.Context())
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, v := range st.Tasks {
-			if v.Title == task.Title {
-				task = v
+		taskID := fmt.Sprintf("synthetic-source-%02d", i)
+		executionID := fmt.Sprintf("%032x", i+1)
+		for _, event := range pageTemplate {
+			if event.kind != "task.revised" && event.kind != "task.execution.started" && event.kind != "task.execution.finished" {
+				continue
 			}
-		}
-		manual := taskcontract.Binding{Name: "source", Value: json.RawMessage(`"synthetic input"`), SourceVersion: "synthetic-v1"}
-		if w := dispatchRequest(h, fmt.Sprintf("source-page-%02d", i), valueDispatchBody(t, task, manual)); w.Code != 202 {
-			t.Fatal(w.Code, w.Body.String())
-		}
-		st = waitDispatch(t, s)
-		for _, v := range st.Tasks {
-			if v.ID == task.ID {
-				task = v
+			var payload map[string]json.RawMessage
+			if err := json.Unmarshal([]byte(event.payload), &payload); err != nil {
+				t.Fatal(err)
 			}
+			var recordTaskID string
+			field := "id"
+			if event.kind != "task.revised" {
+				field = "taskId"
+			}
+			if err := json.Unmarshal(payload[field], &recordTaskID); err != nil {
+				t.Fatal(err)
+			}
+			if recordTaskID != "task" {
+				continue
+			}
+			delete(payload, "_auditRecord")
+			payload[field], _ = json.Marshal(taskID)
+			if event.kind == "task.revised" {
+				var dispatchID string
+				if raw, ok := payload["dispatchId"]; ok {
+					if err := json.Unmarshal(raw, &dispatchID); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if dispatchID != "" {
+					payload["dispatchId"], _ = json.Marshal(executionID)
+				}
+				payload["title"], _ = json.Marshal(fmt.Sprintf("Synthetic source %02d", i))
+			} else {
+				payload["id"], _ = json.Marshal(executionID)
+				// Returned value identity is derived from the execution ID too.
+				var execution room.TaskExecution
+				raw, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err = json.Unmarshal(raw, &execution); err != nil {
+					t.Fatal(err)
+				}
+				if len(execution.Outputs) > 0 {
+					values := map[string]json.RawMessage{}
+					for _, output := range execution.Outputs {
+						values[output.Name] = output.Value
+					}
+					valueJSON, err := json.Marshal(values)
+					if err != nil {
+						t.Fatal(err)
+					}
+					outputs, err := taskcontract.ReturnedValues(execution.Definition, valueJSON, executionID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					payload["outputs"], err = json.Marshal(outputs)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			db.seed(event.kind, payload)
 		}
-		task.Status = "Accepted"
-		reviseValueTask(t, h, task)
 	}
+
 	// Independent source discovery must not require the other input to be bound.
 	d := *target.Definition
 	d.ExpectedInputs = append(append([]taskcontract.DataContract(nil), d.ExpectedInputs...), taskcontract.DataContract{Name: "other", Type: "value", Required: true, SchemaID: "text.v1", MaxBytes: 512})

@@ -214,3 +214,13 @@ migration. Disabling blocks reads and writes while retaining references/history.
 See [task repository references](task-repository-links.md) for API requests, current
 revision/CSRF/operation-key requirements and permission/URL limitations. It requires
 no GitHub credentials or outbound integration and grants no repository authority.
+
+## Isolated artifact-reader lifecycle
+
+The [reader supervision and recovery contract](object-reader-supervision.md) describes
+required production dependencies, bounded waits and known-ID cleanup. Do not wire it
+to a permissive journal, model pipes or a host launcher. Unknown creation replies
+retain capacity and require incident reconciliation; never adopt an ID by name or
+refund storage from a missing helper alone. No product feature is enabled by this
+infrastructure, and file-task dispatch remains blocked pending production assembly
+and live acceptance.

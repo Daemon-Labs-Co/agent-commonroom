@@ -55,8 +55,9 @@ extra references/catalog entries, second-pass drift and malformed/unpinned metad
 Existing capture admission tests remain passing after sharing host restrictions.
 No real Docker, database, provider, credentials or private messages are used.
 
-Supervised creation/start/exit/known-ID cleanup/recovery and shared account/local/
-controller lifecycle journals still require assembly. Deployed authentication,
+[Supervised creation/start/exit and known-ID cleanup/recovery](object-reader-supervision.md)
+now enforce this plan through a mandatory lifecycle journal interface. Production
+shared account/local/controller journal implementations still require assembly. Deployed authentication,
 actual release/quota/account witnesses, physically enforced storage provisioning,
 end-to-end task artifact delivery/human review and reviewed image/latency/live
 acceptance remain gaps. Required file-task dispatch stays blocked. This admission
