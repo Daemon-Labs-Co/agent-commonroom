@@ -375,6 +375,7 @@ type TaskDefinitionRevision struct {
 
 type State struct {
 	WorkspaceCaptures       map[string]WorkspaceCaptureReservation `json:"-"`
+	ObjectReads             map[string]ObjectReadReservation       `json:"-"`
 	WorkspaceProbes         map[string]WorkspaceProbeReservation   `json:"-"`
 	ArtifactCustody         map[string]ArtifactCustodyObject       `json:"-"`
 	TaskContextPolicyEpochs map[string]int                         `json:"-"`
