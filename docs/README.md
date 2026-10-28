@@ -204,3 +204,6 @@ The internal [account probe ledger](account-probe-capacity.md) now durably count
 
 - [Supervised isolated artifact reads and recovery](object-reader-supervision.md):
   exact-ID helper lifecycle, withheld bytes, durable release and interrupted cleanup.
+
+- [Durable worker artifact-reader journal](worker-object-read-journal.md): creator
+  fencing, durable ownership/capacity and conservative interrupted-read recovery.

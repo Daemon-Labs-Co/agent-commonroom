@@ -342,3 +342,9 @@ withhold artifact bytes until successful helper exit, exact-ID cleanup, durable
 lifecycle finish and a final permission acknowledgment. Known-ID recovery performs
 cleanup only. Production authentication/quota assembly, public delivery and live
 acceptance remain incomplete; file-task dispatch stays blocked.
+
+The [durable worker reader journal](docs/worker-object-read-journal.md) records
+reader ownership before launch and retains capacity until cleanup is durably
+acknowledged. Readers and capture helpers share conservative admission accounting.
+This initial adapter requires a retained workspace; controller/account transport,
+physical quota witnesses and public artifact delivery remain incomplete.

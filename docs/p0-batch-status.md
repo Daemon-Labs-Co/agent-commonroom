@@ -3173,3 +3173,107 @@ proof does not establish live daemon or descendant termination guarantees.
   tests and static/UI pass, full-check timeout remains explicit. Mark must sign/push
   before new remote review. No staging, commit, push, review-thread resolution,
   GitHub message, merge or automation resume performed.
+
+### Durable worker reader lifecycle journal — local implementation checkpoint
+
+- User authorized continuing. Git helper verified PR74 merged at
+  27650834e66cf023bcee9d3f9e6a76c4df8b0ff1; merge tree equals final head 5648d76.
+  Greptile succeeded on that head, P1 thread resolved and no new feedback. Local
+  main/origin already matched; no fetch needed. Clean checkout and empty index
+  before creating codex/reader-lifecycle-journal from the verified merged base.
+- Added finite ObjectReadIntent/pure ValidObjectReadMetadata so journal validation
+  does not manufacture an observed Docker root. Existing actual plan admission
+  still validates root/image/volume policy independently.
+- Added private canonical bounded worker reader records and mandatory guard-backed
+  lifecycle/recovery journals. Actual creator ownership is held through transitions;
+  shared admission serializes capacity across jobs/probes/captures/readers. Local
+  persistence precedes controller acknowledgment; current authority and a durable
+  final confirmation are required to free a helper slot. No object-storage refund.
+- Same-job unresolved readers/captures mutually exclude one another. Malformed reader
+  records block admission. Lost IDs and incomplete acknowledgment/cleanup retain
+  capacity; local/controller/confirmation persistence faults stop live authority and
+  write the existing shared integrity marker. No permissive guard is provided.
+- Canceled read authority may still journal finish uncertainty while the actual
+  creator lease is held, using the runtime's fresh finish context. It cannot confirm
+  or release the slot. Closed/escaped leases refuse. Known-ID recovery requires fresh
+  current cleanup authority; unknown-ID/name adoption, launching, object reads,
+  volume deletion and storage refunds are outside this journal's API.
+- Meaningful mocked tests cover persisted-before-ack ordering, detached callback
+  records, aggregate capacity, reader/capture exclusion, normal confirmation,
+  unknown retention/known recovery, actual journal failures, canceled finish,
+  escaped leases, substituted identities/rooms, malformed records, confirmation-write
+  failure, initial permission refusal and fresh authorized attempts after settlement.
+  Temporary synthetic private files/locks only; all DB/Docker/provider interactions
+  remain mocked, no private data/credentials or live acceptance used.
+- Added docs/worker-object-read-journal.md, Help catalog, README/index/operations
+  links and updated reader-supervision integration limits. Infrastructure has no
+  optional product flag or mandatory-isolation off switch. Initial local adapter
+  explicitly requires an unchanged retained workspace; reads after source disposal
+  and independent object-only ownership are not implemented.
+- Corrected the aggregate Go package test budget in Makefile: full test/race/coverage
+  now allow 90s per package. Previous default30s repeatedly expired across the growing
+  server package despite passing race partitions (see prior checkpoints). This is a
+  deliberate documented harness budget change, not a claim that the prior full
+  check passed. Parallelism remains8; production deadlines and dedicated P0 targets'
+  30s bounds remain unchanged. No tests/race/static/security checks are omitted.
+- Focused reader/capture race checks passed: cmd/server4.005s and toolbroker1.454s.
+  make test passed28.04s, then final make test passed29.62s after final cases/budget.
+  Full make check PASSED43.44s with race, vet, Python build/docs and JS/UI/Help checks;
+  cmd/server race package29.054s. Final guide-limit wording passed documentation
+  tests separately (3 tests,0.144s). Logs /private/tmp/commonroom-reader-journal-
+  {test,test-final,check}.log. No split/bypassed check used for this handoff.
+- Observed source-work window2026-10-28 00:13:22–00:21:35 UTC (~8m13s), using first
+  new source-file creation as the starting observation; earlier inspection was not
+  separately timed. Recorded check durations above are actual wall times.
+- Remaining: controller/account reader ledger and authenticated transport, actual
+  custody/physical quota/export witnesses, runtime/journal orchestration, object-only
+  ownership after workspace disposal, unknown-ID incidents, reviewed images/live
+  acceptance and public task artifact delivery/human review. Required file-task
+  dispatch stays blocked; no live P0 gate pass or production readiness claimed.
+- Recovery target: /private/tmp/commonroom-reader-journal-backup/0001/ against27650834.
+  Prepared commit message: feat: persist isolated reader lifecycle and capacity
+  Last notification: durable local reader journal/recovery/capacity tests and full
+  checks pass; controller/account integration is next. Changes local/unstaged, Mark
+  signs/publishes. No staging/commit/push/merge/GitHub messages or automation resume.
+
+### PR75 P1 retry an interrupted reader recovery — local review fix
+
+- User published the journal batch and created PR75, open at
+  c9506db2d0e9321f8d6fd3acbac2d9dcb45d4ac4. Git helper verified clean checkout and
+  switched to existing codex/reader-lifecycle-journal at that exact head; index empty.
+- Current-head Greptile review PRR_kwDOVETwiM8AAAABUledKw is COMMENTED, submitted
+  2026-10-28T00:49:55Z; check completed successfully at00:49:58Z. This is completion,
+  not approval. No Actions runs/conversation comments/other findings were observed.
+  P1 comment4395816512/thread PRRT_kwDOVETwiM6w8XwE remains remotely unresolved.
+- Validated: a cleanup failure after durable recovery begin leaves that stage in
+  place. A new recovery runtime then appended another recovery event, which the
+  finite state validator rejects, stranding the exact recorded ID and capacity.
+- Resume only the exact already-begun logical recovery checkpoint. The same private
+  record is validated/persisted; current authorization, durable controller
+  acknowledgment and post-ack authorization all repeat. Local history stays bounded,
+  capacity stays charged, and no new reader/ID adoption/refund is permitted. Shared
+  helper state validation and non-reader behavior are unchanged.
+- Regression failed before the fix, passes after it: eight failed cleanups with
+  newly constructed journals, fresh permission denial, wrong-ID refusal, controller
+  re-acknowledgment, unchanged four-event history/one reserved slot, then successful
+  cleanup and durable settlement. Existing unknown-ID and failure tests remain.
+  Guide/guard contract now requires re-acknowledging the same logical recovery only
+  under fresh authority. All fixtures remain synthetic/private, DB/Docker/provider
+  boundaries mocked; no deployed observations, credentials or live acceptance used.
+- Focused reader-journal race tests passed (2.722s package). make test passed28.13s.
+  Initial make check failed in existing workspace fixture setup/driver expectations;
+  reported wall859.57s includes an unexplained long stall/log timestamp gap, while
+  cmd/server reported31.797s and no data-race diagnostic. It is not continuous
+  implementation time. Unchanged full make check retry PASSED37.55s with all race,
+  vet, build-policy, documentation and UI/Help checks. No timeout or case changed.
+  Logs /private/tmp/commonroom-pr75-recovery-retry-{test,check,check-retry}.log.
+- Observed wall window00:51:48–01:11:03 UTC (~19m15s) includes the stall above.
+  Production controller/account/authenticated transport, actual physical quota/
+  custody/export witnesses, object-only ownership, public delivery and live
+  acceptance gaps remain. Required file-task dispatch stays blocked; no live gate
+  pass claimed. Infrastructure fix adds no product toggle or isolation exception.
+- Recovery target /private/tmp/commonroom-pr75-recovery-retry-backup/0001/ against
+  c9506db. Prepared commit message: fix: allow authorized retries of reader cleanup
+  Last notification: sole current-head P1 fixed locally, regressions/test/full check
+  retry pass. Mark must sign/push for new remote review. No staging/commit/push,
+  GitHub messages/thread resolution, merge or automation resume performed.

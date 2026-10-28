@@ -179,7 +179,11 @@ func workerProbeCapacity(dir string, jobs []workerJobRecord, next int) error {
 	if err != nil {
 		return err
 	}
-	count := next + captureSlots
+	readerSlots, err := workerObjectReadSlots(dir)
+	if err != nil {
+		return err
+	}
+	count := next + captureSlots + readerSlots
 	for _, job := range jobs {
 		if !workerJobSettled(job) {
 			count += workerContainerSlots(job)

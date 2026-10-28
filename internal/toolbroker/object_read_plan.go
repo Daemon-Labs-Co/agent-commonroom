@@ -27,12 +27,27 @@ type ObjectReadContainerPlan struct {
 	objects                       CaptureObjectVolume
 }
 
-func NewObjectReadContainerPlan(q objectread.Request, image, root string, objects CaptureObjectVolume) (*ObjectReadContainerPlan, error) {
+// ObjectReadIntent is finite immutable journal metadata, not permission to
+// execute, read, release storage or bypass mandatory isolated admission.
+type ObjectReadIntent struct {
+	Request objectread.Request  `json:"request"`
+	Image   string              `json:"image"`
+	Objects CaptureObjectVolume `json:"objects"`
+}
+
+// ValidObjectReadMetadata validates finite identities without inventing a daemon
+// root observation. Actual worker, image, quota and release proof remain mandatory.
+func ValidObjectReadMetadata(q objectread.Request, image string, objects CaptureObjectVolume) bool {
 	created, err := time.Parse(time.RFC3339Nano, objects.CreatedAt)
 	raw, marshalErr := json.Marshal(q)
-	if !objectread.ValidRequest(q) || marshalErr != nil || len(raw) > 6144 || !strings.HasPrefix(image, "sha256:") || !digest(strings.TrimPrefix(image, "sha256:"), 32) || !path.IsAbs(root) || path.Clean(root) != root || root == "/" || len(root) > 4096 || objects.Name != "commonroom-custody-"+q.Receipt.Intent.Scope.JobID || !digest(objects.Nonce, 16) || err != nil || created.IsZero() || len(objects.CreatedAt) > 64 {
+	return objectread.ValidRequest(q) && marshalErr == nil && len(raw) <= 6144 && strings.HasPrefix(image, "sha256:") && digest(strings.TrimPrefix(image, "sha256:"), 32) && objects.Name == "commonroom-custody-"+q.Receipt.Intent.Scope.JobID && digest(objects.Nonce, 16) && err == nil && !created.IsZero() && len(objects.CreatedAt) <= 64
+}
+
+func NewObjectReadContainerPlan(q objectread.Request, image, root string, objects CaptureObjectVolume) (*ObjectReadContainerPlan, error) {
+	if !ValidObjectReadMetadata(q, image, objects) || !path.IsAbs(root) || path.Clean(root) != root || root == "/" || len(root) > 4096 {
 		return nil, ErrRejected
 	}
+	raw, _ := json.Marshal(q)
 	sum := sha256.Sum256(raw)
 	return &ObjectReadContainerPlan{request: q, image: image, root: root, encoded: base64.RawURLEncoding.EncodeToString(raw), binding: hex.EncodeToString(sum[:]), objects: objects}, nil
 }

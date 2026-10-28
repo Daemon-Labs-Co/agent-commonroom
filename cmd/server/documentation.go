@@ -15,6 +15,7 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
+	{"worker-object-read-journal", "Durable artifact-reader journal", "docs/worker-object-read-journal.md"},
 	{"object-reader-supervision", "Isolated artifact reads and recovery", "docs/object-reader-supervision.md"},
 	{"task-repository-links", "Task repository references (API)", "docs/task-repository-links.md"},
 	{"task-definitions", "Task definitions and execution records", "docs/task-definitions.md"},
