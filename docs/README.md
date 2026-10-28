@@ -207,3 +207,6 @@ The internal [account probe ledger](account-probe-capacity.md) now durably count
 
 - [Durable worker artifact-reader journal](worker-object-read-journal.md): creator
   fencing, durable ownership/capacity and conservative interrupted-read recovery.
+
+- [Controller artifact-reader ledger](controller-object-read-ledger.md): private
+  account-wide helper accounting, audit replay and authorized known-ID recovery.
