@@ -40,8 +40,9 @@ type ObjectReadStarter interface {
 
 // ObjectReadRuntime is one-shot isolated helper orchestration, not a download or
 // host launcher. All dependencies are mandatory trusted infrastructure. A source
-// fork CAN fake runners/journals, invalidating isolation. No real daemon assembly,
-// permissive journal, host/SSH fallback or isolation toggle is supplied.
+// fork CAN fake runners/journals, invalidating isolation. Production must supply
+// verified same-daemon dependencies; no permissive journal, host/SSH fallback or
+// isolation toggle is supplied.
 type ObjectReadRuntime struct {
 	physical  *objectReadInspector
 	starter   ObjectReadStarter

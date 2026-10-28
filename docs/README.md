@@ -210,3 +210,6 @@ The internal [account probe ledger](account-probe-capacity.md) now durably count
 
 - [Controller artifact-reader ledger](controller-object-read-ledger.md): private
   account-wide helper accounting, audit replay and authorized known-ID recovery.
+
+- [Reader authority bridge and worker assembly](reader-authority-bridge.md): pinned
+  sessions, private control protocol, local/physical checks and isolated orchestration.

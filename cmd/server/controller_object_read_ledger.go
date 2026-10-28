@@ -17,7 +17,7 @@ const controllerObjectReadEventKind = "artifact.reader.acknowledged"
 // exact private local journal/creator ownership, reviewed image, custody volume,
 // physical quota and operation-specific export or cleanup authority. Absence is
 // independently observed, never accepted from model/worker metadata alone. It must
-// not reenter server/admission locks. No default or authenticated transport exists.
+// not reenter server/admission locks. No permissive default or deployment handshake exists.
 // Source forks can falsify these checks and invalidate mandatory isolation.
 type controllerObjectReadEvidence interface {
 	ValidateObjectReadTransition(context.Context, room.State, room.ObjectReadReservation, workerProbeEvent) error

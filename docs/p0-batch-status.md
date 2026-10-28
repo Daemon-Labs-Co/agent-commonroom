@@ -3338,3 +3338,91 @@ proof does not establish live daemon or descendant termination guarantees.
   Last notification: controller accounting/recovery/quota batch and full checks
   pass locally; ready for Mark to review/sign/publish. No staging/commit/push or
   paid implementation added; existing automation remains paused.
+
+### Reader authority bridge, physical evidence and worker runtime — continued local batch
+
+- User explicitly authorized sustained same-branch continuation without stopping
+  for publication. Git helper initially verified codex/controller-reader-ledger at
+  11fbf6aa with the prior ledger batch intact and empty index. During this work,
+  owner commit e38fd0228fae02ba7fd71c511da67919ae0beeaf published the ledger/session/
+  transport increment (19 files); PR76 merged as a6b7d678554ce0933e85d438400058f7b71edbe3.
+  Checkout stayed on the existing feature branch; concurrent owner publication
+  was preserved. No agent staging, commit, push, fetch, merge or GitHub message.
+- PR76 review gap: Greptile submission PRR_kwDOVETwiM8AAAABUzHLog reported the
+  50-credit trial limit; it did NOT review the code. No checks, Actions runs,
+  inline findings or conversation comments were observed. A merge is not review
+  approval or live acceptance; this meaningful gap was surfaced to Mark.
+- Added pinned controller sessions with original human/worker/creator/intent
+  authority, independent operation/acknowledgment evidence and complete-history
+  fencing. Stale or substituted local histories refuse. Scoped cancellation
+  cannot revive reads or recovery; only finish-uncertainty metadata can be recorded
+  afterward under current authority, never absence/release or exported bytes.
+- Added canonical bounded object-read-v1 private control frames, exact monotonic
+  sequence, protocol discriminator, 32-KiB frames,64-exchange/two-minute session
+  and five-second active exchanges. This protocol REQUIRES prior deployment
+  authentication; it does not establish peer identity from metadata. Lost/denied/
+  malformed exchanges poison the one-shot link and retain uncertain capacity.
+- Added bounded single-reader EOF watching using the existing private stream pump.
+  Idle control loss cancels authority between exchanges. Worker read/recovery
+  assembly follows both control and actual creator lifetimes; canceled authority
+  withholds bytes and never substitutes for keeping/joining the actual creator lease.
+  Normal channel close is scoped revocation, not a global integrity incident;
+  actual controller persistence failures still trip the existing global latch.
+- Added workspaceObjectReadEvidence tying unchanged retained metadata/cancellation
+  latch and actual private local reader records to repeated read-only daemon
+  observations. Independent operation/lifecycle witnesses repeat before/after
+  inspection; changed/corrupt history, stale identities, false absence, writable
+  mounts and extra references/catalogs refuse. Actual physical quota/export/creator
+  evidence remains mandatory and has no permissive default. Added read-only
+  ObjectReadContainerPlan.InspectRecorded; it discovers/adopts/deletes nothing.
+- Added worker runtime assembly using the mandatory journal, fixed isolated reader,
+  same-daemon starter and independent byte-release guard. Synthetic integration
+  connects actual local/controller journals, private frames, physical observations,
+  finite byte protocol, exit, joined Close, cleanup and final current release.
+  Cleanup/exit/Close/export/audit/control/creator failures withhold bytes.
+- Added cleanup-only worker assembly with no starter, byte-release/export, object
+  deletion or refund capability. Integration covers present/already-absent known
+  IDs, failed cleanup followed by fresh-session retry, fresh denial, wrong/unknown
+  IDs, foreign observations and editing flags off. Stops/unknown-ID incidents are
+  not auto-cleared. Both local and controller charges remain on uncertainty.
+- Implemented dockerCLIRunner.StartObjectRead using the shared fixed-ID helper start
+  command and process owner: per-call verified local rootless daemon, reduced
+  environment, no shell/alternate executable/SSH fallback, sanitized errors/stderr,
+  final stdout preserved through Wait and joined process ownership on Close.
+  Synthetic subprocess tests verify behavior; no real Docker/provider was launched.
+- Full guide docs/reader-authority-bridge.md covers user/operator behavior, setup
+  order, current authority, private protocol/limits, evidence, cleanup, lifetimes,
+  source-level bypass risks, mandatory infrastructure flag exemption and remaining
+  deployment limits. Linked Help/README/index/operations and aligned existing guides.
+  No new public API/UI, product toggle, paid capability or optional isolation path.
+- Focused race checks passed: pinned sessions/protocol3.542s and4.082s package;
+  combined physical/session/protocol6.131s; recorded-ID observer1.262s; complete
+  worker/recovery/protocol6.544s; creator lifetime5.032s; starter/runtime/protocol
+  5.029s. Earlier development make test PASSED34.96s and pre-EOF full make check
+  PASSED48.24s. Final full verification after all runtime/recovery/lifetime/starter
+  changes PASSED: make test34.92s, make check49.91s (race, vet, build-policy,
+  documentation, UI and Help). All DB/Docker/provider boundaries mocked; temporary
+  synthetic fixtures/private pipes and synthetic subprocesses only. Authorized
+  unsandboxed execution was used for required temporary socket/file operations.
+- Logs under /private/tmp/commonroom-reader-{session-focused,session-focused-final,
+  bridge-physical-focused,observation-focused,runtime-bridge-focused,
+  recovery-bridge-focused,creator-bridge-focused,stream-focused,idle-eof-focused,
+  bridge-test,bridge-check,assembly-final-test,assembly-final-check}.log.
+- Observed source timestamps: session18:50:00 UTC, evidence22:52:30, runtime22:56:05;
+  final verification observation23:10:51 UTC on28 October2026. The full source
+  window includes a large timestamp gap and is not reliable continuous active-work
+  elapsed time. The evidence/assembly-to-verification subwindow is ~18m21s; actual
+  measured command durations are recorded above. No invented live/runtime evidence.
+- Remaining: deployment-authenticated transport setup, actual physical quota/
+  custody/export/creator witnesses, reviewed images and starter deployment/live
+  verification, production service wiring, independent object-only ownership after
+  source disposal, unknown-ID/stop-marker incident reconciliation and public
+  artifact delivery/human acceptance. Required file-task dispatch stays blocked.
+  No live P0 gate or production readiness certified by synthetic integration.
+- Recovery target /private/tmp/commonroom-reader-authority-bridge-backup/0001/
+  against actual current HEAD (owner e38fd02 unless advanced concurrently).
+  Prepared commit: feat: assemble verified isolated artifact reads and recovery
+  Last notification: substantial bridge/evidence/runtime/recovery/starter work and
+  final full checks pass; real deployment/witness gaps and Greptile credit limit
+  remain explicit. Local changes unstaged; Mark retains publication control.
+  Existing automation remains paused.

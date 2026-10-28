@@ -155,3 +155,10 @@ func (g *controllerObjectReadSession) StopObjectReadAuthority() {
 }
 
 var _ workerObjectReadJournalGuard = (*controllerObjectReadSession)(nil)
+
+func (g *controllerObjectReadSession) ObjectReadAuthorityLifetime() context.Context {
+	if g == nil {
+		return nil
+	}
+	return g.lifetime
+}

@@ -106,8 +106,10 @@ The [controller reader ledger](controller-object-read-ledger.md) now provides
 private account-wide lifecycle accounting with mandatory independent evidence.
 It is not an authenticated transport or deployed guard.
 
-Still required: authenticated controller transport and session assembly,
-independent physical quota/custody/release witnesses, runtime/journal orchestration,
+The [authority bridge](reader-authority-bridge.md) now supplies pinned sessions,
+private control frames, local/physical evidence and worker/runtime orchestration.
+Still required: deployment authentication, real physical quota/custody/release
+witnesses and reviewed starter deployment,
 object-only ownership after source disposal, unknown-ID incident reconciliation,
 reviewed rootless deployment/live acceptance and public artifact delivery/human
 review. File-task dispatch remains blocked. Synthetic journal tests are not live

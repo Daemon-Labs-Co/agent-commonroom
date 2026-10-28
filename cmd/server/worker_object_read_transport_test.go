@@ -305,3 +305,49 @@ func objectReadTransportFixture(t *testing.T) (*workerObjectReadJournal, *object
 	j, g, _, _ := objectReadJournalFixture(t)
 	return j, g
 }
+
+func TestObjectReadAuthorityTransportFrameBudget(t *testing.T) {
+	t.Parallel()
+	j, g := objectReadTransportFixture(t)
+	left, right := net.Pipe()
+	c, err := newObjectReadAuthorityClient(left, j.record, j.intent, func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { defer close(done); done <- serveObjectReadAuthority(t.Context(), right, j.record, j.intent, g) }()
+	defer func() { c.StopObjectReadAuthority(); <-done }()
+	for range 64 {
+		if err = c.AuthorizeObjectRead(t.Context(), j.record, j.intent, workerProbeEvent{Stage: "begin"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if c.AuthorizeObjectRead(t.Context(), j.record, j.intent, workerProbeEvent{Stage: "begin"}) == nil {
+		t.Fatal("control frame budget unbounded")
+	}
+}
+
+func TestObjectReadAuthorityIdleEOFRevokesLifetime(t *testing.T) {
+	t.Parallel()
+	j, _ := objectReadTransportFixture(t)
+	left, right := net.Pipe()
+	var stopped atomic.Int32
+	c, err := newObjectReadAuthorityClient(left, j.record, j.intent, func() { stopped.Add(1) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.StopObjectReadAuthority()
+	_ = right.Close()
+	select {
+	case <-c.ObjectReadAuthorityLifetime().Done():
+	case <-time.After(time.Second):
+		t.Fatal("idle EOF did not revoke authority")
+	}
+	c.StopObjectReadAuthority()
+	if stopped.Load() != 1 {
+		t.Fatal("stop callback not once", stopped.Load())
+	}
+	if c.AuthorizeObjectRead(t.Context(), j.record, j.intent, workerProbeEvent{Stage: "begin"}) == nil {
+		t.Fatal("EOF link revived")
+	}
+}

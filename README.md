@@ -353,3 +353,8 @@ The [controller reader ledger](docs/controller-object-read-ledger.md) now record
 account-wide reader capacity and exact-ID cleanup alongside probes/captures.
 It requires independent trusted evidence; no deployed transport or artifact
 delivery capability is enabled by this infrastructure.
+
+The [reader authority bridge](docs/reader-authority-bridge.md) connects pinned human/worker
+sessions, bounded private control frames, local/daemon observations and the isolated
+worker runtime. Deployment authentication, real witnesses, verified starter deployment and public delivery
+remain incomplete; its assembled tests use synthetic private channels and mocked daemons.

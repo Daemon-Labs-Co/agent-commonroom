@@ -91,6 +91,9 @@ type objectReadAuthorityClient struct {
 	failed   bool
 	stop     func()
 	once     sync.Once
+	notify   sync.Once
+	lifetime context.Context
+	cancel   context.CancelFunc
 	stopped  atomic.Bool
 }
 
@@ -98,11 +101,29 @@ func newObjectReadAuthorityClient(stream io.ReadWriteCloser, r workerJobRecord, 
 	if nilWorkerObservationDependency(stream) || stop == nil || !objectReadAuthorityBinding(r, i) {
 		return nil, errWorkerProbeJournal
 	}
-	return &objectReadAuthorityClient{stream: stream, record: detachedProbeWorkerRecord(r), intent: i, stop: stop}, nil
+	lifetime, cancel := context.WithCancel(context.Background())
+	c := &objectReadAuthorityClient{record: detachedProbeWorkerRecord(r), intent: i, stop: stop, lifetime: lifetime, cancel: cancel}
+	c.stream = newWatchedWorkerAuditLink(lifetime, stream, c.markStopped)
+	return c, nil
+}
+
+// EOF must revoke authority even between exchanges. The existing bounded private
+// read pump is the sole raw-stream reader; it cannot race frame consumers. Its
+// callback never joins its own pump or reenters the client.
+func (c *objectReadAuthorityClient) markStopped() {
+	c.stopped.Store(true)
+	c.cancel()
+	c.notify.Do(c.stop)
+}
+func (c *objectReadAuthorityClient) ObjectReadAuthorityLifetime() context.Context {
+	if c == nil {
+		return nil
+	}
+	return c.lifetime
 }
 func (c *objectReadAuthorityClient) StopObjectReadAuthority() {
 	if c != nil {
-		c.once.Do(func() { c.stopped.Store(true); _ = c.stream.Close(); c.stop() })
+		c.once.Do(func() { _ = c.stream.Close(); c.markStopped() })
 	}
 }
 func (c *objectReadAuthorityClient) exchange(ctx context.Context, operation string, e workerProbeEvent, r *workerObjectReadRecord) error {

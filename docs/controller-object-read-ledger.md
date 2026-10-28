@@ -37,8 +37,9 @@ The evidence adapter must independently verify current operation-specific export
 or cleanup permission, approved worker/image, actual creator ownership, private
 local journal persistence, exact custody volume, physical quota and container
 observations for each transition, including retries. It must honor cancellation
-and must not reenter server or worker admission locks. There is deliberately no
-permissive default adapter or network authentication implementation.
+and must not reenter server or worker admission locks. The [authority bridge](reader-authority-bridge.md) supplies pinned sessions, a private
+control protocol and local/physical evidence checks. There is deliberately no
+permissive witness or deployment authentication implementation.
 
 Begin and bound transitions require the exact recorded sealed receipt and its
 unreleased storage reservation. Historical job, task execution, declared output,
@@ -89,8 +90,10 @@ retained reads, stale/revoked authority, audit failure, detached callback histor
 private state and public event refusal. Database/provider/Docker boundaries are
 mocked; fixtures use temporary synthetic files and never private data/credentials.
 
-Still incomplete: authenticated worker/controller transport and session assembly,
-independent physical quota/custody/export witnesses, worker/runtime orchestration,
+The [authority bridge](reader-authority-bridge.md) now assembles sessions, private
+control frames, local/physical evidence and the isolated worker runtime.
+Still incomplete: deployment-authenticated worker/controller transport,
+real physical quota/custody/export witnesses and reviewed starter deployment,
 object-only ownership after workspace disposal, unknown-ID incident reconciliation,
 reviewed deployment/live acceptance and public artifact delivery. Required file-task
 dispatch remains blocked. Passing synthetic checks certifies none of those live

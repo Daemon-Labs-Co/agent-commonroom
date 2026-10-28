@@ -84,3 +84,15 @@ func (p *ObjectReadContainerPlan) VerifyNoReferences(ctx context.Context, runner
 	defer cancel()
 	return (&objectReadInspector{p, runner}).absent(child, "")
 }
+
+// InspectRecorded checks a separately durably bound immutable reader ID. It may
+// observe owned policy drift for cleanup, never authorizes reads, discovers IDs or
+// performs daemon mutations. Caller must hold actual creator/cleanup authority.
+func (p *ObjectReadContainerPlan) InspectRecorded(ctx context.Context, runner DockerRunner, id string) (bool, error) {
+	if p == nil || ctx == nil || ctx.Err() != nil || missingProbeDependency(runner) || !digest(id, 32) {
+		return false, ErrRejected
+	}
+	child, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return (&objectReadInspector{p, runner}).known(child, id)
+}
