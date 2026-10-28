@@ -3235,3 +3235,45 @@ proof does not establish live daemon or descendant termination guarantees.
   Last notification: durable local reader journal/recovery/capacity tests and full
   checks pass; controller/account integration is next. Changes local/unstaged, Mark
   signs/publishes. No staging/commit/push/merge/GitHub messages or automation resume.
+
+### PR75 P1 retry an interrupted reader recovery — local review fix
+
+- User published the journal batch and created PR75, open at
+  c9506db2d0e9321f8d6fd3acbac2d9dcb45d4ac4. Git helper verified clean checkout and
+  switched to existing codex/reader-lifecycle-journal at that exact head; index empty.
+- Current-head Greptile review PRR_kwDOVETwiM8AAAABUledKw is COMMENTED, submitted
+  2026-10-28T00:49:55Z; check completed successfully at00:49:58Z. This is completion,
+  not approval. No Actions runs/conversation comments/other findings were observed.
+  P1 comment4395816512/thread PRRT_kwDOVETwiM6w8XwE remains remotely unresolved.
+- Validated: a cleanup failure after durable recovery begin leaves that stage in
+  place. A new recovery runtime then appended another recovery event, which the
+  finite state validator rejects, stranding the exact recorded ID and capacity.
+- Resume only the exact already-begun logical recovery checkpoint. The same private
+  record is validated/persisted; current authorization, durable controller
+  acknowledgment and post-ack authorization all repeat. Local history stays bounded,
+  capacity stays charged, and no new reader/ID adoption/refund is permitted. Shared
+  helper state validation and non-reader behavior are unchanged.
+- Regression failed before the fix, passes after it: eight failed cleanups with
+  newly constructed journals, fresh permission denial, wrong-ID refusal, controller
+  re-acknowledgment, unchanged four-event history/one reserved slot, then successful
+  cleanup and durable settlement. Existing unknown-ID and failure tests remain.
+  Guide/guard contract now requires re-acknowledging the same logical recovery only
+  under fresh authority. All fixtures remain synthetic/private, DB/Docker/provider
+  boundaries mocked; no deployed observations, credentials or live acceptance used.
+- Focused reader-journal race tests passed (2.722s package). make test passed28.13s.
+  Initial make check failed in existing workspace fixture setup/driver expectations;
+  reported wall859.57s includes an unexplained long stall/log timestamp gap, while
+  cmd/server reported31.797s and no data-race diagnostic. It is not continuous
+  implementation time. Unchanged full make check retry PASSED37.55s with all race,
+  vet, build-policy, documentation and UI/Help checks. No timeout or case changed.
+  Logs /private/tmp/commonroom-pr75-recovery-retry-{test,check,check-retry}.log.
+- Observed wall window00:51:48–01:11:03 UTC (~19m15s) includes the stall above.
+  Production controller/account/authenticated transport, actual physical quota/
+  custody/export witnesses, object-only ownership, public delivery and live
+  acceptance gaps remain. Required file-task dispatch stays blocked; no live gate
+  pass claimed. Infrastructure fix adds no product toggle or isolation exception.
+- Recovery target /private/tmp/commonroom-pr75-recovery-retry-backup/0001/ against
+  c9506db. Prepared commit message: fix: allow authorized retries of reader cleanup
+  Last notification: sole current-head P1 fixed locally, regressions/test/full check
+  retry pass. Mark must sign/push for new remote review. No staging/commit/push,
+  GitHub messages/thread resolution, merge or automation resume performed.

@@ -98,7 +98,7 @@ func TestWorkerObjectReadJournalKnownRecoveryAndUnknownRetention(t *testing.T) {
 	for _, known := range []bool{false, true} {
 		t.Run(map[bool]string{false: "unknown", true: "known"}[known], func(t *testing.T) {
 			t.Parallel()
-			j, _, _, _ := objectReadJournalFixture(t)
+			j, g, lease, _ := objectReadJournalFixture(t)
 			beginObjectReadJournal(t, j)
 			id := ""
 			if known {
@@ -128,6 +128,47 @@ func TestWorkerObjectReadJournalKnownRecoveryAndUnknownRetention(t *testing.T) {
 			}
 			if n, err := workerObjectReadSlots(j.dir); err != nil || n != 1 {
 				t.Fatal("failed recovery refunded capacity", n, err)
+			}
+			// A new runtime/journal must be able to retry the recorded cleanup,
+			// after fresh permission checks, rather than append another recovery
+			// stage or treat the earlier authorization as a reusable permit.
+			for attempt := 0; attempt < 8; attempt++ {
+				retry, err := newWorkerObjectReadJournal(lease, j.intent.Request, j.intent.Image, j.intent.Objects, g)
+				if err != nil {
+					t.Fatal(err)
+				}
+				g.deny = "recovery"
+				if retry.BeginObjectReadRecovery(t.Context(), j.intent.Request, j.intent.Objects, j.intent.Image, id) == nil {
+					t.Fatal("retry reused revoked permission")
+				}
+				g.deny = ""
+				if retry.BeginObjectReadRecovery(t.Context(), j.intent.Request, j.intent.Objects, j.intent.Image, strings.Repeat("2", 64)) == nil {
+					t.Fatal("retry adopted another ID")
+				}
+				if err = retry.BeginObjectReadRecovery(t.Context(), j.intent.Request, j.intent.Objects, j.intent.Image, id); err != nil {
+					t.Fatal("freshly authorized recovery retry refused", err)
+				}
+				if retry.FinishObjectReadRecovery(t.Context(), j.intent.Request, id, false) == nil {
+					t.Fatal("retry claimed uncertain cleanup")
+				}
+				records, err := readWorkerObjectReadRecords(j.dir)
+				saved := records[objectReadRecordName(j.intent)]
+				if err != nil || len(saved.Events) != 4 || saved.Events[3].Stage != "recovery" {
+					t.Fatal("retry grew or rewrote finite history", err, saved.Events)
+				}
+				if n, err := workerObjectReadSlots(j.dir); err != nil || n != 1 {
+					t.Fatal("retry freed capacity", n, err)
+				}
+				j = retry
+			}
+			recoveries := 0
+			for _, stage := range g.seen {
+				if stage == "recovery" {
+					recoveries++
+				}
+			}
+			if recoveries != 9 {
+				t.Fatal("retry skipped fresh controller acknowledgment", g.seen)
 			}
 			if err := j.FinishObjectReadRecovery(t.Context(), j.intent.Request, id, true); err != nil {
 				t.Fatal(err)

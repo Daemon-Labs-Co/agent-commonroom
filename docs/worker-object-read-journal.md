@@ -78,7 +78,15 @@ metadata grants no export permission. Once the creator lease closes, even finish
 refuses; an escaped journal cannot regain ownership with a fresh context.
 
 Known-ID recovery requires fresh current cleanup authority and the same exact
-request/image/volume/ID. Only a previously bound recorded ID can enter
+request/image/volume/ID. If cleanup fails or times out after recovery begins, a new
+supervisor may resume that exact already-begun recovery. Each retry repeats private
+record validation/persistence, current authorization before and after controller
+acknowledgment, and durable controller acknowledgment. It preserves the same finite
+local history and capacity charge; it neither appends duplicate recovery stages nor
+reuses prior permission. Guards must support re-acknowledging the same logical
+recovery checkpoint under current authority. A different ID or changed intent
+refuses; settled recoveries cannot be reopened. Only a previously bound recorded
+ID can enter
 `recovery -> recovery-finish -> recovered`. An unconfirmed recovery stays charged;
 no name discovery, unknown-ID adoption, container start, object read, volume deletion
 or storage refund is available. The guard must independently verify actual cleanup;

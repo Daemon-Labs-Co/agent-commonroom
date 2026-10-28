@@ -30,6 +30,8 @@ type workerObjectReadRecord struct {
 // cleanup authority, actual creator/quota/image/volume evidence, and account-wide
 // capacity. AcknowledgeObjectRead must durably mirror the exact local transition
 // before returning; failed persistence must stop controller/worker authority.
+// An exact already-begun recovery may be acknowledged again after fresh current
+// authorization. It resumes the same logical cleanup, never creates a new reader.
 // It must not reenter creator/admission locks. Finishing uncertainty must be
 // acknowledged even when read authority was canceled; it grants no export rights. No permissive/default implementation exists.
 type workerObjectReadJournalGuard interface {
@@ -200,7 +202,13 @@ func (j *workerObjectReadJournal) transition(ctx context.Context, event workerPr
 			return errWorkerProbeJournal
 		}
 	}
-	r.Events = append(r.Events, event)
+	// A failed/interrupted cleanup may leave the logical recovery already begun.
+	// Resume only that exact recorded ID; keep finite history unchanged while
+	// repeating persistence, current authorization and durable acknowledgment.
+	resumingRecovery := event.Stage == "recovery" && len(r.Events) > 0 && r.Events[len(r.Events)-1] == event
+	if !resumingRecovery {
+		r.Events = append(r.Events, event)
+	}
 	if !validWorkerObjectReadRecord(r) {
 		return errWorkerProbeJournal
 	}
