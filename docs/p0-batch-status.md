@@ -3426,3 +3426,45 @@ proof does not establish live daemon or descendant termination guarantees.
   final full checks pass; real deployment/witness gaps and Greptile credit limit
   remain explicit. Local changes unstaged; Mark retains publication control.
   Existing automation remains paused.
+
+### PR78 merge conflicts with reverted reader foundation — resolved locally
+
+- Current PR78 head abecf1dfb22d2a76d0b5304b2a9334d62c48778e was open and
+  CONFLICTING/DIRTY against main f45f6642715640c29e17cfaff2b22f8677040e49.
+  PR77 explicitly reverted PR76 (revert9667896), deleting the ledger/session/
+  transport foundation needed by the newer bridge. PR77 contained no additional
+  rationale/comments. Started from a clean feature branch and empty index.
+- Owner delegated the resolution choice after being told restoration would undo
+  the explicit revert. Retained the complete feature tree and restored its required
+  foundation; did not discard the newer runtime/recovery implementation. Git helper
+  performed a reversible no-commit merge of origin/main and resolved all13 paths.
+  HEAD stays abecf1df; MERGE_HEAD stays f45f664. Before this checkpoint append,
+  index/worktree exactly matched HEAD, zero unmerged entries/markers and clean
+  whitespace. Result compared with main:29 files,+3493/-8. No unrelated edits.
+- Current-head review PRR_kwDOVETwiM8AAAABUzS9ig reports Greptile trial-credit
+  exhaustion only; no actual review, checks or Actions approval was observed.
+  Independent static Standards and Spec reviews of the pinned PR patch found
+  no additional actionable findings (zero per axis). They did not run tests or
+  certify deployment. No GitHub comments/review-thread changes were posted.
+- Resolved-tree make test PASSED34.89s and full make check PASSED45.22s, including
+  race, vet, build-policy, docs, UI and Help checks. All DB/Docker/provider
+  boundaries remain mocked; synthetic temporary files/private channels/subprocesses
+  only. Authorized unsandboxed validation permitted required local socket fixtures;
+  no real daemon/provider/database or private data/credentials used.
+  Logs /private/tmp/commonroom-pr78-resolved-{test,check}.log. Measured verification
+  window23:32:25–23:33:45 UTC on28 October2026 (~80.11s), not total wall time of
+  the earlier clarification/review. The user-decision interval was not timed as
+  implementation work.
+- Merge remains UNCOMMITTED; Mark must sign the merge commit and push before
+  GitHub can observe cleared conflicts. Agent created no commit/push, PR merge,
+  signing bypass or protection change. Checkpoint append is left unstaged for Mark.
+  Prepared message: fix: resolve reader bridge conflicts with main
+- Initial recovery manifest /private/tmp/commonroom-pr78-merge-backup/0001/manifest.json;
+  complete prospective tree patch /private/tmp/commonroom-pr78-review/proposed-resolution.patch.
+  Final resolved/checkpoint recovery target /private/tmp/commonroom-pr78-resolved-backup/0001/.
+  Restore instructions must preserve this checkpoint before aborting an uncommitted
+  merge. All prior deployment-authentication, physical witness/quota, reviewed-image,
+  live acceptance and public delivery gaps remain; file-task dispatch stays blocked.
+- Last notification: all13 conflicts resolved locally and required full checks pass;
+  ready for owner staging/checkpoint inclusion, signed merge commit and push.
+  Greptile credit-limit/review gap remains explicit; automation remains paused.
