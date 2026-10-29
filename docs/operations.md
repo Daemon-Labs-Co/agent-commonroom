@@ -248,7 +248,10 @@ constructors also compare independently provisioned worker/record/intent binding
 and follow original authority lifetimes while idle. One-shot endpoint helpers
 consume an operator-owned listener and dial one provisioned literal IP:port;
 accept/dial waits are bounded, canceled connections close, and no retry or address
-discovery is provided. These helpers do not configure networking or issue keys.
+discovery is provided. A private-file loader now validates operator-provisioned certificates, keys and
+trust bundles before constructing peer identities; keep every file owner-only and
+outside model/container mounts. Reload requires a new session with an independently
+approved peer pin. These helpers do not configure networking or issue keys.
 Keep the creator
 lease and original principal pinned; never expose a control socket to containers
 or reconnect an uncertain link to bypass reconciliation. Actual transport

@@ -3660,3 +3660,98 @@ proof does not establish live daemon or descendant termination guarantees.
 - Final observed verification window03:11:24–03:13:26UTC is2m02s; checkpoint-only
   documentation checks subsequently PASSED3 tests/0.108s. Actual full command
   durations are recorded above, separately from the wall observation window.
+
+### Secure file provisioning for reader peer identities
+
+- Owner reported endpoint merge and requested the next task plus a two-day progress
+  comparison. Git helper verified PR81 merged: clean main/index at
+  f8e126c1e9ef5976b931c1fba5bd44274f085d38, matching origin/main; tree equal to
+  final head7906169. No inline findings/checks, only Greptile credit exhaustion.
+  Created codex/reader-identity-provisioning from this verified merged base.
+- Recent merged work (Oct27–29): PR73 capture/artifact foundations; PR74 isolated
+  reader supervision/recovery; PR75 durable reader lifecycle/capacity and recovery
+  retry fix; PR76 foundation reverted by77 then restored/integrated in78; PR78
+  controller ledger/physical evidence/runtime bridge; PR79 mutual TLS1.2/1.3;
+  PR80 exact worker/job/intent-bound sessions; PR81 one-shot control endpoints.
+  These are verified internal foundations, not certified production/live gates.
+- Added loadObjectReadPeerIdentity for operator-provisioned absolute distinct
+  certificate/key/peer-CA paths plus independently approved DNS name and lowercase
+  exact SHA256 peer pin. Reuses descriptor-bound private-file safety: current UID,
+  owner-only, regular/single-link, no-follow/nonblocking and bounded reads. Parent
+  directories remain a trusted deployment boundary, not inferred from file modes.
+- Certificate/key limits64KiB, CA256KiB; strict certificate PEM (max8 chain/16 CA)
+  and one unencrypted key, no junk/headers/skipped blocks. Matching key/leaf,
+  current non-CA local leaf and requested client/server EKU, current signing CA
+  trust entries and duplicate rejection. Reject invalid/zero pins and wildcard/
+  whitespace peer names. All errors sanitized and return no partial identity.
+  Raw key buffers clear after parsing; no guaranteed Go-memory zeroization claim.
+- Loaded identities are snapshots. File replacement requires explicit reload and
+  a new session; it does not swap existing trust. No certificate issuance, secret
+  persistence/audit, automatic reload, peer registry, network service startup,
+  execution fallback or optional authentication/isolation flag was introduced.
+- Tests use ephemeral synthetic certificates and private temporary files/pipes:
+  mutual TLS with loaded identities, invalid replacement refusal, relative/aliased
+  paths, malformed/zero pins, mismatched key, PEM junk, leaf/duplicate/non-signing
+  CA, symlink/hardlink/public permissions/directory/oversize inputs, expiry/future
+  validity and incompatible client/server roles. Existing entire reader runtime
+  matrix now loads its identities from files before endpoint/TLS/session/journal
+  assembly. Every database/Docker/provider boundary mocked, no real keys or agents.
+- First expanded role test found an omitted wrong-server-role mutation in the
+  synthetic fixture; corrected fixture, not policy. Final integrated race tests
+  PASSED2.629s, make test PASSED43.43s, make check PASSED52.30s (race/vet/policy/
+  docs/UI/Help). Approved execution allowed existing synthetic socket/process
+  fixtures. No deadlines or security checks relaxed. Logs
+  /private/tmp/commonroom-reader-provision-{focused,integrated,
+  integrated-final,test,check}.log. Full measured commands total95.73s; explicit
+  verification observation began04:21:39UTC on29 October2026. Earlier source and
+  waiting intervals are not claimed as continuous coding time.
+- Updated reader guide (existing Help entry) and operations: file format/limits,
+  ownership/trusted parents, role validation, snapshots/rotation, key handling,
+  source-fork risks, mandatory no-toggle behavior and remaining deployment gaps.
+- Remaining MVP work: production identity registry/listener/service assembly and
+  authorized file dispatch; hard physical quota and complete custody/inventory/
+  creator/export evidence; independent sealed-object ownership after source
+  disposal; unknown-ID/stop-marker reconciliation; public downloads and human
+  acceptance; reviewed provider images/adapters and live Codex/other-provider
+  validation; live credential/harness/idle/disposal integration and release failure
+  matrix. File-task dispatch remains blocked; no synthetic test closes a live gate.
+- Recovery target /private/tmp/commonroom-reader-provision-backup/0001/.
+  Prepared commit: feat: load reader identities from private provisioned files
+  Last notification: private-file identity loading plus isolated-reader integration
+  and full checks pass; two-day accomplishments and remaining work surfaced.
+  Changes unstaged/uncommitted/unpushed, automation remains paused.
+- Observed final verification window04:21:39–04:23:46UTC is2m07s, separately from
+  the measured command durations. Checkpoint docs PASSED3 tests/0.105s afterward.
+
+### Clear certificate PEM-format error — provisioning review fix
+
+- Owner requested an actionable error when certificate PEM markers are absent.
+  Git helper found provisioning already owner-committed at899ae9c67ad98c055ae5c0fdcdbf105539575f77
+  with no associated PR yet; switched clean checkout to the existing provisioning
+  branch. No recovery patch, staging, commit or push performed by the agent.
+- Certificate loader now reports: invalid certificate format: expected PEM with
+  BEGIN CERTIFICATE and END CERTIFICATE markers. Empty/bare-base64/DER/wrong-block
+  and missing-header/footer inputs refuse with this constant safe message. It
+  contains no path, certificate bytes or key details. Other key/trust/security
+  failures retain sanitized generic refusal. No parsing repair or DER acceptance.
+- Certificate parsing now precedes private-key/CA reads, so an absent key does
+  not obscure this certificate-format explanation. Every failure still returns
+  no partial identity. No trust, authorization, isolation or permissions relaxed.
+- Added regression coverage for missing begin/end/both, raw DER, empty certificate,
+  wrong PEM type and simultaneous missing key; adjusted leading-junk expectation.
+  Updated reader guide (existing Help entry) with exact required markers/error.
+  Mandatory infrastructure fix needs no optional product flag. No UI/upload route
+  added; the diagnostic is returned by the internal operator identity loader.
+- Focused race tests PASSED1.519s; make test PASSED37.01s; make check PASSED47.08s
+  including race/vet/policy/docs/UI/Help. Mocked service boundaries and generated
+  temporary certificates/files only; no private credentials or real providers.
+  Approved execution permitted existing synthetic socket/subprocess fixtures.
+  Logs /private/tmp/commonroom-reader-pem-{focused,test,check}.log.
+- Explicit observed verification window04:51:50–04:53:21UTC on29 October2026 is
+  1m31s; measured full commands total84.09s. Earlier implementation/wait time was
+  not continuously timed. Remaining production/live acceptance gaps unchanged.
+- Recovery target /private/tmp/commonroom-reader-pem-backup/0001/.
+  Prepared commit: fix: explain invalid reader certificate PEM format
+  Last notification: clear safe certificate-format error implemented, regression
+  and full checks pass; local unstaged/uncommitted fix for owner publication.
+  Automation remains paused.
