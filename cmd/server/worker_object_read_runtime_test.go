@@ -157,12 +157,17 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 			}
 			f.release = release
 			left, right := net.Pipe()
-			c, err := newObjectReadAuthorityClient(left, g.record, g.intent, func() {})
+			defer left.Close()
+			defer right.Close()
+			clientBinding, serverBinding := boundObjectReadFixture(t, g)
+			done := make(chan error, 1)
+			go func() { done <- serveAuthenticatedObjectReadSession(ctx, right, serverBinding, g); close(done) }()
+			c, err := newAuthenticatedObjectReadClient(ctx, left, clientBinding, g.record, g.intent, func() {})
 			if err != nil {
+				_ = left.Close()
+				<-done
 				t.Fatal(err)
 			}
-			done := make(chan error, 1)
-			go func() { done <- serveObjectReadAuthority(ctx, right, g.record, g.intent, g); close(done) }()
 			defer func() { c.StopObjectReadAuthority(); <-done }()
 			runtime, err := newWorkerObjectReadRuntime(l, g.intent, f, c, release)
 			if err != nil {

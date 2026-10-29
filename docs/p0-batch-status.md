@@ -3542,3 +3542,60 @@ proof does not establish live daemon or descendant termination guarantees.
   full commands total84.04s, excluding approvals and other work. No live readiness
   claim. Recovery snapshot target /private/tmp/commonroom-reader-peer-backup/0002/.
   Last notification: TLS1.2 minimum with TLS1.3 supported, tests/full checks pass.
+
+### Authenticated reader-session binding and lifetime assembly
+
+- Owner requested continuation. Git helper verified PR79 merged: clean main/index
+  at e10b10419ceb8be3c5691ef4293829a9d66ea8d4, merge tree equal to final head
+  475df53e3fcbd8db61b785b18765f7852573c39b. No inline feedback/checks/Actions;
+  Greptile PRR_kwDOVETwiM8AAAABUz2vpQ reported credit exhaustion, not approval.
+  Created codex/reader-authenticated-session from this verified merged base.
+- Added trusted objectReadPeerBinding associating approved peer certificate with
+  exact worker alias, complete retained-record digest and finite immutable intent.
+  Client validates its local binding before TLS; controller validates against the
+  original human/worker/creator-pinned session. No binding is adopted from a frame.
+- Added canonical bounded object-read-session-v1 binding exchange after mutual TLS
+  and before authority traffic: exact version/worker/record/intent on both sides,
+  existing32-KiB frame limit, five-second binding deadline and earlier parent
+  deadline respected. Mismatch closes before evidence, authorization or persistence.
+  TLS1.2 minimum/TLS1.3 support and the existing peer/pin/DNS/ALPN checks remain.
+- Added worker/client and controller serving assembly. Original worker setup and
+  controller-session lifetimes stay authoritative while idle. Serving exit revokes
+  scoped authority; worker Stop joins the read pump. Underlying socket closes before
+  TLS close-notify, so protocol shutdown cannot delay revocation. Only complete
+  durable acknowledgments settle charges; EOF never proves cleanup or absence.
+  No connection discovery, reconnection, listener, host/SSH fallback or off switch.
+- Tests cover complete controller journal lifecycle with original human audit
+  identity, permission denial despite valid TLS, substituted worker/record/intent/
+  certificate and controller-side bindings, idle worker-parent cancellation,
+  controller revocation and physical connection loss with no new audit events.
+  Migrated all existing assembled reader runtime failure scenarios to mutual TLS
+  plus bound-session setup: healthy bytes, cleanup/exit/Close/export/audit failure,
+  idle link loss and creator loss. Failure continues withholding bytes/capacity.
+  DB/Docker/provider boundaries mocked; generated synthetic certificates, private
+  pipes and temporary fixtures only, never real agents or private credentials.
+- First focused run caught a test substitution equal to the fixture's existing
+  challenge; corrected the test to guarantee a distinct value. No runtime boundary
+  weakened. Final focused race tests PASSED3.318s; make test PASSED42.56s;
+  final make check PASSED1083.61s wall (46.45s user/11.45s system), including
+  race/vet/policy/docs/UI/Help. The long observed wall interval is retained honestly;
+  no claim that it represents continuous CPU or coding time. No security deadlines
+  increased. Approved execution permitted existing synthetic socket/process fixtures.
+  Logs /private/tmp/commonroom-reader-bound-{focused,test,check}.log.
+- Updated reader guide (existing Help registration) and operations: setup order,
+  independent provisioning, exact hello contract, ownership/join, idle revocation,
+  mandatory infrastructure flag exemption and limitations. No public API/UI or
+  product flag added; authority must not be optionally disabled.
+- Observed verification window01:25:01–01:54:31UTC on29 October2026 is29m30s;
+  source modification observed01:23:44UTC. These are observed wall windows, not a
+  continuous-work claim; actual command durations are above.
+- Remaining: real certificate issuance/key custody/peer registry and production
+  service routing, real quota/custody/export/creator witnesses, reviewed images and
+  live rootless/same-daemon verification, independent object-only ownership after
+  source disposal, unknown-ID/stop-marker reconciliation, public delivery and human
+  acceptance. The internal constructors are not deployed networking or permission
+  evidence. Required file-task dispatch stays blocked; no live P0 gate certified.
+- Recovery target /private/tmp/commonroom-reader-bound-backup/0001/.
+  Prepared commit: feat: bind authenticated reader sessions to retained jobs
+  Last notification: session binding/lifetime assembly and full synthetic checks
+  pass; changes unstaged/uncommitted/unpushed for owner review. Automation paused.
