@@ -245,7 +245,11 @@ channel ownership, strict frame limits and scoped revocation. Its mutual-TLS
 adapter requires provisioned trust roots, peer DNS identities and exact certificate
 fingerprints at both endpoints before control frames can flow. The bound session
 constructors also compare independently provisioned worker/record/intent bindings
-and follow original authority lifetimes while idle. Keep the creator
+and follow original authority lifetimes while idle. One-shot endpoint helpers
+consume an operator-owned listener and dial one provisioned literal IP:port;
+accept/dial waits are bounded, canceled connections close, and no retry or address
+discovery is provided. These helpers do not configure networking or issue keys.
+Keep the creator
 lease and original principal pinned; never expose a control socket to containers
 or reconnect an uncertain link to bypass reconciliation. Actual transport
 authentication, physical quota witnesses and reviewed starters remain deployment work.

@@ -3599,3 +3599,64 @@ proof does not establish live daemon or descendant termination guarantees.
   Prepared commit: feat: bind authenticated reader sessions to retained jobs
   Last notification: session binding/lifetime assembly and full synthetic checks
   pass; changes unstaged/uncommitted/unpushed for owner review. Automation paused.
+
+### One-shot authenticated reader connection endpoints
+
+- Owner requested the next work. Git helper verified PR80 merged at
+  f35cef382a0e37a438e8c142a3d6e0a3c49c7a87, tree exactly matching final head
+  b409a2b627dca17d6f75c3599ce310d62398be62. Clean feature checkout/index;
+  no inline feedback/checks, Greptile credit exhaustion is not review approval.
+  Fetched existing origin/main to obtain the verified merge; created clean
+  codex/reader-control-endpoint. No remote reconnection or configuration change.
+- Added objectReadControlEndpoint and connectObjectReadControl. Trusted provisioning
+  supplies one literal unicast IP:port and independent peer binding. Reject URLs,
+  DNS names, zero ports, unspecified/multicast addresses, IPv6 zones/mapped aliases,
+  invalid identity, stale binding and canceled setup before dialing. Exactly one
+  TCP dial with a five-second context, no discovery/redirect/retry/reconnect. Error,
+  canceled/expired results and connections accompanying errors close and sanitize.
+  Successful client lifetime uses original setup authority, not the dial timeout.
+- Added serveObjectReadControlOnce consuming an operator-owned listener and original
+  pinned controller session. Validate identity/binding before Accept; five-second
+  accept bound, canceled serving/session lifetimes unblock through listener Close.
+  Accept exactly once; close listener before TLS, refuse listener-close errors,
+  then run mandatory TLS/session binding/controller protocol. Every exit revokes
+  scoped authority. No endpoint is selected by a model or request; no execution,
+  plaintext/SSH fallback, optional authentication or optional isolation path.
+- Shared certificate preflight also rejects typed-nil private keys before network
+  effects. Migrated assembled reader runtime scenarios to the one-shot endpoint
+  path before TLS/session/journal/runtime stages; no fake permissive physical guard
+  added to production. Existing physical/export/current-permission checks remain.
+- Tests mock dialer/listener with synthetic private pipes. Cover exact network and
+  endpoint/one-attempt semantics, invalid endpoint/identity/record/canceled refusal,
+  failed/expired dial connection cleanup, waiting Accept cancellation/revocation,
+  invalid server binding, listener closure failure and full durable lifecycle.
+  Existing healthy/cleanup/exit/Close/export/audit/idle-loss/creator-loss runtime
+  scenarios now use this connection setup. No external IP dial, real daemon,
+  provider/database or private data/credentials. Generated synthetic certs only.
+- Initial endpoint-focused race tests PASSED2.904s. A later close-failure test caught
+  missing error injection in the synthetic listener; corrected fixture, not runtime
+  security policy. Final integrated race tests PASSED3.872s, make test PASSED42.62s,
+  make check PASSED52.30s (race/vet/policy/docs/UI/Help). Approved execution allowed
+  existing synthetic temporary socket/process fixtures. No deadlines weakened.
+  Logs /private/tmp/commonroom-reader-endpoint-{focused,integrated,
+  integrated-final,test,check}.log. Full command durations total94.92s; first
+  explicit verification observation03:11:24UTC on29 October2026. This is not a
+  claim of continuous coding time across earlier source/approval intervals.
+- Updated reader guide (existing Help entry) and operations with setup ownership,
+  literal endpoint examples, bounded accept/dial, independent TLS DNS identity,
+  one-shot/no-retry policy, close uncertainty, join obligations and deployment gaps.
+  Mandatory security infrastructure has no optional product feature toggle.
+- Remaining: provisioned certificates/key custody/peer registry, actual configured
+  listener/firewall and production service assembly, real physical quota/custody/
+  export/creator witnesses, reviewed images and live rootless acceptance, independent
+  object-only ownership after source disposal, unknown-ID/stop reconciliation and
+  public file delivery/human acceptance. These internal endpoints do not install a
+  network service or public route. Required file-task dispatch stays blocked;
+  synthetic coverage certifies no live P0 gate or production readiness.
+- Recovery target /private/tmp/commonroom-reader-endpoint-backup/0001/.
+  Prepared commit: feat: add one-shot authenticated reader control endpoints
+  Last notification: endpoint setup plus complete isolated-read integration and
+  full checks pass. Changes unstaged/uncommitted/unpushed; automation remains paused.
+- Final observed verification window03:11:24–03:13:26UTC is2m02s; checkpoint-only
+  documentation checks subsequently PASSED3 tests/0.108s. Actual full command
+  durations are recorded above, separately from the wall observation window.
