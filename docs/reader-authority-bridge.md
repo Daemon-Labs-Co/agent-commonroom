@@ -4,7 +4,7 @@ This internal bridge connects the isolated reader's local journal, controller
 account ledger and read-only daemon observations. It preserves authenticated
 identity over a supervisor-owned private stream and assembles the fixed container
 reader with mandatory lifecycle and byte-release guards. It does not add a public
-download endpoint, make file-task dispatch ready, or establish network authentication.
+download endpoint, make file-task dispatch ready, or provision deployment identities.
 
 ## User and operator behavior
 
@@ -17,7 +17,7 @@ An interrupted exchange can leave a reader charged locally, at the controller, o
 both. Keep its private local record and controller audit history. Never delete a
 record or reset a stream sequence to clear a refusal. A known-ID recovery requires
 fresh current cleanup authority and the exact retained identity. Lost-ID incidents,
-stop-marker reconciliation and network authentication still require production
+stop-marker reconciliation and deployment identity provisioning still require production
 integration; reconnecting an uncertain session is not a supported recovery shortcut.
 
 For a normal read, the sequence is:
@@ -26,8 +26,13 @@ For a normal read, the sequence is:
    retained-workspace creator lease. No model/container may choose these identities.
 2. Construct local/physical evidence with the approved same-daemon runner and an
    independent quota/export/creator witness; construct the pinned controller session.
-3. Connect the private authority client/server on a supervisor-owned authenticated
-   stream. Its directory/socket must never be exposed to model or tool containers.
+3. Provision a separate `objectReadPeerBinding` at each endpoint: trusted peer
+   certificate identity, approved worker alias, digest of the complete retained
+   record and exact finite read intent. Call `serveAuthenticatedObjectReadSession`
+   with the original pinned controller session and `newAuthenticatedObjectReadClient`
+   on the worker connection. They authenticate and agree on that binding before
+   authority traffic. The directory/socket must never be exposed to model or tool
+   containers.
 4. Construct `newWorkerObjectReadRuntime` with the retained lease, finite intent,
    same-daemon fixed-ID starter, authority client and independently pinned byte-release
    guard. Missing dependencies refuse before daemon effects.
@@ -81,9 +86,9 @@ name and leaf fingerprint in `objectReadPeerIdentity` separately at each endpoin
 For example, the worker pins the controller certificate and controller DNS name;
 the controller independently pins the worker certificate and worker DNS name.
 These values must never come from model output, a request body or the peer itself.
-After successful authentication, pass the returned stream to the existing private
-control client/server and retain its original pinned human/worker/creator/intent
-binding. Close and join it on every outcome. No listener or certificate issuance,
+The bound session assembly described below performs authentication before private
+control traffic and retains the original human/worker/creator/intent binding.
+Close and join it on every outcome. No listener or certificate issuance,
 key loading, rotation service, automatic reconnect or fallback is installed here.
 Provisioned rotation requires fresh approved fingerprints and a fresh session.
 Keep private keys and connection handles outside model containers; a certificate
@@ -94,6 +99,42 @@ Production service wiring and real deployment authentication acceptance remain
 outstanding. Synthetic ephemeral-certificate tests validate mutual identity, trust,
 exact pins, DNS names, protocol/version refusal, cancellation, stalled peers and
 closed failed connections without contacting a provider or external service.
+
+## Bound authenticated session assembly
+
+`newAuthenticatedObjectReadClient` and `serveAuthenticatedObjectReadSession` own
+one supplied connection each. Trusted local provisioning associates its peer
+certificate with an `objectReadPeerBinding`: worker alias, SHA-256 digest of the
+complete retained worker record and immutable finite read intent. The worker
+constructor compares its binding with the original record/intent before TLS; the
+controller also compares it with the original human-pinned session and worker.
+Never populate this provisioning structure from a received frame or model output.
+
+After mutual TLS, both sides exchange an exact canonical `object-read-session-v1`
+hello with version1, worker, record digest and intent, under the existing32-KiB
+frame limit. A five-second bound (or earlier parent deadline) covers the binding
+exchange. The server reads/compares first and replies only with its independently
+expected binding; the client requires that exact reply. Wrong workers, stale
+records, substituted intents, protocol/version/encoding errors or canceled setup
+close the stream before the controller operation/evidence/audit callbacks run.
+TLS encryption/pinning protects these frames; they are not a replacement for the
+certificate identity or the controller’s current account/room/export permission.
+After agreement, the existing `object-read-v1` sequence starts at1.
+
+The worker client follows its original setup context even while idle. The server
+follows both its serving context and the original pinned controller-session
+lifetime. EOF, revocation, parent cancellation and any serving exit revoke scoped
+authority. The worker owner must call `StopObjectReadAuthority` to join its read
+pump; the controller owner must join its serving call before releasing the actual
+creator lease. Closing aborts the underlying connection before TLS shutdown, so
+close-notify cannot delay cancellation. Only full durable framed acknowledgments
+settle lifecycle charges; EOF/connection closure never proves cleanup or absence.
+There is no reconnection, automatic adoption, permissive witness or isolation flag.
+
+This internal assembly is not a configured listener, peer registry, certificate
+provisioner, production service route or public artifact endpoint. It accepts no
+model-selected network address or credentials. Deployment still must supply the
+correct independent identities and real physical/creator/export evidence.
 
 ## Private control protocol
 
@@ -207,6 +248,11 @@ with fresh-session retry, denied/wrong/unknown IDs, foreign observations and edi
 flags off, without exporting bytes or refunding storage. Idle control EOF and creator
 cancellation withhold active reads. Synthetic subprocess tests cover final buffered
 stdout, sanitized failure and cancel/Close joining for the fixed reader CLI stream.
+The assembled runtime scenarios now use mutual TLS and the exact session-binding
+exchange before journal/reader traffic. Additional session tests verify worker,
+record, intent and certificate substitution, controller-side binding refusal,
+permission denial despite authenticated TLS, pinned human audit identity and
+idle parent/controller/link cancellation without new audit entries.
 All DB and Docker boundaries are mocked; channel helpers and filesystem fixtures
 are synthetic/temporary, with no real provider, credential or private user data.
 
