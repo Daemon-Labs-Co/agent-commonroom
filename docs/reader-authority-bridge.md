@@ -100,6 +100,59 @@ outstanding. Synthetic ephemeral-certificate tests validate mutual identity, tru
 exact pins, DNS names, protocol/version refusal, cancellation, stalled peers and
 closed failed connections without contacting a provider or external service.
 
+## Loading provisioned identities from private files
+
+`loadObjectReadPeerIdentity` loads an independent identity snapshot from three
+operator-selected absolute file paths: certificate chain, matching unencrypted
+private key and trusted peer CA bundle. Supply a separately approved peer DNS
+name and exact64-character lowercase SHA-256 leaf fingerprint. Pass `server=true`
+for the controller/server certificate role or `false` for worker/client. Put the
+returned identity in that endpoint’s independently provisioned peer binding.
+This internal loader introduces no environment variable, HTTP route or automatic
+startup configuration; trusted service assembly must explicitly call it.
+
+Keep all three files outside repositories and agent/container mounts, under
+operator-controlled parent directories. Paths must be absolute, clean and distinct.
+The existing private-file boundary validates each opened inode: current process
+owner, owner-only permissions (for example0600 or0400), regular, single link,
+no-follow/nonblocking open and bounded reads. Symlinks, hardlinks, directories,
+public permissions and oversized inputs refuse. Parent directory control remains
+a deployment prerequisite; the final-inode checks do not secure hostile ancestors.
+
+Certificate and key files are limited to64KiB each; the CA bundle to256KiB.
+Certificate chains allow at most8 PEM certificates and trust bundles at most16.
+Only exact certificate PEM blocks and one unencrypted PKCS#8/PKCS#1/SEC1 key block
+are accepted, with no extra headers, embedded skipped blocks or trailing junk.
+Certificate/key matching is checked before use. The local leaf must be current,
+not a CA and usable for the requested endpoint role under standard EKU semantics
+(no EKU restrictions or any-usage are permitted). Trust entries must be current
+signing CAs, with no duplicates. Wrong roles, expired/not-yet-valid identities,
+empty/zero/malformed peer pins and wildcard/whitespace peer names refuse.
+
+All failures return a sanitized authentication refusal and no partial identity;
+paths, certificate bodies and key material are never included in the error/audit.
+Raw key buffers are cleared after parsing, but Go memory copies and the live
+private-key object prevent any guaranteed memory-zeroization claim. The loader
+neither generates certificates nor persists or exports keys. Actual peer chain,
+name and exact pin verification remain mandatory at every TLS handshake; loading
+files is not proof of peer identity, physical storage evidence or export permission.
+
+Rotate through independently approved replacement files and fingerprints, then
+load a fresh snapshot for a fresh session. Existing sessions retain their original
+identity; editing files does not replace trust in a running session. A malformed
+replacement refuses on reload. Revoke/close existing authority explicitly when
+rotation must terminate an active session. No automatic reload, issuance, peer
+registry or expiry-monitoring service is installed, and there is no security
+bypass flag. Configure issuance, file custody, renewal and service ownership
+before production use.
+
+Tests generate temporary synthetic CAs/certificates/keys, perform mutual TLS with
+loaded identities and run the complete isolated reader scenario matrix through
+file loading, one-shot endpoint setup and the bound session. Failure coverage
+includes unsafe files, key mismatch, malformed PEM/trust, duplicate/non-signing CA,
+expiry, future validity and incompatible client/server roles. No real operator
+key, provider credential or private data is used. See [private file safety](private-file-security.md).
+
 ## Bound authenticated session assembly
 
 `newAuthenticatedObjectReadClient` and `serveAuthenticatedObjectReadSession` own

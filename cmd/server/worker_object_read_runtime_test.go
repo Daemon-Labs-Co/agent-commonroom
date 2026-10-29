@@ -160,6 +160,15 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 			defer left.Close()
 			defer right.Close()
 			clientBinding, serverBinding := boundObjectReadFixture(t, g)
+			clientFiles, serverFiles := provisionedObjectReadTestFiles(t)
+			clientBinding.Identity, err = loadObjectReadPeerIdentity(clientFiles, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			serverBinding.Identity, err = loadObjectReadPeerIdentity(serverFiles, true)
+			if err != nil {
+				t.Fatal(err)
+			}
 			listener := newSyntheticReadListener()
 			done := make(chan error, 1)
 			go func() { done <- serveObjectReadControlOnce(ctx, listener, serverBinding, g); close(done) }()
