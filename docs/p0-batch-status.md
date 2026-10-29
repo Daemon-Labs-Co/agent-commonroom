@@ -3468,3 +3468,77 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification: all13 conflicts resolved locally and required full checks pass;
   ready for owner staging/checkpoint inclusion, signed merge commit and push.
   Greptile credit-limit/review gap remains explicit; automation remains paused.
+
+### Provisioned mutual authentication for reader control streams
+
+- Owner requested continued remaining work. Git helper verified PR78 merged at
+  d2a8543e1a7502751fbd74a1cdc98054c6a8433e, clean main/index and no pending merge;
+  final PR head f9a556197a068fa84d573d647d516d36cad5981b has the same tree.
+  No inline findings/checks; both Greptile submissions reported credit exhaustion,
+  not review approval. Created codex/reader-local-peer-auth from that verified base.
+- Added authenticateObjectReadStream: trusted deployment-owned connections require
+  TLS1.3, independently provisioned CA roots, exact peer DNS identity and SHA256
+  leaf pin at BOTH endpoints, verified client certificates and reader-only ALPN.
+  Resumption is disabled. Invalid identities, foreign protocols, trust/pin/name
+  failures, cancellation and five-second handshake timeout close the raw stream.
+  Errors are sanitized. No dialing, model-selected identity, plaintext fallback,
+  credentials store, listener or execution capability was added.
+- Tests use ephemeral synthetic certificates and in-memory private pipes. Cover
+  both directions of pin/name/trust rejection, missing credentials, stalled peers,
+  cancellation, older TLS/foreign/missing ALPN, encrypted data and the actual
+  authority protocol/journal lifecycle. Allowed lifecycle settles; denied durable
+  acknowledgment retains capacity. All DB/Docker/provider boundaries remain mocked.
+- Updated reader bridge guide (also available through existing Help registration)
+  and operations docs with ownership, provisioning, usage, rotation, mandatory
+  security/no-toggle contract and explicit production limits. No new product flag:
+  authentication is mandatory infrastructure, never an optional authorization bypass.
+- Focused authentication tests PASSED1.418s initially and PASSED1.326s with journal
+  integration. Sequential make test PASSED33.66s; final make check PASSED49.15s
+  after integration coverage, including race/vet/build-policy/docs/UI/Help.
+  Sandbox-only full runs failed on existing socket/subprocess fixtures. Approved
+  rerun initially hit pre-existing supervisor fixture availability failures while
+  suites overlapped (470.49s command wall time); a race/full check passed483.63s,
+  followed by the successful sequential test and final full check above. No
+  assertions, runtime deadlines or isolation boundaries were weakened.
+  Logs: /private/tmp/commonroom-reader-peer-{test,check}.log (sandbox failures),
+  *-test-approved.log (transient fixture failure), *-check-approved.log (pass),
+  *-test-final.log, *-focused.log and *-check-final.log (final passes).
+- Observed UTC window23:48:19 on28 October–00:12:55 on29 October2026 is24m36s,
+  including approval/validation waits; not a claim of continuous coding time.
+  Individual command durations above are measured. No live P0 observation fabricated.
+- Remaining: actual deployment certificate issuance/key custody/peer provisioning
+  and service wiring, physical quota/custody/export/creator witnesses, reviewed
+  images and live same-daemon verification, object-only ownership after source
+  disposal, incident reconciliation, public artifact delivery and human acceptance.
+  This adapter does not itself install authenticated production transport or bind
+  a peer certificate to an account/job; trusted setup must pin the correct peer
+  before supplying the stream to the original human/worker/creator/intent session.
+  Required file-task dispatch remains blocked; synthetic tests certify no live gate.
+- Recovery target: /private/tmp/commonroom-reader-peer-backup/0001/.
+  Prepared commit: feat: authenticate isolated reader control connections
+  Last notification: mutual authentication adapter and journal integration verified;
+  changes unstaged/uncommitted/unpushed for owner review. Automation stays paused.
+
+### Reader transport TLS 1.2 compatibility correction
+
+- Owner requested TLS1.2 compatibility rather than mandatory TLS1.3. Git helper
+  verified the same feature branch/base and exact previous five-file checkpoint,
+  with no concurrent edits and an empty index before this correction.
+- Reader control now permits TLS1.2 and TLS1.3, with TLS1.2 as the minimum.
+  TLS1.2 permits only forward-secret ECDHE AES-GCM/ChaCha20-Poly1305 suites;
+  TLS1.3 uses standard-library suites. Mutual certificate trust, exact leaf pins,
+  peer DNS verification, reader ALPN, bounded handshake and no plaintext fallback
+  remain mandatory. Earlier TLS1.3-only statements above describe superseded work.
+- Added forced TLS1.2/TLS1.3 negotiation tests for both adapter roles; rejection
+  now explicitly covers TLS1.1. Focused authentication/journal tests PASSED1.438s;
+  make test PASSED32.76s. Final make check result recorded below after completion.
+  Updated technical/operator guide; no product flag or production wiring added.
+- Remaining deployment/live acceptance gaps are unchanged. Changes remain local,
+  unstaged/uncommitted/unpushed. Automation remains paused.
+- Final make check PASSED51.28s (race, vet, policy, documentation, UI and Help).
+  Logs /private/tmp/commonroom-reader-tls12-{test,check}.log. All service boundaries
+  mocked, generated certificates/private pipes and synthetic temporary fixtures
+  only. Observed verification window starts00:19:06UTC on29 October2026; measured
+  full commands total84.04s, excluding approvals and other work. No live readiness
+  claim. Recovery snapshot target /private/tmp/commonroom-reader-peer-backup/0002/.
+  Last notification: TLS1.2 minimum with TLS1.3 supported, tests/full checks pass.

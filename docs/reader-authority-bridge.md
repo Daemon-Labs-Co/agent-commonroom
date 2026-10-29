@@ -62,6 +62,39 @@ it cannot confirm absence, release capacity, export bytes or revive recovery.
 An unavailable control connection cannot deliver even this metadata; local charges
 remain retained. Fresh recovery must be independently authorized.
 
+## Provisioned mutual authentication
+
+`authenticateObjectReadStream` wraps a deployment-owned connection in TLS 1.2 or 1.3
+before any authority frames are exchanged. Both sides require a certificate from
+the provisioned trust roots, the independently approved peer DNS identity and exact
+SHA-256 leaf-certificate fingerprint. The server requires a verified client
+certificate. Only the `commonroom-object-read-v1` application protocol is accepted;
+TLS versions below 1.2 are refused. TLS 1.2 permits only forward-secret ECDHE
+AEAD suites (AES-GCM or ChaCha20-Poly1305); TLS 1.3 uses the standard library
+suites. TLS resumption is disabled. Missing identity, untrusted or substituted certificates,
+protocol mismatch, cancellation and a five-second handshake timeout close the raw
+connection and return a sanitized refusal. Ownership of the connection transfers
+on entry, including invalid-configuration paths.
+
+Trusted deployment setup supplies a `tls.Certificate`, private CA roots, peer DNS
+name and leaf fingerprint in `objectReadPeerIdentity` separately at each endpoint.
+For example, the worker pins the controller certificate and controller DNS name;
+the controller independently pins the worker certificate and worker DNS name.
+These values must never come from model output, a request body or the peer itself.
+After successful authentication, pass the returned stream to the existing private
+control client/server and retain its original pinned human/worker/creator/intent
+binding. Close and join it on every outcome. No listener or certificate issuance,
+key loading, rotation service, automatic reconnect or fallback is installed here.
+Provisioned rotation requires fresh approved fingerprints and a fresh session.
+Keep private keys and connection handles outside model containers; a certificate
+alone grants no artifact export or cleanup permission.
+
+This mandatory security adapter has no optional feature flag or disable setting.
+Production service wiring and real deployment authentication acceptance remain
+outstanding. Synthetic ephemeral-certificate tests validate mutual identity, trust,
+exact pins, DNS names, protocol/version refusal, cancellation, stalled peers and
+closed failed connections without contacting a provider or external service.
+
 ## Private control protocol
 
 The transport carries metadata only, never artifact bytes, provider messages,

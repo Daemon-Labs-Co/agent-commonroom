@@ -241,7 +241,9 @@ helper charge. Authenticated transport and independent physical evidence remain
 required before production assembly; local metadata is not an absence witness.
 
 The [reader authority bridge](reader-authority-bridge.md) describes private control
-channel ownership, strict frame limits and scoped revocation. Keep the creator
+channel ownership, strict frame limits and scoped revocation. Its mutual-TLS
+adapter requires provisioned trust roots, peer DNS identities and exact certificate
+fingerprints at both endpoints before control frames can flow. Keep the creator
 lease and original principal pinned; never expose a control socket to containers
 or reconnect an uncertain link to bypass reconciliation. Actual transport
 authentication, physical quota witnesses and reviewed starters remain deployment work.
