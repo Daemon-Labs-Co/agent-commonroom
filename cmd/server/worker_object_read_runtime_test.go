@@ -160,9 +160,15 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 			defer left.Close()
 			defer right.Close()
 			clientBinding, serverBinding := boundObjectReadFixture(t, g)
+			listener := newSyntheticReadListener()
 			done := make(chan error, 1)
-			go func() { done <- serveAuthenticatedObjectReadSession(ctx, right, serverBinding, g); close(done) }()
-			c, err := newAuthenticatedObjectReadClient(ctx, left, clientBinding, g.record, g.intent, func() {})
+			go func() { done <- serveObjectReadControlOnce(ctx, listener, serverBinding, g); close(done) }()
+			dialer := syntheticReadDialer(func(context.Context, string, string) (net.Conn, error) {
+				listener.incoming <- right
+				return left, nil
+			})
+			endpoint := objectReadControlEndpoint{Address: "192.0.2.10:443", Binding: clientBinding}
+			c, err := connectObjectReadControl(ctx, endpoint, g.record, g.intent, func() {}, dialer)
 			if err != nil {
 				_ = left.Close()
 				<-done

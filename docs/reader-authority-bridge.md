@@ -131,10 +131,60 @@ close-notify cannot delay cancellation. Only full durable framed acknowledgments
 settle lifecycle charges; EOF/connection closure never proves cleanup or absence.
 There is no reconnection, automatic adoption, permissive witness or isolation flag.
 
-This internal assembly is not a configured listener, peer registry, certificate
-provisioner, production service route or public artifact endpoint. It accepts no
+This internal assembly accepts an independently provisioned listener through the
+one-shot endpoint API below, but installs no listener configuration, peer registry,
+certificate provisioner, production service route or public artifact endpoint. It accepts no
 model-selected network address or credentials. Deployment still must supply the
 correct independent identities and real physical/creator/export evidence.
+
+## One-shot provisioned connection endpoints
+
+`connectObjectReadControl` adds worker-side connection setup using an independently
+provisioned `objectReadControlEndpoint` and a deployment-owned `net.Dialer`. Its
+address must be a literal unicast IPv4/IPv6 address with a nonzero port, such as
+`192.0.2.10:443` or `[2001:db8::10]:443` (documentation examples, not configured
+services). Hostnames, URLs, unspecified/multicast addresses, IPv6 zone selectors
+and IPv4-mapped IPv6 are refused before dialing. Peer DNS identity in the TLS
+certificate remains required independently of this literal network address.
+The endpoint and peer binding must come from trusted operator provisioning;
+never copy an address from model output, room content or a request parameter.
+
+The dialer receives exactly one `tcp` call to that address with a five-second
+maximum context. Invalid identity, record/intent binding or canceled setup refuses
+before dialing. Dial errors, returned connections accompanying an error, and
+connections returned after cancellation are closed and sanitized. There is no
+DNS discovery, redirect, alternate address, retry or reconnect. After dialing,
+mutual TLS and exact session binding are still required; the short dial context
+is not used as the successful session’s lifetime. Original worker setup authority
+continues to govern the returned client while idle.
+
+`serveObjectReadControlOnce` consumes an already provisioned listener and the
+original pinned controller session. The listener must implement the normal
+`net.TCPListener` contract: concurrent Close unblocks Accept. Its address/firewall
+and private-key custody remain deployment responsibilities. Session identity and
+binding are checked before Accept. One connection is accepted under a five-second
+maximum wait; parent cancellation or pinned-session revocation closes the listener.
+The listener closes before TLS begins. A listener-close error refuses the session;
+operators must investigate an uncertain listener rather than open a replacement
+automatically. Every accepted connection is owned until the serving call returns.
+Every exit stops scoped controller authority. Callers must join the serving call
+before relinquishing the actual creator lease.
+
+For deployment assembly, provision a listener once for the exact pinned session,
+run `serveObjectReadControlOnce`, and supply its approved literal address and
+independently pinned peer binding to `connectObjectReadControl`. The latter returns
+the same runtime guard used by `newWorkerObjectReadRuntime`. No certificate, worker
+or address is learned from the accepted socket. This API does not install an HTTP
+route, manage firewall rules, issue certificates, load keys, register peers or start
+a network service automatically. It adds no feature flag or host/SSH execution
+fallback: authentication and mandatory container isolation cannot be disabled.
+
+Tests mock both dialer and listener with in-memory private connections, including
+exact endpoint/one-attempt behavior, invalid address/identity refusal, dial error
+and cancellation cleanup, canceled waiting Accept and failed listener closure.
+The complete isolated reader runtime scenarios also use this setup path before
+TLS/session agreement. No test dials a documentation IP or external network,
+launches Docker/providers or connects to a real database.
 
 ## Private control protocol
 

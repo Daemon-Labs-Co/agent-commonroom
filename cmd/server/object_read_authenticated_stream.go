@@ -25,6 +25,10 @@ type objectReadPeerIdentity struct {
 	PeerSHA256  [sha256.Size]byte
 }
 
+func validObjectReadPeerIdentity(identity objectReadPeerIdentity) bool {
+	return identity.Roots != nil && identity.PeerDNSName != "" && identity.PeerSHA256 != ([sha256.Size]byte{}) && len(identity.Certificate.Certificate) > 0 && !nilWorkerObservationDependency(identity.Certificate.PrivateKey)
+}
+
 // authenticateObjectReadStream owns raw on every path. It authenticates both ends
 // before any authority frame is sent. It does not dial, discover identities, grant
 // export rights, or replace the pinned human/creator/intent session. Production
@@ -36,7 +40,7 @@ func authenticateObjectReadStream(ctx context.Context, raw net.Conn, identity ob
 		return nil, errObjectReadPeer
 	}
 	refuse := func() (*tls.Conn, error) { _ = raw.Close(); return nil, errObjectReadPeer }
-	if ctx == nil || ctx.Err() != nil || identity.Roots == nil || identity.PeerDNSName == "" || identity.PeerSHA256 == ([sha256.Size]byte{}) || len(identity.Certificate.Certificate) == 0 || identity.Certificate.PrivateKey == nil {
+	if ctx == nil || ctx.Err() != nil || !validObjectReadPeerIdentity(identity) {
 		return refuse()
 	}
 	// Clone roots so subsequent caller mutations cannot change this session's trust.
