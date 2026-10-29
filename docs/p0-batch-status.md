@@ -3722,3 +3722,36 @@ proof does not establish live daemon or descendant termination guarantees.
   Changes unstaged/uncommitted/unpushed, automation remains paused.
 - Observed final verification window04:21:39–04:23:46UTC is2m07s, separately from
   the measured command durations. Checkpoint docs PASSED3 tests/0.105s afterward.
+
+### Clear certificate PEM-format error — provisioning review fix
+
+- Owner requested an actionable error when certificate PEM markers are absent.
+  Git helper found provisioning already owner-committed at899ae9c67ad98c055ae5c0fdcdbf105539575f77
+  with no associated PR yet; switched clean checkout to the existing provisioning
+  branch. No recovery patch, staging, commit or push performed by the agent.
+- Certificate loader now reports: invalid certificate format: expected PEM with
+  BEGIN CERTIFICATE and END CERTIFICATE markers. Empty/bare-base64/DER/wrong-block
+  and missing-header/footer inputs refuse with this constant safe message. It
+  contains no path, certificate bytes or key details. Other key/trust/security
+  failures retain sanitized generic refusal. No parsing repair or DER acceptance.
+- Certificate parsing now precedes private-key/CA reads, so an absent key does
+  not obscure this certificate-format explanation. Every failure still returns
+  no partial identity. No trust, authorization, isolation or permissions relaxed.
+- Added regression coverage for missing begin/end/both, raw DER, empty certificate,
+  wrong PEM type and simultaneous missing key; adjusted leading-junk expectation.
+  Updated reader guide (existing Help entry) with exact required markers/error.
+  Mandatory infrastructure fix needs no optional product flag. No UI/upload route
+  added; the diagnostic is returned by the internal operator identity loader.
+- Focused race tests PASSED1.519s; make test PASSED37.01s; make check PASSED47.08s
+  including race/vet/policy/docs/UI/Help. Mocked service boundaries and generated
+  temporary certificates/files only; no private credentials or real providers.
+  Approved execution permitted existing synthetic socket/subprocess fixtures.
+  Logs /private/tmp/commonroom-reader-pem-{focused,test,check}.log.
+- Explicit observed verification window04:51:50–04:53:21UTC on29 October2026 is
+  1m31s; measured full commands total84.09s. Earlier implementation/wait time was
+  not continuously timed. Remaining production/live acceptance gaps unchanged.
+- Recovery target /private/tmp/commonroom-reader-pem-backup/0001/.
+  Prepared commit: fix: explain invalid reader certificate PEM format
+  Last notification: clear safe certificate-format error implemented, regression
+  and full checks pass; local unstaged/uncommitted fix for owner publication.
+  Automation remains paused.

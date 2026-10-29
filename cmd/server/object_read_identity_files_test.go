@@ -184,7 +184,11 @@ func TestObjectReadIdentityFilesRefuseUnsafeInputs(t *testing.T) {
 				write(files.PrivateKey, []byte(strings.Repeat("x", 64*1024+1)))
 			}
 			identity, err := loadObjectReadPeerIdentity(files, false)
-			if err != errObjectReadPeer || validObjectReadPeerIdentity(identity) {
+			want := errObjectReadPeer
+			if kind == "junk cert" {
+				want = errObjectReadCertificatePEM
+			}
+			if err != want || validObjectReadPeerIdentity(identity) {
 				t.Fatal("unsafe identity accepted or unsanitized error", err)
 			}
 		})
@@ -226,6 +230,48 @@ func TestObjectReadIdentityFilesCertificatePolicy(t *testing.T) {
 			identity, err := loadObjectReadPeerIdentity(files, kind == "wrong server role")
 			if err != errObjectReadPeer || validObjectReadPeerIdentity(identity) {
 				t.Fatal("invalid certificate policy accepted", err)
+			}
+		})
+	}
+}
+
+func TestObjectReadIdentityFilesMissingPEMMarkersExplained(t *testing.T) {
+	t.Parallel()
+	for _, kind := range []string{"missing begin", "missing end", "missing both", "DER", "empty", "wrong marker", "missing key too"} {
+		t.Run(kind, func(t *testing.T) {
+			t.Parallel()
+			files, _ := provisionedObjectReadTestFiles(t)
+			raw, err := os.ReadFile(files.Certificate)
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch kind {
+			case "missing begin":
+				raw = []byte(strings.ReplaceAll(string(raw), "-----BEGIN CERTIFICATE-----", ""))
+			case "missing end":
+				raw = []byte(strings.ReplaceAll(string(raw), "-----END CERTIFICATE-----", ""))
+			case "missing both", "missing key too":
+				raw = []byte(strings.ReplaceAll(strings.ReplaceAll(string(raw), "-----BEGIN CERTIFICATE-----", ""), "-----END CERTIFICATE-----", ""))
+				if kind == "missing key too" {
+					if err := os.Remove(files.PrivateKey); err != nil {
+						t.Fatal(err)
+					}
+				}
+			case "DER":
+				block, _ := pem.Decode(raw)
+				raw = block.Bytes
+			case "empty":
+				raw = nil
+			case "wrong marker":
+				raw = []byte(strings.ReplaceAll(string(raw), "CERTIFICATE", "PUBLIC KEY"))
+			}
+			if err := os.WriteFile(files.Certificate, raw, 0600); err != nil {
+				t.Fatal(err)
+			}
+			identity, err := loadObjectReadPeerIdentity(files, false)
+			const want = "invalid certificate format: expected PEM with BEGIN CERTIFICATE and END CERTIFICATE markers"
+			if err != errObjectReadCertificatePEM || err.Error() != want || validObjectReadPeerIdentity(identity) {
+				t.Fatal("missing PEM markers not explained safely", err)
 			}
 		})
 	}

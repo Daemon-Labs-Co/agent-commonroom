@@ -129,7 +129,14 @@ not a CA and usable for the requested endpoint role under standard EKU semantics
 signing CAs, with no duplicates. Wrong roles, expired/not-yet-valid identities,
 empty/zero/malformed peer pins and wildcard/whitespace peer names refuse.
 
-All failures return a sanitized authentication refusal and no partial identity;
+Missing or malformed certificate PEM markers return this actionable error:
+`invalid certificate format: expected PEM with BEGIN CERTIFICATE and END CERTIFICATE markers`.
+The certificate must contain the exact `-----BEGIN CERTIFICATE-----` and
+`-----END CERTIFICATE-----` lines around its base64 content. Bare base64, binary
+DER, empty files and other PEM block types are refused rather than repaired.
+Certificate format is checked before reading the key or CA files, so a missing
+key does not mask this certificate-format error. Other failures keep the generic
+sanitized authentication refusal. Every failure returns no partial identity;
 paths, certificate bodies and key material are never included in the error/audit.
 Raw key buffers are cleared after parsing, but Go memory copies and the live
 private-key object prevent any guaranteed memory-zeroization claim. The loader

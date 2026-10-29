@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,6 +18,9 @@ import (
 // operator-controlled. The existing private-file boundary checks the opened inode:
 // owner-only, current UID, regular, single-link, no-follow, nonblocking and bounded.
 // No key is generated, written, logged, sent to a provider or stored in the audit.
+// This actionable format error contains no certificate/key bytes or file paths.
+var errObjectReadCertificatePEM = errors.New("invalid certificate format: expected PEM with BEGIN CERTIFICATE and END CERTIFICATE markers")
+
 type objectReadIdentityFiles struct {
 	Certificate string
 	PrivateKey  string
@@ -31,10 +35,13 @@ func objectReadCertificateBundle(raw []byte, limit int) ([]*x509.Certificate, er
 		// pem.Decode otherwise skips leading junk. Configuration must be exact PEM.
 		raw = bytes.TrimSpace(raw)
 		if !bytes.HasPrefix(raw, []byte("-----BEGIN CERTIFICATE-----")) {
-			return nil, errObjectReadPeer
+			return nil, errObjectReadCertificatePEM
 		}
 		block, rest := pem.Decode(raw)
-		if block == nil || block.Type != "CERTIFICATE" || len(block.Headers) != 0 || len(certs) >= limit || bytes.Count(raw[:len(raw)-len(rest)], []byte("-----BEGIN ")) != 1 {
+		if block == nil {
+			return nil, errObjectReadCertificatePEM
+		}
+		if block.Type != "CERTIFICATE" || len(block.Headers) != 0 || len(certs) >= limit || bytes.Count(raw[:len(raw)-len(rest)], []byte("-----BEGIN ")) != 1 {
 			return nil, errObjectReadPeer
 		}
 		cert, err := x509.ParseCertificate(block.Bytes)
@@ -45,7 +52,7 @@ func objectReadCertificateBundle(raw []byte, limit int) ([]*x509.Certificate, er
 		raw = rest
 	}
 	if len(certs) == 0 {
-		return nil, errObjectReadPeer
+		return nil, errObjectReadCertificatePEM
 	}
 	return certs, nil
 }
@@ -85,16 +92,19 @@ func loadObjectReadPeerIdentity(files objectReadIdentityFiles, server bool) (obj
 	if err != nil {
 		return fail()
 	}
+	certificates, err := objectReadCertificateBundle(certPEM, 8)
+	if err == errObjectReadCertificatePEM {
+		return objectReadPeerIdentity{}, errObjectReadCertificatePEM
+	}
+	if err != nil {
+		return fail()
+	}
 	keyPEM, err := readPrivateBounded(files.PrivateKey, 64*1024)
 	if err != nil {
 		return fail()
 	}
 	defer clear(keyPEM)
 	caPEM, err := readPrivateBounded(files.Authorities, 256*1024)
-	if err != nil {
-		return fail()
-	}
-	certificates, err := objectReadCertificateBundle(certPEM, 8)
 	if err != nil {
 		return fail()
 	}
