@@ -3755,3 +3755,594 @@ proof does not establish live daemon or descendant termination guarantees.
   Last notification: clear safe certificate-format error implemented, regression
   and full checks pass; local unstaged/uncommitted fix for owner publication.
   Automation remains paused.
+
+### Sustained local authorization and configured reader worker services
+
+- Owner explicitly authorizes ongoing local MVP implementation until told stop,
+  continuing across checkpoints without publication waits, with no pushes. Git
+  helper restrictions still prohibit staging/commits/signing bypass; prepare full
+  messages and recoverable patches instead. Never claim commits were created.
+  Remotes are disconnected and remain untouched. Latest user authorization
+  supersedes the older per-batch publication wait for useful local related work.
+- Verified PR82 provisioning/PEM work merged: clean main/index at
+  2a2d964f3aabbfba584b5e9a0555abc30f0f2bad, tree equal finalhead84c06c9.
+  Greptile reported credit exhaustion, no checks; no actual review approval claimed.
+  Git helper created codex/reader-worker-profiles from that verified base.
+- Updated the existing commonroom-p0-batches-and-review heartbeat (no duplicate)
+  to ACTIVE sustained local work, every15minutes, no obsolete October26 cutoff.
+  User decides stop. Quiet on unchanged state, no competing implementation when
+  chat active, resume only when available usage permits; schedule cannot reset
+  account limits and requires running app/machine. No automatic commits/pushes.
+- Added private version1 worker profile JSON,64KiB/1–32entries, current-owner
+  bounded private-file loading, strict encoding/unknown/duplicate-key refusal
+  (including key-case variants) while permitting whitespace/property reordering.
+  Map exact company/worker/role to fixed literal IP:port and private identity files.
+  Load ALL entries/identities before exposing a snapshot; duplicates or partial
+  invalid configuration refuse. Unknown company/worker/role cannot fall back.
+  Job/intent binding is fresh from the original retained record, never peer frames.
+- Added objectReadWorkerService with configured Connect, Serve and ListenAndServe.
+  Approved net.Dialer/net.ListenConfig implementations receive only fixed TCP
+  endpoints. Check actual listener address before Accept. Bind/dial/accept remain
+  bounded; failed/late listener creation closes and sanitized refusal revokes scoped
+  authority. Service Close permanently refuses new work, cancels and joins ongoing
+  dial/listen/serving operations plus idle client read pumps; concurrent Close waits.
+  Profile edits do not replace active trust: close/join then load a fresh snapshot.
+- Added --check-reader-profiles ABSOLUTE_PATH before controller/database startup.
+  Offline command validates private configuration only, returns0/1/2 for pass/
+  refusal/usage, prints no supplied paths/key/certificate data, preserves actionable
+  PEM error, explicitly disclaims network/storage/live verification. No model,
+  Docker/provider, database, listener or network operation in validation.
+- Entire isolated-reader runtime scenario matrix now loads service profiles and
+  uses configured listener creation/connection before TLS/session/journals/runtime.
+  Added strict/all-or-nothing/private-policy, foreign company/worker, wrong listener,
+  shutdown idle/waiting/dialing/listening, late/failing bind cleanup, no revival,
+  retained uncertain charges and safe offline diagnostics tests. All DB/network/
+  Docker/provider boundaries mocked; temporary/generated synthetic fixtures only.
+- Added full guide docs/reader-worker-profiles.md and Help/index/README/operations/
+  authority links. Covers schema/role-separated host setup, formats/private files,
+  preflight, ownership/shutdown/rotation, source-fork/injection risks and gaps.
+  Mandatory infrastructure has no optional authentication/isolation flag; profile
+  absence refuses service setup rather than weakening any security boundary.
+- Focused profiles race PASSED2.528s; final integrated race PASSED3.713s;
+  make test PASSED38.33s; make check PASSED53.00s (race/vet/policy/docs/UI/Help).
+  Approved execution allowed existing temporary socket/process fixtures. Logs
+  /private/tmp/commonroom-reader-profiles-{focused,integrated,integrated-final,
+  test,check}.log. Full measured command total91.33s; first explicit verification
+  observation04:04:18UTC on30 October2026. Earlier elapsed interval not continuously
+  timed; no claim of overnight continuous coding or live release evidence.
+- Remaining: actual production dispatch/service wiring and deployed PKI/firewall,
+  hard physical quota/complete inventory/custody/export/creator evidence, independent
+  artifact ownership after workspace disposal, unknown-ID/stop reconciliation,
+  public file delivery/human acceptance, reviewed images/providers and live gates.
+  File-task dispatch remains blocked, no permissive witnesses or synthetic gate PASS.
+- Recoverable checkpoint target /private/tmp/commonroom-reader-profiles-backup/0001/.
+  Prepared commit message:
+  feat: configure private reader worker profiles and owned services
+
+  Load bounded private operator profiles for exact company/worker/role endpoints
+  and validated certificate identities. Refuse ambiguous or partial policy.
+  Own configured connections/listeners under service lifetime with joined shutdown.
+  Add offline profile validation before database/controller startup.
+  Cover policy isolation, failure, revocation and complete isolated reader journeys.
+  Document configuration, ownership, preflight, rotation and deployment limitations.
+  Validation: make test and make check passed; no live acceptance certified.
+- Last notification: substantial configured service/preflight checkpoint verified;
+  continue useful authorized local work without waiting for publication. Changes
+  remain unstaged/uncommitted/unpushed and automation active until owner stops.
+- Explicit final verification window04:04:18–04:07:25UTC is3m07s, distinct from
+  measured command CPU/wall durations. Checkpoint docs PASSED3 tests/0.121s.
+
+## 2026-10-30: Read-only physical project quota observation
+
+- Continued authorized local work on codex/reader-worker-profiles; no staging,
+  commits, pushes, remote access or quota mutation. Prior secure snapshot exists at
+  /private/tmp/commonroom-reader-profiles-backup/0001/.
+- Added internal/projectquota.Inspect for an independently approved, already-open
+  root directory and exact device/inode/project plus byte/inode reservation bounds.
+  Linux amd64 pins a duplicate descriptor and reads XFS attributes, accounting and
+  enforcement status, project hard limits and actual usage through fixed read-only
+  kernel queries. Unsupported platforms, insufficient permission or uncertainty
+  refuse; no shell/helper, quota setter, escalation or uncontained fallback.
+- Repeated root/status/quota observations reject changes, unlimited/excess limits,
+  counter overflow, realtime allocation, missing inheritance and wrong identities.
+  Descriptor-close failure withholds evidence. Cancellation waits for synchronous
+  kernel queries; caller must retain writer fences and join the operation.
+- Mocked kernel tests cover success, scope, malformed structures, missing enforcement,
+  changes, cancellation, error/close ownership and overflow. Generated temporary
+  fixtures only. Native Linux amd64 compile passed; executable was not run live.
+- make test PASSED38.18s; make check PASSED52.73s; focused race PASSED1.341s.
+  Logs /private/tmp/commonroom-quota-observer-{focused,test,check}.log.
+  Explicit observation window04:17:45–04:24:32UTC (6m47s); measured full command
+  total90.91s. No continuous coding time inferred from timestamp gaps.
+- Full user/technical guide docs/physical-project-quota-observer.md linked from
+  Help, docs index, operations and storage accounting. Mandatory read-only security
+  infrastructure has no product toggle and never grants execution/export authority.
+- Remaining: actual provisioned XFS quotas and approved namespace/volume mapping,
+  complete fenced inventory and aggregate capacity, production witness integration,
+  artifact custody/disposal, public delivery/human acceptance and live provider gates.
+  This observer neither provisions limits nor makes file-task dispatch ready; no
+  synthetic acceptance is reported as live evidence.
+- Prepared full commit message (may be combined with prior checkpoint by owner):
+
+  feat: observe enforced physical project storage quotas
+
+  Pin an approved directory descriptor and inspect native XFS project accounting,
+  enforcement, hard byte/inode limits and actual usage on Linux amd64.
+  Refuse changed identity, missing enforcement, unlimited or excessive bounds,
+  realtime allocation, overflow and uncertain cleanup without fallback.
+  Add mocked failure/cancellation/ownership tests and document the ABI, deployment
+  requirements and distinction between observation, provisioning and admission.
+
+  Validation: make test and make check passed; Linux amd64 compile passed.
+  Native quota queries and production storage acceptance remain unverified.
+- Last notification: physical quota observer verified locally; continue with operator
+  storage validation. Changes remain unstaged/uncommitted/unpushed.
+
+## 2026-10-30: Operator physical storage preflight
+
+- Continued local work on codex/reader-worker-profiles without publication wait.
+  Prior secure cumulative backup /private/tmp/commonroom-reader-profiles-backup/0002/
+  contains23 intended files (+1529/-18), empty index and clean whitespace.
+- Added --check-worker-storage ABSOLUTE_PRIVATE_POLICY before controller/database
+  startup. Version1/64KiB/1–32 roots, strict private policy rejects unknown/duplicate/
+  malformed keys, unsafe bounds and duplicate path/device-inode/device-project.
+  Company/worker labels cannot split a shared project quota into independent budgets.
+- Open only approved directory leaves with no-follow/nonblocking/close-on-exec;
+  operator controls parents. Independently provisioned expected identities remain
+  separate from actual descriptor-bound kernel observations. Validate ALL policy
+  before inspecting; report success only after ALL roots validate and close.
+  Context cancellation and uncertain cleanup withhold success. No network/daemon/
+  provider/database, allocation, quota mutation or privileged fallback.
+- Synthetic temporary fixtures and mocked inspector cover strict/private policy,
+  cardinality/scope/duplicates, symlink/file/missing roots, exact binding and
+  descriptor cleanup, error-canary sanitization, partial failure, over-limit usage,
+  cancellation and close failure. Native kernel quota queries never run in tests.
+- Focused final race PASSED1.389s (command8.31s); make test PASSED41.72s;
+  make check PASSED54.14s; Linux amd64 full server test compilation PASSED18.29s,
+  binary not executed. Logs /private/tmp/commonroom-storage-preflight-{focused,
+  focused-final,test,check,linux-compile}.log. Verification observation04:24:32–
+  04:29:08UTC (4m36s); full measured test+check95.86s. Earlier untimed intervals
+  are not reported as continuous coding.
+- Full guide docs/worker-storage-preflight.md plus Help/README/index/operations/
+  observer links explain schema, permission/ownership requirements, exit codes,
+  trusted parents, supported ABI and remaining gaps. Mandatory security preflight
+  has no optional bypass toggle, paid exception or public/model entry point.
+- Still incomplete: actual native XFS/live permission verification, independent
+  provisioning/complete inventory and namespace/custody proof, production storage
+  admission/witness integration, artifact ownership/export/disposal and provider
+  acceptance. Preflight is point-in-time diagnostic evidence, never a capability,
+  fresh admission proof or P0 live PASS. File-task dispatch remains blocked.
+- Prepared full commit message:
+
+  feat: add read-only worker storage deployment preflight
+
+  Validate private operator policy against exact independently provisioned roots,
+  identities and finite project quota bounds before controller/database startup.
+  Reject shared quota identities, unsafe roots, uncertain observations and cleanup
+  without partial success, mutation or fallback execution.
+  Cover policy, binding, cancellation and descriptor ownership with mocked quota
+  queries and document setup, safe diagnosis and remaining production integration.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  No native live quota, provider or public release acceptance is claimed.
+- Last notification: storage preflight tests/native compilation passed; full checks
+  now verified. Continue authorized local work; no stage/commit/push, heartbeat active.
+
+## 2026-10-30: Aggregate physical quota observation and preflight
+
+- Heartbeat resumed sustained authorized local work. Re-read rules/checkpoint;
+  Git helper verified branch/base/worktree/index exactly match snapshot0003, no
+  concurrent changes/conflicts. Remotes untouched. No staging/commit/push.
+- Added projectquota.InspectSet:1–32 approved open roots, independent expected
+  bindings copied before callbacks, exact device/inode and device/project
+  uniqueness, checked finite aggregate reservation bound before any reader opens.
+  Full expected reservation amounts count even when observed usage is lower.
+- Pin ALL reader descriptors before inspection; read every root then repeat in
+  reverse order while retaining all readers. Changed identity/limits/usage or
+  lost enforcement, cancellation, partial opening/inspection and any close error
+  withhold ALL observations. Close every acquired reader, including a reader
+  returned with an opening error. Caller descriptors remain caller-owned.
+- Integrated native InspectSet into --check-worker-storage. Validate complete
+  private policy first, group by configured company, enforce mandatory free
+  5,000,000,000-byte ceiling per company before opening any roots, retain all
+  local descriptors through every group and independently verify result count,
+  exact bindings and limits. Other worker labels cannot bypass the same-company
+  bound; independent company groups remain independent. No allocation authority.
+- Tests cover exact boundary/extra byte, overflow, duplicate project/root, limits,
+  all-roots ownership, immutable policy values, partial/late-open errors, changing
+  usage/enforcement, cancellation, cleanup failure, cross-worker budget bypass,
+  independent companies and truncated set results. All native queries mocked;
+  synthetic temporary files only, no DB/Docker/provider/network interaction.
+- Final integrated race PASSED server1.574s/projectquota1.244s. make test
+  PASSED38.54s; make check PASSED52.91s. Linux amd64 full-server test compilation
+  PASSED11.92s; not executed. Earlier primitive-only check PASSED53.31s, then
+  repeated full checks because integration changed code. Logs
+  /private/tmp/commonroom-quota-set-{focused,focused-final,compile,test,check,
+  integrated,integrated-test,integrated-check,integrated-compile}.log.
+  Explicit work observation began04:31:27UTC; final verification observed04:40:02UTC
+  (8m35s), measured final full test+check91.45s. No live acceptance manufactured.
+- Updated observer/preflight guides (existing Help links) with aggregate API,
+  ownership, exact budget semantics and scope. Every configured path is LOCAL to
+  this command's host; worker labels do not discover/contact remote workers.
+  Matching repeated reads are NOT an atomic snapshot or complete inventory.
+  Operator company/budget labels are NOT account authorization. Mandatory security
+  validation has no optional bypass/paid exception/host fallback.
+- Remaining: independently complete cross-worker/retained/artifact/staged inventory,
+  actual creator/writer fences, deployed XFS/native permissions and namespace/volume
+  mapping, durable admission and production witness assembly, artifact custody/
+  export/disposal and live provider gates. Aggregate preflight is diagnostic only;
+  no complete inventory source, task dispatch readiness or live P0 PASS claimed.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0004/ (prior0001–0003 retained).
+- Full prepared commit message:
+
+  feat: validate aggregate physical storage quota observations
+
+  Bound approved project sets by complete finite reservation amounts and reject
+  duplicate physical quota identities before any kernel reader opens.
+  Pin every descriptor through repeated set observations and join all acquired
+  readers on change, cancellation, partial failure or cleanup uncertainty.
+  Wire native set checks into operator storage preflight with the mandatory free
+  account ceiling, exact result validation and independent company grouping.
+  Add mocked boundary, cross-worker, failure and ownership regression coverage;
+  document local-path scope, writer fences and remaining inventory/admission gaps.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Native live XFS, complete inventory and production admission remain unverified.
+- Last notification: aggregate storage preflight verified; local recovery checkpoint
+  prepared. Continue useful related local work automatically; no publication wait.
+
+## 2026-10-30: Refuse ambiguous startup commands before controller state
+
+- Resumed sustained local work; re-read rules/checkpoint. Git helper verified
+  branch/base/index/worktree exactly match0004, no concurrent changes/conflicts.
+- Found main previously ignored unknown arguments and could silently start the
+  controller for a misspelled preflight. --migrate also ignored extra operands.
+  Added exact startupCommand dispatch before controller lease/configuration/DB.
+  Unknown commands and extra migration operands now return sanitized usage/exit2;
+  no arbitrary arguments/paths/credentials echoed. --help/-h return command help
+  without starting services. No arguments still start the controller; explicit
+  migration/internal worker flows retain their own existing entry points.
+- Private preflights retain their0/1/2 outcomes and early ordering. New safety
+  boundary has no optional toggle or fallback; it cannot weaken isolation or
+  authentication and adds no model/public execution path.
+- Added pure command-intent/private-profile-success tests and real executable
+  entry-point tests using synthetic temporary child processes. Minimal environment
+  excludes inherited credentials/configuration; invalid DB syntax additionally
+  prevents a dial if startup ordering regresses. Verify no controller .data state
+  appears on help, typo, extra migration operands and failed preflights. No DB,
+  provider, Docker, network or native quota operation is performed by these tests.
+- Focused race PASSED2.422s (command17.35s); make test PASSED38.45s.
+  Full make check PASSED52.61s (final test+check91.06s).
+  Linux amd64 full-server test compilation PASSED9.81s; not executed.
+  Logs /private/tmp/commonroom-startup-command-{focused,test,check,compile}.log.
+  First explicit clock04:47:48UTC, completion observation04:49:52UTC (2m04s).
+  Earlier work after heartbeat04:45:43UTC was not continuously timed; no live
+  acceptance is inferred from process/compile tests.
+- README and operations guide (existing Help destination) document supported
+  commands, early no-service help, argument refusal, migration safety and tests.
+- Existing production dispatch/storage inventory/native permission/custody/export/
+  provider acceptance gaps remain open. This fixes operator startup intent; it
+  neither proves complete inventory nor enables file-task dispatch or live gates.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0005/ (prior snapshots retained).
+- Full prepared commit message:
+
+  fix: reject ambiguous commands before controller startup
+
+  Dispatch explicit operator commands before acquiring controller state or
+  loading database configuration. Refuse unknown switches and extra migration
+  operands instead of silently starting services or migrating.
+  Add safe no-service command help while preserving private preflight statuses
+  and the existing explicit worker/migration entry points.
+  Test actual executable ordering with synthetic child processes and verify
+  no controller state, credential disclosure or external dependency access.
+  Document command syntax and startup safety in README and operations guidance.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Production dispatch and live storage/provider acceptance remain unverified.
+- Last user notification remains the aggregate quota checkpoint; keep this smaller
+  verified startup-safety increment quiet. Continue authorized local MVP work;
+  nothing staged, committed, pushed or changed remotely.
+
+## 2026-10-30: Custody cleanup uncertainty withholds success
+
+- Resumed sustained local work; re-read rules/checkpoint and Git helper verified
+  exact0005 branch/worktree/index state with no conflicts or concurrent edits.
+- Found Store.Get ignored deferred object/directory close results, and Store.Put
+  ignored directory close and could retry a failed explicit object close. Hardened
+  owned-descriptor completion without changing public API or relaxing authority.
+- Put now withholds the receipt on cleanup uncertainty or cancellation during
+  cleanup. Close is attempted once per acquired descriptor, even on an early
+  streaming failure. A directory failure AFTER durable Seal retains that seal,
+  actual bytes and the full reserved charge; no rollback/refund/deletion/retry.
+- Get clears/withholds its return buffer on owned object/directory close failure
+  or cancellation during cleanup. A prior durable read acknowledgment remains
+  authorization history, never proof of delivery. Original os.Root remains borrowed.
+  Private close seam is for synthetic fault injection; production uses File.Close.
+- Added object/directory close failures, cancellation during each cleanup phase,
+  post-seal/post-read-ack history and early-source-error regression tests. Assert
+  exact single close attempts, retained actual contents/full charge, and no
+  success receipt/raw bytes. All fixtures synthetic temporary files and mocked
+  journals; no DB/Docker/provider/network/native quota interaction.
+- make test during development PASSED39.81s. Final focused package race PASSED
+  4.893s; final make check PASSED54.26s including final cancellation scenarios.
+  Linux amd64 custody test compilation PASSED1.49s; binary not executed.
+  Logs /private/tmp/commonroom-custody-close-{focused,focused-final,test,check,
+  compile}.log. Observation04:58:20–05:01:54UTC (3m34s), full measured test+check
+  94.07s. Earlier focused command2.30s; no live acceptance inferred.
+- Updated docs/object-custody.md (existing Help destination) and source ownership
+  contract with cleanup outcomes, retained durable history and cancellation checks.
+  Mandatory integrity/retention infrastructure has no optional bypass flag or
+  host execution fallback. No new public/model route or permissive guard supplied.
+- Remaining: real quota/source/release guards, independent complete inventory,
+  approved isolated custody and production transfer/export/task-delivery assembly,
+  live provider/runtime acceptance. This safety fix does not enable file tasks or
+  prove artifact ownership after source disposal; those integration gaps remain.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0006/ (prior snapshots retained).
+- Full prepared commit message:
+
+  fix: withhold custody success after descriptor cleanup uncertainty
+
+  Propagate owned object and directory close failures before returning stored
+  receipts or verified read bytes, and recheck cancellation during cleanup.
+  Attempt each close once without retrying an uncertain result.
+  Preserve sealed objects, full charges and durable authorization history when
+  cleanup fails after sealing or read acknowledgment; never infer delivery,
+  deletion, refund or safe retry from an uncertain outcome.
+  Cover failure/cancellation ownership with synthetic filesystem/journal tests
+  and document the mandatory cleanup contract and production integration gaps.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Production custody, physical enforcement and live release gates remain open.
+- Last user notification remains aggregate quota checkpoint. Keep this internal
+  verified safety fix quiet; no decision needed. Continue authorized local work,
+  without staging/commits/pushes or remote mutation.
+
+## 2026-10-30: Controller-selected sealed artifact manifests
+
+- Resumed sustained local work, re-read rules/checkpoint; Git helper verified
+  exact0006 branch/worktree/index with no concurrent edits/conflicts. No remotes.
+- Added internal resolveStoredArtifactManifest controller assembly: current
+  authenticated human/account/room and incident/stop/integrity checks, exact
+  execution/definition identity, COMPLETE sealed receipt selection from replayed
+  custody and unreleased quota-backed reservation linkage. Receipts come from
+  controller state, never caller/provider claims; unsealed matching records refuse.
+- Resolve actual private stored bytes through artifactmanifest and the real
+  controller custody journal outside server locks. Full-set preflight enforces
+  finite members/caps before reads; actual size/hash/format are checked. Reacquire
+  current state after ALL reads and compare permissions, complete canonical receipt
+  set and definition before returning metadata. No partial manifest or byte body.
+  Use the bounded storage context; preserve individual durable read acknowledgments
+  if later content/final-policy checks refuse. No task completion/acceptance grant.
+- Tests cover actual file and complete bundle assembly, missing/unsealed members,
+  tampered bytes, invalid JSON, foreign scope/revision/output, human/agent permission,
+  cancellation, incident/integrity, editing-flag states and revocation AFTER the
+  actual journal read acknowledgment. Shared synthetic fixture now accepts a finite
+  output contract; no production behavior changed by fixture refactoring.
+  Private temp files, real projection/journal and mocked DB/physical guards only;
+  no database/provider/Docker/network/native quota service is used.
+- Focused race PASSED2.951s (command10.67s); make test PASSED40.43s.
+  Full make check PASSED59.92s (test+check100.35s).
+  Linux amd64 server test compilation PASSED3.65s; binary not executed.
+  Logs /private/tmp/commonroom-controller-manifest-{focused,race,test,check,
+  compile}.log. Observation05:16:47–05:22:17UTC (5m30s); no continuous/live
+  execution claim beyond measured commands. Initial canceled-case test inspection
+  was corrected to load evidence with a fresh test context; final checks pass.
+- Full artifact manifest guide (existing Help destination) and README describe
+  internal API, controller-selected claims, lock ownership, history, flags and gaps.
+  Disabling taskDefinitions editing preserves authorized historical verification;
+  it cannot bypass custody/export checks. Internal security assembly has no
+  independent optional bypass flag, host selector or permissive default guard.
+- Remaining: the supplied store MUST be assembled with actual controller journal,
+  independent isolated physical custody/quota/source/release guards and writer
+  fences. This is not a production guard/default or public HTTP/model route.
+  Complete inventory, production file dispatch, durable task-output attachment,
+  byte revalidation/public export, human acceptance, independent custody after
+  source disposal and live provider gates remain open. No synthetic live PASS.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0007/ (prior snapshots retained).
+- Full prepared commit message:
+
+  feat: assemble artifact manifests from controller custody
+
+  Select complete exact sealed file and bundle receipts from authenticated
+  controller state instead of accepting caller/provider receipt claims.
+  Resolve actual private bytes through custody authorization, integrity and
+  structural checks without holding server locks across journal callbacks.
+  Recheck current access, incident/integrity, definition and the entire receipt
+  set after all reads; withhold partial or revoked manifests without erasing audit.
+  Cover file/bundle completeness, content failure, permission revocation and
+  historical flag behavior with synthetic files and mocked physical/DB guards.
+  Document trusted assembly and remaining dispatch/export/acceptance integration.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  No public delivery, task acceptance or live production readiness is claimed.
+- Last notification: controller manifest assembly verified locally; notify once
+  as a substantial custody-to-deliverable bridge. Continue authorized local work;
+  no staging, commits, pushes or remote mutation.
+
+## 2026-10-30: Immutable durable manifest registry
+
+- Re-read rules/checkpoint; Git helper verified exact0007 branch/worktree/index,
+  no concurrent changes/conflicts. Continued authorized related local work.
+- Added private recordStoredArtifactManifest: actual-byte controller assembly,
+  fresh human/room/stop/integrity and exact complete custody checks, followed by
+  expected-event-count-fenced artifact.manifest.recorded append. One immutable
+  execution/output key, no overwrite/delete/automatic adoption or retry.
+- Added hidden ArtifactManifests projection and safe audit summary. Replay checks
+  version/actor stamp, exact canonical definition/scope/receipts, complete sealed
+  quota-backed/unreleased membership and prior durable read acknowledgments.
+  Strict bounded JSON rejects unknown/malformed payload. Generic state omits
+  registry data; client /api/events cannot inject trusted manifests even as owner.
+- Extracted shared portable manifest metadata/types and canonical finite preflight.
+  ValidateMetadata performs NO byte I/O/authority check and is explicitly replay
+  shape validation only. Resolve/Revalidate still require actual private custody
+  reads; malformed receipt identities now refuse the WHOLE set before any read.
+- Tests cover recording/restart, immutable keys/caller copies, one concurrent
+  winner, strict forged replay, missing read evidence, generic-state privacy,
+  public-event injection, editing-off historical verification and commit failure
+  retaining bytes/full charges/read history while returning no success and tripping
+  integrity. Metadata tests distinguish shape from byte authority and refuse
+  digest/format/order/size/scope/receipt forgery even with recomputed digests.
+  All DB/physical boundaries mocked; synthetic temporary custody only.
+- Focused race PASSED server2.299s/metadata1.291s (command7.44s); make test
+  PASSED38.59s; final make check PASSED54.45s including concurrent record coverage.
+  Full measured test+check93.04s. Linux amd64 server test compilation PASSED8.44s,
+  not executed. Portable metadata package compiles for Windows; whole room target
+  remains unavailable because existing toolbroker dependencies require Unix-only
+  toolworkspace/workspacesnapshot. No Windows worker/runtime support claimed.
+  Logs /private/tmp/commonroom-manifest-registry-{focused,race,test,check,compile}.log
+  and /private/tmp/commonroom-manifest-metadata-{portability,only-portability}.log.
+  Observation05:31:52–05:39:36UTC (7m44s); no live acceptance inferred.
+- README/full manifest guide and explicit in-app Help entry explain event/API,
+  replay shape, ownership, failure/reconciliation, privacy, flags and gaps.
+  Disabling taskDefinitions editing preserves authorized historical recording;
+  mandatory verification/retention has no bypass flag or paid/host exception.
+- Remaining: actual independent isolated source/quota/custody/export guard and
+  complete inventory deployment, task-output attachment/current-review UI,
+  fresh revalidation/public byte delivery and human acceptance, independent custody
+  after source disposal and live provider gates. Registry metadata is historical
+  verification, never a download capability, task completion or acceptance.
+  No public file dispatch or synthetic live PASS enabled.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0008/ (prior snapshots retained).
+- Full prepared commit message:
+
+  feat: persist immutable controller artifact manifests
+
+  Record actual-byte-verified manifests once per execution/output under fresh
+  controller authorization and an optimistic audit revision fence.
+  Validate canonical scope, complete sealed custody, quotas and read evidence
+  during replay; preserve registry metadata privately without task acceptance.
+  Share portable metadata preflight with actual-byte resolution and reject all
+  malformed receipt claims before any member read.
+  Refuse overwrite/client injection and uncertain publication, retaining custody,
+  full charges and audit history. Cover restart, concurrency, failure, permission,
+  flag and metadata forgery with mocked DB and synthetic filesystem fixtures.
+  Document replay-versus-export semantics and remaining production integrations.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Production custody, task-output delivery and live acceptance remain unfinished.
+- Last notification: immutable internal registry verified; notify once as a
+  substantial durable deliverable-association checkpoint. Continue authorized
+  local work; nothing staged, committed, pushed or changed remotely.
+
+## 2026-10-30: Fresh recorded-member byte revalidation
+
+- Re-read rules/checkpoint; Git helper verified exact0008 and later confirmed only
+  the five intended read-bridge/registry/docs paths changed, no concurrent work.
+  Queued heartbeat timestamps are not evidence of intervening implementation.
+- Added private readRecordedArtifactMember: exact recorded execution/output and
+  caller-pinned manifest digest, current authenticated human/account/room and
+  incident/stop/integrity checks, complete canonical sealed custody linkage.
+  Unknown members, stale digests, foreign execution and agents refuse before reads.
+- Revalidate ALL actual finite members through current custody/journal/export
+  guards, read the selected exact receipt again, then reload current permissions,
+  immutable record/definition and complete linkage before returning bytes. A corrupt
+  sibling invalidates bundle-member release. Revocation or cancellation withholds/
+  clears bytes. No caller path/receipt, server lock across byte callbacks or reuse
+  of stale verification authority. The existing bounded storage context applies.
+- Factored immutable-new-record validation from shared historical linkage checks;
+  duplicate recording remains refused. Registry remains private; no HTTP/model
+  route, default store/guard, task completion/acceptance or host fallback added.
+- Synthetic tests cover healthy file/bundle, stale/foreign/unknown selection,
+  tampering/corrupt sibling, current physical release denial after revalidation,
+  permission revocation AFTER selected acknowledgment, pre/post-read cancellation,
+  editing-off history and retained full charges/read acknowledgments. All physical/
+  DB/provider boundaries mocked, temporary synthetic custody files only.
+- Focused race PASSED2.472s. Full make check PASSED562.60s (user80.31/sys12.80s),
+  and Linux amd64 server test compilation PASSED2.93s, binary not executed.
+  Initial make test FAILED291.50s in existing real-deadline workspace observation
+  fixtures (pair supervisor unavailable). Targeted unchanged fixture retry PASSED
+  1.692s (command4.79s). A full retry FAILED322.24s in other existing workspace
+  observation fixtures with the same deadline refusal. Timestamp discontinuities
+  were observed; host sleep/scheduling involvement is an inference, not established
+  root cause. No production deadline, fixture expectation or security check weakened.
+- Final make test PASSED36.93s under a temporary macOS idle-sleep assertion scoped
+  ONLY to that test process; no persistent power settings changed. Successful test
+  plus check measured599.53s, including check stalls; do not substitute earlier
+  batches' shorter timings. Logs /private/tmp/commonroom-manifest-member-{focused,
+  race,test,fixture-retry,test-retry,awake-test,check,compile}.log retain all failures.
+  Observation window09:03:58–12:13:22UTC is3h09m24s with large unobserved gaps;
+  NOT continuous coding time. No live acceptance inferred from synthetic runs.
+- README/full manifest guide (in-app Help) document private signature, digest
+  pinning, all-member verification, ownership/callback rules and failure history.
+  Read acknowledgments count internal authorizations, not downloads/delivery.
+  Editing disabled preserves authorized historical reads; mandatory security
+  verification has no optional bypass flag or paid exception.
+- Remaining: actual independently fenced isolated custody/quota/source/export
+  assembly and complete inventory; public review/download transport, task-output
+  attachment and human acceptance; independent custody after source disposal and
+  live providers/runtime gates. Matching repeated metadata does not prove physical
+  writer exclusion. This primitive creates no public file-dispatch permission.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0009/ (all prior snapshots retained).
+- Full prepared commit message:
+
+  feat: revalidate recorded artifact members before private release
+
+  Pin the reviewed execution/output manifest digest and select member receipts
+  only from authenticated immutable controller history.
+  Recheck actual bytes and current export authority for every bundle member,
+  then read the selected receipt again and recheck current controller permission
+  and complete custody linkage before returning bytes.
+  Withhold stale, corrupt, revoked or canceled reads without deleting data,
+  refunding capacity, replacing manifests or erasing acknowledgment history.
+  Preserve duplicate-record refusal while sharing historical linkage validation.
+  Cover file/bundle, permission, cancellation and flag-state behavior with mocked
+  persistence/physical guards and document required production assembly.
+
+  Validation: final make test and make check passed; Linux compilation passed.
+  Earlier real-deadline fixture failures retained in logs; live gates remain open.
+- Last notification: combine the durable internal registry and fresh member-read
+  checkpoints once; public delivery remains unfinished. Continue authorized local
+  work; no staging, commits, pushes or remote changes.
+
+## 2026-10-30: Recorded artifact recovery verification
+
+- At12:16:51UTC re-read development/workflow rules and checkpoint. Git helper
+  confirmed codex/reader-worker-profiles exactly matched0009, empty index,
+  no conflicts/concurrent changes; no remote access or mutations.
+- Added a synthetic restart recovery matrix that constructs a fresh controller,
+  reopens the retained private root and supplies a fresh journal/physical guard.
+  Healthy and task-definition-editing-disabled history returns actual bytes only
+  after current authorization. Missing/changed bytes, unsafe root permissions,
+  physical refusal, incident, revoked room membership and failed acknowledgment
+  return no bytes. Failed acknowledgment latches integrity stop; subsequent replay
+  retains immutable digest, full charge and only acknowledged read history.
+- This is protocol/security regression coverage, not new product functionality or
+  a deployed restart service. No product flag needed for mandatory verification;
+  existing editing flag states covered without weakening retention/authorization.
+  No actual database, provider, Docker or physical-quota interaction used.
+- Focused test PASSED0.491s; focused race PASSED2.943s (command9.88s).
+  make test PASSED39.77s; make check PASSED58.76s. Both full commands used temporary
+  process-scoped idle-sleep assertions only. Logs retained at
+  /private/tmp/commonroom-manifest-recovery-{race,test,check}.log.
+  Observation window12:16:51–12:19:49UTC2m58s; overlapping test command times
+  must not be added together as wall-clock development time.
+- Full manifest guide documents restart setup, current authority, refusal and
+  retained evidence; existing in-app Help links that guide. Remaining production
+  identity/custody/quota/inventory assembly, public review/download, output
+  attachment/acceptance and live runtime gates unchanged. Synthetic recovery is
+  not evidence of independent storage after source disposal.
+- Secure cumulative recovery target:
+  /private/tmp/commonroom-reader-profiles-backup/0010/ (prior snapshots retained).
+- Full prepared commit message:
+
+  test: verify recorded artifact recovery against current authority
+
+  Reopen retained synthetic custody with a fresh controller journal and guard
+  instead of carrying pre-restart authorization into recorded-member reads.
+  Cover healthy and editing-disabled history, missing or changed bytes, unsafe
+  roots, physical refusal, incidents, revoked room access and failed read audit.
+  Assert withheld bytes, integrity stop on uncertain acknowledgment and retention
+  of immutable manifests, full reservations and acknowledged history on replay.
+  Document safe recovery setup and the remaining production and live boundaries.
+
+  Validation: focused race, make test and make check passed.
+  Physical custody and persistence mocked; live release gates remain open.
+- Last notification unchanged: prior registry/member-read progress already reported.
+  Recovery coverage adds no new user decision or public functionality; stay quiet.
+  Nothing staged, committed, pushed or changed remotely; continuation remains active.

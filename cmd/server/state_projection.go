@@ -91,6 +91,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			if err := projectControllerProbe(&st, data); err != nil {
 				return st, err
 			}
+		case "artifact.manifest.recorded":
+			if err := projectArtifactManifest(&st, data); err != nil {
+				return st, err
+			}
 		case "artifact.custody.reserved", "artifact.custody.ready", "artifact.custody.sealed", "artifact.custody.read":
 			if err := projectArtifactCustody(&st, kind, data); err != nil {
 				return st, err

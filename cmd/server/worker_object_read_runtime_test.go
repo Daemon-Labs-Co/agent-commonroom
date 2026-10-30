@@ -159,25 +159,21 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 			left, right := net.Pipe()
 			defer left.Close()
 			defer right.Close()
-			clientBinding, serverBinding := boundObjectReadFixture(t, g)
-			clientFiles, serverFiles := provisionedObjectReadTestFiles(t)
-			clientBinding.Identity, err = loadObjectReadPeerIdentity(clientFiles, false)
+			profilePath, _ := objectReadProfileFixture(t, g)
+			service, err := newObjectReadWorkerService(ctx, profilePath)
 			if err != nil {
 				t.Fatal(err)
 			}
-			serverBinding.Identity, err = loadObjectReadPeerIdentity(serverFiles, true)
-			if err != nil {
-				t.Fatal(err)
-			}
-			listener := newSyntheticReadListener()
+			defer service.Close()
+			listener := &addressedReadListener{newSyntheticReadListener(), "192.0.2.10:443"}
 			done := make(chan error, 1)
-			go func() { done <- serveObjectReadControlOnce(ctx, listener, serverBinding, g); close(done) }()
+			factory := syntheticReadListenerFactory(func(context.Context, string, string) (net.Listener, error) { return listener, nil })
+			go func() { done <- service.ListenAndServe(ctx, g, factory); close(done) }()
 			dialer := syntheticReadDialer(func(context.Context, string, string) (net.Conn, error) {
 				listener.incoming <- right
 				return left, nil
 			})
-			endpoint := objectReadControlEndpoint{Address: "192.0.2.10:443", Binding: clientBinding}
-			c, err := connectObjectReadControl(ctx, endpoint, g.record, g.intent, func() {}, dialer)
+			c, err := service.Connect(ctx, g.worker, g.record, g.intent, func() {}, dialer)
 			if err != nil {
 				_ = left.Close()
 				<-done

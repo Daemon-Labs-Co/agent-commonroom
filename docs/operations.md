@@ -256,3 +256,31 @@ Keep the creator
 lease and original principal pinned; never expose a control socket to containers
 or reconnect an uncertain link to bypass reconciliation. Actual transport
 authentication, physical quota witnesses and reviewed starters remain deployment work.
+
+Reader deployment now has [private worker profiles and offline preflight](reader-worker-profiles.md), including fixed endpoint selection, certificate loading and service shutdown ownership. This does not enable production file-task dispatch or certify physical storage/live acceptance.
+
+A [read-only physical project-quota observer](physical-project-quota-observer.md) now checks pre-provisioned XFS enforcement on supported Linux x86-64 hosts. It does not provision quotas or replace complete inventory, account admission, rootless containment or live acceptance.
+
+Operators can run the [worker storage preflight](worker-storage-preflight.md) against private independently approved bindings. It performs read-only observations before database startup and grants no allocation or live acceptance.
+
+## Explicit startup commands
+
+`commonroom --help` (or `-h`) prints supported commands and exits without taking
+the controller lease, reading application configuration, migrating or connecting
+to the database. With no arguments the binary starts the controller normally.
+Unknown commands, misspelled preflight switches and unsupported operands exit2
+with a sanitized usage diagnostic; they never silently fall through to startup.
+For example, `--check-worker-storag` refuses instead of opening the application.
+
+The private reader/storage preflights retain their documented0/1/2 status codes
+and run before controller state. `--migrate` must appear alone: extra arguments
+refuse before any migration work. The internal `--agent-worker` protocol keeps
+its own bounded operand validation and mandatory isolation; listing it in help
+is not permission to execute models directly. Arbitrary arguments/paths/credentials
+are not echoed in unknown-command errors. There is no optional flag to bypass
+this startup safety rule. Help/usage output does not certify deployment readiness.
+
+Tests exercise actual executable entry-point ordering in temporary synthetic
+processes with no inherited configuration/credentials, plus private profile
+success and malformed command handling. They assert no controller state appears;
+no database, provider, Docker or native quota query is used in these tests.

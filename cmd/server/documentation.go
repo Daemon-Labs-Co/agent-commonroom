@@ -15,6 +15,10 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
+	{"artifact-manifests", "Finite artifact manifests and immutable registry", "docs/artifact-manifests.md"},
+	{"worker-storage-preflight", "Worker physical storage preflight", "docs/worker-storage-preflight.md"},
+	{"physical-project-quota-observer", "Physical project-quota observations", "docs/physical-project-quota-observer.md"},
+	{"reader-worker-profiles", "Reader worker profiles and service setup", "docs/reader-worker-profiles.md"},
 	{"reader-authority-bridge", "Artifact-reader authority bridge", "docs/reader-authority-bridge.md"},
 	{"controller-object-read-ledger", "Controller artifact-reader ledger", "docs/controller-object-read-ledger.md"},
 	{"worker-object-read-journal", "Durable artifact-reader journal", "docs/worker-object-read-journal.md"},

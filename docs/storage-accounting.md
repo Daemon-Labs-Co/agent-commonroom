@@ -162,3 +162,5 @@ catalog scenario requiring container capacity release with retained source stays
 pending. Distinguishing process absence from complete version-4 job settlement
 is still an architectural gap; tests do not bypass that contract or add disposal
 authority to cancellation.
+
+A [read-only physical project-quota observer](physical-project-quota-observer.md) now checks pre-provisioned XFS enforcement on supported Linux x86-64 hosts. It does not provision quotas or replace complete inventory, account admission, rootless containment or live acceptance.

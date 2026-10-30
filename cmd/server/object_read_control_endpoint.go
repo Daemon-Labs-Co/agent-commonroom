@@ -20,8 +20,12 @@ type objectReadControlDialer interface {
 }
 
 func (e objectReadControlEndpoint) valid(r workerJobRecord, i workerObjectReadIntent) bool {
-	address, err := netip.ParseAddrPort(e.Address)
-	return err == nil && address.Port() != 0 && !address.Addr().IsUnspecified() && !address.Addr().IsMulticast() && address.Addr().Zone() == "" && !address.Addr().Is4In6() && e.Binding.matches(r, i) && validObjectReadPeerIdentity(e.Binding.Identity)
+	return validObjectReadControlAddress(e.Address) && e.Binding.matches(r, i) && validObjectReadPeerIdentity(e.Binding.Identity)
+}
+
+func validObjectReadControlAddress(value string) bool {
+	address, err := netip.ParseAddrPort(value)
+	return err == nil && address.Port() != 0 && !address.Addr().IsUnspecified() && !address.Addr().IsMulticast() && address.Addr().Zone() == "" && !address.Addr().Is4In6()
 }
 
 // connectObjectReadControl uses only one approved TCP endpoint and consumes any

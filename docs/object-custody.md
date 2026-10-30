@@ -42,11 +42,17 @@ invalidate the guarantees; there is no supported fallback.
    a positive reservation.
 
 After a reservation succeeds, **all failures retain capacity and any bytes**.
-Creation, source, cancellation, oversized content, flush, identity or seal failure
+Creation, source, cancellation, oversized content, flush, identity, close or seal failure
 cannot trigger a refund, deletion or success receipt. A canceled admission may
 have a durable reservation even when no file was created. Treat uncertainty as
 retained accounting state requiring explicit investigation/disposal; do not
 blindly retry. Files are not discoverable through Get merely because they exist.
+Owned object and directory descriptors must close successfully before a success
+receipt leaves the store. A directory-close error after durable sealing still
+withholds the receipt and preserves the seal, bytes and full charge as uncertain
+state; it never rolls back audit history or automatically repeats Put. A close
+attempt is never retried after an uncertain result. Context is rechecked after
+cleanup: cancellation during object/directory close also withholds success.
 
 `Get(ctx, requestedScope, receipt)`:
 
@@ -59,7 +65,10 @@ blindly retry. Files are not discoverable through Get merely because they exist.
    tampered contents refuse. Actual bytes are buffered within the 16 MiB bound.
 4. `Journal.AcknowledgeRead` must revalidate current authority again and durably
    record verified bytes authorized for release. Any refusal, cancellation,
-   missing audit acknowledgment or integrity failure returns no raw bytes.
+   missing audit acknowledgment, integrity failure or owned-descriptor close failure
+   returns no raw bytes. Cleanup failure clears the returned buffer and withholds
+   release even if authorization was already durably acknowledged. The audit
+   still records authorization, not delivery; retained bytes/charges are preserved.
 
 Acknowledgment is permission to release verified bytes, **not proof of remote
 client receipt**. A caller changing the returned byte slice does not mutate the
@@ -118,3 +127,12 @@ generated object ID selects a leaf. Trusted source adapters must verify those
 labels against actual isolated outputs. See [finite manifests](artifact-manifests.md).
 
 The internal [workspace capture foundation](workspace-source-capture.md) now computes actual bounded tree identity and verifies selected bytes against receipts. Its trusted production frozen-volume lease and transport are still missing; it does not enable public or managed file delivery.
+
+
+Descriptor-close regression tests inject failures for object and directory cleanup,
+including after durable seal/read acknowledgment, during an early source error
+and cancellation during cleanup.
+They verify one close attempt per acquired descriptor, no success receipt/raw bytes,
+and retained object contents, full reservation and append-only history. These are
+synthetic filesystem/journal tests, not physical quota or production custody proof.
+This cleanup rule is mandatory, without an optional flag or execution fallback.

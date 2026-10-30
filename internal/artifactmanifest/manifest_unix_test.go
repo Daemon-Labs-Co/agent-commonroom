@@ -223,3 +223,55 @@ func TestManifestIntegrityAndReleaseAcknowledgment(t *testing.T) {
 		})
 	}
 }
+
+func TestManifestMetadataIsCanonicalShapeNotByteAuthority(t *testing.T) {
+	t.Parallel()
+	d := definition(true)
+	store, j, scope, claims, _ := fixture(t, d, "report", "{}")
+	manifest, err := Resolve(t.Context(), d, scope, "report", claims, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reads := j.reads
+	j.allowed = false
+	if ValidateMetadata(d, scope, "report", manifest) != nil || j.reads != reads {
+		t.Fatal("metadata replay performed I/O/authority")
+	}
+	for _, mode := range []string{"digest", "format", "total", "order", "receipt", "scope"} {
+		t.Run(mode, func(t *testing.T) {
+			m := manifest
+			m.Files = append([]File(nil), m.Files...)
+			switch mode {
+			case "digest":
+				m.Digest = strings.Repeat("0", 64)
+			case "format":
+				m.Files[0].StructuralCheck = "invented"
+				m.Digest = manifestDigest(m)
+			case "total":
+				m.TotalBytes++
+				m.Digest = manifestDigest(m)
+			case "order":
+				m.Files[0], m.Files[1] = m.Files[1], m.Files[0]
+				m.Digest = manifestDigest(m)
+			case "receipt":
+				m.Files[0].Receipt.Digest = "bad"
+				m.Digest = manifestDigest(m)
+			case "scope":
+				m.Scope.CompanyID = "foreign"
+				m.Digest = manifestDigest(m)
+			}
+			if ValidateMetadata(d, scope, "report", m) == nil || j.reads != reads {
+				t.Fatal("noncanonical metadata accepted/read bytes")
+			}
+		})
+	}
+}
+func TestManifestMalformedLaterReceiptRefusesBeforeAnyRead(t *testing.T) {
+	t.Parallel()
+	d := definition(true)
+	store, j, scope, claims, _ := fixture(t, d, "report", "{}")
+	claims[1].Receipt.Digest = "not-a-sealed-digest"
+	if _, err := Resolve(t.Context(), d, scope, "report", claims, store); err == nil || j.reads != 0 {
+		t.Fatal("malformed complete set caused partial reads", err, j.reads)
+	}
+}

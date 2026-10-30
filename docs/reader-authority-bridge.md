@@ -379,3 +379,5 @@ See [controller ledger](controller-object-read-ledger.md),
 [reader supervision](object-reader-supervision.md),
 [release sessions](controller-artifact-read-session.md) and
 [mandatory isolation](architecture.md#mandatory-container-isolation-design-contract).
+
+For private operator policy, offline validation, configured listener/connection setup and joined service shutdown, see [reader worker profiles](reader-worker-profiles.md).
