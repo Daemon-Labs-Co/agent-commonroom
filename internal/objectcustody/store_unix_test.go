@@ -506,3 +506,108 @@ func TestCustodyLogicalMemberNamesCannotSelectFilesystemPaths(t *testing.T) {
 		}
 	})
 }
+
+func TestCustodyPutCloseUncertaintyWithholdsReceiptWithoutRetry(t *testing.T) {
+	for _, mode := range []string{"object close", "directory close", "early source failure", "object close cancel", "directory close cancel"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			store, j, dir := custodyFixture(t)
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			objects, directories := 0, 0
+			store.closeFile = func(f *os.File) error {
+				info, err := f.Stat()
+				if err != nil {
+					t.Fatal("close retried after uncertainty", err)
+				}
+				if info.IsDir() {
+					directories++
+				} else {
+					objects++
+				}
+				if err = f.Close(); err != nil {
+					t.Fatal(err)
+				}
+				if strings.Contains(mode, "cancel") {
+					if info.IsDir() && mode == "directory close cancel" || !info.IsDir() && mode == "object close cancel" {
+						cancel()
+					}
+					return nil
+				}
+				if info.IsDir() && mode == "directory close" || !info.IsDir() && mode != "directory close" {
+					return errors.New("synthetic close uncertainty")
+				}
+				return nil
+			}
+			var source io.Reader = strings.NewReader("synthetic bytes")
+			if mode == "early source failure" {
+				source = errorReader{}
+			}
+			receipt, err := store.Put(ctx, syntheticScope(), 128, source)
+			if !errors.Is(err, ErrUnconfirmed) || receipt != (Receipt{}) || objects != 1 || directories != 1 || j.total != 128 || len(j.reserved) != 1 {
+				t.Fatal("cleanup uncertainty escaped", receipt, err, objects, directories, j.total)
+			}
+			wantSealed := 0
+			if mode == "directory close" || mode == "directory close cancel" {
+				wantSealed = 1
+			}
+			if len(j.sealed) != wantSealed {
+				t.Fatal("wrong durable seal outcome", j.events)
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 1 {
+				t.Fatal("uncertain bytes deleted/refunded", err)
+			}
+		})
+	}
+}
+func TestCustodyGetCloseUncertaintyWithholdsAuthorizedBytes(t *testing.T) {
+	for _, mode := range []string{"object close", "directory close", "object close cancel", "directory close cancel"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			store, j, dir := custodyFixture(t)
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			receipt, err := store.Put(ctx, syntheticScope(), 128, strings.NewReader("synthetic retained bytes"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			objects, directories := 0, 0
+			store.closeFile = func(f *os.File) error {
+				info, err := f.Stat()
+				if err != nil {
+					t.Fatal("close retried", err)
+				}
+				if info.IsDir() {
+					directories++
+				} else {
+					objects++
+				}
+				if err = f.Close(); err != nil {
+					t.Fatal(err)
+				}
+				if strings.Contains(mode, "cancel") {
+					if info.IsDir() && mode == "directory close cancel" || !info.IsDir() && mode == "object close cancel" {
+						cancel()
+					}
+					return nil
+				}
+				if info.IsDir() && mode == "directory close" || !info.IsDir() && mode == "object close" {
+					return errors.New("synthetic close uncertainty")
+				}
+				return nil
+			}
+			raw, err := store.Get(ctx, syntheticScope(), receipt)
+			if !errors.Is(err, ErrRefused) || raw != nil || objects != 1 || directories != 1 || j.total != 128 || j.sealed[receipt.Intent.ObjectID] != receipt {
+				t.Fatal("uncertain release returned bytes/credit", raw, err, objects, directories)
+			}
+			if j.events[len(j.events)-1] != "acknowledge-read" {
+				t.Fatal("authorization history erased", j.events)
+			}
+			actual, err := os.ReadFile(filepath.Join(dir, objectName(receipt.Intent.ObjectID)))
+			if err != nil || string(actual) != "synthetic retained bytes" {
+				t.Fatal("retained object changed", err)
+			}
+		})
+	}
+}

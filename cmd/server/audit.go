@@ -70,6 +70,8 @@ func auditSummary(kind string, payload []byte) string {
 		return "Workspace metadata probe authorization recorded"
 	case "workspace.probe.acknowledged":
 		return "Workspace helper lifecycle acknowledged"
+	case "artifact.manifest.recorded":
+		return "Verified artifact manifest recorded; delivery and acceptance not implied"
 	case "artifact.custody.reserved":
 		return "Artifact capacity and immutable identity reserved"
 	case "artifact.custody.ready":

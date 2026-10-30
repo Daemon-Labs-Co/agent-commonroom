@@ -358,3 +358,32 @@ The [reader authority bridge](docs/reader-authority-bridge.md) connects pinned h
 sessions, bounded private control frames, local/daemon observations and the isolated
 worker runtime. Deployment authentication, real witnesses, verified starter deployment and public delivery
 remain incomplete; its assembled tests use synthetic private channels and mocked daemons.
+
+Reader deployment now has [private worker profiles and offline preflight](docs/reader-worker-profiles.md), including fixed endpoint selection, certificate loading and service shutdown ownership. This does not enable production file-task dispatch or certify physical storage/live acceptance.
+
+Managed worker deployment includes [private reader profiles](docs/reader-worker-profiles.md)
+with offline certificate/policy validation, and an operator-only
+[physical storage preflight](docs/worker-storage-preflight.md) for approved Linux
+XFS roots. These checks do not start agents or certify production dispatch:
+complete storage inventory, custody/admission integration and live acceptance
+remain required. Both refuse missing security evidence without a host fallback.
+
+Use `./bin/commonroom --help` to list operator commands without starting services.
+Misspelled commands and extra migration arguments refuse before controller or
+database startup; see [explicit startup commands](docs/operations.md#explicit-startup-commands).
+
+Internal [controller manifest assembly](docs/artifact-manifests.md#controller-selected-sealed-manifest-assembly)
+now selects sealed file/bundle receipts from the audit-backed custody records,
+verifies actual bytes and rechecks current access after all members resolve.
+Production file dispatch, isolated custody guards, public export and human
+acceptance integration remain required; a manifest is not task completion.
+
+Verified manifests can now be recorded once per execution/output in an internal,
+audit-backed immutable registry, with replay checks and no automatic overwrite.
+This preserves verification metadata; it does not attach outputs, authorize
+future downloads or accept tasks. See the [manifest registry contract](docs/artifact-manifests.md#immutable-controller-registry).
+
+Internal recorded-member reads now pin the reviewed manifest digest, revalidate
+all bundle members against actual custody bytes and recheck current export/access
+before returning a selected member. Public downloads and production physical
+custody assembly remain unfinished; see [recorded-member verification](docs/artifact-manifests.md#private-recorded-member-revalidation).

@@ -14,6 +14,9 @@ import (
 )
 
 func main() {
+	if handled, code := startupCommand(os.Args[1:], os.Stdout, os.Stderr); handled {
+		os.Exit(code)
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--agent-worker" {
 		os.Exit(agentWorkerMain(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
 	}

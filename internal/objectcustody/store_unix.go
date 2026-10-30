@@ -29,13 +29,14 @@ type Store struct {
 	journal       Journal
 	syncFile      func(*os.File) error
 	syncDirectory func(*os.File) error
+	closeFile     func(*os.File) error
 }
 
 func New(root *os.Root, journal Journal) (*Store, error) {
 	if root == nil || absent(journal) {
 		return nil, ErrRefused
 	}
-	store := &Store{root: root, journal: journal, syncFile: func(f *os.File) error { return f.Sync() }, syncDirectory: func(f *os.File) error { return f.Sync() }}
+	store := &Store{root: root, journal: journal, syncFile: func(f *os.File) error { return f.Sync() }, syncDirectory: func(f *os.File) error { return f.Sync() }, closeFile: func(f *os.File) error { return f.Close() }}
 	dir, err := store.directory()
 	if err != nil {
 		return nil, err
@@ -87,7 +88,7 @@ func objectName(id string) string { return "object-" + id + ".blob" }
 // a model path/claim, credentials or an unverified live mutable source. This
 // primitive proves stored byte identity only; source quiescence, content/format
 // policy and revision attestation remain mandatory caller/journal obligations.
-func (s *Store) Put(ctx context.Context, scope Scope, maxBytes int64, source io.Reader) (Receipt, error) {
+func (s *Store) Put(ctx context.Context, scope Scope, maxBytes int64, source io.Reader) (receipt Receipt, err error) {
 	if !active(ctx) || !validScope(scope) || maxBytes < 1 || maxBytes > MaxObjectBytes || absent(source) {
 		return Receipt{}, ErrRefused
 	}
@@ -95,7 +96,14 @@ func (s *Store) Put(ctx context.Context, scope Scope, maxBytes int64, source io.
 	if err != nil {
 		return Receipt{}, ErrRefused
 	}
-	defer dir.Close()
+	defer func() {
+		if s.closeFile(dir) != nil || !active(ctx) {
+			receipt = Receipt{}
+			if err == nil {
+				err = ErrUnconfirmed
+			}
+		}
+	}()
 	var nonce [16]byte
 	if _, err = rand.Read(nonce[:]); err != nil {
 		return Receipt{}, ErrRefused
@@ -114,7 +122,13 @@ func (s *Store) Put(ctx context.Context, scope Scope, maxBytes int64, source io.
 	closed := false
 	defer func() {
 		if !closed {
-			file.Close()
+			closed = true
+			if s.closeFile(file) != nil || !active(ctx) {
+				receipt = Receipt{}
+				if err == nil {
+					err = ErrUnconfirmed
+				}
+			}
 		}
 	}()
 	hash := sha256.New()
@@ -169,15 +183,17 @@ func (s *Store) Put(ctx context.Context, scope Scope, maxBytes int64, source io.
 	if err != nil || count != total || hex.EncodeToString(observed.Sum(nil)) != hex.EncodeToString(hash.Sum(nil)) || !active(ctx) {
 		return Receipt{}, ErrUnconfirmed
 	}
-	if file.Close() != nil {
+	// Never retry a close after an uncertain result. Withhold the receipt and
+	// retain the reservation; cleanup uncertainty is not disposal/refund evidence.
+	closed = true
+	if s.closeFile(file) != nil || !active(ctx) {
 		return Receipt{}, ErrUnconfirmed
 	}
-	closed = true
 	current, err := s.root.Lstat(objectName(intent.ObjectID))
 	if err != nil || !safeObject(current) || !os.SameFile(info, current) || current.Size() != total || s.syncDirectory(dir) != nil || !active(ctx) {
 		return Receipt{}, ErrUnconfirmed
 	}
-	receipt := Receipt{Intent: intent, Bytes: total, Digest: hex.EncodeToString(hash.Sum(nil))}
+	receipt = Receipt{Intent: intent, Bytes: total, Digest: hex.EncodeToString(hash.Sum(nil))}
 	if s.journal.Seal(ctx, receipt) != nil || !active(ctx) {
 		return Receipt{}, ErrUnconfirmed
 	}
@@ -185,9 +201,10 @@ func (s *Store) Put(ctx context.Context, scope Scope, maxBytes int64, source io.
 }
 
 // Get verifies the actual private inode, size and content BEFORE acknowledging
-// release. No raw bytes are returned on any authorization, integrity, cancellation
-// or audit failure. It never accepts a model-provided filesystem path or URI.
-func (s *Store) Get(ctx context.Context, scope Scope, receipt Receipt) ([]byte, error) {
+// release. No raw bytes are returned on any authorization, integrity, cancellation,
+// audit or owned-descriptor cleanup failure. It never accepts a model-provided
+// filesystem path or URI. Cleanup rechecks cancellation before returning bytes.
+func (s *Store) Get(ctx context.Context, scope Scope, receipt Receipt) (raw []byte, err error) {
 	if !active(ctx) || !validReceipt(receipt) || scope != receipt.Intent.Scope {
 		return nil, ErrRefused
 	}
@@ -195,7 +212,13 @@ func (s *Store) Get(ctx context.Context, scope Scope, receipt Receipt) ([]byte, 
 	if err != nil {
 		return nil, ErrRefused
 	}
-	defer dir.Close()
+	defer func() {
+		if s.closeFile(dir) != nil || !active(ctx) {
+			clear(raw)
+			raw = nil
+			err = ErrRefused
+		}
+	}()
 	if s.journal.AuthorizeRead(ctx, scope, receipt) != nil || !active(ctx) {
 		return nil, ErrRefused
 	}
@@ -203,12 +226,18 @@ func (s *Store) Get(ctx context.Context, scope Scope, receipt Receipt) ([]byte, 
 	if err != nil {
 		return nil, ErrRefused
 	}
-	defer file.Close()
+	defer func() {
+		if s.closeFile(file) != nil || !active(ctx) {
+			clear(raw)
+			raw = nil
+			err = ErrRefused
+		}
+	}()
 	info, err := file.Stat()
 	if err != nil || !safeObject(info) || info.Size() != receipt.Bytes {
 		return nil, ErrRefused
 	}
-	raw, err := io.ReadAll(io.LimitReader(file, receipt.Bytes+1))
+	raw, err = io.ReadAll(io.LimitReader(file, receipt.Bytes+1))
 	if err != nil || int64(len(raw)) != receipt.Bytes || !active(ctx) {
 		return nil, ErrRefused
 	}

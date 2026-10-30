@@ -55,8 +55,12 @@ func (g *syntheticArtifactGuard) AuthorizeRelease(c context.Context, s room.Stat
 // This deliberately does not constitute trusted source/quota or live acceptance.
 func artifactJournalFixture(t *testing.T, inventory bool) (*server, *mockDB, context.Context, objectcustody.Scope) {
 	t.Helper()
+	return artifactJournalOutputFixture(t, inventory, taskcontract.DataContract{Name: "report", Type: "file", Required: false, FileName: "report.txt", MediaType: "text/plain", MaxBytes: 128})
+}
+func artifactJournalOutputFixture(t *testing.T, inventory bool, output taskcontract.DataContract) (*server, *mockDB, context.Context, objectcustody.Scope) {
+	t.Helper()
 	s, db, h, task := structuredTaskFixture(t)
-	task.Definition.DesiredOutputs = append(task.Definition.DesiredOutputs, taskcontract.DataContract{Name: "report", Type: "file", Required: false, FileName: "report.txt", MediaType: "text/plain", MaxBytes: 128})
+	task.Definition.DesiredOutputs = append(task.Definition.DesiredOutputs, output)
 	raw, _ := json.Marshal(task)
 	w := mockRequest(h, "POST", "/api/events", fmt.Sprintf(`{"kind":"task.revised","payload":%s}`, raw))
 	if w.Code != 200 {

@@ -213,3 +213,9 @@ The internal [account probe ledger](account-probe-capacity.md) now durably count
 
 - [Reader authority bridge and worker assembly](reader-authority-bridge.md): pinned
   sessions, private control protocol, local/physical checks and isolated orchestration.
+
+Reader deployment now has [private worker profiles and offline preflight](reader-worker-profiles.md), including fixed endpoint selection, certificate loading and service shutdown ownership. This does not enable production file-task dispatch or certify physical storage/live acceptance.
+
+A [read-only physical project-quota observer](physical-project-quota-observer.md) now checks pre-provisioned XFS enforcement on supported Linux x86-64 hosts. It does not provision quotas or replace complete inventory, account admission, rootless containment or live acceptance.
+
+Operators can run the [worker storage preflight](worker-storage-preflight.md) against private independently approved bindings. It performs read-only observations before database startup and grants no allocation or live acceptance.

@@ -1,6 +1,7 @@
 package room
 
 import (
+	"agentroom/internal/artifactmanifest"
 	"agentroom/internal/taskcontract"
 	"encoding/json"
 	"regexp"
@@ -377,6 +378,7 @@ type State struct {
 	WorkspaceCaptures       map[string]WorkspaceCaptureReservation `json:"-"`
 	ObjectReads             map[string]ObjectReadReservation       `json:"-"`
 	WorkspaceProbes         map[string]WorkspaceProbeReservation   `json:"-"`
+	ArtifactManifests       map[string]artifactmanifest.Manifest   `json:"-"`
 	ArtifactCustody         map[string]ArtifactCustodyObject       `json:"-"`
 	TaskContextPolicyEpochs map[string]int                         `json:"-"`
 	TaskRepositoryLinks     map[string]TaskRepositoryLinks         `json:"-"`

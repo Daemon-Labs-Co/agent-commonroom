@@ -22,11 +22,11 @@ import (
 var errObjectReadCertificatePEM = errors.New("invalid certificate format: expected PEM with BEGIN CERTIFICATE and END CERTIFICATE markers")
 
 type objectReadIdentityFiles struct {
-	Certificate string
-	PrivateKey  string
-	Authorities string
-	PeerDNSName string
-	PeerSHA256  string
+	Certificate string `json:"certificate"`
+	PrivateKey  string `json:"privateKey"`
+	Authorities string `json:"authorities"`
+	PeerDNSName string `json:"peerDNSName"`
+	PeerSHA256  string `json:"peerSHA256"`
 }
 
 func objectReadCertificateBundle(raw []byte, limit int) ([]*x509.Certificate, error) {
