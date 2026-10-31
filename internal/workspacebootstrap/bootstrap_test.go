@@ -44,13 +44,20 @@ func (f *fakeGit) Run(ctx context.Context, dir string, args ...string) ([]byte, 
 			return []byte("120000 blob " + commit + " 5\tlink\x00"), nil
 		}
 		return []byte("100644 blob " + commit + " 5\tfile.txt\x00"), nil
-	case "checkout":
+	case "worktree":
 		attrs, err := os.ReadFile(filepath.Join(dir, ".git", "info", "attributes"))
 		if err != nil || !strings.Contains(string(attrs), "-filter -text -crlf -ident -working-tree-encoding -eol") {
 			f.t.Fatal("checkout attributes not controlled")
 		}
-		if len(args) != 6 || args[1] != "--no-guess" || args[2] != "-b" || !strings.HasPrefix(args[3], "feature/commonroom-") {
-			f.t.Fatal("unsafe checkout")
+		if len(args) != 7 || args[1] != "add" || args[2] != "--no-checkout" || args[3] != "-b" || !strings.HasPrefix(args[4], "feature/commonroom-") {
+			f.t.Fatal("unsafe worktree")
+		}
+		if err := os.MkdirAll(args[5], 0700); err != nil {
+			f.t.Fatal(err)
+		}
+	case "reset":
+		if len(args) != 4 || args[1] != "--hard" || args[3] != "--" {
+			f.t.Fatal("unsafe private worktree reset")
 		}
 		if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("hello"), 0600); err != nil {
 			f.t.Fatal(err)
@@ -60,7 +67,7 @@ func (f *fakeGit) Run(ctx context.Context, dir string, args ...string) ([]byte, 
 }
 func TestBootstrapHashBeforeGitAndFreshWorkspace(t *testing.T) {
 	t.Parallel()
-	for _, mode := range []string{"success", "digest", "nonempty", "clone", "remote", "rev-parse", "ls-tree", "unsafe-tree", "checkout", "foreign-head", "output"} {
+	for _, mode := range []string{"success", "digest", "nonempty", "clone", "remote", "rev-parse", "ls-tree", "unsafe-tree", "worktree", "reset", "foreign-head", "output"} {
 		t.Run(mode, func(t *testing.T) {
 			t.Parallel()
 			bundle := []byte("synthetic bundle bytes; mocked Git only")

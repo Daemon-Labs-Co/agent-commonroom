@@ -74,7 +74,7 @@ const toolBridgeMCPConfig = `{"mcpServers":{"commonroom-tools":{"command":"node"
 //
 // Codex's mcp_servers config path below is a design inference from vendor
 // config syntax, not verified against a live Codex install (not available on
-// this development machine) — see docs/provider-tool-separation.md. Claude's
+// this development machine) — see docs/technical/archive/provider-tool-separation.md. Claude's
 // --tools/--mcp-config/--strict-mcp-config combination was checked directly
 // against the installed `claude --help` (2.1.292): "" disables every built-in
 // tool, and --mcp-config accepts a full stdio server definition that

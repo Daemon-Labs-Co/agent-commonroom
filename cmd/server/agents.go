@@ -24,7 +24,7 @@ import (
 // depth, not room filesystem, credential or network boundaries.
 // A source fork CAN bypass that contract, BUT doing so exposes the OS account's
 // readable files, credentials and network access to compromised agent behavior.
-// See docs/architecture.md#mandatory-container-isolation-design-contract.
+// See docs/technical/archive/architecture.md#mandatory-container-isolation-design-contract.
 type codexAdapter struct {
 	endpoint, executionKey string
 	development            bool

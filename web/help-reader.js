@@ -6,7 +6,7 @@ function destination(value,entry,image=false){
   const url=new URL(value,'https://documentation.invalid/'+entry.path);
   if(url.origin==='https://documentation.invalid'){
    const path=decodeURIComponent(url.pathname.slice(1));
-   if(image){const name=path.split('/').pop();return ['docs/screenshots/room.jpg','docs/screenshots/workflow.jpg','docs/screenshots/connections.jpg'].includes(path)?'/help/image/'+name:null}
+   if(image){const name=path.split('/').pop();return ['docs/screenshots/room.jpg','docs/screenshots/workflow.jpg','docs/screenshots/connections.jpg','docs/images/user-agents.svg','docs/images/user-getting-started.svg','docs/images/user-recovery.svg','docs/images/user-results.svg','docs/images/user-rooms.svg','docs/images/user-settings.svg','docs/images/user-storage.svg','docs/images/user-tasks.svg','docs/images/user-workflows.svg'].includes(path)?'/help/image/'+name:null}
    const found=catalog.find(item=>item.path===path);return found?'/help/?doc='+encodeURIComponent(found.id)+url.hash:null;
   }
   return !image&&['http:','https:'].includes(url.protocol)?url.href:null;
@@ -52,7 +52,10 @@ function markdown(text,entry){
 }
 function showGuides(){
  const search=document.querySelector('#find-guide').value.toLowerCase();const current=new URLSearchParams(location.search).get('doc')||'index';
- document.querySelector('#guides').innerHTML=catalog.filter(e=>e.title.toLowerCase().includes(search)).map(e=>'<a href="/help/?doc='+encodeURIComponent(e.id)+'"'+(e.id===current?' aria-current="page"':'')+'>'+escapeHTML(e.title)+'</a>').join('')||'<p>No matching guides.</p>';
+ const matches=catalog.filter(e=>e.title.toLowerCase().includes(search));
+ const user=e=>e.id==='index'||e.path.startsWith('docs/user/');
+ const group=(title,entries)=>entries.length?'<h2>'+escapeHTML(title)+'</h2>'+entries.map(e=>'<a href="/help/?doc='+encodeURIComponent(e.id)+'"'+(e.id===current?' aria-current="page"':'')+'>'+escapeHTML(e.title)+(e.path.includes('/archive/')?' · legacy reference':'')+'</a>').join(''):'';
+ document.querySelector('#guides').innerHTML=group('User documentation',matches.filter(user))+group('Technical documentation',matches.filter(e=>!user(e)))||'<p>No matching guides.</p>';
 }
 (async()=>{
  const status=document.querySelector('#help-status');

@@ -44,7 +44,7 @@ class Diagnostics:
 
     def files(self):
         paths = ['go.mod', 'web/index.html', 'web/app.js', 'web/style.css',
-                 'web/help.html', 'docs/README.md', 'migrations/001.sql']
+                 'web/help.html', 'docs/technical/archive/documentation-index.md', 'migrations/001.sql']
         missing = [p for p in paths if not (self.root / p).is_file()]
         if missing:
             self.report('FAIL', 'Application files', 'Missing ' + ', '.join(missing) +
@@ -64,7 +64,7 @@ class Diagnostics:
             if rc == 0 and actual and required and tuple(map(int, actual.groups())) >= tuple(map(int, required.groups())):
                 self.report('PASS', 'Go toolchain', 'Installed version meets the go.mod major/minor requirement.')
             else:
-                self.report('FAIL', 'Go toolchain', 'Install the Go version required by go.mod; see docs/installation-options.md.')
+                self.report('FAIL', 'Go toolchain', 'Install the Go version required by go.mod; see docs/technical/archive/installation-options.md.')
         else:
             self.report('WARN', 'Go toolchain', 'Go is missing. A prebuilt controller may run, but setup/build commands need Go.')
 
@@ -111,7 +111,7 @@ class Diagnostics:
         rc, output = self.command(['psql', '-X', '-w', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
                                    '-c', match.group(1)], env=env)
         if rc != 0:
-            self.report('FAIL', 'Database connection/schema', 'Check runtime URL, private passfile, TLS CA/hostname, network rules and explicit migration. See docs/database-security.md; raw errors are suppressed.')
+            self.report('FAIL', 'Database connection/schema', 'Check runtime URL, private passfile, TLS CA/hostname, network rules and explicit migration. See docs/technical/archive/database-security.md; raw errors are suppressed.')
         elif output.strip() != 'f|t|t|t|f|f':
             self.report('FAIL', 'Database privileges', 'Use the restricted runtime role with SELECT/INSERT and sequence USAGE; remove ownership, memberships and mutation/DDL rights. Apply documented grants after migration.')
         else:
@@ -143,7 +143,7 @@ class Diagnostics:
     def hybrid(self):
         for tool in ('nginx', 'docker', 'ssh'):
             if not shutil.which(tool):
-                self.report('FAIL', 'Hybrid ' + tool, 'Install/configure this tool on the Linux host; see docs/quick-start.md.')
+                self.report('FAIL', 'Hybrid ' + tool, 'Install/configure this tool on the Linux host; see docs/technical/archive/quick-start.md.')
         if shutil.which('nginx'):
             rc, _ = self.command(['nginx', '-t'])
             self.report('PASS' if rc == 0 else 'FAIL', 'nginx configuration',

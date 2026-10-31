@@ -18,7 +18,7 @@ Managed development admission remains blocked on production acceptance of the
 credential-separated path. Internal Codex execution now assembles the audited
 broker, fresh engine/tool pair, bootstrap, private credential delivery and provider
 gateway; synthetic end-to-end tests exercise that assembly. This does not enable
-public production dispatch. See [provider/tool separation](docs/provider-tool-separation.md).
+public production dispatch. See [provider/tool separation](docs/technical/archive/provider-tool-separation.md).
 
 ## Security findings
 
@@ -61,11 +61,11 @@ public production dispatch. See [provider/tool separation](docs/provider-tool-se
 Run `make test` during development and `make check` before completion. Use only
 synthetic data, temporary filesystem fixtures and mocked database interactions;
 do not create test schemas or launch real provider agents in automated suites.
-[Remaining P0 acceptance contracts](docs/p0-acceptance-tests.md) identify pending
+[Remaining P0 acceptance contracts](docs/technical/archive/p0-acceptance-tests.md) identify pending
 behavior and separate live checks. Passing a synthetic protocol peer does not
 prove OAuth compatibility, image contents or kernel enforcement.
 
 For an incident, stop new work, preserve audit/journal evidence and inspect exact
 worker identities. Do not delete history, relax isolation or retry an ambiguous
-side effect to make the system appear recovered. Follow [database recovery](docs/database-security.md),
-[worker recovery](docs/worker-jobs.md) and the [security policy](SECURITY.md).
+side effect to make the system appear recovered. Follow [database recovery](docs/technical/archive/database-security.md),
+[worker recovery](docs/technical/archive/worker-jobs.md) and the [security policy](SECURITY.md).
