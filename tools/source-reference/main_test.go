@@ -41,7 +41,7 @@ func TestGenerateExcludesPrivateStateAndIsRepeatable(t *testing.T) {
 	if err := generate(root); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, "docs/reference/sample-go.md")
+	path := filepath.Join(root, "docs/technical/reference/sample-go.md")
 	first, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -56,13 +56,13 @@ func TestGenerateExcludesPrivateStateAndIsRepeatable(t *testing.T) {
 	if string(first) != string(second) {
 		t.Fatal("reference is not repeatable")
 	}
-	index, _ := os.ReadFile(filepath.Join(root, "docs/reference/root.md"))
+	index, _ := os.ReadFile(filepath.Join(root, "docs/technical/reference/root.md"))
 	for _, secretName := range []string{".env.staging", ".pgpass", "private-name"} {
 		if strings.Contains(string(index), secretName) {
 			t.Errorf("private filename leaked: %s", secretName)
 		}
 	}
-	js, _ := os.ReadFile(filepath.Join(root, "docs/reference/web.md"))
+	js, _ := os.ReadFile(filepath.Join(root, "docs/technical/reference/web.md"))
 	for _, name := range []string{"show", "hide"} {
 		if !strings.Contains(string(js), name) {
 			t.Errorf("missing JS symbol %s", name)

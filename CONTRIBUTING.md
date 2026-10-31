@@ -2,7 +2,7 @@
 
 Agent CommonRoom is an early prototype. Read README.md for setup and current limits, FUNCTIONAL_SPEC.md for intended behavior, and SECURITY_REVIEW.md for outstanding security and architecture issues.
 
-Start with the [documentation index](docs/README.md) and [development guide](docs/development.md). Work on branches and submit pull requests; do not push development directly to main. The owner signs their own commits.
+Start with the [documentation index](docs/README.md) and [development guide](docs/technical/archive/development.md). Work on branches and submit pull requests; do not push development directly to main. The owner signs their own commits.
 
 ## Development workflow
 
@@ -38,4 +38,19 @@ This rule applies to new features and enhancements going forward. Existing capab
 
 ## Mandatory execution boundary
 
-Container isolation for managed agent development is a required security boundary, exempt from the optional-feature flag rule. Do not add an off switch, per-connection host-execution exception or automatic uncontained fallback. Document the contract and source-level bypass risks at adapter types and launch methods. Managed model turns must use the isolated worker. Do not reintroduce direct local/SSH launches; preserve the documented platform restrictions and disclose live-runtime verification gaps. See [the architecture contract](docs/architecture.md#mandatory-container-isolation-design-contract).
+Container isolation for managed agent development is a required security boundary, exempt from the optional-feature flag rule. Do not add an off switch, per-connection host-execution exception or automatic uncontained fallback. Document the contract and source-level bypass risks at adapter types and launch methods. Managed model turns must use the isolated worker. Do not reintroduce direct local/SSH launches; preserve the documented platform restrictions and disclose live-runtime verification gaps. See [the architecture contract](docs/technical/archive/architecture.md#mandatory-container-isolation-design-contract).
+
+## Documentation audiences
+
+Use [user documentation](docs/user/README.md) for functionality-based instructions.
+Every user page must include a meaningful local illustration with alt text, a small
+Bash setup/navigation helper, ordered actions and an expected result. Label prototype
+screenshots and diagrams accurately; never imply incomplete behavior works.
+
+Use [technical documentation](docs/technical/README.md) for contracts only: Input,
+Output, Functionality, Properties and state changes. Put permissions, validation,
+errors, defaults and limits inside those sections. Keep tutorials and chronological
+implementation narration out of active technical contracts. Historical documents
+remain in docs/technical/archive; generated declarations in docs/technical/reference
+are source reference, not a substitute for reviewed contracts. Follow the
+[documentation policy](docs/technical/documentation-policy.md).

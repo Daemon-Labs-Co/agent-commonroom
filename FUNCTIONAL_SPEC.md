@@ -5,7 +5,7 @@ Version 3 · 15 October 2026 · owner-confirmed product baseline
 This specification supersedes version 2 and conflicting requirements in older
 planning notes, demo copy and development history. It records the owner's
 confirmed interview decisions. A requirement is not a claim of implementation.
-See [the gap assessment](docs/release-readiness.md) and subsequent
+See [the gap assessment](docs/technical/archive/release-readiness.md) and subsequent
 verification records for actual delivery. Complete P0 before P1.
 
 ## Purpose and distribution
@@ -76,9 +76,10 @@ concerns and then follow the selected direction within security boundaries. New
 material evidence may justify another objection. Later instructions cannot
 silently override earlier instructions without the required authority.
 
-FR-12: Reuse the existing company reporting chart. It describes relationships and
-default escalation structure, not execution permissions. Legacy numeric seniority
-must not determine decisions, even when the chart UI is disabled.
+FR-12: Company/organization functionality, including the reporting chart, belongs
+to the private commercial add-on. Preserve existing prototype records when
+extracting it. Reporting relationships and legacy seniority never grant execution
+permissions; basic authenticated identity/scope remains in the free core.
 
 ## Execution, approval and recovery
 
@@ -269,13 +270,35 @@ Rigorous synthetic failure tests and separately documented live acceptance are
 required before production admission is opened.
 
 
-Room deliverable increment: shared rooms support owner-managed outcome and acceptance criteria under default-off `roomOutcomes`. Enabling it requires both for new shared rooms, while preserving legacy rooms. This metadata does not itself authorize execution or certify completion; see [the implemented contract](docs/room-outcomes.md).
+Room deliverable increment: shared rooms support owner-managed outcome and acceptance criteria under default-off `roomOutcomes`. Enabling it requires both for new shared rooms, while preserving legacy rooms. This metadata does not itself authorize execution or certify completion; see [the implemented contract](docs/technical/archive/room-outcomes.md).
 
 
-Canonical task model: a task definition consists of Task, Expected input contract, Process, Desired output contract, Acceptance criteria, Execution constraints and Failure contract. Actual input bindings, attempts and returned outputs are separate execution records. The owner controls completion acceptance; a model claim is not a deliverable. See [task definitions](docs/task-definitions.md) for the implemented version, supported data types and integration limits.
+Canonical task model: a task definition consists of Task, Expected input contract, Process, Desired output contract, Acceptance criteria, Execution constraints and Failure contract. Actual input bindings, attempts and returned outputs are separate execution records. The owner controls completion acceptance; a model claim is not a deliverable. See [task definitions](docs/technical/archive/task-definitions.md) for the implemented version, supported data types and integration limits.
 
-With separately owner-enabled `taskValueDependencies`, structured work may bind actual immutable values from accepted tasks in the same shared room. The controller verifies provenance and transitive current versions before admission, tools and result publication. Source changes invalidate dependent authority; no automatic reruns or acceptance. See [accepted task inputs](docs/task-value-inputs.md).
+With separately owner-enabled `taskValueDependencies`, structured work may bind actual immutable values from accepted tasks in the same shared room. The controller verifies provenance and transitive current versions before admission, tools and result publication. Source changes invalidate dependent authority; no automatic reruns or acceptance. See [accepted task inputs](docs/technical/archive/task-value-inputs.md).
 
-Optional default-off `taskAcceptanceReview` requires an explicit owner decision and rationale for each human criterion against immutable returned values, with controller-owned structural schema assessments. The review and task status commit atomically; changed inputs, outputs, versions or review policy refuse stale decisions. Review history survives disabling; neither human notes nor model findings manufacture observed verification. See [task criterion review](docs/task-acceptance.md).
+Optional default-off `taskAcceptanceReview` requires an explicit owner decision and rationale for each human criterion against immutable returned values, with controller-owned structural schema assessments. The review and task status commit atomically; changed inputs, outputs, versions or review policy refuse stale decisions. Review history survives disabling; neither human notes nor model findings manufacture observed verification. See [task criterion review](docs/technical/archive/task-acceptance.md).
 
-Default-off `taskProgress` provides bounded shared-room metadata for definitions, admitted attempts, validated returned values, input lineage and human acceptance. It derives from durable records without mutating tasks or probing workers; all actions reuse existing authorization. See [recorded task progress](docs/task-progress.md).
+Default-off `taskProgress` provides bounded shared-room metadata for definitions, admitted attempts, validated returned values, input lineage and human acceptance. It derives from durable records without mutating tasks or probing workers; all actions reuse existing authorization. See [recorded task progress](docs/technical/archive/task-progress.md).
+
+## Confirmed core and commercial packaging
+
+The free core is usable by one human owner for one project, with multiple agents.
+Internal task creation, execution, workflow/review foundations, basic storage
+accounting, managed secrets and approved repository commit/push are core features.
+Repository publishing is distinct from synchronizing an external task tracker.
+Multiple human users, companies/organizations, multiple projects, distributed/
+multiple-worker management, external task-system integrations and billing controls
+belong to private commercial add-ons. One approved local/remote Linux worker is
+still part of basic isolated execution; remote-worker authentication is security
+infrastructure rather than a paid certificate feature.
+
+Commercial functionality extends one authoritative core implementation. It must
+not require maintaining a second divergent copy of the controller/application.
+The private placeholders named managedOrchestration and protectedAuditArchive
+are not user-defined features and must not become approved requirements merely
+because code exists. Ordinary execution and basic audit history stay in core.
+
+[Complete functionality inventory](docs/technical/product-functionality.md) records
+implemented/partial/planned status independently from tier. Undecided scope stays
+explicit. Existing identities, task records and audit history survive refactoring.

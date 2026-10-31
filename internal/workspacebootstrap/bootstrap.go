@@ -92,14 +92,17 @@ func Run(ctx context.Context, in io.Reader, out io.Writer, workspace, job, diges
 		}
 		return raw, nil
 	}
+	// Both the backing clone and task worktree live in the private tool volume.
+	// Neither operation attaches a worktree to the operator's source checkout.
+	source := filepath.Join(workspace, ".commonroom-source")
 	repo := filepath.Join(workspace, "repository")
-	if _, err = run(workspace, "clone", "--no-checkout", "--no-hardlinks", "--template=", "--", bundle, repo); err != nil {
+	if _, err = run(workspace, "clone", "--no-checkout", "--no-hardlinks", "--template=", "--", bundle, source); err != nil {
 		return ErrRefused
 	}
-	if _, err = run(repo, "remote", "remove", "origin"); err != nil {
+	if _, err = run(source, "remote", "remove", "origin"); err != nil {
 		return ErrRefused
 	}
-	raw, err := run(repo, "rev-parse", "--verify", "HEAD^{commit}")
+	raw, err := run(source, "rev-parse", "--verify", "HEAD^{commit}")
 	if err != nil {
 		return ErrRefused
 	}
@@ -108,21 +111,24 @@ func Run(ctx context.Context, in io.Reader, out io.Writer, workspace, job, diges
 	if !ValidReceipt(receipt, job, digest) {
 		return ErrRefused
 	}
-	tree, err := run(repo, "ls-tree", "-r", "-l", "-z", commit)
+	tree, err := run(source, "ls-tree", "-r", "-l", "-z", commit)
 	if err != nil || !validTree(tree) {
 		return ErrRefused
 	}
 	// Highest-priority attributes disable repository-controlled checkout filters,
 	// encoding conversion and newline expansion. Blob-size admission then bounds
 	// checkout bytes and cannot trigger helper programs from source attributes.
-	infoDir := filepath.Join(repo, ".git", "info")
+	infoDir := filepath.Join(source, ".git", "info")
 	if err = os.MkdirAll(infoDir, 0700); err != nil {
 		return ErrRefused
 	}
 	if err = os.WriteFile(filepath.Join(infoDir, "attributes"), []byte("* -filter -text -crlf -ident -working-tree-encoding -eol\n"), 0600); err != nil {
 		return ErrRefused
 	}
-	if _, err = run(repo, "checkout", "--no-guess", "-b", receipt.Branch, commit, "--"); err != nil {
+	if _, err = run(source, "worktree", "add", "--no-checkout", "-b", receipt.Branch, repo, commit); err != nil {
+		return ErrRefused
+	}
+	if _, err = run(repo, "reset", "--hard", commit, "--"); err != nil {
 		return ErrRefused
 	}
 	raw, err = run(repo, "rev-parse", "--verify", "HEAD")
@@ -130,7 +136,7 @@ func Run(ctx context.Context, in io.Reader, out io.Writer, workspace, job, diges
 		return ErrRefused
 	}
 	// Verify writable source and Git metadata without replacing repository files.
-	for _, dir := range []string{repo, filepath.Join(repo, ".git")} {
+	for _, dir := range []string{repo, filepath.Join(source, ".git")} {
 		file, err := os.CreateTemp(dir, ".commonroom-check-")
 		if err != nil {
 			return ErrRefused

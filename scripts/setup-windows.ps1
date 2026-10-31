@@ -6,7 +6,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
-    throw 'Install WSL2 and a Linux distribution first; see docs/installation.md.'
+    throw 'Install WSL2 and a Linux distribution first; see docs/technical/archive/installation.md.'
 }
 if (-not $LinuxRepoPath.StartsWith('/')) { throw 'Use an absolute Linux checkout path.' }
 # Pass arguments directly; never interpolate the path into shell source.

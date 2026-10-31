@@ -11,10 +11,10 @@ import (
 func TestDocumentationAllowlist(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if e := os.Mkdir(filepath.Join(root, "docs"), 0700); e != nil {
+	if e := os.MkdirAll(filepath.Join(root, "docs", "technical", "archive"), 0700); e != nil {
 		t.Fatal(e)
 	}
-	guide := filepath.Join(root, "docs", "installation.md")
+	guide := filepath.Join(root, "docs", "technical", "archive", "installation.md")
 	if e := os.WriteFile(guide, []byte("# Public guide"), 0600); e != nil {
 		t.Fatal(e)
 	}
@@ -58,7 +58,7 @@ func TestDocumentationAllowlist(t *testing.T) {
 	if e := os.Remove(guide); e != nil {
 		t.Fatal(e)
 	}
-	if e := os.Remove(filepath.Join(root, "docs")); e != nil {
+	if e := os.RemoveAll(filepath.Join(root, "docs")); e != nil {
 		t.Fatal(e)
 	}
 	if e := os.Symlink(filepath.Join(root, ".data"), filepath.Join(root, "docs")); e != nil {
@@ -84,6 +84,30 @@ func TestDocumentationCatalogTargets(t *testing.T) {
 		documentationHandler("../..").ServeHTTP(w, httptest.NewRequest("GET", "/help/document/"+entry.ID, nil))
 		if w.Code != 200 {
 			t.Errorf("Help %s (%s): HTTP %d", entry.ID, entry.Path, w.Code)
+		}
+	}
+}
+
+func TestDocumentationAudienceIllustrations(t *testing.T) {
+	t.Parallel()
+	h := documentationHandler("../..")
+	for _, topic := range []string{"getting-started", "rooms", "agents", "tasks", "workflows", "results", "storage", "recovery", "settings"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, httptest.NewRequest(method, "/help/image/user-"+topic+".svg", nil))
+			if w.Code != 200 || w.Header().Get("Content-Type") != "image/svg+xml" {
+				t.Fatal(topic, w.Code, w.Header())
+			}
+			if method == "HEAD" && w.Body.Len() != 0 {
+				t.Fatal("HEAD image returned body")
+			}
+		}
+	}
+	for _, path := range []string{"/help/image/unlisted.svg", "/help/image/../../.data/private.svg"} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		if w.Code != 404 {
+			t.Fatal("unlisted image served", path, w.Code)
 		}
 	}
 }

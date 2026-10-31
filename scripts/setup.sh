@@ -18,7 +18,7 @@ case "$(uname -s)" in
   Darwin|Linux) ;;
   *) echo 'Use macOS, Linux, or the Windows WSL2 wrapper.' >&2; exit 1 ;;
 esac
-command -v go >/dev/null || { echo 'Install Go 1.26+; see docs/installation.md.' >&2; exit 1; }
+command -v go >/dev/null || { echo 'Install Go 1.26+; see docs/technical/archive/installation.md.' >&2; exit 1; }
 # Go enforces the go.mod toolchain requirement during the build.
 go version
 if [[ "$mode" == --check ]]; then

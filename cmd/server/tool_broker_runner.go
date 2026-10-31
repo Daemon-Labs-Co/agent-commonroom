@@ -5,7 +5,7 @@ package main
 // caller (internal/toolbroker.ContainerExecutor) already built — it never
 // parses a shell, accepts caller-chosen executables, or inherits the ambient
 // environment. It has no caller yet outside its own test; see
-// cmd/server/tool_broker.go and docs/provider-tool-separation.md.
+// cmd/server/tool_broker.go and docs/technical/archive/provider-tool-separation.md.
 
 import (
 	"bytes"

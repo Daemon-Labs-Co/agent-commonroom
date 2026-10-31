@@ -192,7 +192,7 @@ func generate(root string) error {
 		}
 		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
-			if omitted[d.Name()] || rel == "docs/reference" {
+			if omitted[d.Name()] || rel == "docs/technical/reference" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -219,7 +219,7 @@ func generate(root string) error {
 	if err != nil {
 		return err
 	}
-	out := filepath.Join(root, "docs/reference")
+	out := filepath.Join(root, "docs/technical/reference")
 	if err = os.MkdirAll(out, 0755); err != nil {
 		return err
 	}
@@ -240,15 +240,15 @@ func generate(root string) error {
 		fmt.Fprintf(&b, "# %s files\n\n[Reference index](README.md)\n\n", group)
 		for _, path := range files {
 			data := dataByPath[path]
-			fmt.Fprintf(&b, "## %s\n\n[Open source](../../%s)\n\n%s\n\n", path, path, purpose(path, data))
+			fmt.Fprintf(&b, "## %s\n\n[Open source](../../../%s)\n\n%s\n\n", path, path, purpose(path, data))
 			if strings.HasSuffix(path, ".go") {
 				s, e := describeGo(path, data)
 				if e != nil {
 					return e
 				}
 				detailName := strings.NewReplacer("/", "--", ".", "-").Replace(path) + ".md"
-				detail := fmt.Sprintf("# %s\n\n[Module index](%s) · [Open source](../../%s)\n\n%s\n\n%s", path, filename, path, purpose(path, data), s)
-				if e := os.WriteFile(filepath.Join(out, detailName), []byte(detail), 0644); e != nil {
+				detail := fmt.Sprintf("# %s\n\n[Module index](%s) · [Open source](../../../%s)\n\n%s\n\n%s", path, filename, path, purpose(path, data), s)
+				if e := os.WriteFile(filepath.Join(out, detailName), []byte(strings.TrimRight(detail, "\n")+"\n"), 0644); e != nil {
 					return e
 				}
 				fmt.Fprintf(&b, "[Types, methods and functions](%s)\n\n", detailName)
@@ -273,12 +273,12 @@ func generate(root string) error {
 				b.WriteString("\n")
 			}
 		}
-		if err = os.WriteFile(filepath.Join(out, filename), []byte(b.String()), 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(out, filename), []byte(strings.TrimRight(b.String(), "\n")+"\n"), 0644); err != nil {
 			return err
 		}
 		index += fmt.Sprintf("- [%s](%s): %d files.\n", group, filename, len(files))
 	}
 	index += fmt.Sprintf("\nTotal: %d files, plus this generated reference directory. Generated reference pages describe themselves here rather than recursively indexing their own contents.\n\n", total)
 	index += "## Local files intentionally represented by category\n\n- `.git/`: Git objects, refs and repository metadata; no application behavior.\n- `.data/`, credential directories, private keys, `.env` and local assistant settings: private runtime state/configuration; never publish their contents.\n- `.worktrees/`: separate checkouts; document each checkout from its own root.\n- `bin/`, `coverage/`, dependency caches, logs and OS metadata: generated outputs; rebuild or regenerate rather than treating them as source.\n- Symlinks: not followed, to avoid escaping the checkout or exposing private data.\n\nThese categories deliberately do not enumerate private filenames or duplicate generated artifacts.\n"
-	return os.WriteFile(filepath.Join(out, "README.md"), []byte(index), 0644)
+	return os.WriteFile(filepath.Join(out, "README.md"), []byte(strings.TrimRight(index, "\n")+"\n"), 0644)
 }
