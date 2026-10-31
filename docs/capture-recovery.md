@@ -63,3 +63,49 @@ container or private fixture is used.
 Durable deployed recovery/creator/account integration, unknown-ID incident handling,
 physical quotas, image/live acceptance and public file delivery remain incomplete.
 Do not enable required file-task dispatch using synthetic acceptance as evidence.
+
+## Retained worker assembly
+
+Trusted setup can now call `recoverRetainedWorkerCapture(ctx, observation, intent,
+recordedContainerID, freshGuard)` inside the retained worker ownership callback.
+The helper constructs the fixed plan and actual private worker lifecycle journal
+from that observation and durable intent, then invokes the cleanup-only reconciler.
+For example, a helper whose prior record contains `begin`, the exact `bound` ID
+and an uncertain `finish` can be reconciled after independently authenticating
+current cleanup permission. It returns only an error, never capture metadata or
+file bytes.
+
+The guard MUST be freshly authenticated and enforce current human/task cleanup
+permission, physical creator/quota/volume evidence and durable controller
+acknowledgments. A previous capture authorization, valid-looking ID or successful
+old exchange does not authorize this call. The operation receives no starter,
+source authority or object journal; it cannot launch a helper, copy outputs, delete
+volumes, publish a report or refund artifact storage.
+
+`CaptureAuthorityLifetime()` must remain live throughout reconciliation. Losing
+the control connection cancels recovery even between exchanges; an older positive
+acknowledgment cannot grant continuing cleanup authority. A fresh cleanup session
+must be independently authenticated after loss. Already retained records and
+charges remain, and this cancellation is not evidence that the helper is absent.
+
+The complete reconciliation is tracked under actual creator ownership, including
+failure revocation. Callback teardown cancels and joins it before creator unlock.
+Canceled/expired ownership refuses new work; final ownership loss withholds success.
+Trusted callbacks must honor cancellation and may not reenter their waiting stream
+or ownership teardown. Private control transport closure/join remains caller-owned.
+There is no public endpoint, optional bypass flag or host execution fallback.
+
+A failed removal can leave the exact `recovery` checkpoint already recorded.
+An explicit later call with a NEW current guard may resume only that SAME checkpoint
+and bound ID. It reauthorizes, persists and durably reacknowledges the existing
+transition without appending duplicate logical history. A denied new guard performs
+no daemon operations. Different/unknown IDs and terminal `recovered` history cannot
+be resumed. There is no automatic retry or name discovery. Audit failure retains
+the worker integrity stop; this helper cannot clear it to allow another attempt.
+
+Synthetic worker-assembly tests cover present/already-absent helpers, failed removal
+followed by denied and allowed explicit reconciliation, wrong/unknown IDs, current
+permission denial, failed acknowledgment, cancellation, expired ownership and
+terminal replay refusal. They check retained helper charges, no capture starts or
+custody writes and no daemon effects before durable cleanup admission. Full deployed
+account/physical evidence and live rootless acceptance remain outstanding.

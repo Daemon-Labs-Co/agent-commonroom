@@ -84,18 +84,24 @@ func (s *objectReadWorkerService) Connect(ctx context.Context, worker string, r 
 	return c, nil
 }
 func (s *objectReadWorkerService) Serve(ctx context.Context, listener net.Listener, g *controllerObjectReadSession) error {
-	if !nilWorkerObservationDependency(listener) {
-		defer listener.Close()
+	closeListener := func() {
+		if !nilWorkerObservationDependency(listener) {
+			_ = listener.Close()
+		}
 	}
 	if g == nil {
+		closeListener()
 		return errObjectReadPeer
 	}
-	defer g.StopObjectReadAuthority()
 	child, finish, err := s.begin(ctx)
 	if err != nil {
+		closeListener()
+		g.StopObjectReadAuthority()
 		return err
 	}
-	defer finish()
+	// Join closure and authority revocation before decrementing tracked work,
+	// including policy/address refusals before the one-shot server is reached.
+	defer func() { defer finish(); closeListener(); g.StopObjectReadAuthority() }()
 	endpoint, err := s.profiles.endpoint(g.worker, "controller", g.record, g.intent)
 	if err != nil || nilWorkerObservationDependency(listener) || listener.Addr() == nil {
 		return errObjectReadPeer
@@ -130,28 +136,33 @@ func (s *objectReadWorkerService) ListenAndServe(ctx context.Context, g *control
 	if g == nil {
 		return errObjectReadPeer
 	}
-	defer g.StopObjectReadAuthority()
 	if nilWorkerObservationDependency(factory) || g.lifetime == nil || g.lifetime.Err() != nil {
+		g.StopObjectReadAuthority()
 		return errObjectReadPeer
 	}
 	child, finish, err := s.begin(ctx)
 	if err != nil {
+		g.StopObjectReadAuthority()
 		return err
 	}
-	defer finish()
+	var listener net.Listener
+	defer func() {
+		defer finish()
+		if !nilWorkerObservationDependency(listener) {
+			_ = listener.Close()
+		}
+		g.StopObjectReadAuthority()
+	}()
 	endpoint, err := s.profiles.endpoint(g.worker, "controller", g.record, g.intent)
 	if err != nil {
 		return err
 	}
 	listenCtx, cancel := context.WithTimeout(child, 5*time.Second)
 	stopSession := context.AfterFunc(g.lifetime, cancel)
-	listener, err := factory.Listen(listenCtx, "tcp", endpoint.Address)
+	listener, err = factory.Listen(listenCtx, "tcp", endpoint.Address)
 	expired := listenCtx.Err() != nil
 	stopSession()
 	cancel()
-	if !nilWorkerObservationDependency(listener) {
-		defer listener.Close()
-	}
 	if err != nil || expired || child.Err() != nil || g.lifetime.Err() != nil || nilWorkerObservationDependency(listener) {
 		return errObjectReadPeer
 	}

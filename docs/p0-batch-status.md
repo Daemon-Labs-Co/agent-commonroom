@@ -4346,3 +4346,677 @@ proof does not establish live daemon or descendant termination guarantees.
 - Last notification unchanged: prior registry/member-read progress already reported.
   Recovery coverage adds no new user decision or public functionality; stay quiet.
   Nothing staged, committed, pushed or changed remotely; continuation remains active.
+
+## 2026-10-30: Owned retained-worker capture assembly
+
+- At14:13:43UTC resumed authorized local work and read rules/checkpoint. Git helper
+  directly verified PR83 merged, head9777b11, merge/live main
+  cac1cef84226d81061e3aa494fa900c47804868a with identical tree. Fetched existing
+  origin/main solely to obtain that verified merged base; clean checkout/index.
+  Created codex/artifact-runtime-assembly at that commit without changing local
+  main or merging/rebasing. Greptile credit exhaustion/no checks was observed,
+  not review approval. No remote mutations, staging, commits or pushes.
+- Added newOwnedWorkerCapture: fixed container plan + actual durable private worker
+  lifecycle journal + supervised capture runtime under the retained creator lease.
+  The SAME observation runner must implement CaptureStarter; no independently
+  supplied starter, host command or alternative daemon fallback. Constructor copies
+  finite request members and refuses missing/typed-nil mandatory authorities.
+- Run is one-shot and combines caller/owner cancellation. Ownership teardown
+  refuses new admissions, expires lifetime and joins tracked capture operations
+  BEFORE creator-lock release, including callback failure/panic. Expired handles
+  cannot revive capture; expired completion withholds report as unconfirmed.
+  Trusted dependencies must still cooperate with cancellation/join their streams.
+- Synthetic complete assembly matrix exercises actual plan/runtime/private protocol
+  and worker lifecycle persistence with mocked daemon/source/custody/controller
+  boundaries: successful capture, caller request mutation, source denial, lost
+  creation, failed binding acknowledgment, cleanup failure and replay. Constructor/
+  Run tests cover missing/typed-nil inputs, wrong bindings, no same-runner starter,
+  inactive ownership and canceled input. Blocking guard test proves creator lock
+  stays held until canceled operation actually joins on callback failure.
+- Source denial may still yield confirmed helper removal: that settles only helper
+  lifecycle, never declares capture success/refunds artifacts. Initial fixture
+  expectation incorrectly conflated these outcomes and was corrected. No production
+  security checks were weakened. Initial test-only Close return-type mismatch and
+  missing fixture observation guard were also corrected before passing checks.
+- Focused race PASSED2.435s (command8.05s), expanded focused race/docs PASSED2.617s
+  (command8.39s); make test PASSED41.52s. Initial full make check PASSED55.64s;
+  after adding explicit Help and final canceled-input case, final make check
+  PASSED55.47s. Linux amd64 full-server compilation PASSED3.31s; not executed.
+  Full checks used process-scoped idle-sleep assertions only. Logs retained at
+  /private/tmp/commonroom-owned-capture-{focused,race,test,compile,check,
+  final-focused,final-check}.log. Observation14:13:43–14:20:56UTC7m13s; overlapping
+  command durations are not added as wall-clock coding time. No live gate PASS.
+- Updated README/full supervision guide and direct in-app Help entry with API,
+  same-runner binding, ownership/cancellation, failure/retention and limitations.
+  Mandatory isolation/ownership has no optional bypass flag. Current controller
+  authorities must still enforce existing task flags and permissions in both
+  states; no permissive authority or public dispatch route supplied.
+- Remaining within the broader production artifact task: production bootstrap and
+  authenticated physical authority/quota/source/custody transports, independently
+  complete inventory, actual volume provisioning/enforcement, actual content/format
+  and source disposal evidence, output attachment, public delivery/review and live
+  Linux/provider acceptance. This checkpoint joins existing runtime components;
+  its synthetic protocol receipts do not prove production stored bytes.
+- Git helper scanned prospective changed content with Gitleaks:0 findings; empty
+  index and clean whitespace. Secure recovery target:
+  /private/tmp/commonroom-artifact-runtime-backup/0001/.
+- Full prepared commit message:
+
+  feat: bind supervised artifact capture to retained worker ownership
+
+  Assemble the fixed capture plan, supervised helper runtime and durable worker
+  lifecycle journal under the existing retained creator lease.
+  Require one runner to own both daemon operations and the capture starter;
+  reject missing authorities and preserve immutable finite request bindings.
+  Cancel and join admitted captures before releasing creator ownership, and
+  refuse expired handles, repeated runs and uncertain completion reports.
+  Preserve lifecycle evidence and conservative recovery after lost creation,
+  denied authority, failed acknowledgment or unsuccessful cleanup.
+  Cover complete synthetic lifecycle/protocol flow, cancellation, ownership,
+  binding and failure paths without launching Docker, providers or databases.
+  Document setup and remaining production integration; add an in-app Help entry.
+
+  Validation: make test and final make check passed; Linux amd64 compiled.
+  Gitleaks changed-content scan passed with no exclusions.
+  Production physical custody/quota assembly and live acceptance remain open.
+- Last notification: report this verified ownership/runtime assembly checkpoint
+  once with the full prepared commit message as requested. Development remains
+  authorized locally; nothing staged, committed or pushed.
+
+## 2026-10-30: Join reader/recovery ownership and revoke expired release
+
+- At14:35:50UTC re-read rules/checkpoint. Git helper verified branch/base/index
+  and all seven paths exactly matched artifact-runtime snapshot0001; no owner
+  publication, staging or concurrent edits. Continued related local assembly.
+- Extended tracked retained ownership to the existing isolated reader runtime and
+  known-ID recovery, sharing beginOperation/current checks with capture. No new
+  starter argument is accepted: the SAME observation runner must implement the
+  fixed object-reader starter. Missing capability refuses before daemon effects.
+- Teardown now cancels lifetime BEFORE acquiring the ownership state mutex.
+  A new deterministic blocking-authority regression exposed a deadlock when a
+  journal held that mutex while waiting for creator cancellation. Expiring first
+  lets that callback return; canceled lifetime already refuses new admissions.
+  Then mark inactive, join complete operations and release actual creator lock.
+- Read/recovery joins include failed-operation authority revocation, not just
+  runtime return. Runtime failures additionally revoke independent byte-release
+  authority. An inactive owner after final acknowledged read clears/withholds raw
+  bytes while preserving the durable read acknowledgment and capacity history.
+- Synthetic tests cover actual existing TLS/profile/controller/worker/runtime read
+  matrix plus post-ack owner expiry, same-runner starter refusal, canceled read AND
+  recovery holding creator ownership through both blocked authority and revocation.
+  Recovery retains its prior uncertain slot; a denied new read creates none.
+  Existing recovery permission/known-ID/editing-off scenarios remain passing.
+  All DB/daemon/provider/physical boundaries mocked; temporary generated fixtures.
+- Initial regression FAILED waiting for cancellation, exposing the teardown mutex
+  ordering above; final focused race PASSED5.732s (command12.26s). A test-only
+  assertion insertion at the wrong helper scope caused a compile failure and was
+  corrected. Focused post-ack assertion PASSED1.090s. make test PASSED61.98s;
+  make check PASSED86.74s; Linux amd64 full-server compilation PASSED3.35s,
+  binary not executed. Full checks used process-scoped idle-sleep assertions only.
+  Logs /private/tmp/commonroom-owned-read-{focused,race,final-race,post-ack,test,
+  check,compile}.log retain failures and final results. Overlapping full-command
+  durations are not added as elapsed coding time. Observation window
+  14:35:50–14:47:25UTC is11m35s; no live acceptance inferred.
+- Updated README, full reader bridge and capture guide (existing Help entries)
+  with constructor contract, cancel-before-lock ordering, joins, expiry, revocation,
+  retention and callback/transport obligations. Mandatory ownership/authentication
+  has no optional off switch; existing task flags cannot weaken these checks.
+- Remaining production identity/bootstrap, independent complete inventory and
+  physical quota/custody/source/export evidence, task-output attachment/public
+  review and live provider gates unchanged. This is internal runtime ownership
+  integration, not a newly enabled public file dispatch or live custody proof.
+- Git helper verified only intended eight-path delta since0001 (11 cumulative
+  files), empty index/clean whitespace; prospective content Gitleaks0 findings.
+  Secure cumulative recovery target:
+  /private/tmp/commonroom-artifact-runtime-backup/0002/ (0001 retained).
+- Full combined prepared commit message for ALL current local changes:
+
+  feat: assemble owned artifact capture and reader lifecycles
+
+  Connect the fixed capture plan, supervised helper and durable worker lifecycle
+  journal to retained creator ownership without separate daemon starters.
+  Require each capture or reader runner to own its fixed-ID start operation,
+  reject missing authorities and preserve finite immutable request bindings.
+  Track capture, isolated reads and known-ID recovery through complete cleanup
+  and authority revocation before releasing the actual creator lock.
+  Cancel before waiting for the ownership mutex so current journal callbacks
+  can terminate without a teardown deadlock; refuse new or expired admissions.
+  Withhold and clear bytes after owner expiry, including after an acknowledged
+  internal read, and revoke both operation and byte-release authority on failure.
+  Preserve exact-ID lifecycle evidence, uncertain capacity and immutable audit
+  history without automatic adoption, refunds, deletion or host/SSH fallback.
+  Cover synthetic successful capture/read flows, permissions, cancellation,
+  recovery, binding, failure and ownership ordering with mocked service boundaries.
+  Update README, technical guides, Help and recoverable development checkpoints.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Gitleaks prospective-content scan passed without exclusions.
+  Production custody/quota/bootstrap and public deliverable review remain open;
+  synthetic verification does not certify live release gates.
+- Last notification: deliver one updated full commit message for the cumulative
+  owned capture/read/recovery batch. Nothing staged, committed, pushed or changed
+  remotely. Scheduled local continuation remains active as authorized.
+
+## 2026-10-30: Retained exact-ID capture recovery assembly
+
+- At14:48:50UTC re-read rules/checkpoint. Git helper confirmed exact0002 on
+  codex/artifact-runtime-assembly, clean index/no owner publication or concurrent
+  edits. Continued related local recovery assembly without publication waits.
+- Added recoverRetainedWorkerCapture: builds the fixed plan and actual private
+  capture journal from retained ownership + durable intent, then invokes exact-ID
+  cleanup-only reconciliation with a mandatory fresh current guard. No starter,
+  frozen-source authority, object journal, report or byte release is supplied.
+- Track and join the entire reconciliation under creator ownership, including
+  failure revocation. Canceled/expired ownership withholds success. Missing/unknown/
+  different IDs, denied cleanup or failed acknowledgment refuse before daemon
+  effects; uncertain helper slots and stored data remain retained.
+- A synthetic failed-removal/explicit-retry regression exposed duplicate logical
+  recovery events refusing an otherwise valid retry. Permit only exact last-event
+  recovery resumption: reauthorize, persist and durably reacknowledge unchanged
+  finite history under the fresh guard. No different ID, terminal replay, stale
+  permission reuse, automatic retry, name discovery or integrity-stop clearing.
+- Tests cover present and already absent known helpers, removal failure followed
+  by denied then allowed explicit recovery, wrong/unknown IDs, permission denial,
+  failed acknowledgment, pre-cancellation, expired owner and terminal replay.
+  Assert no capture starts/reserves/seals, retained uncertain capacity and no daemon
+  effects before durable admission. Extended real creator-callback join regression
+  to canceled capture recovery as well as capture. All external/physical boundaries
+  mocked, synthetic temporary records only; no real DB/Docker/provider launches.
+- Initial recovery race FAILED on duplicate recovery checkpoint; after the bounded
+  resumption fix, fresh-authority focused race PASSED2.362s (command7.52s).
+  Final capture/read/recovery join race PASSED2.934s (command28.02s).
+  make test PASSED52.50s; make check PASSED79.94s; Linux amd64 full-server
+  compilation PASSED3.48s, not executed. Full commands used process-scoped idle-sleep
+  assertions only. Logs /private/tmp/commonroom-owned-capture-recovery-{race,
+  race-final,final-race,fresh-race,join-race,test,check,compile}.log retain results.
+  Observation14:48:50–14:53:51UTC5m01s; concurrent command durations are not added
+  as elapsed coding time. Synthetic verification is not live acceptance.
+- README/full capture recovery/supervision guides (existing Help links) document
+  trusted use, current authority, exact checkpoint resumption, retained failures,
+  no bytes/creation/refunds and remaining integrations. Mandatory recovery has no
+  optional security bypass flag; current task/human/cleanup rules remain required.
+- Git helper found exactly intended seven-path delta since0002; cumulative14files,
+  empty index, clean whitespace and Gitleaks prospective-content0 findings.
+  Secure cumulative recovery target:
+  /private/tmp/commonroom-artifact-runtime-backup/0003/ (0001/0002 retained).
+- Remaining production bootstrap/identity and deployed authority transports,
+  physical source/object quotas and independent inventory/custody/export evidence,
+  unknown-ID incident resolution, actual output attachment/public review and live
+  runtime/provider gates unchanged. No required file-task dispatch enabled.
+- Full combined prepared commit message for all current local changes:
+
+  feat: assemble owned artifact capture, reads and exact-ID recovery
+
+  Connect the fixed capture plan, supervised helper and durable worker lifecycle
+  journal to retained creator ownership and same-adapter daemon starters.
+  Track captures, isolated reads and known-ID recovery through cleanup and scoped
+  authority revocation before releasing the actual creator lock.
+  Cancel before waiting for the ownership mutex to avoid journal callback
+  deadlocks; refuse expired handles and preserve immutable finite bindings.
+  Clear and withhold read bytes after owner expiry, including after a durable
+  acknowledgment, and revoke operation and byte-release authority on failure.
+  Assemble cleanup-only retained capture reconciliation with fresh authority,
+  exact durable IDs and no starter, source export or object-writing capability.
+  Allow explicit resumption of only the identical interrupted recovery checkpoint
+  with renewed persistence and acknowledgment; refuse terminal or unknown-ID reuse.
+  Preserve uncertain capacity, stored objects and audit history without automatic
+  retry, adoption, refunds, deletion or host/SSH execution fallbacks.
+  Cover synthetic capture/read/recovery success, permission, cancellation,
+  lifecycle, failure and ownership ordering; update README, guides and Help.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Gitleaks prospective-content scan passed without exclusions.
+  Production custody/quota/bootstrap, public delivery/review and live acceptance
+  remain unfinished; synthetic checks do not certify live release gates.
+- Last notification remains the broader capture/read ownership checkpoint already
+  reported. Keep this related internal recovery increment quiet; no user decision
+  required. Nothing staged, committed, pushed or changed remotely. Continue local
+  authorized MVP work automatically.
+
+## 2026-10-30: Continuous private capture-control authority
+
+- At15:01:10UTC read rules/checkpoint; Git helper confirmed exact0003 on current
+  codex/artifact-runtime-assembly, empty index/no owner publication or concurrent
+  work. Continued related private runtime/authority assembly.
+- Capture authority client now owns one bounded watched raw-stream pump, following
+  existing reader/audit machinery. Idle EOF/error revokes an immutable read-only
+  operation lifetime and notifies its local stop callback once. Explicit Stop
+  closes/joins the pump. Exchange framing remains canonical and sequential; queued
+  calls and fresh contexts cannot revive a closed/poisoned authority link.
+- Added workerCaptureRuntimeGuard continuous lifetime contract. Owned capture and
+  retained capture recovery require/pin a live non-nil context, propagate loss to
+  running work even between exchanges, and withhold report/success on final loss.
+  Failed admitted capture revokes its scoped guard before tracked ownership ends.
+  Controller capture session exposes its existing authenticated lifetime; no new
+  permissive guard, peer-auth inference, listener or public/model path added.
+- Tests exercise actual private client/server framing and real local journal with
+  mocked daemon/source/custody/controller guards: idle EOF before Run, after helper
+  start and during known-ID recovery, propagated cancellation, nil/expired lifetime
+  refusal, exactly-once stop, fresh-context refusal and joined pump. Real helper
+  process is never launched. Lost control retains uncertain helper capacity and
+  existing objects; no report, custody writes or refund is fabricated.
+- Initial focused checks PASSED4.716s. Expanded focused race PASSED6.132s
+  (command12.51s), additional recovery race PASSED6.037s (command11.55s), final
+  deterministic cancellation-propagation race PASSED6.147s (command11.54s).
+  make test PASSED58.97s; make check PASSED96.94s; Linux amd64 full-server
+  compilation PASSED3.49s, not executed. Full commands used temporary process-scoped
+  idle-sleep assertions only. Logs /private/tmp/commonroom-capture-lifetime-
+  {focused,race,final-race,verified-race,test,check,compile}.log. Command overlap
+  and compilation/scheduling time must not be counted as summed coding duration.
+  Observation window15:01:10–15:08:56UTC is7m46s; no live evidence inferred.
+- Updated README/full capture transport, supervision and recovery guides (linked
+  from existing Help) with lifetime, bounded pump ownership, no reconnect, control
+  loss/cleanup uncertainty, callback reentrancy and production gaps. Mandatory
+  authority has no optional bypass flag; existing task/cleanup permissions and
+  retention remain independently enforced. Synthetic guard contexts are explicitly
+  test-only; no Background default authority exists in production assembly.
+- Git helper verified intended lifetime delta, cumulative20files, empty index/
+  clean whitespace and Gitleaks prospective-content0 findings. Secure cumulative
+  recovery target /private/tmp/commonroom-artifact-runtime-backup/0004/.
+- Remaining: deployed authenticated capture transport/bootstrap and real independent
+  creator/account/inventory/physical quota/source/custody/export witnesses; task
+  output attachment, public review/delivery and live Linux/provider acceptance.
+  A watched lifetime is neither peer authentication nor physical shutdown proof.
+  No required file-task dispatch or live release gate has been enabled.
+- Full combined prepared commit message for ALL current local changes:
+
+  feat: assemble owned artifact runtimes with continuous capture authority
+
+  Connect the fixed capture plan, supervised helper and durable worker lifecycle
+  journal to retained creator ownership and same-adapter daemon starters.
+  Track captures, isolated reads and known-ID recovery through cleanup and scoped
+  revocation before creator unlock; cancel before the state mutex to avoid
+  journal callback teardown deadlocks and refuse expired admissions.
+  Clear and withhold read bytes after owner expiry, preserving acknowledged
+  history while revoking operation and byte-release authority on failure.
+  Assemble cleanup-only capture recovery under fresh exact-ID authorization;
+  explicitly resume only the identical interrupted recovery checkpoint with new
+  persistence/acknowledgment, never unknown IDs or terminal history.
+  Watch the private capture control stream with one bounded read pump, revoke
+  idle EOF/error authority once, and join the pump on explicit shutdown.
+  Pin continuous control lifetime in capture/recovery so lost authority cancels
+  active work and withholds reports, cleanup success and stale-context reuse.
+  Preserve uncertain capacity, objects and audit history without automatic retry,
+  adoption, deletion, refunds or host/SSH execution fallbacks.
+  Cover synthetic successful/failing capture, read, recovery, permission,
+  cancellation, binding, control-loss and ownership-ordering scenarios.
+  Update README, full technical guides, Help and recoverable checkpoints.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Gitleaks prospective-content scan passed without exclusions.
+  Production bootstrap/physical custody/quota, public deliverables and live
+  acceptance remain unfinished; synthetic checks do not certify live gates.
+- Last notification remains broader owned capture/read checkpoint already reported;
+  keep this related internal authority increment quiet with no user decision.
+  Nothing staged, committed, pushed or changed remotely; scheduled continuation
+  remains active as authorized.
+
+## 2026-10-30: Authenticated owned capture authority
+
+- Continued from verified0004 on codex/artifact-runtime-assembly, base
+  cac1cef84226d81061e3aa494fa900c47804868a. Git helper confirmed empty index,
+  intended cumulative26 paths and no unrelated/concurrent edits before checkpoint.
+- Added private capture mutual-TLS assembly with independently pinned certificate
+  identities, normal chain/DNS validation and TLS1.2/1.3 support. Separate fixed
+  capture/read ALPN protocols prevent cross-operation transport reuse. A canonical
+  versioned hello requires both endpoints to agree on the original worker,
+  retained-record digest and complete finite capture intent before authority calls.
+  The original controller principal remains authoritative; peer frames grant no
+  account, physical storage, source or custody permissions.
+- Authenticated worker client retains its original context while idle; shutdown
+  revokes authority, closes raw transport and joins the watched pump. Server follows
+  both caller and original controller-session lifetime and revokes it on exit.
+  Shared pinned-TLS machinery retains reader policy; no plaintext fallback,
+  permissive guard, network listener or endpoint bootstrap was installed.
+- New generated-certificate/in-memory transport tests cover both TLS versions and
+  roles, certificate/trust/worker/record/intent/hello rejection, distinct ALPN,
+  idle cancellation, original actor/current permission and enabled/disabled task
+  editing. Integrated actual owned capture plan, private helper protocol and local
+  journal through authenticated RPC to the actual controller ledger, with all
+  daemon, database, source and custody witnesses mocked. Synthetic helper receipts
+  are metadata only, not evidence of stored artifacts or physical quota enforcement.
+- Focused race PASSED5.668s (command11.31s); expanded integrated race PASSED7.795s
+  (command13.78s). make test PASSED52.97s; make check PASSED79.20s. Linux amd64
+  full-server test compilation PASSED3.43s, binary not executed. Initial compile-only
+  check ran no tests and is not counted as test evidence. Logs:
+  /private/tmp/commonroom-capture-auth-{race,integrated-race,test,check,compile}.log.
+  Observation window15:17:05–15:30:41UTC is13m36s; overlapping commands are not
+  summed into coding elapsed time. No real provider or private credentials used.
+- Added full capture-authentication guide, README/setup limitations, transport and
+  supervision links, documentation index and in-app Help. This mandatory security
+  assembly has no bypass toggle; original task flags, permissions and retention
+  remain server-enforced independently.
+- Git helper prospective-content Gitleaks scan:26 files,0 findings, no exclusions.
+  Secure cumulative recovery target:
+  /private/tmp/commonroom-artifact-runtime-backup/0005/ (0700 directory/0600 files).
+- Remaining integration: deployed endpoints/PKI/bootstrap; independent complete
+  inventory, physical quota provisioning and creator/writer fences; sealed object
+  custody and real export; task output attachment/public delivery/human review;
+  unknown-ID reconciliation and live Linux/provider acceptance. No live gate is
+  marked passed and required file-task dispatch remains blocked where appropriate.
+- Full prepared commit message for ALL cumulative local changes:
+
+  feat: assemble owned artifact runtimes with authenticated capture authority
+
+  Connect fixed capture plans, supervised helpers and durable worker journals to
+  retained creator ownership and same-adapter daemon starters.
+  Track capture, isolated reads and known-ID recovery through cleanup and scoped
+  revocation before creator unlock; cancel before the state mutex to prevent
+  journal callback teardown deadlocks and refuse expired admissions.
+  Withhold read bytes after owner expiry while retaining acknowledged history.
+  Recover retained capture helpers under fresh exact-ID authorization; resume only
+  identical interrupted recovery checkpoints with renewed durable acknowledgment.
+  Watch capture control lifetime through idle EOF, active work and shutdown,
+  revoking stale authority and joining the bounded transport pump.
+  Authenticate private capture sessions with pinned mutual TLS1.2/1.3, distinct
+  operation protocols and exact worker/record/finite-intent session agreement.
+  Preserve original controller identity and current permission/flag checks.
+  Retain uncertain capacity, objects and audit history without automatic retry,
+  adoption, refunds, deletion or uncontained execution fallbacks.
+  Cover synthetic success, failure, cancellation, permission, flag, binding,
+  authentication and ownership-ordering scenarios; update full guides and Help.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Prospective-content Gitleaks scan passed without exclusions.
+  Production bootstrap, physical custody/quota, public delivery/review and live
+  acceptance remain unfinished; synthetic checks do not certify live release gates.
+
+- Notification: substantial authenticated owned-runtime bridge ready locally;
+  report once with cumulative commit message. Nothing staged, committed, pushed or
+  changed remotely. Continue authorized local MVP work on future scheduled wakes.
+
+## 2026-10-30: Fixed private capture endpoint assembly
+
+- At15:31:59UTC resumed rules/checkpoint and Git-helper verification: branch/base
+  and empty index exactly matched0005, with no concurrent changes. Continued the
+  same internal production-identity assembly; no remote access or mutations.
+- Added captureControlEndpoint and fixed TCP connect/one-shot serving adapters.
+  Approved literal addresses and independently pinned capture bindings are checked
+  before dialing. Dial/accept setup is bounded to five seconds and follows original
+  caller/controller cancellation; setup deadlines do not replace session lifetime.
+  A listener is consumed on all paths and closed before TLS authentication. Close
+  failure, uncertain dial results and cancellation close accepted/returned sockets
+  and refuse authority. No replacement peer, discovery, reconnect or plaintext/
+  host/SSH fallback. Deployment must provision the actual listener/interface;
+  this low-level adapter does not create or verify deployment listener addresses.
+- Tests use generated certificate identities, in-memory pipes, synthetic listeners/
+  dialers and mocked database/controller evidence: lifecycle/audit, invalid address/
+  binding/key before dial, failed/expired dial cleanup, original-session/caller
+  accept cancellation, failed listener closure and certificate failure without
+  replacement acceptance. Prior authenticated owned-runtime flag/permission tests
+  remain part of full checks. Updated full capture authentication guide and README.
+  Mandatory security infrastructure has no product bypass flag.
+- Focused endpoint race PASSED2.829s. Initial make test failed0.87s because default
+  Go cache was sandbox-inaccessible. Retry with writable cache failed49.57s and
+  initial make check failed78.99s because existing HTTP/Unix-socket tests could not
+  bind inside the sandbox (operation not permitted). No assertions/timeouts were
+  weakened. Authorized reruns with local socket binding available PASSED:
+  make test73.21s, make check90.73s. Linux amd64 full-server compilation PASSED8.92s,
+  binary not executed. Logs /private/tmp/commonroom-capture-endpoint-
+  {race,test,test-retry,check,test-verified,check-verified,compile}.log.
+  Observation window15:31:59–15:36:24UTC is4m25s; overlapping durations are not
+  summed into elapsed coding time. No live provider, DB or Docker interaction.
+- Git helper verified exactly four intended delta paths, preserved prior work,
+  clean whitespace/empty index and cumulative28-file Gitleaks0 findings. Secure
+  cumulative recovery target /private/tmp/commonroom-artifact-runtime-backup/0006/.
+- Production profile/service bootstrap, endpoint/PKI/firewall provisioning, physical
+  inventory/quota/custody/export integration, real task outputs/public review and
+  live acceptance remain open. Synthetic transport tests do not satisfy live gates.
+- Full cumulative prepared commit message (supersedes previous wording):
+
+  feat: assemble owned artifact runtimes with authenticated capture authority
+
+  Connect capture plans, supervised helpers and durable worker journals to
+  retained creator ownership and same-adapter daemon starters.
+  Track capture, isolated reads and known-ID recovery through cleanup and scoped
+  revocation before creator unlock; prevent journal callback teardown deadlocks.
+  Withhold bytes after ownership expiry while retaining acknowledged history.
+  Recover retained helpers under fresh exact-ID authority and resume only identical
+  interrupted recovery checkpoints with renewed durable acknowledgment.
+  Watch capture control lifetime through idle loss, active work and joined shutdown.
+  Authenticate capture sessions with pinned mutual TLS1.2/1.3, separate operation
+  protocols and exact worker/record/finite-intent agreement.
+  Add approved fixed-endpoint TCP dial and one-shot serving adapters with bounded
+  setup, consumed listeners/connections and no reconnect after uncertain outcomes.
+  Preserve original controller identity, current permissions and feature flags.
+  Retain uncertain capacity, objects and audit history without automatic adoption,
+  refunds, deletion or uncontained execution fallbacks.
+  Cover success, failure, cancellation, permission, flags, authentication and
+  ownership ordering; update README, full guides, Help and recovery checkpoints.
+
+  Validation: make test and make check passed with local test socket access.
+  Linux amd64 compilation and prospective-content Gitleaks scan passed.
+  Production bootstrap, physical custody/quota, public delivery/review and live
+  acceptance remain incomplete; synthetic checks do not certify live release gates.
+
+- Last notification remains0005; keep this related internal endpoint increment
+  quiet. No user decision required. Nothing staged, committed, pushed or changed
+  remotely. Continue authorized implementation on subsequent wakes.
+
+## 2026-10-30: Capture policy/service ownership and refused-session joining
+
+- Resumed at19:13:27UTC after queued wakeups/usage unavailability. No continuous
+  work is claimed across the15:43 inspection–19:13 resumption gap. Re-read rules
+  and checkpoint; Git helper verified exact0006 branch/base, empty index and no
+  conflicts/concurrent changes before edits. Continued same local artifact batch.
+- Added capture-only strict private policy and owned service. Explicit protocol
+  discriminator prevents reader policy reuse. All entries/identities validate
+  before use; reject unsafe files, unknown/duplicate/case-duplicate fields,
+  duplicate company/worker/role entries, invalid endpoints/roles/protocol/version.
+  Select only approved finite-intent company and exact worker/role, copy intent
+  bindings and preserve original controller principal/current permissions.
+- Service owns fixed endpoint Connect, Serve and ListenAndServe; validates supplied
+  listener address before Accept, bounds setup, refuses uncertain factory/dial
+  results and joins retained client pumps/serving/setup on Close. No automatic
+  startup route/listener or model-selected configuration was added. Existing
+  mandatory TLS/isolation/retention has no bypass flag; task flags still enforced.
+- During ownership review found early policy/address refusals could finish tracked
+  serving work before deferred listener closure/revocation. Fixed the new capture
+  service and existing reader service so Close joins those steps, including factory
+  failures. Regressions delay capture integrity revocation and reader listener
+  closure; Close must wait, no Accept/authority revival permitted.
+- Added generated-identity/in-memory transport tests for lifecycle/audit, complete
+  policy refusal, missing/wrong protocol, company/worker isolation, wrong listener,
+  idle/dial/accept shutdown, factory failure/late result and refused-session joins.
+  No real database, Docker or provider interaction. Full capture guide/configuration
+  example, README, docs index and in-app Help added; reader guide updated.
+- Initial generated-source compile failed0.60s (duplicate shared helper definitions
+  and wrong synthetic binding field); corrected before executable tests. Focused
+  capture race PASSED2.724s (command8.73s), ownership race PASSED2.848s (12.01s).
+  Initial combined regression failed8.76s because its reader fixture incorrectly
+  expected capture's integrity-lock behavior; reader stop only cancels. Replaced
+  that fixture with actual blocked-listener closure, preserving production contract.
+  Corrected combined profile/service race PASSED4.068s (command9.23s).
+- Initial full make test PASSED54.09s/check92.86s; after ownership fixes final
+  make test PASSED72.18s and make check PASSED91.42s with permitted temporary test
+  socket access. Final Linux amd64 full-server compilation PASSED4.19s, not run.
+  Logs /private/tmp/commonroom-capture-service-{race,final-race,joined-race,
+  joined-verified-race,test,check,final-test,final-check,compile,final-compile}.log.
+  Observation window19:13:27–19:19:09UTC is5m42s; overlapping command durations are
+  not added together as coding time. No synthetic result is live acceptance.
+- Git helper verified intended capture/profile and reader-ownership deltas, empty
+  index/clean whitespace and prospective-content secret scans0 findings. Secure
+  cumulative checkpoint target /private/tmp/commonroom-artifact-runtime-backup/0007/.
+- Remaining production gaps: application bootstrap, real PKI/firewall installation,
+  independent inventory, physical quotas/fences/custody/export, real task file/patch
+  attachment and human review, unknown-ID recovery and live Linux/provider gates.
+  Required file-task dispatch remains blocked without complete physical evidence.
+- Full cumulative prepared commit message:
+
+  feat: assemble owned artifact runtimes with authenticated capture services
+
+  Connect capture plans, supervised helpers and durable worker journals to
+  retained creator ownership and same-adapter daemon starters.
+  Track capture, isolated reads and known-ID recovery through cleanup and scoped
+  revocation before creator unlock; prevent journal callback teardown deadlocks.
+  Withhold bytes after ownership expiry while preserving acknowledged history.
+  Recover retained helpers under fresh exact-ID authority and resume only identical
+  interrupted checkpoints with renewed durable acknowledgment.
+  Watch capture control lifetime through idle loss, active work and joined shutdown.
+  Authenticate capture sessions using pinned mutual TLS1.2/1.3, separate protocols
+  and exact worker, retained-record and finite-intent agreement.
+  Add approved TCP dial/one-shot serving adapters and strict capture-only private
+  company/worker/role profiles with complete identity validation.
+  Own setup, listener address validation, serving calls and retained client pumps
+  in a service that cancels and joins on shutdown.
+  Join listener closure and authority revocation before tracked serving completion,
+  including early capture and reader policy/address refusals.
+  Preserve original controller identity, current permissions, feature flags,
+  uncertain capacity and append-only history without automatic adoption, refunds,
+  deletion, reconnect or uncontained execution fallbacks.
+  Cover success, failure, cancellation, permissions, flags, authentication,
+  policy isolation and ownership ordering; update README, full guides and Help.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Prospective-content secret scans passed without exclusions.
+  Production bootstrap, physical custody/quota, public delivery/review and live
+  acceptance remain incomplete; synthetic checks do not certify live release gates.
+
+- Notify once for verified capture policy/service ownership checkpoint. Nothing
+  staged, committed, pushed or changed remotely. Local continuation remains active.
+
+## 2026-10-30: Offline capture profile preflight
+
+- At19:30:57UTC resumed rules/checkpoint and Git-helper confirmation of exact0007
+  branch/base, empty index and no concurrent changes. Continued same local batch.
+- Added --check-capture-profiles ABSOLUTE_PATH to strict startup command dispatch
+  before controller/DB initialization. It validates the complete private capture
+  policy and referenced identities offline, reports only the entry count and
+  explicitly leaves network/storage/live readiness unverified. Missing/extra
+  operands return2; validation/output failures return1. No listener, dial, Docker,
+  provider, model, controller state or DB is created. This mandatory configuration
+  safety check has no product toggle or execution-authority effect.
+- Preserve the shared safe markerless-certificate diagnostic from the capture
+  loader, so operators see BEGIN CERTIFICATE/END CERTIFICATE correction. Other
+  refusals never echo paths, arguments or credentials. Reader policy remains
+  rejected by the explicit capture protocol. Updated README and full profile
+  guide, available through existing in-app Help, with command, exit codes and limits.
+- Generated temporary-identity tests cover success, foreign reader policy, missing
+  PEM markers, private operand redaction, extra operands and failed stdout. Added
+  typo/ambiguous command refusals and actual subprocess startup checks: valid and
+  invalid capture preflight exit before controller state/database startup, with no
+  inherited credentials and invalid synthetic DB configuration. All boundaries
+  remain mocked; configuration validation is not production/live acceptance.
+- Focused race PASSED3.101s (command9.79s). make test PASSED77.02s; make check
+  PASSED95.85s with permitted existing local test sockets. Linux amd64 full-server
+  compilation PASSED26.34s; binary not executed. Logs:
+  /private/tmp/commonroom-capture-preflight-{race,test,check,compile}.log.
+  Observed19:30:57–19:33:25UTC:2m28s, excluding subsequent backup time. Overlapping
+  test/build durations are not summed as coding elapsed time.
+- Git helper verified seven intended delta paths, no unrelated changes, empty
+  index/clean whitespace and cumulative39-file prospective Gitleaks0 findings.
+  Secure cumulative recovery target /private/tmp/commonroom-artifact-runtime-backup/0008/.
+- Remaining: application bootstrap and real endpoint/PKI/firewall provisioning,
+  independent inventory/physical quota/fences/custody/export, actual task artifacts/
+  human review, unknown-ID reconciliation and live Linux/provider acceptance.
+  Required file-task dispatch remains blocked without complete physical evidence.
+- Full cumulative prepared commit message:
+
+  feat: assemble owned artifact runtimes with authenticated capture services
+
+  Connect capture plans, supervised helpers and durable worker journals to retained
+  creator ownership and same-adapter daemon starters.
+  Track capture, isolated reads and known-ID recovery through cleanup and authority
+  revocation before creator unlock; prevent callback teardown deadlocks and withhold
+  bytes after owner expiry while preserving acknowledged history.
+  Recover retained helpers under fresh exact-ID authority and resume only identical
+  interrupted checkpoints with renewed durable acknowledgment.
+  Watch capture control lifetime through idle loss, active work and joined shutdown.
+  Authenticate capture sessions with pinned mutual TLS1.2/1.3, separate protocols
+  and exact worker/record/finite-intent agreement.
+  Add approved TCP dial/one-shot serving adapters and strict capture-only private
+  company/worker/role profiles with complete identity validation.
+  Own setup, validated listeners, serving calls and retained client pumps in a
+  service that cancels and joins on shutdown, including early reader/capture refusals.
+  Add offline capture-profile preflight before controller/DB startup, strict command
+  validation, safe certificate-format guidance and redacted diagnostics.
+  Preserve original controller identity, current permissions, feature flags,
+  uncertain capacity and append-only history without automatic adoption, refunds,
+  deletion, reconnect or uncontained execution fallbacks.
+  Cover lifecycle, authentication, policy isolation, cancellation, ownership and
+  actual offline startup behavior; update README, full guides and Help.
+
+  Validation: make test and make check passed; Linux amd64 compilation passed.
+  Prospective-content secret scans passed without exclusions.
+  Production bootstrap, physical custody/quota, public delivery/review and live
+  acceptance remain incomplete; synthetic checks do not certify live release gates.
+
+- Last notification remains0007; keep this related configuration increment quiet.
+  Nothing staged, committed, pushed or changed remotely; continue authorized work.
+
+## 2026-10-30: Deployment verification scope decision
+
+- At22:45:28UTC re-read rules/checkpoint. Git helper verified exact0008 on
+  codex/artifact-runtime-assembly/cac1cef, empty index and no owner/concurrent edits.
+  No implementation changes or new acceptance evidence in this inspection turn;
+  no continuous coding is claimed across the intervening scheduled wakeups.
+- Existing local capture/read services, private policies, offline preflights and
+  recoverable checkpoint are prepared. Their successful synthetic checks cannot
+  supply independently observed physical storage or deployed runtime prerequisites.
+- Requested one specific scope decision: permit read-only inspection of the already
+  identified Jerry deployment target's Linux, rootless Docker and filesystem/XFS
+  quota capabilities, without launching containers or modifying configuration.
+  Reason: current heartbeat says "Read-only remote verification is permitted only
+  when required to establish the current merged base or review feedback." Earlier
+  Jerry authorization exists, but this narrower current instruction does not cover
+  deployment inspection. No remote connection was made and no credentials requested.
+- Approval is pending; elapsed time is not approval. The next authorized inspection
+  would establish platform/daemon/filesystem capability only, not launch providers,
+  provision quotas, install PKI, inspect private messages or assert live acceptance.
+  If local-only is selected, retain physical integration as unverified and continue
+  only implementation that does not depend on invented deployment facts.
+- No tests rerun for this checkpoint-only note; latest verified make test77.02s /
+  make check95.85s remain0008 evidence. Full prepared commit message remains in0008.
+  Recovery target /private/tmp/commonroom-artifact-runtime-backup/0009/; nothing
+  staged, committed, pushed or changed remotely. Notify once for this required
+  scope decision; keep unchanged waiting quiet and the heartbeat active.
+
+## 2026-10-30: Approved read-only Jerry deployment observations
+
+- Human explicitly approved read-only Linux/rootless Docker/filesystem/quota
+  inspection. This supersedes the earlier pending scope decision for that limited
+  inspection; it does not authorize configuration changes or container/provider
+  launches. Updated the existing ACTIVE heartbeat to retain this human approval
+  without asking again and preserve all no-push/no-remote-mutation constraints.
+- SSH BatchMode inspection succeeded using the existing Jerry alias. Observed
+  Linux6.12.41+deb13-amd64/x86_64, unprivileged UID1002, Docker rootless/seccomp/
+  cgroup namespace security options and cgroupv2. Docker reports overlayfs with
+  containerd snapshotter and its root under the dedicated user's local Docker data.
+- findmnt reports ext4 rw,relatime,errors=remount-ro under BOTH the actual Docker
+  root and /var/tmp. No mounted XFS filesystem was reported by the XFS-filtered
+  mount query. xfs_quota, quota, setquota, commonroom and commonroom-worker were
+  unavailable on PATH. PATH absence does not prove no binary exists anywhere.
+  No credential file, private application data or provider messages were read.
+- This target currently cannot demonstrate the implemented native XFS projectquota
+  evidence contract. Rootless Docker alone is not physical storage enforcement.
+  Provisioning a dedicated approved XFS-backed storage area and independently
+  verified namespace/volume mapping is the direct path for the current backend;
+  supporting ext4 quotas instead would require a separate audited implementation.
+  No disk formatting, mounting, package installation, quota changes, container
+  starts, image pulls or remote file writes were performed. No live gate passed.
+- Git helper verified exact0009 branch/base and empty index/no concurrent edits
+  before this checkpoint-only addition. Implementation/tests unchanged; no tests
+  rerun. Latest complete test/check evidence and full commit message remain0008.
+  Save cumulative recovery at /private/tmp/commonroom-artifact-runtime-backup/0010/.
+- Report the observed storage incompatibility to the human. Continue local work;
+  do not substitute synthetic XFS observations or weaken the mandatory boundary.
+
+## 2026-10-30: Read-only storage topology follow-up
+
+- Under the existing approved read-only Jerry capability inspection, lsblk/df
+  show both attached disks already participate in the LVM-backed ext4 root
+  filesystem. Their parent rows having no filesystem/mountpoint do not mean the
+  disks are unused. No obvious spare block disk was reported; the optical device
+  is not a provisioning candidate. About2.81TB available filesystem capacity is
+  not unallocated disk/LVM capacity or evidence of safe repartitioning.
+- A dedicated XFS-backed storage area remains a separate provisioning decision.
+  No existing disk/partition/logical volume was selected for formatting, resizing
+  or remounting. No deployment writes, packages, containers or providers were used.
+  Do not infer rootless namespace mapping, quota enforcement or live gate success.
+- Git helper verified exact0010 branch/base and empty index/no concurrent changes
+  before this note. Implementation/tests unchanged; latest checks/commit message
+  remain0008. Secure cumulative recovery target:
+  /private/tmp/commonroom-artifact-runtime-backup/0011/.
+- Keep this diagnostic refinement quiet; the previously reported physical-storage
+  prerequisite remains unresolved. Preserve human approval for read-only inspection
+  and require separate authorization before any deployment modification.

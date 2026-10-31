@@ -112,7 +112,7 @@ func (p *assembledObjectReadProcess) Close() error {
 }
 func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 	t.Parallel()
-	for _, mode := range []string{"healthy", "cleanup", "exit", "close", "release denied", "release revoked", "audit failure", "idle authority loss", "creator loss"} {
+	for _, mode := range []string{"healthy", "cleanup", "exit", "close", "release denied", "release revoked", "audit failure", "idle authority loss", "creator loss", "owner expired at release"} {
 		t.Run(mode, func(t *testing.T) {
 			t.Parallel()
 			g, db, ctx, _ := objectReadSessionFixture(t)
@@ -146,6 +146,11 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 			calls := 0
 			releaseEvidence.release = func(context.Context, room.State, objectcustody.Receipt) error {
 				calls++
+				if mode == "owner expired at release" && calls > 1 {
+					l.mu.Lock()
+					l.active = false
+					l.mu.Unlock()
+				}
 				if mode == "release denied" || mode == "release revoked" && calls > 1 {
 					return errors.New("synthetic export denial")
 				}
@@ -180,7 +185,7 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer func() { c.StopObjectReadAuthority(); <-done }()
-			runtime, err := newWorkerObjectReadRuntime(l, g.intent, f, c, release)
+			runtime, err := newWorkerObjectReadRuntime(l, g.intent, c, release)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -213,6 +218,9 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 			} else if err == nil || raw != nil {
 				t.Fatal("unsafe bytes released", mode, err)
 			}
+			if mode == "owner expired at release" && release.lifetime.Err() == nil {
+				t.Fatal("expired owner retained release authority")
+			}
 			if f.process != nil && !f.process.closed.Load() {
 				t.Fatal("process not joined")
 			}
@@ -238,6 +246,9 @@ func TestWorkerObjectReadRuntimeControllerBridge(t *testing.T) {
 				}
 			}
 			st := artifactState(t, g.server, ctx)
+			if mode == "owner expired at release" && st.ArtifactCustody[g.intent.Request.Receipt.Intent.ObjectID].ReadAcknowledgments != 1 {
+				t.Fatal("post-acknowledgment owner refusal lost durable read history")
+			}
 			if _, ok := st.ManagedStorage.Releases[g.intent.Request.Receipt.Intent.ObjectID]; ok {
 				t.Fatal("read refunded retained object")
 			}
@@ -262,7 +273,6 @@ func TestWorkerObjectReadRuntimeRequiresBoundary(t *testing.T) {
 			defer lease.Close()
 			fake := &assembledObjectReadFixture{}
 			var runner toolbroker.DockerRunner = fake
-			var starter toolbroker.ObjectReadStarter = fake
 			var guard workerObjectReadRuntimeGuard = g
 			release, e := newControllerArtifactReadSession(ctx, g.server, g.worker, g.intent.Request.Receipt, &syntheticArtifactGuard{})
 			if e != nil {
@@ -276,7 +286,7 @@ func TestWorkerObjectReadRuntimeRequiresBoundary(t *testing.T) {
 			case "runner":
 				l.runner = (*assembledObjectReadFixture)(nil)
 			case "starter":
-				starter = (*assembledObjectReadFixture)(nil)
+				l.runner = struct{ toolbroker.DockerRunner }{runner}
 			case "guard":
 				guard = (*controllerObjectReadSession)(nil)
 			case "release":
@@ -284,7 +294,7 @@ func TestWorkerObjectReadRuntimeRequiresBoundary(t *testing.T) {
 			case "closed":
 				l.active = false
 			}
-			if _, err := newWorkerObjectReadRuntime(l, g.intent, starter, guard, releaseGuard); err == nil {
+			if _, err := newWorkerObjectReadRuntime(l, g.intent, guard, releaseGuard); err == nil {
 				t.Fatal("missing isolation dependency accepted")
 			}
 		})

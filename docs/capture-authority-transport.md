@@ -47,6 +47,22 @@ authority. Stop callbacks must be nonblocking and must not reenter the channel.
 There is no reconnect, automatic replay or host execution fallback. A fresh recovery
 session requires independently renewed authorization; it cannot discard uncertainty.
 
+`CaptureAuthorityLifetime()` exposes a read-only cancellation context for this
+one authenticated operation. A sole bounded raw-stream pump observes EOF/errors
+even when no exchange is active, cancels that lifetime and invokes the local stop
+callback exactly once. It is the only raw reader; frame parsing consumes its
+bounded forwarded chunks rather than competing for the stream. Explicit stop
+closes and joins the pump. Invalid construction leaves stream ownership with the
+caller, and stop callbacks must never join their own pump or reenter the client.
+
+Owned capture and retained capture recovery require a non-nil live authority
+lifetime and pin it at setup. Losing either creator or control authority cancels
+the helper operation and withholds the report/recovery success, including between
+exchanges. A fresh call context cannot revive a poisoned link. Exact-ID cleanup
+can still be attempted under its bounded cleanup context, but a lost final
+acknowledgment retains uncertainty and charges. This lifetime is not proof of
+peer authentication, physical shutdown or permission to publish stored objects.
+
 The local journal persists before requesting an acknowledgment. Failure afterward
 keeps its reservation and trips the integrity stop. A response lost after controller
 persistence remains uncertain locally. Neither peer may infer absence, refund
@@ -67,6 +83,12 @@ charges, binding/history substitutions, malformed frames, callback mutation,
 revocation/cancellation and poisoned-link reuse. No real database, Docker daemon or
 provider is contacted.
 
+Additional synthetic tests verify idle EOF before an operation, after helper start
+and during exact-ID recovery, cancellation propagation, missing/expired lifetime
+refusal, exactly-once stop notification and joined pump shutdown. They use actual
+private framing and local lifecycle persistence with mocked daemon/source/custody
+guards, not deployed identity, physical quotas or live providers.
+
 Deployment authentication, operation-specific quota/account guard composition,
 physical source/object quota provisioning, actual worker orchestration and live
 rootless image/latency acceptance remain incomplete. Required file-task dispatch
@@ -74,3 +96,7 @@ remains blocked. This protocol does not deliver artifacts or certify a P0 live g
 See [local journal](worker-capture-journal.md),
 [controller ledger](controller-capture-ledger.md) and
 [independent lifecycle evidence](capture-lifecycle-evidence.md).
+
+The [authenticated session assembly](capture-authentication.md) now supplies
+mutual TLS and exact worker/record/intent hello binding before this RPC, using the
+original controller session. It installs no network endpoint or physical guard.

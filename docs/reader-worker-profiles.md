@@ -145,3 +145,7 @@ and creator evidence, reviewed images and live rootless acceptance, retained
 object ownership after source disposal, incident reconciliation and public
 file delivery/human review. This layer supplies usable internal service assembly,
 not an automatically running production artifact service or public endpoint.
+
+Service shutdown also joins listener closure and controller authority revocation
+when policy/address refusal occurs before Accept. Cancellation alone does not
+mean those cleanup steps have completed.

@@ -86,3 +86,75 @@ isolation claims. Never substitute permissive guards to enable production tasks.
 The [interrupted recovery contract](capture-recovery.md) provides explicit exact-ID
 reconciliation with separate durable cleanup authorization. Normal creation intent
 now passes its reviewed image explicitly to `BeginCapture` for durable binding.
+
+## Retained worker ownership assembly
+
+Trusted worker setup can now call `newOwnedWorkerCapture(observation, request,
+image, objects, lifecycleGuard, sourceAuthority, custodyJournal)` and synchronously
+call its `Run(ctx)` inside `withWorkerWorkspaceOwnership`. This joins the fixed
+container plan and supervised runtime to the real private worker lifecycle journal.
+For example, the request selects the exact finite task members from the retained
+workspace; the journal records the accepted creation intent and exact helper ID
+before the runtime starts the private capture stream.
+
+The observation's ONE runner must implement both Docker inspection/creation and
+`CaptureStarter`. The constructor refuses a runner without that starter instead
+of accepting a separately supplied process adapter. The standard Docker adapter
+checks approved rootless selection for each invocation. This binding prevents
+accidental assembly with separate daemon adapters; it does not authenticate a
+dishonest injected runner. All three supplied authorities remain mandatory, with
+nil and typed-nil refusal. Source authority and custody quota/export enforcement
+must be real independent evidence, never synthetic callbacks in deployment.
+
+The lifecycle guard must also supply `CaptureAuthorityLifetime()`: a live pinned
+control-operation context, canceled on loss of authenticated authority even between
+calls. Owned capture follows both that context and creator ownership. The
+[private authority client](capture-authority-transport.md) observes idle EOF and
+joins its sole bounded read pump on explicit stop; no successful old exchange can
+replace current control authority. Failed captures revoke that scoped guard before
+their tracked ownership operation finishes.
+
+[Authenticated capture sessions](capture-authentication.md) bind that private
+client/server link to approved certificate identities and the original controller
+session. TLS/hello agreement never replaces current physical or account evidence.
+
+Request members are copied into immutable plan/journal bindings. Construction does
+not start a process or persist creation intent. `Run` is one-shot, uses the shorter
+caller/owner lifetime and returns only the runtime's complete private metadata
+report after its existing exit, exact-ID cleanup and final audit checks. A denied
+source operation can still have confirmed helper cleanup: that settles the helper
+slot only, never proves capture success or refunds artifact storage. Lost creation,
+failed binding acknowledgment and uncertain cleanup retain their journal evidence.
+
+Ownership teardown first refuses new admissions, cancels the owner lifetime and
+joins admitted capture operations BEFORE releasing the creator lock. This applies
+on callback failure or panic as well as normal return. It also prevents a retained
+capture handle from starting after its callback ends. Operations must honor
+cancellation and join their own streams; arbitrary blocked trusted callbacks cannot
+be forcibly terminated by a Go context. Do not invoke ownership teardown from
+inside a dependency on which that same operation is waiting.
+
+The same tracked-operation boundary now covers isolated reads and known-ID reader
+recovery. Cancellation occurs before waiting for the state mutex so a journal's
+current-authority callback can observe it and release that mutex. See the
+[reader bridge](reader-authority-bridge.md#private-local-and-physical-evidence) for
+byte withholding, release revocation and cleanup retention behavior.
+
+Synthetic assembly tests exercise the actual plan/runtime/protocol and worker
+journal through mocked daemon/source/custody/controller boundaries. They cover
+success, current authority denial, lost creation, failed acknowledgment, cleanup
+failure, replay, expired/missing dependencies and creator-lock retention until a
+canceled operation joins. No real provider, Docker or database is used.
+
+This mandatory infrastructure has no optional security toggle or public route.
+Existing task feature flags and human/account permissions must still be enforced
+by the supplied current controller authorities in both flag states. The assembly
+does not install them, provision custody volumes/quotas, expose file-task dispatch,
+attach manifests to task results, or prove live independently retained bytes.
+Production bootstrap, authenticated authority transports, complete inventory and
+physical enforcement, output format checks and delivery/review remain unfinished.
+
+Interrupted owned captures can now use the [retained worker recovery assembly](capture-recovery.md#retained-worker-assembly)
+with fresh cleanup authority and an already durable exact ID. It joins reconciliation
+before creator unlock and can explicitly resume the same interrupted recovery
+checkpoint; it cannot restart capture, publish results or refund stored artifacts.

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -299,5 +300,55 @@ func TestObjectReadWorkerServiceListenerFactoryFailureAndCancellation(t *testing
 				t.Fatal("failed listen accepted or retained authority")
 			}
 		})
+	}
+}
+
+type blockedReadServiceClose struct {
+	*addressedReadListener
+	entered, release chan struct{}
+	once             sync.Once
+}
+
+func (l *blockedReadServiceClose) Close() error {
+	l.once.Do(func() { close(l.entered); <-l.release })
+	return l.addressedReadListener.Close()
+}
+func TestObjectReadWorkerServiceJoinsRefusedListenerClosure(t *testing.T) {
+	t.Parallel()
+	g, _, ctx, _ := objectReadSessionFixture(t)
+	path, _ := objectReadProfileFixture(t, g)
+	service, err := newObjectReadWorkerService(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer service.Close()
+	listener := &blockedReadServiceClose{addressedReadListener: &addressedReadListener{newSyntheticReadListener(), "192.0.2.11:443"}, entered: make(chan struct{}), release: make(chan struct{})}
+	serving := make(chan error, 1)
+	go func() { serving <- service.Serve(ctx, listener, g) }()
+	select {
+	case <-listener.entered:
+	case <-time.After(time.Second):
+		close(listener.release)
+		t.Fatal("refusal did not close listener")
+	}
+	closed := make(chan struct{})
+	go func() { service.Close(); close(closed) }()
+	select {
+	case <-closed:
+		close(listener.release)
+		t.Fatal("service returned before refused-listener closure joined")
+	case <-time.After(20 * time.Millisecond):
+	}
+	close(listener.release)
+	if <-serving != errObjectReadPeer {
+		t.Fatal("wrong listener admitted")
+	}
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("service did not join released closure")
+	}
+	if listener.accepts.Load() != 0 || g.lifetime.Err() == nil {
+		t.Fatal("wrong listener effects or retained authority")
 	}
 }
