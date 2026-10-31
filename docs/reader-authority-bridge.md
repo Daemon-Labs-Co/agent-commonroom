@@ -34,8 +34,9 @@ For a normal read, the sequence is:
    authority traffic. The directory/socket must never be exposed to model or tool
    containers.
 4. Construct `newWorkerObjectReadRuntime` with the retained lease, finite intent,
-   same-daemon fixed-ID starter, authority client and independently pinned byte-release
-   guard. Missing dependencies refuse before daemon effects.
+   authority client and independently pinned byte-release guard. The lease's ONE
+   runner must also implement the fixed-ID starter; a separate starter can no
+   longer be supplied. Missing dependencies refuse before daemon effects.
 5. `Run` reserves local/controller capacity, binds the actual created ID before
    start, validates actual container policy and verifies the finite byte protocol.
 6. Successful exit, joined stream, exact owned cleanup, repeated absence checks,
@@ -318,9 +319,27 @@ Wrong/unknown IDs, denied authority and changed ownership refuse before effects.
 A worker integrity-stop marker still requires independent incident reconciliation;
 this helper cannot clear it or turn a cleanup session into new read permission.
 
-The outer creator callback must join runtime/recovery work before relinquishing
-its actual lease. Cancellation is not an ownership substitute or proof of absence.
-Private control transport closure/join remains the caller’s responsibility.
+Runtime and known-ID recovery now register their complete operation with retained
+ownership before doing work. Creator teardown cancels the owner lifetime BEFORE
+waiting for its state mutex: a journal can hold that mutex while a current-authority
+callback needs cancellation to return. Checking the canceled lifetime also refuses
+new admissions during that interval. Teardown then marks ownership inactive and
+joins admitted operations before unlocking the actual creator lease.
+
+The join includes cleanup and operation-authority revocation. Runtime failure also
+revokes the separate byte-release guard and clears/withholds returned bytes. Even
+if final durable release succeeded, a subsequent inactive-owner check refuses the
+result without erasing its audit history or refunding storage. Successful helper
+cleanup alone never overrides that refusal.
+
+Trusted setup should still call runtime/recovery synchronously inside its creator
+callback. Expired retained handles cannot revive work. Dependencies must cooperate
+with cancellation and join their streams; arbitrary blocking callbacks cannot be
+forcibly stopped by a Go context. Cancellation is not proof of physical absence.
+Private control transport closure/join remains the caller's responsibility.
+Synthetic regressions hold both read and recovery callbacks during cancellation,
+then hold authority revocation, and verify the creator lock remains acquired until
+both finish. These fixtures provide no live daemon/quota or custody proof.
 
 ## Flags and execution boundary
 

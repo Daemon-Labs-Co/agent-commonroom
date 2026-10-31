@@ -146,6 +146,7 @@ func TestObjectReadAuthenticatedStreamRejectsOtherProtocols(t *testing.T) {
 		version        uint16
 	}{
 		{"other authority protocol", "commonroom-capture-v1", tls.VersionTLS13},
+		{"capture authority protocol", captureControlALPN, tls.VersionTLS13},
 		{"no protocol", "", tls.VersionTLS13},
 		{"older TLS", objectReadControlALPN, tls.VersionTLS11},
 	} {

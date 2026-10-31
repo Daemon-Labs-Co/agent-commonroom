@@ -158,6 +158,10 @@ The internal [account probe ledger](account-probe-capacity.md) now durably count
   helper policy, exact inspection and remaining supervised-runtime requirements.
 - [Capture supervision](capture-supervision.md): one-shot durable lifecycle,
   private stream ownership, exact cleanup and production assembly requirements.
+- [Private capture worker profiles](capture-worker-profiles.md): capture-only
+  policy snapshots, fixed endpoints and joined service ownership.
+- [Authenticated capture sessions](capture-authentication.md): pinned mutual TLS,
+  operation hello binding, original controller authority and deployment gaps.
 - [Capture worker private stream](capture-worker-stream.md): fixed rootless start,
   supervisor-only stdio, sanitized exit status and process reaping.
 - [Interrupted capture recovery](capture-recovery.md): durable exact-ID cleanup,

@@ -40,7 +40,8 @@ func (g *captureJournalGuard) AcknowledgeCapture(ctx context.Context, r workerCa
 	}
 	return ctx.Err()
 }
-func (g *captureJournalGuard) StopCaptureAuthority() { g.stopped = true }
+func (g *captureJournalGuard) StopCaptureAuthority()                     { g.stopped = true }
+func (g *captureJournalGuard) CaptureAuthorityLifetime() context.Context { return g.f.t.Context() }
 func captureJournalFixtureScope(t *testing.T) (*workerCaptureJournal, *captureJournalGuard, *workerWorkspaceObservation) {
 	t.Helper()
 	f := newAssembledProbeFixture(t, "")

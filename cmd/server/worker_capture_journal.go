@@ -195,7 +195,13 @@ func (j *workerCaptureJournal) transition(ctx context.Context, event workerProbe
 			return errWorkerProbeJournal
 		}
 	}
-	r.Events = append(r.Events, event)
+	// An interrupted cleanup can retain this exact recovery checkpoint. A fresh
+	// guard must reauthorize and durably reacknowledge it; do not append a second
+	// logical recovery or admit another ID. Completed history remains terminal.
+	resumingRecovery := event.Stage == "recovery" && len(r.Events) > 0 && r.Events[len(r.Events)-1] == event
+	if !resumingRecovery {
+		r.Events = append(r.Events, event)
+	}
 	if !validWorkerCaptureRecord(r) {
 		return errWorkerProbeJournal
 	}

@@ -14,7 +14,7 @@ import (
 
 func TestStartupCommandRejectsAmbiguousIntent(t *testing.T) {
 	t.Parallel()
-	for _, args := range [][]string{{"--check-worker-storag"}, {"unexpected"}, {"--migrate", "extra"}, {"--help", "secret-canary"}, {"--check-reader-profiles"}, {"--check-worker-storage", "one", "two"}, {"--check-reader-profiles=secret-canary"}} {
+	for _, args := range [][]string{{"--check-capture-profile"}, {"--check-capture-profiles"}, {"--check-capture-profiles", "one", "two"}, {"--check-capture-profiles=secret-canary"}, {"--check-worker-storag"}, {"unexpected"}, {"--migrate", "extra"}, {"--help", "secret-canary"}, {"--check-reader-profiles"}, {"--check-worker-storage", "one", "two"}, {"--check-reader-profiles=secret-canary"}} {
 		var out, diagnostic bytes.Buffer
 		handled, code := startupCommand(args, &out, &diagnostic)
 		if !handled || code != 2 || out.Len() != 0 || diagnostic.Len() == 0 || strings.Contains(diagnostic.String(), "canary") {
@@ -53,12 +53,17 @@ func TestStartupCommandProcessChild(t *testing.T) {
 }
 func TestStartupCommandProcessDoesNotStartController(t *testing.T) {
 	t.Parallel()
+	g, _, _, _ := captureSessionFixture(t)
+	capturePath, _ := captureProfileFixture(t, g)
 	for _, tc := range []struct {
 		args    []string
 		code    int
 		message string
 	}{
 		{[]string{"--help"}, 0, "Usage:"},
+		{[]string{"--check-capture-profiles", capturePath}, 0, "2 entries"},
+		{[]string{"--check-capture-profiles"}, 2, "Usage:"},
+		{[]string{"--check-capture-profiles", "/synthetic/secret-canary"}, 1, "validation refused"},
 		{[]string{"--check-worker-storag"}, 2, "Invalid command"},
 		{[]string{"--migrate", "secret-canary"}, 2, "Invalid command"},
 		{[]string{"--check-reader-profiles"}, 2, "Usage:"},

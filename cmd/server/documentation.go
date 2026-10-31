@@ -15,6 +15,9 @@ type documentationEntry struct {
 }
 
 var documentationCatalog = []documentationEntry{
+	{"capture-worker-profiles", "Private capture worker profiles and owned service", "docs/capture-worker-profiles.md"},
+	{"capture-authentication", "Authenticated private capture sessions", "docs/capture-authentication.md"},
+	{"capture-supervision", "Owned isolated capture lifecycle", "docs/capture-supervision.md"},
 	{"artifact-manifests", "Finite artifact manifests and immutable registry", "docs/artifact-manifests.md"},
 	{"worker-storage-preflight", "Worker physical storage preflight", "docs/worker-storage-preflight.md"},
 	{"physical-project-quota-observer", "Physical project-quota observations", "docs/physical-project-quota-observer.md"},

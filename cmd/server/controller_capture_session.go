@@ -25,6 +25,13 @@ type controllerCaptureSession struct {
 	ledger        *controllerCaptureLedger
 }
 
+func (g *controllerCaptureSession) CaptureAuthorityLifetime() context.Context {
+	if g == nil {
+		return nil
+	}
+	return g.lifetime
+}
+
 // Session identity comes only from authenticated private setup, never peer fields.
 // This adapter checks policy; it does not establish transport authentication or
 // implement physical quotas. There is no host launch or optional isolation bypass.

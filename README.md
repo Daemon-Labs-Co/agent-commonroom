@@ -387,3 +387,35 @@ Internal recorded-member reads now pin the reviewed manifest digest, revalidate
 all bundle members against actual custody bytes and recheck current export/access
 before returning a selected member. Public downloads and production physical
 custody assembly remain unfinished; see [recorded-member verification](docs/artifact-manifests.md#private-recorded-member-revalidation).
+
+The internal [owned capture assembly](docs/capture-supervision.md#retained-worker-ownership-assembly)
+connects the supervised helper to its retained creator lease and durable worker
+journal, joining capture cleanup before releasing ownership. Independent production
+authority/quota setup and public task deliverables remain unfinished.
+
+Retained-worker teardown also joins isolated reads and reader recovery before
+creator unlock, including failed-operation authority revocation. Reader setup
+requires its inspection runner to own the starter, and owner expiry withholds
+bytes even after an acknowledged internal read. See the
+[reader authority bridge](docs/reader-authority-bridge.md).
+
+The [retained capture recovery assembly](docs/capture-recovery.md#retained-worker-assembly)
+reconciles only durably known helper IDs under fresh cleanup authority and creator
+ownership. Interrupted cleanup can be explicitly resumed without duplicate history;
+it cannot restart capture, publish outputs or release artifact storage charges.
+
+Capture control now has a continuously watched authority lifetime: idle connection
+loss cancels capture/recovery and withholds success. The private client joins its
+bounded read pump on stop; old acknowledgments cannot revive a closed session.
+
+[Private capture sessions](docs/capture-authentication.md) now bind mutual TLS
+identity to the exact worker, retained record and finite capture intent before
+controller authorization. TLS 1.2/1.3 are supported with protocol separation from
+artifact readers. Internal fixed-endpoint dial/one-shot serving adapters consume
+their connections, bound setup time and refuse uncertain setup without retries.
+A [private capture service](docs/capture-worker-profiles.md) now loads capture-only
+company/worker/role policy and joins setup, serving calls and retained client pumps
+on shutdown. `--check-capture-profiles ABSOLUTE_PATH` validates that private policy
+and its identities offline before controller startup, without starting services.
+Deployment endpoint provisioning and physical custody/quota wiring remain
+unfinished; this installs no public capture or file-delivery endpoint.

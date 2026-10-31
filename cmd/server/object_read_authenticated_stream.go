@@ -36,11 +36,17 @@ func validObjectReadPeerIdentity(identity objectReadPeerIdentity) bool {
 // plaintext, host-execution, or alternate-protocol fallback is permitted. A source
 // fork replacing this constructor can bypass the boundary.
 func authenticateObjectReadStream(ctx context.Context, raw net.Conn, identity objectReadPeerIdentity, server bool) (*tls.Conn, error) {
+	return authenticatePinnedWorkerStream(ctx, raw, identity, server, objectReadControlALPN)
+}
+
+// Only fixed internal protocol wrappers may select these two disjoint ALPNs.
+// This shares certificate/cipher policy, never operation or account authority.
+func authenticatePinnedWorkerStream(ctx context.Context, raw net.Conn, identity objectReadPeerIdentity, server bool, protocol string) (*tls.Conn, error) {
 	if raw == nil {
 		return nil, errObjectReadPeer
 	}
 	refuse := func() (*tls.Conn, error) { _ = raw.Close(); return nil, errObjectReadPeer }
-	if ctx == nil || ctx.Err() != nil || !validObjectReadPeerIdentity(identity) {
+	if ctx == nil || ctx.Err() != nil || !validObjectReadPeerIdentity(identity) || (protocol != objectReadControlALPN && protocol != captureControlALPN) {
 		return refuse()
 	}
 	// Clone roots so subsequent caller mutations cannot change this session's trust.
@@ -58,11 +64,11 @@ func authenticateObjectReadStream(ctx context.Context, raw net.Conn, identity ob
 		},
 		Certificates: []tls.Certificate{identity.Certificate},
 		RootCAs:      identity.Roots.Clone(), ClientCAs: identity.Roots.Clone(),
-		ServerName: identity.PeerDNSName, NextProtos: []string{objectReadControlALPN},
+		ServerName: identity.PeerDNSName, NextProtos: []string{protocol},
 		SessionTicketsDisabled: true,
 	}
 	config.VerifyConnection = func(state tls.ConnectionState) error {
-		if (state.Version != tls.VersionTLS12 && state.Version != tls.VersionTLS13) || state.NegotiatedProtocol != objectReadControlALPN || len(state.VerifiedChains) == 0 || len(state.PeerCertificates) == 0 {
+		if (state.Version != tls.VersionTLS12 && state.Version != tls.VersionTLS13) || state.NegotiatedProtocol != protocol || len(state.VerifiedChains) == 0 || len(state.PeerCertificates) == 0 {
 			return errObjectReadPeer
 		}
 		leaf := state.PeerCertificates[0]

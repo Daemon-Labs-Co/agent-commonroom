@@ -295,3 +295,37 @@ func TestCaptureAuthorityClientRejectsSubstitutedBindings(t *testing.T) {
 		})
 	}
 }
+
+func TestCaptureAuthorityIdleEOFRevokesLifetimeAndJoinsPump(t *testing.T) {
+	t.Parallel()
+	j, _ := captureJournalFixture(t)
+	left, right := net.Pipe()
+	var stopped atomic.Int32
+	client, err := newCaptureAuthorityClient(left, j.record, j.intent, func() { stopped.Add(1) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.StopCaptureAuthority()
+	if client.CaptureAuthorityLifetime() == nil || client.CaptureAuthorityLifetime().Err() != nil {
+		t.Fatal("missing live authority lifetime")
+	}
+	right.Close()
+	select {
+	case <-client.CaptureAuthorityLifetime().Done():
+	case <-time.After(2 * time.Second):
+		t.Fatal("idle EOF did not revoke authority")
+	}
+	client.StopCaptureAuthority()
+	if stopped.Load() != 1 {
+		t.Fatal("authority stop notification repeated", stopped.Load())
+	}
+	if err := client.AuthorizeCapture(t.Context(), j.record, j.intent, workerProbeEvent{Stage: "begin"}); err == nil {
+		t.Fatal("fresh context revived closed capture authority")
+	}
+	link := client.stream.(*watchedWorkerAuditLink)
+	select {
+	case <-link.done:
+	default:
+		t.Fatal("control read pump not joined")
+	}
+}

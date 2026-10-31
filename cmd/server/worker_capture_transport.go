@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -105,17 +106,38 @@ type captureAuthorityClient struct {
 	failed   bool
 	stop     func()
 	once     sync.Once
+	notify   sync.Once
+	lifetime context.Context
+	cancel   context.CancelFunc
+	stopped  atomic.Bool
 }
 
 func newCaptureAuthorityClient(stream io.ReadWriteCloser, r workerJobRecord, i workerCaptureIntent, stop func()) (*captureAuthorityClient, error) {
 	if nilWorkerObservationDependency(stream) || stop == nil || !captureAuthorityBinding(r, i) {
 		return nil, errWorkerProbeJournal
 	}
-	return &captureAuthorityClient{stream: stream, record: detachedProbeWorkerRecord(r), intent: copyCaptureIntent(i), stop: stop}, nil
+	lifetime, cancel := context.WithCancel(context.Background())
+	c := &captureAuthorityClient{record: detachedProbeWorkerRecord(r), intent: copyCaptureIntent(i), stop: stop, lifetime: lifetime, cancel: cancel}
+	c.stream = newWatchedWorkerAuditLink(lifetime, stream, c.markStopped)
+	return c, nil
+}
+
+// The sole bounded raw-stream pump revokes idle authority on EOF/error. This
+// callback must never join its own pump or reenter the private control stream.
+func (c *captureAuthorityClient) markStopped() {
+	c.stopped.Store(true)
+	c.cancel()
+	c.notify.Do(c.stop)
+}
+func (c *captureAuthorityClient) CaptureAuthorityLifetime() context.Context {
+	if c == nil {
+		return nil
+	}
+	return c.lifetime
 }
 func (c *captureAuthorityClient) StopCaptureAuthority() {
 	if c != nil {
-		c.once.Do(func() { _ = c.stream.Close(); c.stop() })
+		c.once.Do(func() { _ = c.stream.Close(); c.markStopped() })
 	}
 }
 func (c *captureAuthorityClient) exchange(ctx context.Context, operation string, e workerProbeEvent, r *workerCaptureRecord) error {
@@ -124,11 +146,13 @@ func (c *captureAuthorityClient) exchange(ctx context.Context, operation string,
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.failed {
+	if c.failed || c.stopped.Load() {
 		return errWorkerProbeJournal
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	stopLifetime := context.AfterFunc(c.lifetime, cancel)
+	defer stopLifetime()
 	fail := func() error { c.failed = true; c.StopCaptureAuthority(); return errWorkerProbeJournal }
 	if ctx.Err() != nil {
 		return fail()
@@ -138,7 +162,7 @@ func (c *captureAuthorityClient) exchange(ctx context.Context, operation string,
 	defer stopIO()
 	q := captureAuthorityRequest{Version: 1, Sequence: c.sequence, Operation: operation, Intent: c.intent, Event: e, Record: r}
 	var response captureAuthorityResponse
-	if writeCaptureAuthorityFrame(c.stream, q) != nil || readCaptureAuthorityFrame(c.stream, &response) != nil || response.Version != 1 || response.Sequence != c.sequence || !response.Accepted || ctx.Err() != nil {
+	if writeCaptureAuthorityFrame(c.stream, q) != nil || readCaptureAuthorityFrame(c.stream, &response) != nil || response.Version != 1 || response.Sequence != c.sequence || !response.Accepted || ctx.Err() != nil || c.stopped.Load() {
 		return fail()
 	}
 	return nil

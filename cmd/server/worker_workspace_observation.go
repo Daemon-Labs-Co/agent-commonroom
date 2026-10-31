@@ -27,6 +27,7 @@ type workerWorkspaceObservationGuard interface {
 // host root exists. A fork bypassing the lock or mount contract invalidates claims.
 type workerWorkspaceObservation struct {
 	mu              sync.Mutex
+	operations      sync.WaitGroup
 	active          bool
 	lifetime        context.Context
 	dir, dockerRoot string
@@ -34,6 +35,32 @@ type workerWorkspaceObservation struct {
 	runner          toolbroker.DockerRunner
 	guard           workerWorkspaceObservationGuard
 	ownership       *workerLease
+}
+
+// Admission and teardown share mu: once active is cleared no Add can race the
+// teardown Wait. The completion callback must run only after all cleanup joins.
+func (l *workerWorkspaceObservation) beginOperation(ctx context.Context) (context.Context, func(), error) {
+	if l == nil || ctx == nil || ctx.Err() != nil {
+		return nil, nil, errWorkerProbeJournal
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if !l.active || l.lifetime == nil || l.lifetime.Err() != nil || l.ownership == nil || l.ownership.file == nil {
+		return nil, nil, errWorkerProbeJournal
+	}
+	l.operations.Add(1)
+	child, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(l.lifetime, cancel)
+	return child, func() { stop(); cancel(); l.operations.Done() }, nil
+}
+
+func (l *workerWorkspaceObservation) operationCurrent(ctx context.Context) bool {
+	if l == nil || ctx == nil || ctx.Err() != nil {
+		return false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.active && l.lifetime != nil && l.lifetime.Err() == nil
 }
 
 func (l *workerWorkspaceObservation) Check(ctx context.Context) error {
@@ -185,7 +212,17 @@ func withWorkerWorkspaceOwnership(ctx context.Context, dir string, expected work
 	lifetime, expire := context.WithCancel(ctx)
 	defer expire()
 	l := &workerWorkspaceObservation{ownership: ownership, active: true, lifetime: lifetime, dir: dir, dockerRoot: dockerRoot, record: expected, runner: runner, guard: guard}
-	defer func() { l.mu.Lock(); l.active = false; l.mu.Unlock() }()
+	defer func() {
+		// Cancel BEFORE acquiring mu: a current journal transition may hold mu
+		// while awaiting a dependency that needs this cancellation to return.
+		// beginOperation also checks lifetime.Err, so new admission is already
+		// refused while teardown waits for the mutex. Join before creator unlock.
+		expire()
+		l.mu.Lock()
+		l.active = false
+		l.mu.Unlock()
+		l.operations.Wait()
+	}()
 	if err = use(l); err != nil {
 		return err
 	}
