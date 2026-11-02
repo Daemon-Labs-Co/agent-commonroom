@@ -7,7 +7,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"sort"
 	"time"
 )
@@ -167,7 +166,7 @@ func (s *server) workspaceDisposal(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	latest, err := s.load(r.Context())
 	currentJob, found := latest.ManagedJobs[p.Job.JobID]
-	if err != nil || s.integrityFault || !disposalOwner(latest, requestActor(r)) || !latest.FeatureFlags["workspaceDisposal"] || !found || !sameDisposalJob(currentJob, p.Job) || currentJob.ShutdownConfirmed || s.active[currentJob.ParticipantID] || currentJob.Worker != os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS") {
+	if err != nil || s.integrityFault || !disposalOwner(latest, requestActor(r)) || !latest.FeatureFlags["workspaceDisposal"] || !found || !sameDisposalJob(currentJob, p.Job) || currentJob.ShutdownConfirmed || s.active[currentJob.ParticipantID] || currentJob.Worker != configuredWorkerIdentity() {
 		s.mu.Unlock()
 		http.Error(w, "Disposal authorization changed", 409)
 		return

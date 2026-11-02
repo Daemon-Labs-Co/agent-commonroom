@@ -360,3 +360,9 @@ nav .attention-room-button { min-width:0; max-width:100%; }
 .background-timeline time,.background-timeline small{font-size:11px;color:#77758d}
 /* Free job diagnostics: only the bounded inner timeline scrolls. */
 #modal:has(#job-diagnostics-content){width:min(900px,calc(100vw - 32px));max-height:calc(100dvh - 32px);display:flex;flex-direction:column}#modal:not([open]):has(#job-diagnostics-content){display:none}#job-diagnostics-content{min-height:0;overflow-y:auto;max-height:calc(100dvh - 200px);padding-right:8px}.job-diagnostic-card{padding:16px 0;border-top:1px solid var(--border)}.job-diagnostic-card code{overflow-wrap:anywhere}.job-diagnostic-card .actions{gap:12px}
+
+header>strong{display:flex;align-items:center;gap:10px}header .brand-mark{object-fit:contain}header .environment{display:flex;align-items:center;gap:12px}
+
+.external-link-icon{display:inline-block;width:14px;height:14px;vertical-align:-2px;background:currentColor;mask:url("/icons/external-link.svg") center/contain no-repeat;-webkit-mask:url("/icons/external-link.svg") center/contain no-repeat}
+
+.avatar.human-avatar-large{width:60px;height:60px;font-size:24px;border-radius:16px}

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,6 +33,7 @@ type ownerAuth struct {
 	attempts               int
 	window                 time.Time
 	port                   string
+	publicOrigin           string
 }
 
 // The local bootstrap code is never served through HTTP or included in audit payloads.
@@ -76,15 +78,45 @@ func newOwnerAuth(key, addr string) (*ownerAuth, error) {
 	}
 	return &ownerAuth{key: key, port: port, sessions: map[string]ownerSession{}, challenges: map[string]ownerChallenge{}}, nil
 }
+
+// configurePublicOrigin admits one operator-configured HTTPS origin behind a
+// TLS reverse proxy. The listener remains loopback-only; forwarded headers never
+// grant trust. Empty configuration preserves the original local-only policy.
+func (a *ownerAuth) configurePublicOrigin(value string) error {
+	if value == "" {
+		a.publicOrigin = ""
+		return nil
+	}
+	u, err := url.Parse(value)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.Opaque != "" || strings.ContainsAny(u.Host, "*\\ \t\r\n") || strings.ToLower(u.Host) != u.Host || u.Hostname() == "" {
+		return fmt.Errorf("COMMONROOM_PUBLIC_ORIGIN must be one exact lowercase HTTPS origin without a path, credentials, query or fragment")
+	}
+	if port := u.Port(); port != "" {
+		if _, err := net.LookupPort("tcp", port); err != nil {
+			return fmt.Errorf("COMMONROOM_PUBLIC_ORIGIN has an invalid port")
+		}
+	}
+	a.publicOrigin = value
+	return nil
+}
 func (a *ownerAuth) trustedRequest(r *http.Request) bool {
 	allowed := map[string]bool{net.JoinHostPort("127.0.0.1", a.port): true, net.JoinHostPort("localhost", a.port): true, net.JoinHostPort("::1", a.port): true}
-	if !allowed[r.Host] {
+	expectedOrigin := "http://" + r.Host
+	public := false
+	if a.publicOrigin != "" {
+		u, _ := url.Parse(a.publicOrigin)
+		public = r.Host == u.Host
+		if public {
+			expectedOrigin = a.publicOrigin
+		}
+	}
+	if !allowed[r.Host] && !public {
 		return false
 	}
 	if site := r.Header.Get("Sec-Fetch-Site"); site == "cross-site" {
 		return false
 	}
-	if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host {
+	if origin := r.Header.Get("Origin"); origin != "" && origin != expectedOrigin {
 		return false
 	}
 	return true
@@ -117,7 +149,7 @@ func (a *ownerAuth) protect(next http.Handler) http.Handler {
 			http.Error(w, "Untrusted request origin or host", 403)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api/login" && r.URL.Path != "/api/challenge" {
+		if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api/login" && r.URL.Path != "/api/challenge" && r.URL.Path != "/api/setup-status" {
 			if _, ok := a.session(r); !ok {
 				http.Error(w, "Sign in required", 401)
 				return
@@ -228,7 +260,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to save private session", 503)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
+	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: token, Path: "/", HttpOnly: true, Secure: a.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
 	reply(w, map[string]any{"csrf": session.CSRF, "actorId": actorID, "actorType": "human", "keySetupPending": a.setupPending && actorID == ownerID})
 }
 func (s *server) logout(w http.ResponseWriter, r *http.Request) {
@@ -258,6 +290,6 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 		}
 		s.auth.mu.Unlock()
 	}
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: "", Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: "", Path: "/", HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: -1})
 	reply(w, map[string]bool{"signedOut": true})
 }

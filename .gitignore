@@ -67,3 +67,7 @@ backup*.sql
 # Local scanner output
 secret-scan*.json
 secret-scan*.sarif
+# Deployment-local credentials and generated administrator SQL
+deployment/local/
+runtime.env
+provision-runtime.sql

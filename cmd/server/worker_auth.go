@@ -67,6 +67,13 @@ func decodeWorkerAuth(encoded string) (workerAuthRequest, error) {
 	return v, err
 }
 func interactiveWorkerLogin(alias, encoded string) string {
+	if alias == "commonroom-server" {
+		executable, err := os.Executable()
+		if err != nil {
+			return "Worker executable unavailable"
+		}
+		return shellArgument(executable) + " --agent-worker auth-login-v1 " + shellArgument(encoded)
+	}
 	return "ssh -tt -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 " + shellArgument(alias) + " " + shellArgument("exec ~/.local/bin/commonroom-worker auth-login-v1 "+shellArgument(encoded))
 }
 func providerCredentialName(provider string) string {

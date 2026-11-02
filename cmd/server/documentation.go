@@ -19,6 +19,7 @@ var documentationCatalog = []documentationEntry{
 	{"product-functionality", "Free core and commercial functionality inventory", "docs/technical/product-functionality.md"},
 	{"documentation-policy", "Documentation audience contract", "docs/technical/documentation-policy.md"},
 	{"user-docs", "User documentation by functionality", "docs/user/README.md"},
+	{"user-faq", "Frequently asked questions", "docs/user/faq.md"},
 	{"technical-docs", "Technical input/output reference", "docs/technical/README.md"},
 	{"user-agents", "Connect and check an agent", "docs/user/agents.md"},
 	{"user-getting-started", "Install and open CommonRoom", "docs/user/getting-started.md"},

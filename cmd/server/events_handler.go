@@ -114,7 +114,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if requestActor(r) != ownerID {
-		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged"
+		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.photo_size.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged"
 		a, _ := member(st, requestActor(r))
 		if req.Kind == "workflow.revised" && a.Role == "Developer" {
 			allowed = true
@@ -154,7 +154,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 	var p any
 	var ok bool
 	switch req.Kind {
-	case "agents.idle_policy.updated", "feature.flag.updated", "actor.help.updated", "actor.image.updated", "actor.name.updated", "company.organization.updated", "company.updated", "human.profile.updated":
+	case "agents.idle_policy.updated", "feature.flag.updated", "actor.help.updated", "actor.image.updated", "actor.photo_size.updated", "actor.name.updated", "company.organization.updated", "company.updated", "human.profile.updated":
 		p, ok = s.prepareIdentityEvent(w, r, st, roomID, req)
 	case "workflow.revised", "room.created", "room.updated", "task.revised", "evidence.created":
 		p, ok = s.prepareRoomsEvent(w, r, st, roomID, req)

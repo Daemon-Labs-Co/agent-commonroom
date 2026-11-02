@@ -5025,3 +5025,31 @@ proof does not establish live daemon or descendant termination guarantees.
 - Keep this diagnostic refinement quiet; the previously reported physical-storage
   prerequisite remains unresolved. Preserve human approval for read-only inspection
   and require separate authorization before any deployment modification.
+
+## 2026-11-01 (America/Toronto): Server-machine connection correction
+
+- Corrected the server hostname card/header independently of browser URL. Selecting
+  the server now supplies the reserved isolated worker endpoint instead of a host
+  Codex/Claude command. COMMONROOM_SERVER_WORKER defaults false; operator changes
+  require restart, and simultaneous server/remote transports refuse startup.
+- The current executable's constrained --agent-worker entry point handles the
+  server transport. It retains container isolation, lifecycle/audit identities,
+  provider authentication, cancellation, startup/resume idle verification and
+  historical binding checks. Database/migration/PostgreSQL credentials are removed
+  from the child environment. No direct host model fallback was added.
+- Added selection/request, authenticated draft API, disabled-state, worker failure,
+  historical binding, interactive-login routing and credential-filter regressions.
+  External dependencies remain mocked. Final make test: exit0,49.28s; make check:
+  exit0,69.02s. Earlier check caught a documentation heading contract failure;
+  the technical contract was corrected and checks rerun successfully.
+- Debian deployment: built the existing agent image using installed immutable Node
+  base, Codex0.159.3 and Claude2.1.316, pinned worker configuration to the resulting
+  local image ID, enabled server transport and kept remote SSH transport disabled.
+  Actual ready-v1 returned configured=true,runtimeReady=true,lifecycleVersion=2;
+  credentials were false for both providers. Actual idle-v1 returned idle=true.
+  Live HTTPS homepage and corrected script returned200. No provider task, diff
+  acceptance, commit or branch push was exercised; the complete coding loop is
+  still unverified. Provider sign-in remains required.
+- Binary rollback on Jerry: bin/commonroom.before-server-worker. Private cumulative
+  source recovery target: /private/tmp/commonroom-server-worker-current.patch.
+  No source staging, commits, pushes or remote Git mutations were performed.

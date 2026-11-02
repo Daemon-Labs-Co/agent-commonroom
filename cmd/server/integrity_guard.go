@@ -95,7 +95,7 @@ func (s *server) recoverIntegrityLocked(w http.ResponseWriter, r *http.Request) 
 	if probe == nil {
 		probe = remoteWorkerIdle
 	}
-	idle, err := probe(ctx, "ssh://"+os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"))
+	idle, err := probe(ctx, approvedWorkerEndpoint())
 	if err != nil || !idle {
 		http.Error(w, "Approved worker shutdown could not be verified", 503)
 		return

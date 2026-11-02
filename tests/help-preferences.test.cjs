@@ -15,3 +15,9 @@ assert.equal(vm.runInContext(`helpURL('concepts','organized-history')`,context),
 assert.equal(vm.runInContext(`helpURL('concepts','messages-and-context')`,context),'/help/?doc=concepts#messages-and-context');
 assert.equal(vm.runInContext(`helpURL('concepts','__proto__')`,context),'/help/?doc=concepts#__proto__');
 assert.equal(vm.runInContext(`helpURL('installation','connect-agents')`,context),'/help/?doc=connection-sign-in');
+context.state=null;
+assert.equal(vm.runInContext('helpDisplayMode()',context),'same-window');
+assert.equal(vm.runInContext('helpWindowChoiceEnabled()',context),false);
+vm.runInContext(`openDocumentation('user-getting-started')`,context);
+assert.equal(iframe.src,'/help/?doc=user-getting-started');
+assert.equal(control.hidden,true);

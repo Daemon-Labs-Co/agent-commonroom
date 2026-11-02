@@ -69,6 +69,57 @@ func TestHumanPhotoSelfOnlyAndFlag(t *testing.T) {
 		t.Fatal("member changed flag")
 	}
 }
+
+func TestHumanPhotoSizeSelfOnlyPersistenceAndFlag(t *testing.T) {
+	t.Parallel()
+	s, db, h := mockServer(t)
+	db.seed("actor.revised", room.Actor{ID: "dev", Kind: "human", Enabled: true, RoomIDs: []string{"engineering"}})
+	s.auth.sessions["owner"] = ownerSession{ActorID: "dev", CSRF: "csrf", Expires: time.Now().Add(time.Hour)}
+	for _, size := range []string{"", "medium", "60", "LARGE"} {
+		body, _ := json.Marshal(map[string]any{"kind": "actor.photo_size.updated", "payload": map[string]string{"size": size}})
+		if w := mockRequest(h, "POST", "/api/events", string(body)); w.Code != 400 {
+			t.Fatal("invalid size accepted", size, w.Code)
+		}
+	}
+	body := `{"kind":"actor.photo_size.updated","payload":{"id":"local-owner","size":"large"}}`
+	if w := mockRequest(h, "POST", "/api/events", `{"kind":"actor.photo_size.updated","payload":{"size":"small"}}`); w.Code != 200 {
+		t.Fatal("small size refused", w.Code)
+	}
+	if w := mockRequest(h, "POST", "/api/events", body); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	fresh := &server{db: db}
+	st, err := fresh.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev, _ := member(st, "dev")
+	owner, _ := member(st, ownerID)
+	if dev.PhotoSize != "large" || owner.PhotoSize != "" {
+		t.Fatal("size changed wrong profile or was not persisted")
+	}
+	db.seed("actor.revised", room.Actor{ID: "dev", Kind: "human", Enabled: true, Revision: 2, RoomIDs: []string{"engineering"}})
+	st, err = fresh.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev, _ = member(st, "dev")
+	if dev.PhotoSize != "large" {
+		t.Fatal("profile revision discarded size")
+	}
+	db.seed("feature.flag.updated", map[string]any{"name": "humanProfileImages", "enabled": false})
+	if w := mockRequest(h, "POST", "/api/events", body); w.Code != 403 {
+		t.Fatal("disabled size change accepted", w.Code)
+	}
+	st, err = fresh.load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev, _ = member(st, "dev")
+	if dev.PhotoSize != "large" {
+		t.Fatal("flag erased preference")
+	}
+}
 func TestOwnerFlagsPersistWithoutResumingAgents(t *testing.T) {
 	t.Parallel()
 	s, db, h := mockServer(t)

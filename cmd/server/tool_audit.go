@@ -111,7 +111,7 @@ func (a *controllerToolAuditor) check(ctx context.Context, bound bool) (room.Sta
 			roomExists = true
 		}
 	}
-	alias, provider, endpointErr := remoteWorkerEndpoint(connection.Endpoint, job.Worker, "true")
+	alias, provider, endpointErr := boundWorkerEndpoint(connection.Endpoint, job.Worker)
 	if !roomExists || participant.ID == "" || connection.Protocol != "CLI" || participant.CompanyID != st.Company.ID || connection.CompanyID != st.Company.ID || endpointErr != nil || alias != job.Worker || provider != job.Provider {
 		return st, principal, participant, connection, toolbroker.ErrAudit
 	}

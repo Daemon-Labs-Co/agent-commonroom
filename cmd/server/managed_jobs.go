@@ -131,7 +131,7 @@ func (s *server) managedExecutionJobContextVersion(ctx context.Context, p room.P
 					found = true
 				}
 			}
-			boundAlias, boundProvider, bindingErr := remoteWorkerEndpoint(binding.Connection.Endpoint, alias, "true")
+			boundAlias, boundProvider, bindingErr := boundWorkerEndpoint(binding.Connection.Endpoint, alias)
 			if bindingErr != nil || boundAlias != alias || boundProvider != provider {
 				found = false
 			}

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -103,7 +102,7 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		}
 		probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
-		idle, probeErr := probe(probeCtx, "ssh://"+os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"))
+		idle, probeErr := probe(probeCtx, approvedWorkerEndpoint())
 		if probeErr != nil || !idle {
 			http.Error(w, "Worker shutdown could not be verified; task remains pending", 503)
 			return

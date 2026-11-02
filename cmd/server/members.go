@@ -53,7 +53,7 @@ func canAccess(st room.State, actor, rid string) bool {
 }
 func (s *server) actorGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/api/login" || r.URL.Path == "/api/challenge" {
+		if !strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/api/login" || r.URL.Path == "/api/challenge" || r.URL.Path == "/api/setup-status" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -155,7 +155,7 @@ func projectActors(st *room.State) {
 			st.Actors[i].Name = st.HumanName
 			st.Actors[i].Title = st.HumanTitle
 			if st.Actors[i].Name == "" {
-				st.Actors[i].Name = "Mark"
+				st.Actors[i].Name = "Change Me"
 			}
 		}
 	}

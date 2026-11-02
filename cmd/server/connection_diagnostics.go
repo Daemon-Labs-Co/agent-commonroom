@@ -95,7 +95,11 @@ func checkConnectionDraftProgress(ctx context.Context, c room.Connection, alias,
 		return result
 	}
 	add("Worker configuration", "passed", "Connection targets the approved isolated worker")
-	start("Worker runtime", "Connecting over verified SSH and checking the isolated Docker runtime")
+	transport := "Connecting over verified SSH and checking the isolated Docker runtime"
+	if worker == "commonroom-server" {
+		transport = "Checking the isolated Docker worker on this CommonRoom server"
+	}
+	start("Worker runtime", transport)
 	raw, err := probe(ctx, worker, "ready-v1", "")
 	if err != nil {
 		add("Worker runtime", "failed", err.Error())
@@ -111,7 +115,11 @@ func checkConnectionDraftProgress(ctx context.Context, c room.Connection, alias,
 		add("Worker runtime", "failed", "Worker returned an invalid or unready runtime response")
 		return result
 	}
-	add("Worker runtime", "passed", "SSH transport, rootless Docker, required limits and pinned image are ready")
+	detail := "SSH transport, rootless Docker, required limits and pinned image are ready"
+	if worker == "commonroom-server" {
+		detail = "Server worker protocol, rootless Docker, required limits and pinned image are ready"
+	}
+	add("Worker runtime", "passed", detail)
 	if !registered {
 		result.Status = "needs-registration"
 		add("Connection sign-in", "required", "Worker setup passed. Register or save this configuration, then sign in and test again to verify a provider response. No credentials were read and no model prompt was sent.")

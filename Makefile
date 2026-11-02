@@ -118,6 +118,7 @@ check: test-race
 	node tests/profile-images.test.cjs
 	node --check web/agent-safety.js
 	node tests/agent-safety.test.cjs
+	node tests/agent-safety-dialog.test.cjs
 	node --check web/history-presentation.js
 	node --test tests/history-presentation.test.cjs
 	node --check web/history.js
@@ -126,6 +127,7 @@ check: test-race
 	node --test tests/history-pagination.test.cjs
 	node --check web/help.js
 	node tests/help-preferences.test.cjs
+	node tests/first-owner-login.test.cjs
 	node --check web/help-reader.js
 	node tests/help-reader.test.cjs
 
