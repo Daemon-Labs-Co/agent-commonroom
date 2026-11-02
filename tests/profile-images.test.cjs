@@ -9,3 +9,10 @@ test('upload rejects unsupported formats and excessive size before decoding',asy
  await assert.rejects(scope.resizeHumanPhoto({type:'image/svg+xml',size:10}),/JPEG or PNG/);
  await assert.rejects(scope.resizeHumanPhoto({type:'image/png',size:6*1024*1024}),/5 MB/);
 });
+test('photo size defaults small, doubles for large, and respects hidden flag',()=>{
+ assert.equal(scope.humanPhotoSize(null),30);
+ assert.equal(scope.humanPhotoSize({photoSize:'small'}),30);
+ assert.equal(scope.humanPhotoSize({photoSize:'large'}),60);
+ assert.equal(scope.humanPhotoSize({photoSize:'large'},false),30);
+ assert.equal(scope.humanPhotoSize({photoSize:'untrusted'}),30);
+});

@@ -1,5 +1,5 @@
 "use strict";
-function helpWindowChoiceEnabled(){return typeof state!=='undefined'&&state?.featureFlags?.helpWindowChoice!==false;}
+function helpWindowChoiceEnabled(){return typeof state!=='undefined'&&!!state&&state.featureFlags?.helpWindowChoice!==false;}
 function helpDisplayMode(){if(!helpWindowChoiceEnabled())return 'same-window';return state.actors?.find(a=>a.id===state.currentActorId)?.helpDisplay==='separate-window'?'separate-window':'same-window';}
 const helpSectionTopics=Object.freeze({
   "workflow-templates": "workflow-templates",

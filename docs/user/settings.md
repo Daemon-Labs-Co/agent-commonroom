@@ -20,6 +20,12 @@ storage and repository publishing. A switch is not a commercial entitlement.
 
 ## Expected result
 
+To change your portrait size, open your profile, choose **Change profile photo**,
+then set **Display size** to **Small (30 × 30)** or **Large (60 × 60)** and save.
+Small is the default. Large doubles both dimensions in the squad and beside your
+messages, including the initials placeholder when no photo is uploaded. The choice
+is saved with your account and retained when photos are disabled.
+
 The server accepts permitted changes and retains history. Disabling functionality
 preserves its data. An integrity incident blocks agent activity until explicitly
 verified recovery. See [identity and settings](../technical/identity.md).

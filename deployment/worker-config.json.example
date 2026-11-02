@@ -1,0 +1,4 @@
+{
+  "image": "sha256:REPLACE_WITH_INSTALLED_COMMONROOM_AGENT_IMAGE_ID",
+  "authDir": "/home/REPLACE_WITH_OPERATOR/.local/share/commonroom-worker/auth"
+}

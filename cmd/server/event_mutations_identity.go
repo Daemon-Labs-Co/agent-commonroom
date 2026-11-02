@@ -43,6 +43,25 @@ func (s *server) prepareIdentityEvent(w http.ResponseWriter, r *http.Request, st
 			return nil, false
 		}
 		p = v
+	case "actor.photo_size.updated":
+		var v struct {
+			ID   string `json:"id"`
+			Size string `json:"size"`
+		}
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Size != "small" && v.Size != "large") {
+			http.Error(w, "Choose small or large profile photos", 400)
+			return nil, false
+		}
+		v.ID = requestActor(r)
+		if a, ok := member(st, v.ID); !ok || a.Kind != "human" || !a.Enabled {
+			http.Error(w, "Enabled human profile required", 403)
+			return nil, false
+		}
+		if !humanProfileImagesEnabled(st) {
+			http.Error(w, "Profile photos are disabled", 403)
+			return nil, false
+		}
+		p = v
 	case "actor.image.updated":
 		var v struct {
 			ID    string  `json:"id"`

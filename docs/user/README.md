@@ -18,6 +18,7 @@ readiness. Run helper commands from the repository root.
 | Storage limits and retained work | [Storage limits and retained work](storage.md) |
 | Stop, diagnose and recover work | [Stop, diagnose and recover work](recovery.md) |
 | Settings, history and sharing | [Settings, history and sharing](settings.md) |
+| Common setup and configuration questions | [Frequently asked questions](faq.md) |
 
 ```bash
 bash scripts/user-guide.sh getting-started

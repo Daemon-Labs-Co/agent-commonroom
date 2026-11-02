@@ -1,5 +1,6 @@
 // Photos are presentation metadata on an authenticated human account.
 function humanPhoto(actor, enabled=true){return enabled && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(actor?.image||'')?actor.image:''}
+function humanPhotoSize(actor,enabled=true){return enabled&&actor?.photoSize==='large'?60:30}
 async function resizeHumanPhoto(file){
  if(!['image/jpeg','image/png'].includes(file.type)||file.size>5*1024*1024)throw Error('Choose a JPEG or PNG photo up to 5 MB.');
  const bitmap=await createImageBitmap(file);
@@ -13,9 +14,10 @@ async function resizeHumanPhoto(file){
 }
 function editHumanPhoto(){
  const person=state.actors.find(a=>a.id===state.currentActorId);const enabled=state.featureFlags?.humanProfileImages!==false;let pending=null;
- form('Your profile photo','<p>Used in the squad and beside your chat messages in every room. Choose a JPEG or PNG, up to 5 MB. We resize it before saving.</p><label class="field">Photo<input type="file" id="human-photo-file" accept="image/jpeg,image/png"></label><div id="human-photo-preview"></div><label><input type="checkbox" name="remove"> Remove my photo</label><p class="muted">Photo revisions are kept in immutable history until normal retention and human-authorized purge. Removing a photo stops displaying it; it does not erase earlier records.</p>',async d=>{
+ form('Your profile photo','<p>Used in the squad and beside your chat messages in every room. Choose a JPEG or PNG, up to 5 MB. We resize it before saving.</p><label class="field">Photo<input type="file" id="human-photo-file" accept="image/jpeg,image/png"></label><div id="human-photo-preview"></div><label class="field">Display size<select name="photoSize" '+(!enabled?'disabled':'')+'><option value="small" '+(person?.photoSize!=='large'?'selected':'')+'>Small (30 × 30)</option><option value="large" '+(person?.photoSize==='large'?'selected':'')+'>Large (60 × 60)</option></select></label><label><input type="checkbox" name="remove"> Remove my photo</label><p class="muted">Photo revisions are kept in immutable history until normal retention and human-authorized purge. Removing a photo stops displaying it; it does not erase earlier records.</p>',async d=>{
  if(d.has('remove'))await commit('actor.image.updated',{image:''});
  else if(pending!==null)await commit('actor.image.updated',{image:pending});
+ if(enabled&&d.get('photoSize')!==(person?.photoSize||'small'))await commit('actor.photo_size.updated',{size:d.get('photoSize')});
  });
  const preview=$('#human-photo-preview');const display=value=>{preview.replaceChildren();if(value){const img=document.createElement('img');img.src=value;img.alt='Your profile photo preview';img.className='human-photo-preview';preview.append(img)}};display(humanPhoto(person));
  const fileInput=$('#human-photo-file');fileInput.disabled=!enabled;if(!enabled){preview.textContent='Profile photos are disabled. You can still remove your saved photo.'}const save=$('#modal button[type="submit"]')||$('#modal .primary');
@@ -29,7 +31,7 @@ const photoForm=form;form=function(title,fields,save){
 };
 const photoRender=render;render=function(){
  photoRender();const enabled=state.featureFlags?.humanProfileImages!==false;
- const apply=(element,actor)=>{const photo=humanPhoto(actor,enabled);if(!element||!photo)return;const img=document.createElement('img');img.src=photo;img.alt=actor.name+' profile photo';img.className='human-photo';element.replaceChildren(img)};
+ const apply=(element,actor)=>{const photo=humanPhoto(actor,enabled);if(!element||!actor)return;element.classList.toggle('human-avatar-large',humanPhotoSize(actor,enabled)===60);if(!photo)return;const img=document.createElement('img');img.src=photo;img.alt=actor.name+' profile photo';img.className='human-photo';element.replaceChildren(img)};
  document.querySelectorAll('[data-human-id]').forEach(row=>apply(row.querySelector('.avatar'),state.actors.find(a=>a.id===row.dataset.humanId)));
  document.querySelectorAll('.message').forEach((row,i)=>{const m=state.messages[i];if(m?.actorType==='human'||(!m?.actorType&&m?.author==='You')){const id=m.actorId|| (m.author==='You'?'local-owner':'');apply(row.querySelector('.avatar'),state.actors.find(a=>a.id===id))}});
  if(view==='Settings'&&state.currentActorId==='local-owner'){

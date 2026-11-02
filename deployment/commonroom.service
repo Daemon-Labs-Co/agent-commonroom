@@ -1,0 +1,17 @@
+[Unit]
+Description=Agent CommonRoom
+After=network.target
+
+[Service]
+Type=simple
+# Adjust these two application paths to your checkout location.
+WorkingDirectory=%h/workspace/AgentCommonRoom
+ExecStart=%h/workspace/AgentCommonRoom/bin/commonroom
+EnvironmentFile=%h/.config/commonroom/runtime.env
+UMask=0077
+NoNewPrivileges=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

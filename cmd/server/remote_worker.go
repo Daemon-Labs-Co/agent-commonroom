@@ -26,6 +26,12 @@ func validWorkerJobID(v string) bool { return workerJobPattern.MatchString(v) }
 // SSH transports a constrained worker protocol, never arbitrary model commands.
 // Disabling remote transport never restores direct host execution.
 func remoteWorkerEndpoint(endpoint, configured, enabled string) (string, string, error) {
+	if endpoint == "ssh://commonroom-server" || endpoint == "ssh://commonroom-server/claude" {
+		if os.Getenv("COMMONROOM_SERVER_WORKER") != "true" {
+			return "", "", errors.New("The worker on this CommonRoom server is disabled; enable COMMONROOM_SERVER_WORKER after configuring its isolated runtime")
+		}
+		return serverWorkerBinding(endpoint)
+	}
 	if enabled != "true" {
 		return "", "", errors.New("Remote worker transport is disabled; direct SSH execution is forbidden")
 	}
@@ -144,6 +150,22 @@ func validateWorkerRun(v workerRunRequest) error {
 	return nil
 }
 func workerSSHCommand(ctx context.Context, alias, action, value string) *exec.Cmd {
+	// Same-machine transport invokes only the constrained worker entry point.
+	// It must never become a direct model CLI or uncontained fallback. Source
+	// forks can bypass this boundary; doing so exposes host data and credentials.
+	if alias == "commonroom-server" {
+		if os.Getenv("COMMONROOM_SERVER_WORKER") != "true" {
+			return exec.CommandContext(ctx, "")
+		}
+		executable, _ := os.Executable()
+		args := []string{"--agent-worker", action}
+		if value != "" {
+			args = append(args, value)
+		}
+		command := exec.CommandContext(ctx, executable, args...)
+		command.Env = workerProcessEnvironment(os.Environ())
+		return command
+	}
 	// action and value originate from validated enum/base64/hex values; quoting
 	// still protects the remote shell. Host keys must already be trusted.
 	remote := "exec ~/.local/bin/commonroom-worker " + action

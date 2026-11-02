@@ -53,8 +53,27 @@ command never falls back to runtime credentials. It uses `migrations/001.sql`;
 review migration changes before running them. For upgrades retain the existing
 owner rather than transferring unrelated objects.
 
-After migration, connect to the dedicated database as its administrator and
-apply the grants (use the actual runtime role name):
+After migration, connect to the **same dedicated database named in the migration
+URL** as its administrator and apply the grants (use the actual runtime role name).
+Role creation is cluster-wide; tables, sequences and schema grants belong to the
+database of the current connection. `GRANT CONNECT ON DATABASE commonroom` grants
+access but **does not switch the connection to commonroom**.
+
+Save the following grants in `runtime-grants.sql`, then select the database and
+port explicitly. Use your DBA-approved authentication method; do not put a password
+in this command:
+
+```bash
+# Examples: adapt both the port and database name to your installation.
+psql -p 5432 -d commonroom -v ON_ERROR_STOP=1 -f runtime-grants.sql
+# For a database named agentcr on port 5433:
+# psql -p 5433 -d agentcr -v ON_ERROR_STOP=1 -f runtime-grants.sql
+```
+
+Do not rely on `psql < runtime-grants.sql`: without `-d`, psql can connect to a
+default database such as postgres rather than the application database. In an
+interactive session, use `\conninfo` to check the connection and `\connect commonroom`
+to select the intended database before applying schema/table grants.
 
 ```sql
 REVOKE ALL ON DATABASE commonroom FROM PUBLIC;
@@ -66,6 +85,14 @@ GRANT SELECT, INSERT ON TABLE public.events TO commonroom_runtime;
 REVOKE ALL ON SEQUENCE public.events_sequence_seq FROM commonroom_runtime;
 GRANT USAGE ON SEQUENCE public.events_sequence_seq TO commonroom_runtime;
 ```
+
+If `public.events` does not exist, stop and verify the selected database/port and
+that the migration succeeded there. Do not create a substitute table in postgres.
+When a provisioning script wraps role creation and grants in `BEGIN`/`COMMIT`, a
+failed grant aborts the transaction; a subsequent rollback also undoes role creation
+in that transaction. Use `ON_ERROR_STOP=1` to stop at the first SQL error, correct the
+connection, and check existing roles before rerunning setup. Keep any script that
+contains a password private; prefer interactive `\password` for manual credentials.
 
 Coordinate these revocations with the DBA if the database has unexpected users;
 this recipe assumes a dedicated database. Do not grant UPDATE, DELETE, TRUNCATE,

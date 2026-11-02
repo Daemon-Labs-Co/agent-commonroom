@@ -199,6 +199,7 @@ type OrganizationNode struct {
 	Y         float64 `json:"y"`
 }
 type Actor struct {
+	PhotoSize   string   `json:"photoSize,omitempty"`
 	HelpDisplay string   `json:"helpDisplay,omitempty"`
 	Image       string   `json:"image,omitempty"`
 	ID          string   `json:"id"`

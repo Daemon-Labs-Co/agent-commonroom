@@ -179,6 +179,20 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					st.Actors[i].HelpDisplay = v.Mode
 				}
 			}
+		case "actor.photo_size.updated":
+			var v struct {
+				ID   string `json:"id"`
+				Size string `json:"size"`
+			}
+			if err := json.Unmarshal(data, &v); err != nil {
+				return st, err
+			}
+			projectActors(&st)
+			for i := range st.Actors {
+				if st.Actors[i].ID == v.ID {
+					st.Actors[i].PhotoSize = v.Size
+				}
+			}
 		case "actor.image.updated":
 			var v struct {
 				ID    string `json:"id"`
@@ -215,6 +229,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			for i, a := range st.Actors {
 				if a.ID == v.ID {
 					v.HelpDisplay = a.HelpDisplay
+					v.PhotoSize = a.PhotoSize
 					st.Actors[i] = v
 					found = true
 				}

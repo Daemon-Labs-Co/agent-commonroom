@@ -57,6 +57,12 @@ func main() {
 	if flag := os.Getenv("COMMONROOM_REMOTE_WORKER"); flag != "" && flag != "true" && flag != "false" {
 		log.Fatal("COMMONROOM_REMOTE_WORKER must be true or false")
 	}
+	if flag := os.Getenv("COMMONROOM_SERVER_WORKER"); flag != "" && flag != "true" && flag != "false" {
+		log.Fatal("COMMONROOM_SERVER_WORKER must be true or false")
+	}
+	if os.Getenv("COMMONROOM_SERVER_WORKER") == "true" && os.Getenv("COMMONROOM_REMOTE_WORKER") == "true" {
+		log.Fatal("Configure one worker transport: server or remote")
+	}
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
 		url = localConfig.DatabaseURL
@@ -79,8 +85,10 @@ func main() {
 	cancelStartup()
 	s := &server{dailyTurnLimit: dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
 	mux := http.NewServeMux()
+	mux.HandleFunc("/instance-label.js", instanceLabel)
 	mux.HandleFunc("/api/members", s.members)
 	mux.HandleFunc("/api/login", s.login)
+	mux.HandleFunc("/api/setup-status", s.setupStatus)
 	mux.HandleFunc("/api/challenge", s.challenge)
 	mux.HandleFunc("/api/owner-key/download", s.downloadOwnerKey)
 	mux.HandleFunc("/api/logout", s.logout)
@@ -166,7 +174,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err = s.auth.prepareRSA(keyPath); err != nil {
+	if err := s.auth.configurePublicOrigin(os.Getenv("COMMONROOM_PUBLIC_ORIGIN")); err != nil {
+		log.Fatal(err)
+	}
+	if err = s.prepareOwnerIdentity(context.Background(), keyPath); err != nil {
 		log.Fatal(err)
 	}
 	persistentSessions, err := persistentHumanSessionsEnabled()
@@ -179,8 +190,8 @@ func main() {
 	log.Printf("Owner setup code file: %s (keep private)", keyPath)
 	log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", addr)
 	s.checkIntegrityNow()
-	if os.Getenv("COMMONROOM_REMOTE_WORKER") == "true" {
-		s.verifyWorkerAtStartup(context.Background(), "ssh://"+os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"))
+	if os.Getenv("COMMONROOM_REMOTE_WORKER") == "true" || os.Getenv("COMMONROOM_SERVER_WORKER") == "true" {
+		s.verifyWorkerAtStartup(context.Background(), approvedWorkerEndpoint())
 	}
 	go s.watchIntegrity(context.Background(), 30*time.Second)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

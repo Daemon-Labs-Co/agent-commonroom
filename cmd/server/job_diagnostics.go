@@ -75,7 +75,7 @@ func remoteFenceJob(ctx context.Context, alias string, request workerFenceReques
 	return nil
 }
 func (s *server) approvedSnapshot(ctx context.Context) (workerJobsSnapshot, error) {
-	alias, _, err := remoteWorkerEndpoint("ssh://"+os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"))
+	alias, _, err := remoteWorkerEndpoint(approvedWorkerEndpoint(), os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS"), os.Getenv("COMMONROOM_REMOTE_WORKER"))
 	if err != nil {
 		return workerJobsSnapshot{}, errors.New("worker_not_configured")
 	}
@@ -297,7 +297,7 @@ func (s *server) jobRecovery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if job.Worker != os.Getenv("COMMONROOM_REMOTE_WORKER_ALIAS") {
+	if job.Worker != configuredWorkerIdentity() {
 		http.Error(w, "Recorded worker is no longer approved", 409)
 		return
 	}
