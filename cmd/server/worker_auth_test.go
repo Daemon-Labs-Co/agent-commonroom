@@ -268,3 +268,27 @@ func TestSignOutActiveConnectionGuard(t *testing.T) {
 		t.Fatal("non-owner logout accepted")
 	}
 }
+
+func TestCodexDeviceLoginUsesHeadlessContainerAttachment(t *testing.T) {
+	t.Parallel()
+	launch := isolatedRunArgs("sha256:"+strings.Repeat("a", 64), "login-fixture", "volume-fixture", "/temporary/provider.sock", "/unused", "codex", []string{"auth-login"})
+	codex := workerLoginContainerArgs(launch, "codex")
+	if codex[0] != "create" {
+		t.Fatal(codex)
+	}
+	for _, arg := range codex {
+		if arg == "-t" || arg == "-i" || arg == "--rm" || strings.Contains(arg, "/run/provider-auth.json") {
+			t.Fatal("device login retained interactive attachment or existing credential mount", arg)
+		}
+	}
+	joined := strings.Join(codex, " ")
+	for _, boundary := range []string{"--network=none", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges:true", "--pids-limit=128", "--memory=1g", "/run/provider.sock"} {
+		if !strings.Contains(joined, boundary) {
+			t.Fatal("lost isolation boundary", boundary)
+		}
+	}
+	claude := strings.Join(workerLoginContainerArgs(launch, "claude"), " ")
+	if !strings.Contains(claude, "-t") || !strings.Contains(claude, "-i") {
+		t.Fatal("interactive provider changed")
+	}
+}

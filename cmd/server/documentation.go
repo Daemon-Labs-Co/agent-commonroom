@@ -161,7 +161,7 @@ func documentationHandler(root string) http.Handler {
 					break
 				}
 			}
-			for _, asset := range []string{"user-agents.svg", "user-getting-started.svg", "user-recovery.svg", "user-results.svg", "user-rooms.svg", "user-settings.svg", "user-storage.svg", "user-tasks.svg", "user-workflows.svg"} {
+			for _, asset := range []string{"user-claude-login.svg", "user-provider-login.svg", "user-agents.svg", "user-getting-started.svg", "user-recovery.svg", "user-results.svg", "user-rooms.svg", "user-settings.svg", "user-storage.svg", "user-tasks.svg", "user-workflows.svg"} {
 				if r.URL.Path == "/help/image/"+asset {
 					name, contentType = "docs/images/"+asset, "image/svg+xml"
 				}
