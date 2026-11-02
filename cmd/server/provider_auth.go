@@ -9,9 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -31,7 +28,7 @@ func (b *cappedStatusOutput) Write(p []byte) (int, error) {
 }
 
 // providerAuth exposes owner-authorized connection login/status through the
-// approved isolated SSH worker. Passwords and OAuth codes remain in Terminal.
+// approved isolated worker. Passwords and tokens never enter browser responses.
 // Disabling its feature flag cannot disable execution isolation or restore a
 // host CLI fallback. Source forks CAN bypass this, BUT expose host credentials.
 // Durable uncertainty survives controller restart. Configuration/authentication
@@ -106,6 +103,8 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Action       string `json:"action"`
 		ConnectionID string `json:"connectionId"`
+		LoginID      string `json:"loginId,omitempty"`
+		Code         string `json:"code,omitempty"`
 	}
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
 		http.Error(w, "Invalid request", 400)
@@ -174,7 +173,7 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "State unavailable", 503)
 			return
 		}
-		if connectionHasActiveAgent(current, s.active, req.ConnectionID) {
+		if connectionHasActiveAgent(current, s.active, req.ConnectionID) || s.providerLoginSessions[req.ConnectionID] != nil {
 			http.Error(w, "Finish active agents or reconcile unresolved connection work before signing out", 409)
 			return
 		}
@@ -204,51 +203,11 @@ func (s *server) providerAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply(w, map[string]bool{"signedOut": true})
+	case "login-code":
+		s.providerLoginCode(w, r, req.ConnectionID, alias, provider, req.LoginID, req.Code)
 	case "login":
-		if runtime.GOOS != "darwin" {
-			http.Error(w, "Automatic Terminal launch requires macOS; use the documented worker sign-in command", 501)
-			return
-		}
-		if e = os.MkdirAll(".data", 0700); e != nil {
-			http.Error(w, "Unable to prepare sign-in", 500)
-			return
-		}
-		script, e := os.CreateTemp(".data", "connection-login-*.command")
-		if e != nil {
-			http.Error(w, "Unable to prepare sign-in", 500)
-			return
-		}
-		path, e := filepath.Abs(script.Name())
-		if e != nil {
-			script.Close()
-			os.Remove(script.Name())
-			http.Error(w, "Unable to prepare sign-in", 500)
-			return
-		}
-		command := interactiveWorkerLogin(alias, encoded)
-		if e = script.Chmod(0700); e == nil {
-			_, e = script.WriteString("#!/bin/sh\ntrap 'rm -- \"$0\"' EXIT\n" + command + "\n")
-		}
-		closeErr := script.Close()
-		if e != nil || closeErr != nil {
-			os.Remove(path)
-			http.Error(w, "Unable to prepare sign-in", 500)
-			return
-		}
-		// Audit intent before launching; provider URLs, codes and credentials never enter the log.
-		if e = s.append(r.Context(), "provider.login_launched", map[string]string{"actorId": ownerID, "connectionId": req.ConnectionID, "provider": provider}); e != nil {
-			os.Remove(path)
-			http.Error(w, "Unable to record sign-in request", 500)
-			return
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-		if exec.CommandContext(ctx, "/usr/bin/open", "-a", "Terminal", path).Run() != nil {
-			os.Remove(path)
-			http.Error(w, "Unable to open sign-in Terminal", 502)
-			return
-		}
-		reply(w, map[string]bool{"launched": true})
+		s.providerDeviceLogin(w, r, req.ConnectionID, alias, provider, encoded)
+
 	default:
 		http.Error(w, "Unsupported sign-in action", 400)
 	}

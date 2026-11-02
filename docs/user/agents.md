@@ -63,3 +63,76 @@ systemctl --user restart commonroom.service
 
 Expected result: the test checks the container worker on the named server rather
 than asking for another machine. Provider readiness is reported separately.
+
+### Sign in to Codex from your browser
+
+![Codex browser sign-in: start the isolated worker, view the verification link and code, approve at OpenAI, then test the connection](../images/user-provider-login.svg)
+
+Guide illustration, not a live-account acceptance screenshot.
+
+1. Save your Codex connection, then choose **Sign in** and **Start sign-in**.
+2. Wait for the official OpenAI verification link and one-time code to appear.
+   The dialog reports startup progress. If instructions do not arrive within
+   45 seconds, it cancels the attempt and reports an error.
+3. Open the link in its new tab. Enter the displayed code on OpenAI's page and
+   approve access there. Do not send your password or code in room messages.
+4. Return to CommonRoom. The dialog confirms when credentials have been saved
+   privately for this connection. Use **Test connection** to verify provider access.
+5. **Cancel**, closing the dialog or leaving the page cancels the pending request.
+   An expired or interrupted flow requires a new sign-in. Cancellation requests
+   worker cleanup; an unreachable worker can prevent confirmation of cleanup.
+
+This flow works with a browser on a different computer from the Linux worker;
+no macOS Terminal launch is involved. The owner-controlled **connection sign-in**
+setting enables/disables this operation (default enabled). Disabling it blocks
+new requests and preserves credentials. A running sign-in must be cancelled
+separately. Successful sign-in hides Start/Check sign-in and offers **Done**;
+a delayed status check cannot replace the completed state.
+
+```bash
+# Optional server-side check of runtime prerequisites; this does not sign in.
+cd "$HOME/workspace/AgentCommonRoom"
+bin/commonroom --agent-worker ready-v1
+```
+
+Expected result: OpenAI instructions appear in the dialog, followed by saved
+credential status after approval. Missing worker prerequisites or failed login
+produce an error; an interrupted response cannot be mistaken for success.
+
+
+### Sign in to Claude from your browser
+
+![Claude sign-in: start the isolated CLI, approve on Claude’s official site, submit its code to CommonRoom, then finish with Done](../images/user-claude-login.svg)
+
+Guide illustration. Live-account acceptance must be verified separately from
+mocked tests; no real Claude login is certified by this guide.
+
+1. Save a **Claude** connection and choose **Sign in → Start sign-in**.
+2. Open the official Claude authorization link shown in the dialog. Enter your
+   password only on the provider’s page and approve access there.
+3. Copy the authorization code supplied by Claude. Paste it into
+   **Authorization code from Claude** in CommonRoom and choose **Submit authorization code**.
+   CommonRoom forwards it only to that pending connection’s unmodified Claude CLI.
+4. Wait for **Signed in to Claude**, then choose **Done**. The pasted value is
+   cleared immediately, is accepted only once and is not saved in history.
+5. Choose **Test connection**. A saved credential and a successful provider reply
+   are checked separately. You can also use **Edit → Test connection** without
+   saving unchanged connection fields again.
+
+Changing a worker address, method or provider requires saving the connection
+before using its credentials for final verification. Editing only a display
+label does not create a new connection identity or discard its saved revision.
+Closing/cancelling the dialog ends the pending sign-in and invalidates its code
+submission session. After expiry, restart or cancellation, start a fresh sign-in.
+Do not put authorization codes into room messages, logs or screenshots.
+
+```bash
+# Optional runtime check on the CommonRoom server; this does not sign in.
+cd "$HOME/workspace/AgentCommonRoom"
+bin/commonroom --agent-worker ready-v1
+```
+
+Expected result: Claude-specific instructions, an authorization-code field and
+then a completed **Done** state. No terminal command is shown as a substitute for
+browser sign-in. The existing owner-only connection-sign-in flag governs both
+providers and code submission.

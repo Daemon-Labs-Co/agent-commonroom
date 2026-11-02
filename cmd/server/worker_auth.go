@@ -205,21 +205,8 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 		exec.CommandContext(cleanup, "docker", "volume", "rm", volume, volume+"-work").Run()
 	}()
 	launch := isolatedRunArgs(os.Getenv("COMMONROOM_AGENT_IMAGE"), name, volume, gateway.socket, "/unused", v.Provider, []string{"auth-login"})
-	filtered := []string{}
-	for i := 0; i < len(launch); i++ {
-		if launch[i] == "--rm" {
-			continue
-		}
-		if launch[i] == "--mount" && i+1 < len(launch) && strings.Contains(launch[i+1], "dst=/run/provider-auth.json") {
-			i++
-			continue
-		}
-		filtered = append(filtered, launch[i])
-	}
-	// Create separately so failed name collisions cannot lead to another login
-	// being removed. stdin remains interactive for provider authorization codes.
-	filtered[0] = "create"
-	filtered = append([]string{filtered[0], "-i", "-t"}, filtered[1:]...)
+	filtered := workerLoginContainerArgs(launch, v.Provider)
+
 	var result cappedStatusOutput
 	create := exec.CommandContext(ctx, "docker", filtered...)
 	create.Stdout = &result
@@ -234,8 +221,14 @@ func workerProviderAuth(args []string, in io.Reader, out, diagnostics io.Writer)
 			fmt.Fprintln(diagnostics, "Sign-in container cleanup unconfirmed:", name)
 		}
 	}()
-	run := exec.CommandContext(ctx, "docker", "start", "-ai", name)
-	run.Stdin = in
+	attach := "-ai"
+	if v.Provider == "codex" {
+		attach = "-a"
+	}
+	run := exec.CommandContext(ctx, "docker", "start", attach, name)
+	if v.Provider != "codex" {
+		run.Stdin = in
+	}
 	run.Stdout = out
 	run.Stderr = diagnostics
 	// Login can rotate/invalidate existing subscription tokens before returning.
@@ -325,4 +318,25 @@ func persistWorkerCredentialDurably(root, provider, source string, syncDirectory
 func workerVerifyConnection(v workerAuthRequest, out, diagnostics io.Writer) int {
 	fmt.Fprintln(diagnostics, "Legacy verification is disabled; use controller-managed protocol-v2 verification")
 	return 1
+}
+
+// Codex device authorization has no stdin exchange. Interactive Docker TTY/stdin
+// attachment must not hide or stall its headless verification instructions.
+func workerLoginContainerArgs(launch []string, provider string) []string {
+	filtered := []string{}
+	for i := 0; i < len(launch); i++ {
+		if launch[i] == "--rm" || (provider == "codex" && launch[i] == "-i") {
+			continue
+		}
+		if launch[i] == "--mount" && i+1 < len(launch) && strings.Contains(launch[i+1], "dst=/run/provider-auth.json") {
+			i++
+			continue
+		}
+		filtered = append(filtered, launch[i])
+	}
+	filtered[0] = "create"
+	if provider != "codex" {
+		filtered = append([]string{filtered[0], "-i", "-t"}, filtered[1:]...)
+	}
+	return filtered
 }

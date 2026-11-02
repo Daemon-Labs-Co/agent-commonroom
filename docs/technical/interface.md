@@ -25,6 +25,11 @@ Focus, click, input and change events select field-specific right-side guidance.
 The setup overview appears initially or when all required field values are present;
 filled values do not imply validity, provider sign-in or successful execution.
 
+Connection editor tests retain the saved connection revision and provider identity
+when protocol/address/provider are unchanged. Unsaved address/method/provider
+changes receive readiness checks only and cannot borrow registered credentials
+for final verification. Existing stop, flag and journal/shutdown guards remain.
+
 ## Properties and state changes
 
 actor.photo_size.updated accepts size small or large for the authenticated enabled

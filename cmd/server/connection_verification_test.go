@@ -223,3 +223,66 @@ func TestVerificationReservationsConsumeRoomCapacity(t *testing.T) {
 		t.Fatal("other room incorrectly counted", err)
 	}
 }
+
+func TestEditedConnectionTestRetainsRegisteredRevision(t *testing.T) {
+	t.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", "worker")
+	t.Setenv("COMMONROOM_REMOTE_WORKER", "true")
+	s, _, saved := verificationFixture(t)
+	draft := &connectionDraft{Name: saved.Name, Protocol: saved.Protocol, Endpoint: saved.Endpoint, Provider: saved.Provider, Location: "LAN"}
+	candidate, registered, err := resolveConnectionTest([]room.Connection{saved}, saved.ID, draft)
+	if err != nil || !registered {
+		t.Fatal(candidate, registered, err)
+	}
+	s.verificationTurn = func(ctx context.Context) (string, error) {
+		return "COMMONROOM_CONNECTION_OK", journalVerification(ctx, "shutdown_confirmed")
+	}
+	_, err = s.managedVerification(context.Background(), *candidate, "engineering")
+	if err != nil {
+		t.Fatal("unchanged Edit -> Test connection rejected its saved identity", err)
+	}
+}
+
+func TestEditThenTestConnectionCompletesProviderVerification(t *testing.T) {
+	t.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", "worker")
+	t.Setenv("COMMONROOM_REMOTE_WORKER", "true")
+	s, _, saved := verificationFixture(t)
+	calls := 0
+	turns := 0
+	s.connectionProbe = func(_ context.Context, alias, action, value string) ([]byte, error) {
+		calls++
+		if alias != "worker" {
+			t.Fatal(alias)
+		}
+		if action == "ready-v1" {
+			return []byte(`{"version":1,"lifecycleVersion":2,"configured":true,"runtimeReady":true}`), nil
+		}
+		if action == "auth-status-v1" {
+			return []byte(`{"credentialPresent":true}`), nil
+		}
+		t.Fatal("unexpected probe", action)
+		return nil, nil
+	}
+	s.verificationTurn = func(ctx context.Context) (string, error) {
+		turns++
+		return "COMMONROOM_CONNECTION_OK", journalVerification(ctx, "shutdown_confirmed")
+	}
+	h := s.auth.protect(s.actorGuard(http.HandlerFunc(s.connectionTest)))
+	draft := connectionDraft{Name: "Unsaved display label", Protocol: saved.Protocol, Endpoint: saved.Endpoint, Provider: saved.Provider, Location: "LAN"}
+	for _, changedProvider := range []bool{false, true} {
+		if changedProvider {
+			draft.Provider = "claude"
+		}
+		body, _ := json.Marshal(map[string]any{"connectionId": saved.ID, "draft": draft})
+		w := mockRequest(h, "POST", "/api/connections/test", string(body))
+		var result connectionTestResult
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &result) != nil {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		if !changedProvider && (result.Status != "working" || turns != 1 || calls != 2) {
+			t.Fatal("saved editor test failed final step", result, turns, calls)
+		}
+		if changedProvider && (result.Status != "needs-registration" || turns != 1 || calls != 3) {
+			t.Fatal("unsaved provider borrowed registered credentials", result, turns, calls)
+		}
+	}
+}

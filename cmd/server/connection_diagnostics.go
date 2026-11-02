@@ -320,6 +320,25 @@ func resolveConnectionTest(connections []room.Connection, connectionID string, d
 		return nil, false, errors.New("Invalid connection location")
 	}
 	v := room.Connection{ID: connectionID, Name: draft.Name, Protocol: draft.Protocol, Endpoint: endpoint, Provider: draft.Provider, Location: draft.Location}
-	unchanged := saved != nil && saved.Endpoint == endpoint && saved.Protocol == draft.Protocol
+	unchanged := saved != nil && saved.Endpoint == endpoint && saved.Protocol == draft.Protocol && (draft.Provider == "" || draft.Provider == saved.Provider || (saved.Provider == "" && draft.Provider == connectionProviderIdentity(*saved)))
+	if unchanged {
+		// Verification binds to registered identity/revision, never a synthetic
+		// zero revision reconstructed from editable form fields.
+		v.Revision = saved.Revision
+		v.Provider = saved.Provider
+	}
 	return &v, unchanged, nil
+}
+
+func connectionProviderIdentity(c room.Connection) string {
+	if c.Provider != "" {
+		return c.Provider
+	}
+	if c.Endpoint == "claude" || strings.HasSuffix(c.Endpoint, "/claude") {
+		return "claude"
+	}
+	if c.Endpoint == "codex" || strings.HasPrefix(c.Endpoint, "ssh://") {
+		return "openai"
+	}
+	return "generic"
 }

@@ -110,6 +110,7 @@ check: test-race
 	node tests/workflow-templates.test.cjs
 	node --check web/provider-auth.js
 	node tests/provider-auth.test.cjs
+	node tests/provider-device-login.test.cjs
 	node --check web/connection-testing.js
 	node tests/connection-testing.test.cjs
 	node --check web/connection-editor.js

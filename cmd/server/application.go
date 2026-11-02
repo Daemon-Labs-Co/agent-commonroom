@@ -6,6 +6,7 @@ import (
 	"agentroom/internal/room"
 	"context"
 	"encoding/json"
+	"io"
 	"sync"
 	"time"
 )
@@ -18,14 +19,17 @@ type server struct {
 	// Instance test seam; nil always uses the mandatory isolated execution path.
 	agentTurn func(context.Context, room.Participant, string, string) (string, error)
 	// Provider metadata boundaries; nil uses the production implementation.
-	agentLoginStatus  func(context.Context) error
-	agentHistoryRPC   func(context.Context, string, any) (json.RawMessage, error)
-	disposalSeen      map[string]time.Time
-	disposalNow       func() time.Time
-	storageTimeout    time.Duration
-	connectionProbe   workerProbe
-	verificationRooms map[string]string
-	verificationTurn  func(context.Context) (string, error)
+	agentLoginStatus          func(context.Context) error
+	agentHistoryRPC           func(context.Context, string, any) (json.RawMessage, error)
+	disposalSeen              map[string]time.Time
+	disposalNow               func() time.Time
+	storageTimeout            time.Duration
+	providerLoginSessions     map[string]*providerLoginSession
+	deviceLoginStartupTimeout time.Duration
+	deviceLoginRun            func(context.Context, string, string, io.Reader, io.Writer) error
+	connectionProbe           workerProbe
+	verificationRooms         map[string]string
+	verificationTurn          func(context.Context) (string, error)
 
 	dailyTurnLimit    int
 	taskReady         func(string) error

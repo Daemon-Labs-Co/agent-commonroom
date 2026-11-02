@@ -5053,3 +5053,109 @@ proof does not establish live daemon or descendant termination guarantees.
 - Binary rollback on Jerry: bin/commonroom.before-server-worker. Private cumulative
   source recovery target: /private/tmp/commonroom-server-worker-current.patch.
   No source staging, commits, pushes or remote Git mutations were performed.
+
+## 2026-11-02: Browser-based Codex device sign-in
+
+- Reproduced the incorrect desktop dependency: login attempted to launch Terminal
+  and failed502 instead of providing browser instructions. Removed the automatic
+  desktop-launch path. The Codex owner/CSRF/flag-protected login API now streams
+  only the fixed OpenAI verification URL, validated one-time code, heartbeats and
+  completion/error states from the existing isolated worker auth-login-v1 path.
+- Raw provider output/tokens are bounded in private memory and never returned or
+  audited. Active/unresolved work, stop/integrity checks and connection-scoped
+  credential custody remain enforced. Disconnect/close/cancel requests SIGTERM
+  and waits for worker exit up to35seconds; remote failure can leave cleanup
+  unconfirmed. No host model fallback or new provider was added.
+- Claude explicitly returns a command to run on the application server; a browser
+  interactive code-entry exchange is not implemented. The UI no longer claims a
+  desktop Terminal has opened. Updated illustrated user guide, technical contract,
+  Help asset allowlist and frontend cache version.
+- Mocked tests cover authenticated API success, failures, permission/CSRF/flag/
+  busy/stop rejection, output filtering/bounds, chunked instructions, invalid
+  links/codes, interrupted streams and dialog cancellation. make test exit0,
+  46.65s; make check exit0,64.84s. No real provider was launched by automated tests.
+- Deployed on Jerry with rollback bin/commonroom.before-browser-login; service
+  active. HTTPS script and guide illustration verified200. Verification browser
+  is signed out, so the actual user's provider exchange has NOT been completed
+  or certified. Human sign-in/approval on the official provider page remains.
+- Secure cumulative source patch target: /private/tmp/commonroom-browser-signin.patch.
+  No staging, commits or pushes performed. Owner's previous work is committed
+  at b1591ffeabbc3b9f656d4b2a046baa7c785e7a54.
+
+## 2026-11-02: Stalled Codex sign-in attachment correction
+
+- Human screenshot established that Start sign-in was reached, but no verification
+  instructions appeared. Actual running login container and native Codex process
+  were observed. A read-only gateway diagnostic returned HTTP200 CONNECT and
+  verified provider TLS; this was not a basic connectivity failure.
+- Operational diagnostics (separate from mocked automated tests) used temporary
+  auth/configuration directories and cancelled device authorization without any
+  account approval. The old complete worker path yielded no URL/code within the
+  bounded capture. The noninteractive candidate returned deviceURLSeen=true,
+  currentCodeParserMatches=true,workerStopped=true,hasCleanupWarning=false.
+  No real device-code values, tokens or credential files entered diagnostic output
+  or test fixtures. No model turn or account grant was performed.
+- Corrected Codex Docker create/start attachment: no stdin or TTY, start -a.
+  Claude retains its existing interactive attachment. Network isolation, limits,
+  provider gateway and credential custody remain enforced. Added regression for
+  the different provider attachment contracts.
+- Added visible starting/waiting progress and a45-second instruction deadline;
+  timeout cancels/joins the worker request and reports an error. Added fast timeout
+  cancellation coverage. Parser now waits for a complete newline-terminated code
+  before emitting instructions, preventing pipe-chunk prefix truncation.
+- make test exit0,44.72s; make check exit0,64.66s. Automated external dependencies
+  remain mocked. Focused parser/timeout/attachment/browser tests passed.
+- Activated corrected binary on Jerry. Service active; no running login container
+  remained. Rollback: bin/commonroom.before-headless-login. Live HTTPS homepage
+  and versioned sign-in script returned200 with the new progress/deadline flow.
+  Human account approval and authenticated browser completion remain unverified.
+- Cumulative private recovery: /private/tmp/commonroom-browser-signin.patch.
+  No staging, commits or pushes performed.
+
+## 2026-11-02: Provider sign-in completion and saved connection verification
+
+- Reproduced the reported saved Edit -> Test failure with synthetic fixtures:
+  Provider response failed with "Verification shutdown is unconfirmed; inspect
+  worker job diagnostics". Unchanged editor drafts lost the registered revision,
+  preventing verification job registration. Preserve registered revision/provider
+  only for unchanged provider/endpoint/protocol; changed drafts still require
+  registration. Shutdown proof remains mandatory.
+- Codex completed login now hides Start/Check, shows Done and cannot be overwritten
+  by late status responses. Existing valid sign-in takes the same completed state.
+- Claude uses provider-specific browser instructions, an allowlisted official
+  authorization link and one-use code submission to the isolated CLI's stdin.
+  Ephemeral login IDs bind connection, provider and worker; cancel closes input
+  and joins cleanup. Raw output and submitted codes are not logged/stored.
+- Mocked HTTP streaming and browser regressions cover completion races, URL/code
+  filtering, nonce replay/cross-connection rejection, owner/CSRF/flag checks,
+  cancellation and edited-connection verification. No real provider/database
+  launches in automated tests. make test exit0 in54.03s; make check exit0 in71.74s.
+  Illustrated user guide and technical contracts updated.
+- Automatic approval review rejected a real Claude authentication diagnostic
+  under standing provider-test restrictions. Live Claude account exchange remains
+  unverified. Network-disabled CLI help inspection alone does not prove it works.
+- Automatic approval review also rejected rsync deployment writes as unauthorized.
+  Deployment was NOT performed; Debian retains its previous application version.
+  Request explicit renewed deployment approval before another attempt.
+- Recovery patch: /private/tmp/commonroom-provider-completion.patch (0600),
+  refresh after this checkpoint. No staging, commits or pushes performed.
+
+Prepared commit message:
+
+fix(connections): complete browser sign-in and preserve verification identity
+
+- Run Claude authorization through a provider-specific browser flow with an
+  allowlisted official link and ephemeral, one-use code submission to the
+  isolated worker; remove the manual terminal fallback.
+- Show Done after successful Codex or Claude sign-in and prevent late status
+  responses from restoring obsolete start/check controls.
+- Preserve saved connection revision and provider identity when testing an
+  unchanged editor draft; require registration for changed execution settings.
+- Retain mandatory isolation, owner and CSRF checks, feature enforcement and
+  verified shutdown requirements.
+- Add mocked streaming, browser, permission, cancellation and verification
+  regressions and update illustrated help and technical contracts.
+
+Validation: make test (54.03s), make check (71.74s), both passed.
+Live Claude authorization and deployment of these latest fixes remain pending;
+synthetic coverage does not certify production provider acceptance.
