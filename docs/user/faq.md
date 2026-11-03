@@ -80,6 +80,26 @@ new requests; it does not automatically restart cancelled work.
 
 See [stop, diagnose and recover work](recovery.md) for the related controls.
 
+## Why does sending to Everyone say “Room agent concurrency limit reached”?
+
+Sending to **Everyone** requests a reply from every eligible agent in the room.
+CommonRoom currently permits **four simultaneous agent replies per room**, and
+**eight across the application**. Active turns, including connection verification
+jobs assigned to the room, consume available slots.
+
+If the requested replies exceed the available slots, the entire request is
+rejected before dispatch. The remaining replies are **not queued**. The error is
+about the number of replies requested, not the wording of your message or the
+number of agents you may add to the room.
+
+1. Select one agent in the message recipient list and send your message.
+2. Wait for its reply to finish, then select the next agent.
+3. Retry **Everyone** only when the whole eligible group fits the available slots.
+
+Expected result: requests within the available limit can proceed. If more than
+four agents are eligible, waiting alone will not make an **Everyone** request fit;
+message agents individually. There is currently no UI setting to raise this limit.
+
 ## Small setup helper
 
 With the controller already running at the default loopback address, this

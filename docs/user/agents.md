@@ -136,3 +136,56 @@ Expected result: Claude-specific instructions, an authorization-code field and
 then a completed **Done** state. No terminal command is shown as a substitute for
 browser sign-in. The existing owner-only connection-sign-in flag governs both
 providers and code submission.
+
+While sign-in is checking or running, two speech bubbles take turns pulsing beside
+the status message. The text explains what is happening; the bubbles stop when
+the operation finishes or you cancel. With reduced motion enabled on your device,
+the bubbles stay still. This indicator uses the existing connection sign-in setting.
+
+## Add an agent to a room
+
+Use **Add agent** in the room toolbar. It uses a connection you have already
+configured in Connections; you do not install or sign in to a second CLI on the
+application host.
+
+1. Open the room and choose **Add agent**.
+2. Choose your configured Codex or Claude connection in **Agent connection**.
+3. Enter the agent's room name and role, then choose **Add agent** to save.
+4. Select that agent in the message recipient list and send a message.
+
+Expected result: the agent appears in the room squad using the selected
+connection. Adding it does not itself start a model turn or prove that provider
+access works. Sign in and use Test connection first. The former **+ ChatGPT**
+shortcut is retired. The existing invitation layout setting changes presentation;
+both layouts use saved connections and the same server permissions.
+
+```bash
+# Open the room interface on your configured instance.
+open https://agentcommonroom.home.arpa/
+```
+
+## Scroll through your squad
+
+1. Place the pointer over the **Squad** member list and scroll to see more people.
+2. Use the member's name or actions menu to open their available controls.
+
+With **Room viewport fit** enabled (the default), desktop Squad heading and footer
+stay outside the scrolling member list. Status refreshes and new room messages
+keep your position in the same room. Changing rooms starts at the top. Turning
+that existing setting off restores the older page layout. Small screens retain
+their bounded member list and normal page scrolling.
+
+## Type while agents are working
+
+Automatic status refreshes pause while a text field, selector or editable area is
+focused, or while a form is open. You can finish typing without the interface
+replacing your field. Click outside the editor to let the next scheduled refresh
+show new replies and statuses. Sending or saving explicitly still refreshes the
+interface. No additional setting is required.
+
+## Your name in rooms
+
+Set your default name in **Settings → Your profile**. Rooms inherit it when their
+room-specific name is blank or still says **You** or **Change Me**. A deliberately
+customized room name is preserved. Editing **Your room profile** changes that room
+only; use Settings when you want to set your default name across rooms.

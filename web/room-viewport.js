@@ -10,6 +10,7 @@ function fitRoomViewport(){
 // inserted. Restoring there clamps scrollTop too early. Capture a visible message
 // and restore only after every inner decorator and the final room layout.
 let roomViewportScrollKey=null;
+let squadViewportRoom=null;
 function captureRoomScroll(list){
  if(!list||typeof list.scrollTop!=='number')return null;
  const top=list.getBoundingClientRect?.().top;
@@ -26,10 +27,15 @@ function restoreRoomScroll(list,snapshot,fresh,newestFirst){
 }
 const roomViewportRender=render;render=function(){
  const enabled=state?.featureFlags?.roomViewportFit!==false&&view==='Room';
+ const squadRoom=enabled?(typeof roomId==='undefined'?'':roomId):null;
+ const squadTop=enabled&&squadRoom===squadViewportRoom?document.querySelector('.squad-members')?.scrollTop:null;
  const snapshot=enabled?captureRoomScroll(document.querySelector('.message-list')):null;
  const newestFirst=state?.featureFlags?.newestMessagesFirst===true;
  const key=(typeof roomId==='undefined'?'':roomId)+':'+newestFirst+':'+(state?.messages?.at(-1)?.id||'');
  roomViewportRender();fitRoomViewport();
+ const squad=enabled?document.querySelector('.squad-members'):null;
+ if(squad&&typeof squadTop==='number')squad.scrollTop=squadTop;
+ squadViewportRoom=squadRoom;
  if(enabled){restoreRoomScroll(document.querySelector('.message-list'),snapshot,key!==roomViewportScrollKey,newestFirst);roomViewportScrollKey=key}
  else roomViewportScrollKey=null;
 };

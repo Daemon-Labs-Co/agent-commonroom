@@ -19,7 +19,8 @@ Codex login returns no-store NDJSON `starting`, `instructions`, `waiting`,
 `https://auth.openai.com/codex/device` URL and a validated one-time device code.
 Raw worker stdout/stderr, passwords and tokens are never returned or audited.
 Claude login returns an `authorization` event containing an allowlisted HTTPS
-`/oauth/authorize` URL and a random pending-login ID. The owner submits
+`claude.com/cai/oauth/authorize` URL (or a supported legacy
+`/oauth/authorize` endpoint) and a random pending-login ID. The owner submits
 `action=login-code`, the same connection ID, login ID and the provider’s code.
 Codes contain 8–2048 permitted characters, are delivered once to the pending
 CLI’s stdin, and are never echoed, audited or saved as configuration.
@@ -66,3 +67,13 @@ approval remain on the provider website; no custom token exchange is implemented
 Session CSRF/expiry and feature settings may change. Immutable audit records remain retained. Isolation/authentication/retention cannot be disabled by product flags.
 
 Source: [auth.go](../../cmd/server/auth.go) · [event_mutations_identity.go](../../cmd/server/event_mutations_identity.go) · [http_state.go](../../cmd/server/http_state.go).
+
+### Provider terminal output filtering
+
+- Input: bounded isolated CLI output, including ANSI styling and OSC terminal
+  hyperlinks terminated by BEL or ST.
+- Output: validated visible provider authorization instructions only.
+- Functionality: removes terminal hyperlink controls and hidden targets before
+  extracting URLs; handles controls split across output chunks.
+- Properties and state changes: existing output bounds, startup deadline, URL
+  validation and credential privacy requirements remain enforced.

@@ -48,3 +48,59 @@ Guidance creates no connections or provider calls. Authentication, owner permiss
 connection validation and mandatory isolation remain enforced independently.
 
 Source: [documentation.go](../../cmd/server/documentation.go) · [http_state.go](../../cmd/server/http_state.go).
+
+### Provider sign-in waiting indicator
+
+- Input: pending connection-authentication check or login stream.
+- Output: decorative alternating speech bubbles beside the existing status text.
+- Functionality: hidden after completion, failure or dialog cancellation; visible
+  while an authentication request is pending. Status text remains available to
+  assistive technology; decorative shapes are hidden from it.
+- Properties and state changes: reduced-motion preference disables animation.
+  The existing connectionSignIn flag and owner permissions govern the parent
+  operation; the indicator changes no execution or authorization state.
+
+### Room agent invitation
+
+- Input: participant.created with an existing connectionId, room identity and
+  participant profile fields, through the authorized event endpoint.
+- Output: a saved room participant and its connection association; no provider
+  launch occurs while adding the participant.
+- Functionality: Add agent opens the saved-connection invitation in both enabled
+  and disabled agentInvitationLayout states. Normal server event authorization,
+  stop and profile-validation rules remain enforced.
+- Properties and state changes: the obsolete agents action=create returns409
+  directing clients to Add agent, without creating a connection or invoking a
+  host CLI. Sending messages continues through mandatory isolated execution.
+
+### Squad list scrolling
+
+- Input: roster scroll position, selected room and roomViewportFit (default on).
+- Output: the same scroll offset after a same-room render, clamped by the browser
+  if the list has shortened. New messages do not reset the roster position.
+- Functionality: the desktop member list is the single Squad scroll container;
+  heading and footer remain outside it. Room changes start with a fresh list.
+- Properties and state changes: disabling roomViewportFit retains legacy layout
+  and refresh behavior. No server state, permissions or execution changes.
+
+### Background refresh and editing
+
+- Input: two-second agent-status polling and current focus/form state.
+- Output: updated state and rendered room only when editing is inactive.
+- Functionality: background refresh checks focus before requesting and before
+  applying responses, skips concurrent polls and discards stale results after
+  navigation or explicit state changes. Failed requests release the polling slot.
+- Properties and state changes: input/textarea/select, editable content and open
+  forms defer background updates; subsequent polls resume after editing ends.
+  Explicit send/save refreshes retain their behavior. This correction introduces
+  no new feature flag and changes no server permissions or execution limits.
+
+### Room human display name
+
+- Input: projected actor name and optional room humanName override.
+- Output: owner profile name when the room override is blank, You or Change Me;
+  otherwise the explicit room override. Other humans use their actor names.
+- Functionality: applies the same resolution to the Squad label and room profile
+  form. Trims override whitespace without rewriting stored room/history data.
+- Properties and state changes: Settings profile changes flow through inherited
+  labels; deliberate room overrides remain. No execution or permission changes.

@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-const syntheticClaudeURL = "https://claude.ai/oauth/authorize?response_type=code&code_challenge=synthetic-challenge&state=synthetic-state"
+const syntheticClaudeURL = "https://claude.com/cai/oauth/authorize?response_type=code&code_challenge=synthetic-challenge&state=synthetic-state"
 
 func TestClaudeAuthorizationOutputValidation(t *testing.T) {
 	t.Parallel()
-	for _, value := range []string{"http://claude.ai/oauth/authorize?response_type=code&code_challenge=x", "https://attacker.invalid/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai.evil.invalid/oauth/authorize?response_type=code&code_challenge=x", "https://user@claude.ai/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai:444/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai/oauth/authorize?response_type=token&code_challenge=x", "https://claude.ai/oauth/authorize?response_type=code"} {
+	for _, value := range []string{"https://claude.com/oauth/authorize?response_type=code&code_challenge=x", "https://claude.com.evil.invalid/cai/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai/cai/oauth/authorize?response_type=code&code_challenge=x", "http://claude.ai/oauth/authorize?response_type=code&code_challenge=x", "https://attacker.invalid/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai.evil.invalid/oauth/authorize?response_type=code&code_challenge=x", "https://user@claude.ai/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai:444/oauth/authorize?response_type=code&code_challenge=x", "https://claude.ai/oauth/authorize?response_type=token&code_challenge=x", "https://claude.ai/oauth/authorize?response_type=code"} {
 		if validClaudeAuthorizationURL(value) {
 			t.Fatal("unsafe authorization URL admitted")
 		}
@@ -38,6 +38,28 @@ func TestClaudeAuthorizationOutputValidation(t *testing.T) {
 		}
 	default:
 		t.Fatal("Claude authorization missing")
+	}
+}
+
+func TestClaudeTerminalHyperlinkInstructions(t *testing.T) {
+	t.Parallel()
+	for _, end := range []string{"\x07", "\x1b\\"} {
+		ch := make(chan deviceInstructions, 1)
+		out := &deviceInstructionOutput{provider: "claude", loginID: strings.Repeat("a", 32), instructions: ch, cancel: func() {}}
+		wire := "\x1b]8;;" + syntheticClaudeURL + end + syntheticClaudeURL + "\x1b]8;;" + end + "\r\n"
+		for _, b := range []byte(wire) {
+			if _, err := out.Write([]byte{b}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		select {
+		case event := <-ch:
+			if event.VerificationURL != syntheticClaudeURL {
+				t.Fatal("terminal formatting leaked into link")
+			}
+		default:
+			t.Fatal("terminal hyperlink authorization missing")
+		}
 	}
 }
 

@@ -12,7 +12,7 @@ async function checkConnectionAuthButton(connection,button){
 }
 async function refreshConnectionAuthButtons(entries){let next=0;await Promise.all(Array.from({length:Math.min(4,entries.length)},async()=>{while(next<entries.length){const [connection,button]=entries[next++];await checkConnectionAuthButton(connection,button)}}))}
 function validClaudeLoginURL(value){
- try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password&&!url.port&&!url.hash&&['claude.ai','console.anthropic.com','platform.claude.com'].includes(url.hostname)&&url.pathname==='/oauth/authorize'&&url.searchParams.get('response_type')==='code'&&!!url.searchParams.get('code_challenge')}catch{return false}
+ try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password&&!url.port&&!url.hash&&((url.hostname==='claude.com'&&url.pathname==='/cai/oauth/authorize')||(['claude.ai','console.anthropic.com','platform.claude.com'].includes(url.hostname)&&url.pathname==='/oauth/authorize'))&&url.searchParams.get('response_type')==='code'&&!!url.searchParams.get('code_challenge')}catch{return false}
 }
 async function readProviderLoginStream(response,onEvent){
  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',complete=false;
@@ -31,12 +31,13 @@ function connectionSignIn(connection){
  const modal=$('#modal');modal.classList.remove('evidence-drawer');
  modal.innerHTML='<button type="button" class="modal-close" aria-label="Close dialog">×</button><h2>Sign in to '+provider+'</h2><p>Connection: '+esc(connection.name)+'</p><p>'+instructions+' No terminal is needed on your browser computer.</p><p>Your password is entered only on the provider’s website. The resulting credentials are saved privately for this connection.</p><section id="provider-login-instructions" hidden><a id="provider-verification-link" target="_blank" rel="noopener noreferrer">Open '+website+' authorization ↗</a><p id="provider-user-code-row">Your one-time code: <strong id="provider-user-code"></strong></p></section>'+
  (isClaude?'<section id="provider-authorization-entry" hidden><label class="field">Authorization code from Claude<input id="provider-authorization-code" type="password" autocomplete="off" spellcheck="false" maxlength="2048"></label><button type="button" id="submit-provider-code">Submit authorization code</button></section>':'')+
- '<div class="actions"><button type="button" id="launch-provider-login" class="primary" disabled>Start sign-in</button><button type="button" id="check-provider-login">Check sign-in</button><button type="button" id="cancel-provider-login">Cancel</button></div><p id="provider-login-status" role="status">Checking connection…</p>';
+ '<div class="actions"><button type="button" id="launch-provider-login" class="primary" disabled>Start sign-in</button><button type="button" id="check-provider-login">Check sign-in</button><button type="button" id="cancel-provider-login">Cancel</button></div><div class="provider-login-progress"><span id="provider-login-wait" class="conversation-wait" aria-hidden="true"><span class="conversation-wait-bubble"></span><span class="conversation-wait-bubble"></span></span><p id="provider-login-status" role="status">Checking connection…</p></div>';
  const status=modal.querySelector('#provider-login-status'),launch=modal.querySelector('#launch-provider-login'),checkButton=modal.querySelector('#check-provider-login'),close=modal.querySelector('#cancel-provider-login');
+ const wait=modal.querySelector('#provider-login-wait');
  let controller,loginID='',finished=false,running=false;
- const finish=()=>{finished=true;launch.hidden=true;checkButton.hidden=true;modal.querySelector('#provider-login-instructions').hidden=true;if(isClaude)modal.querySelector('#provider-authorization-entry').hidden=true;close.textContent='Done';modal.querySelector('h2').textContent='Signed in to '+provider;status.textContent='Sign-in saved for this connection. Use Test connection to verify provider access.';render()};
- modal.querySelector('.modal-close').onclick=()=>modal.close();close.onclick=()=>modal.close();modal.addEventListener('close',()=>controller?.abort(),{once:true});modal.showModal();
- const check=async()=>{if(running||finished)return;checkButton.disabled=true;try{const result=await api('provider-auth',{action:'status',connectionId:connection.id});const usable=connectionAuthUsable(result);if(!modal.open||finished||running)return;if(usable){finish();return}status.textContent=result.recoveryRequired?'Sign-in needs to be completed again before this connection can run.':'This connection needs sign-in. Choose Start sign-in.'}catch(e){if(modal.open&&!finished&&!running)status.textContent=e.message}finally{if(!finished&&!running){checkButton.disabled=false;launch.disabled=false}}};
+ const finish=()=>{wait.hidden=true;finished=true;launch.hidden=true;checkButton.hidden=true;modal.querySelector('#provider-login-instructions').hidden=true;if(isClaude)modal.querySelector('#provider-authorization-entry').hidden=true;close.textContent='Done';modal.querySelector('h2').textContent='Signed in to '+provider;status.textContent='Sign-in saved for this connection. Use Test connection to verify provider access.';render()};
+ modal.querySelector('.modal-close').onclick=()=>modal.close();close.onclick=()=>modal.close();modal.addEventListener('close',()=>{wait.hidden=true;controller?.abort()},{once:true});modal.showModal();
+ const check=async()=>{if(running||finished)return;checkButton.disabled=true;wait.hidden=false;try{const result=await api('provider-auth',{action:'status',connectionId:connection.id});const usable=connectionAuthUsable(result);if(!modal.open||finished||running)return;if(usable){finish();return}status.textContent=result.recoveryRequired?'Sign-in needs to be completed again before this connection can run.':'This connection needs sign-in. Choose Start sign-in.'}catch(e){if(modal.open&&!finished&&!running)status.textContent=e.message}finally{if(!finished&&!running){wait.hidden=true;checkButton.disabled=false;launch.disabled=false}}};
  if(isClaude){
   const input=modal.querySelector('#provider-authorization-code'),submit=modal.querySelector('#submit-provider-code');
   submit.onclick=async()=>{const code=input.value.trim();input.value='';if(!code){status.textContent='Paste the authorization code from Claude first.';return}submit.disabled=true;input.disabled=true;try{await api('provider-auth',{action:'login-code',connectionId:connection.id,loginId:loginID,code});if(modal.open&&!finished){modal.querySelector('#provider-authorization-entry').hidden=true;status.textContent='Authorization code submitted. Waiting for Claude to confirm sign-in…'}}catch(error){if(modal.open&&!finished){status.textContent=error.message;submit.disabled=false;input.disabled=false}}};
@@ -44,7 +45,7 @@ function connectionSignIn(connection){
  }
  checkButton.onclick=check;
  launch.onclick=async()=>{
-  if(running||finished)return;controller=new AbortController();running=true;launch.disabled=true;checkButton.disabled=true;loginID='';modal.querySelector('#provider-login-instructions').hidden=true;if(isClaude)modal.querySelector('#provider-authorization-entry').hidden=true;status.textContent='Starting sign-in on the worker…';
+  if(running||finished)return;controller=new AbortController();running=true;wait.hidden=false;launch.disabled=true;checkButton.disabled=true;loginID='';modal.querySelector('#provider-login-instructions').hidden=true;if(isClaude)modal.querySelector('#provider-authorization-entry').hidden=true;status.textContent='Starting sign-in on the worker…';
   try{
    await runProviderBrowserLogin(connection,event=>{
     if(!modal.open)return;
@@ -57,7 +58,7 @@ function connectionSignIn(connection){
     }else if(event.type==='complete')finish();
    },controller.signal);
   }catch(error){if(modal.open&&!finished){status.textContent=error.name==='AbortError'?'Sign-in cancelled.':error.message;modal.querySelector('#provider-login-instructions').hidden=true;if(isClaude)modal.querySelector('#provider-authorization-entry').hidden=true}}
-  finally{running=false;if(!finished){launch.disabled=false;checkButton.disabled=false}}
+  finally{wait.hidden=true;running=false;if(!finished){launch.disabled=false;checkButton.disabled=false}}
  };
  check();
 }

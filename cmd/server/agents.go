@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -369,23 +368,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Action == "create" {
-		if err = s.checkAgentLogin(r.Context()); err != nil {
-			status := 409
-			if errors.Is(err, exec.ErrNotFound) {
-				status = 503
-			}
-			http.Error(w, err.Error(), status)
-			return
-		}
-		c := room.Connection{ID: id(), Provider: "openai", Name: "ChatGPT via Codex", Protocol: "CLI", Endpoint: "codex"}
-		p := room.Participant{RoomID: roomID, ID: id(), ConnectionID: c.ID, Name: personalName(st), Role: "Room assistant", Instructions: "Participate in this room. Answer conversationally. Do not use tools or access files; this is a chat-only integration test.", Rank: 1, Status: "Idle"}
-		if err = s.appendAppointmentBatch(withOperationResponse(r.Context(), 200, p), append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}}, initialGovernanceChanges(st, p, c)...)); err != nil {
-			operationError(w, err)
-			return
-		}
-		reply(w, p)
+		http.Error(w, "Use Add agent to select a configured connection for this room", http.StatusConflict)
 		return
 	}
+
 	if (req.Action != "send" && req.Action != "broadcast") || strings.TrimSpace(req.Text) == "" {
 		http.Error(w, "Message required", 400)
 		return
@@ -699,21 +685,6 @@ func (s *server) readAgentHistory(ctx context.Context, method string, params any
 		return s.agentHistoryRPC(ctx, method, params)
 	}
 	return historyRPC(ctx, method, params)
-}
-func (s *server) checkAgentLogin(ctx context.Context) error {
-	if s.agentLoginStatus != nil {
-		return s.agentLoginStatus(ctx)
-	}
-	if _, err := exec.LookPath("codex"); err != nil {
-		return fmt.Errorf("Codex CLI unavailable: %w", exec.ErrNotFound)
-	}
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, "codex", "login", "status").CombinedOutput()
-	if err != nil || !strings.Contains(string(out), "ChatGPT") {
-		return errors.New("Sign in to Codex with ChatGPT first")
-	}
-	return nil
 }
 
 // recordAgentSession is the actual native-session callback persistence path.

@@ -19,8 +19,8 @@ const previousAgentInvitation=invite;
 invite=function(){
  if(state.featureFlags?.agentInvitationLayout===false)return previousAgentInvitation();
  if(!state.connections.length){note('Plug in a connection first');return}
- form('Invite agent',agentInvitationFields(),d=>commit('participant.created',{...Object.fromEntries(d),rank:1,accept:false,challenge:Number(d.get('challenge'))}));
+ form('Add agent',agentInvitationFields(),d=>commit('participant.created',{...Object.fromEntries(d),rank:1,accept:false,challenge:Number(d.get('challenge'))}));
  const modal=$('#modal');modal.classList.add('agent-invitation');modal.addEventListener('close',()=>modal.classList.remove('agent-invitation'),{once:true});
  wireInvitationTabs(modal);
- modal.querySelector('.primary').textContent='Invite agent';wireContextPreview();
+ modal.querySelector('.primary').textContent='Add agent';wireContextPreview();
 };
