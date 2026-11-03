@@ -5159,3 +5159,184 @@ fix(connections): complete browser sign-in and preserve verification identity
 Validation: make test (54.03s), make check (71.74s), both passed.
 Live Claude authorization and deployment of these latest fixes remain pending;
 synthetic coverage does not certify production provider acceptance.
+
+## 2026-11-02: Observed Claude authorization endpoint correction
+
+- Human explicitly approved a bounded isolated live Claude sign-in diagnostic,
+  stopping before account approval. Existing constrained auth-login-v1 path with
+  a unique synthetic connection returned an HTTPS authorization URL in1.19s.
+  Redacted output: host claude.com, path /cai/oauth/authorize, challenge present.
+  No account approval, authorization-code entry or model turn occurred. No raw
+  URL query or provider credentials were printed or saved. Temporary diagnostic
+  auth state removed; no login container remained after cancellation.
+- Root cause: both server and browser rejected this current CLI URL because only
+  legacy /oauth/authorize endpoints were allowlisted, causing the45s timeout.
+  Updated exact host/path pair validation; arbitrary hosts/paths remain rejected.
+- Changed synthetic fixtures to the observed endpoint shape. Focused Go and JS
+  regressions failed before the fix (Claude authorization missing / Invalid Claude
+  sign-in instructions), then passed. Added negative host/path pair cases.
+- make test exit0,54.46s; make check exit0,79.02s. Automated interactions remain
+  mocked. Live account grant and credential persistence remain human acceptance
+  gaps; the bounded diagnostic only establishes CLI instruction output.
+- Deployed correction on Jerry; service active. Trusted HTTPS homepage serves
+  provider-auth.js?v=claude-authorization-endpoint, and script matches local source.
+  Rollback: bin/commonroom.before-claude-endpoint. No commits or pushes performed.
+- Private recovery patch: /private/tmp/commonroom-claude-endpoint.patch (0600).
+
+Prepared commit message:
+
+fix(auth): accept the observed Claude CLI authorization endpoint
+
+- Allow claude.com/cai/oauth/authorize in server and browser sign-in validation,
+  retaining strict official host/path pairs and existing OAuth parameter checks.
+- Update synthetic authorization fixtures and reject mismatched host/path pairs.
+- Refresh the sign-in asset version and document the accepted endpoint.
+
+Validation: make test (54.46s), make check (79.02s), both passed.
+Approved isolated live diagnostic observed the authorization link without account
+approval. Full account authorization and credential persistence remain unverified.
+
+## 2026-11-02: Claude terminal hyperlink parsing and conversational wait indicator
+
+- Continued explicitly approved bounded isolated diagnostics after human reported
+  the timeout persisted. Redacted observation: terminalHyperlinkDetected=true.
+  CLI output wraps its visible authorization URL in an OSC8 hyperlink with a
+  second hidden target; CSI-only removal left malformed URL candidates. Removing
+  OSC sequences yielded cleanAuthorizationURLDetected=true,urlCount=1.
+  No account approval/code submission/model turn; synthetic auth state removed.
+- Added bounded accumulated-output OSC filtering for BEL/ST terminators before
+  URL extraction. A synthetic terminal hyperlink regression failed before fix,
+  then passed for both terminators with one-byte chunks. Strict URL checks and
+  startup/output bounds remain unchanged. Full browser/account acceptance still
+  requires human verification; redacted operational extraction is not a grant.
+- Added requested alternating speech-bubble waiting indicator to sign-in checks
+  and login streams. Existing status text remains accessible; decorative bubbles
+  hidden from assistive technology. Completion/failure/cancel hides indicator;
+  reduced-motion preference disables animation. Existing sign-in flag governs
+  parent operation. User/technical documentation and browser tests updated.
+- Final make test exit0,52.31s; make check exit0,64.64s. All automated external
+  interactions mocked. Earlier animation-only checkpoint also passed54.83/68.47s.
+- Deployed on Jerry; service active. Trusted HTTPS script/CSS match local source;
+  homepage uses conversation-wait versions. Rollback bin/commonroom.before-terminal-login.
+- Recovery patch /private/tmp/commonroom-terminal-login.patch (0600). No staging,
+  commits or pushes performed.
+
+Prepared cumulative commit message since26cb7f7:
+
+fix(auth): parse Claude terminal links and show conversational waiting feedback
+
+- Accept the observed official claude.com/cai/oauth/authorize endpoint while
+  retaining strict host/path pairs and OAuth parameter validation.
+- Remove OSC terminal hyperlink controls and hidden targets before extracting
+  visible authorization links, including controls split across output chunks.
+- Add alternating speech-bubble feedback during sign-in checks and login,
+  stopping on completion, failure or cancellation and respecting reduced motion.
+- Add parser and UI regressions, refresh frontend assets and update help/contracts.
+
+Validation: make test52.31s and make check64.64s, both passed. Bounded approved
+live diagnostic confirmed terminal formatting and clean URL extraction without
+account approval; full account sign-in remains a human acceptance gap.
+
+## 2026-11-02: Room agent creation uses configured connections
+
+- Human observed +ChatGPT returning Codex CLI unavailable on Debian. This legacy
+  action checked host Codex and created a new local connection, bypassing the
+  configured-connection invitation experience. Removed the toolbar shortcut and
+  host login-check code; legacy agents action=create now returns409 directing
+  clients to Add agent without any provider launch or state creation.
+- Renamed existing Invite agent entry point to Add agent across invitation
+  layouts. Existing participant.created event validation, permissions, stop
+  checks and mandatory isolated execution remain unchanged. Form help follows
+  the renamed title. No additional product toggle: existing invitation layout
+  flag governs optional layout; both states use saved connections.
+- Mocked HTTP tests verify retired action rejection/no mutation and registration
+  of an Idle room participant using the selected registered worker connection,
+  no thread launch and no extra connection. UI tests verify saved connection ID,
+  rank/accept defaults, toolbar shortcut removal and layout flag fallback.
+- make test exit0,49.48s; make check exit0,64.87s. Focused invitation tests passed;
+  final Help title routing change passed JS syntax check. All automated external
+  dependencies mocked. A real room model reply remains unverified.
+- Deployed on Jerry; service active and trusted HTTPS app.js exactly matches local
+  source. Rollback bin/commonroom.before-add-agent. No commits/staging/pushes.
+- Recovery: /private/tmp/commonroom-add-agent.patch (0600), cumulative with earlier
+  uncommitted Claude parser and waiting indicator corrections.
+
+Prepared additional commit scope:
+
+fix(rooms): add agents through configured worker connections
+
+- Replace the obsolete +ChatGPT shortcut with the existing Add agent invitation.
+- Retire host Codex login checks and reject legacy shortcut requests with an
+  actionable instruction, without creating connections or launching providers.
+- Keep saved-connection selection and existing permission/stop enforcement in
+  both invitation layouts; update form help and cache versions.
+- Cover registration identity, idle state, no extra connection, legacy rejection
+  and invitation payload defaults with mocked server and UI regressions.
+
+Validation: make test49.48s; make check64.87s; both passed. Registration verified
+with mocks; a live room conversation is still a human acceptance check.
+
+## 2026-11-02: Squad scrolling and broadcast FAQ
+
+- Human reports Squad cannot scroll far enough to reach everyone. Desktop layout
+  had scrolling on both Squad card and nested members, with a viewport-derived
+  member max-height unrelated to remaining panel space. Changed desktop fitted
+  Squad to a flex column with a single shrinking member scroll area; heading and
+  footer remain outside it. Mobile and roomViewportFit-off layouts remain.
+- Independently reproduced status-refresh scroll reset (0 vs230 expected) in
+  the real render wrapper with synthetic roster recreation. Preserve member
+  scrollTop after final layout for same-room updates/new messages; changing room
+  resets. Added flag-off regression; focused six tests pass after fix.
+- make test exit0,45.98s; make check exit0,60.54s. Automated dependencies mocked.
+  User's exact browser clipping geometry has not been measured in a live UI;
+  deployment assets and render-state regressions do not certify every viewport.
+- Deployed JS/CSS/help on Jerry without restarting active work. Trusted HTTPS
+  assets match local source. Cache versions squad-scroll/20261102-squad-scroll.
+- Added requested Everyone concurrency FAQ: four room/eight global active turns,
+  no queue, whole oversized request rejected, individual messaging workaround.
+  Seven documentation checks passed; served FAQ document verified via HTTPS.
+- Recovery patch /private/tmp/commonroom-squad-scroll.patch (0600), cumulative
+  with prior uncommitted fixes. No staging, commits or pushes performed.
+
+Prepared additional commit scope:
+
+fix(ui): keep the full Squad list reachable and stable during refreshes
+
+- Use one bounded desktop Squad member scroll area with flexible height, keeping
+  the heading/footer outside it and preserving legacy/mobile layout behavior.
+- Preserve roster scroll during same-room status/message renders; reset when
+  changing rooms and retain existing roomViewportFit flag semantics.
+- Add refresh/room-change/flag-state regression coverage and update user help,
+  technical contracts and frontend cache versions.
+- Explain Everyone concurrency limits and the no-queue behavior in the FAQ.
+
+Validation: make test45.98s; make check60.54s; both passed. Exact live browser
+viewport clipping remains a human acceptance check.
+
+## 2026-11-02: Typing-safe agent status refresh
+
+- Background two-second status polling replaced the entire room DOM, preserving
+  draft text but losing input focus/caret. Added background-only refresh mode
+  that skips focused editors/open forms before request and before applying a
+  response. Prevents overlapping background polls and stale repaint after room,
+  view or explicit state changes. Explicit send/save refresh remains unchanged.
+- Red synthetic tests demonstrated editor repaint, in-flight focus race and
+  overlapping requests. Seven passing regressions also cover editable content,
+  forms, timer wiring, explicit refresh and request-error slot release.
+- make test exit0,46.87s; make check exit0,60.70s. Automated external dependencies
+  mocked. Deployed app.js?v=typing-safe-refresh without service restart; trusted
+  HTTPS script exactly matches local source. User's live typing remains to verify.
+- Recovery target /private/tmp/commonroom-typing-refresh.patch (0600). No staging,
+  commits or pushes. Related name placeholder fix is being validated separately.
+
+Prepared additional commit scope:
+
+fix(ui): defer background room refreshes while editing
+
+- Protect focused inputs, selectors, editable content and open forms from the
+  two-second status refresh, including focus changes during an in-flight request.
+- Serialize background polls and discard stale responses after navigation or
+  explicit state updates; preserve explicit send/save refresh behavior.
+- Add mocked regression coverage, check integration, help and technical contracts.
+
+Validation: make test46.87s; make check60.70s; both passed.

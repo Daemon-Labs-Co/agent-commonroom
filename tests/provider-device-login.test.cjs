@@ -19,9 +19,9 @@ const response=parts=>({body:new ReadableStream({start(c){for(const part of part
  context.$=()=>modal;context.api=async()=>({credentialPresent:false});
  context.connectionSignIn({id:'synthetic-connection',name:'Fixture'});await Promise.resolve();await Promise.resolve();
  assert.ok(!modal.innerHTML.includes('Terminal opens'));assert.ok(modal.innerHTML.includes('No terminal is needed'));
- let signal;context.runProviderBrowserLogin=async(c,onEvent,s)=>{signal=s;onEvent({type:'starting'});assert.match(nodes['#provider-login-status'].textContent,/requesting OpenAI/);onEvent({type:'waiting'});assert.match(nodes['#provider-login-status'].textContent,/45 seconds/);onEvent(instructions);assert.equal(nodes['#provider-user-code'].textContent,'ABCD-1234');assert.equal(nodes['#provider-verification-link'].href,instructions.verificationUrl);return new Promise(resolve=>s.addEventListener('abort',resolve,{once:true}))};
+ let signal;context.runProviderBrowserLogin=async(c,onEvent,s)=>{signal=s;onEvent({type:'starting'});assert.match(nodes['#provider-login-status'].textContent,/requesting OpenAI/);assert.equal(nodes['#provider-login-wait'].hidden,false);onEvent({type:'waiting'});assert.match(nodes['#provider-login-status'].textContent,/45 seconds/);onEvent(instructions);assert.equal(nodes['#provider-user-code'].textContent,'ABCD-1234');assert.equal(nodes['#provider-verification-link'].href,instructions.verificationUrl);return new Promise(resolve=>s.addEventListener('abort',resolve,{once:true}))};
  const pending=nodes['#launch-provider-login'].onclick();assert.equal(nodes['#launch-provider-login'].disabled,true);assert.equal(nodes['#check-provider-login'].disabled,true);
- nodes['#cancel-provider-login'].onclick();await pending;assert.equal(signal.aborted,true);
+ nodes['#cancel-provider-login'].onclick();await pending;assert.equal(signal.aborted,true);assert.equal(nodes['#provider-login-wait'].hidden,true);
  // Successful authorization must finish the dialog, even if a subsequent status
  // read would lag the worker's durable completion event.
  for(const key of Object.keys(nodes))delete nodes[key];
@@ -31,8 +31,8 @@ const response=parts=>({body:new ReadableStream({start(c){for(const part of part
  await nodes['#launch-provider-login'].onclick();
  assert.equal(nodes['#launch-provider-login'].hidden,true);
  assert.equal(nodes['#check-provider-login'].hidden,true);
- assert.equal(nodes['#cancel-provider-login'].textContent,'Done');
- const claudeURL='https://claude.ai/oauth/authorize?response_type=code&code_challenge=synthetic-challenge&state=synthetic-state';
+ assert.equal(nodes['#cancel-provider-login'].textContent,'Done');assert.equal(nodes['#provider-login-wait'].hidden,true);
+ const claudeURL='https://claude.com/cai/oauth/authorize?response_type=code&code_challenge=synthetic-challenge&state=synthetic-state';
  const authorization={type:'authorization',verificationUrl:claudeURL,loginId:'a'.repeat(32)};
  await context.readProviderLoginStream(response([JSON.stringify(authorization)+'\n'+JSON.stringify({type:'complete'})+'\n']),()=>{});
  await assert.rejects(context.readProviderLoginStream(response([JSON.stringify({...authorization,verificationUrl:'https://attacker.invalid/oauth/authorize'})+'\n']),()=>{}),/Invalid Claude/);
@@ -49,6 +49,11 @@ const response=parts=>({body:new ReadableStream({start(c){for(const part of part
  nodes['#provider-authorization-code'].value='syntheticCode#syntheticState';
  await nodes['#submit-provider-code'].onclick();await claudePending;
  assert.equal(submitted.body.action,'login-code');assert.equal(submitted.body.connectionId,'claude-fixture');assert.equal(submitted.body.loginId,authorization.loginId);assert.equal(nodes['#provider-authorization-code'].value,'');
- assert.equal(nodes['#launch-provider-login'].hidden,true);assert.equal(nodes['#check-provider-login'].hidden,true);assert.equal(nodes['#cancel-provider-login'].textContent,'Done');assert.match(nodes['#provider-login-status'].textContent,/Sign-in saved/);
+ assert.equal(nodes['#launch-provider-login'].hidden,true);assert.equal(nodes['#check-provider-login'].hidden,true);assert.equal(nodes['#cancel-provider-login'].textContent,'Done');assert.equal(nodes['#provider-login-wait'].hidden,true);assert.match(nodes['#provider-login-status'].textContent,/Sign-in saved/);
+ for(const key of Object.keys(nodes))delete nodes[key];
+ context.api=async()=>({credentialPresent:false});context.connectionSignIn({id:'failure-fixture',name:'Fixture'});await Promise.resolve();await Promise.resolve();
+ context.runProviderBrowserLogin=async()=>{throw Error('Synthetic worker failure')};await nodes['#launch-provider-login'].onclick();
+ assert.equal(nodes['#provider-login-wait'].hidden,true);assert.match(nodes['#provider-login-status'].textContent,/Synthetic worker failure/);
+ const css=fs.readFileSync('web/style.css','utf8');assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);assert.match(css,/conversation-wait-bubble\{animation:none/);
   console.log('Browser device sign-in: chunked instructions, link/code validation, authenticated request, interruption, failure and dialog cancellation passed.');
 })().catch(e=>{console.error(e);process.exitCode=1});

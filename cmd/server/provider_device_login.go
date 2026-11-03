@@ -18,6 +18,9 @@ import (
 const codexDeviceURL = "https://auth.openai.com/codex/device"
 
 var deviceANSI = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
+
+// Strip OSC terminal hyperlinks before extracting the visible authorization URL.
+var deviceOSC = regexp.MustCompile(`\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)`)
 var deviceCode = regexp.MustCompile(`(?m)^[ \t]*([A-Z0-9]{4,8}-[A-Z0-9]{4,8})[ \t]*\r?$`)
 
 type deviceInstructions struct {
@@ -47,7 +50,7 @@ func (o *deviceInstructionOutput) Write(p []byte) (int, error) {
 		return 0, io.ErrShortBuffer
 	}
 	o.text += string(p)
-	text := deviceANSI.ReplaceAllString(o.text, "")
+	text := deviceANSI.ReplaceAllString(deviceOSC.ReplaceAllString(o.text, ""), "")
 	// A pipe write may end partway through a code. Never publish that prefix.
 	boundary := strings.LastIndex(text, "\n")
 	if boundary < 0 {
@@ -245,11 +248,12 @@ func validClaudeAuthorizationURL(raw string) bool {
 		return false
 	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "https" || u.User != nil || u.Port() != "" || u.Fragment != "" || u.Path != "/oauth/authorize" {
+	if err != nil || u.Scheme != "https" || u.User != nil || u.Port() != "" || u.Fragment != "" {
 		return false
 	}
-	switch u.Host {
-	case "claude.ai", "console.anthropic.com", "platform.claude.com":
+	switch {
+	case u.Host == "claude.com" && u.Path == "/cai/oauth/authorize":
+	case u.Path == "/oauth/authorize" && (u.Host == "claude.ai" || u.Host == "console.anthropic.com" || u.Host == "platform.claude.com"):
 	default:
 		return false
 	}

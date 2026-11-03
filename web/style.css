@@ -289,7 +289,9 @@ main.settings-main{margin:0;align-self:start;justify-self:start}
  .room-viewport-fit .conversation{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}
  .room-viewport-fit .conversation>.panel-heading,.room-viewport-fit .compose{flex-shrink:0}
  .room-viewport-fit .message-list{flex:1;min-height:0;max-height:none;overscroll-behavior:contain}
- .room-viewport-fit .squad{min-height:0;max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+ .room-viewport-fit .squad{display:flex;flex-direction:column;flex:1;min-height:0;max-height:100%;overflow:hidden}
+ .room-viewport-fit .squad>.panel-heading,.room-viewport-fit .squad>.panel-footer{flex-shrink:0}
+ .room-viewport-fit .squad-members{flex:1;min-height:0;max-height:none;overflow-y:auto}
  .room-viewport-fit .aside-help{flex-shrink:0}
 }
 @media(min-width:600px) and (max-width:760px){.room-viewport-fit .shell{height:calc(100dvh - 55px)}}
@@ -366,3 +368,15 @@ header>strong{display:flex;align-items:center;gap:10px}header .brand-mark{object
 .external-link-icon{display:inline-block;width:14px;height:14px;vertical-align:-2px;background:currentColor;mask:url("/icons/external-link.svg") center/contain no-repeat;-webkit-mask:url("/icons/external-link.svg") center/contain no-repeat}
 
 .avatar.human-avatar-large{width:60px;height:60px;font-size:24px;border-radius:16px}
+
+/* Alternating speech bubbles keep waiting states visible without replacing text. */
+.provider-login-progress{display:flex;align-items:center;gap:12px}
+.provider-login-progress p{flex:1}
+.conversation-wait{display:inline-flex;position:relative;width:42px;height:34px;flex:none}
+.conversation-wait[hidden]{display:none}
+.conversation-wait-bubble{position:absolute;top:2px;left:1px;width:25px;height:18px;border:2px solid var(--primary,#2e50f5);border-radius:8px;background:var(--surface,#fff);animation:conversation-turn 1.6s ease-in-out infinite}
+.conversation-wait-bubble::after{content:"";position:absolute;bottom:-5px;left:5px;width:6px;height:6px;border-bottom:2px solid var(--primary,#2e50f5);border-left:2px solid var(--primary,#2e50f5);background:inherit;transform:skewY(-35deg)}
+.conversation-wait-bubble:nth-child(2){top:12px;left:15px;animation-delay:.8s}
+.conversation-wait-bubble:nth-child(2)::after{left:auto;right:5px;transform:skewY(35deg);border-left:0;border-right:2px solid var(--primary,#2e50f5)}
+@keyframes conversation-turn{0%,100%{opacity:.45;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.conversation-wait-bubble{animation:none;opacity:1}}

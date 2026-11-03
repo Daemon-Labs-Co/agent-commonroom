@@ -243,20 +243,13 @@ func TestAppointmentBatchesStopOnFailureButNotConflict(t *testing.T) {
 
 func TestAgentHandlersPersistInitialAppointmentAtomically(t *testing.T) {
 	t.Parallel()
-	for _, action := range []string{"create", "attach"} {
+	for _, action := range []string{"attach"} {
 		for _, enabled := range []bool{false, true} {
 			for _, fail := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/enabled=%t/commitFailure=%t", action, enabled, fail), func(t *testing.T) {
 					t.Parallel()
 					s, db, h := governanceFixture(t, enabled)
 					calls := 0
-					s.agentLoginStatus = func(context.Context) error {
-						if action != "create" {
-							t.Fatal("unexpected login check")
-						}
-						calls++
-						return nil
-					}
 					s.agentHistoryRPC = func(_ context.Context, method string, params any) (json.RawMessage, error) {
 						if action != "attach" || method != "thread/read" {
 							t.Fatal("unexpected history call", method)

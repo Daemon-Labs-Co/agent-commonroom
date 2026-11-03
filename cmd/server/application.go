@@ -19,7 +19,6 @@ type server struct {
 	// Instance test seam; nil always uses the mandatory isolated execution path.
 	agentTurn func(context.Context, room.Participant, string, string) (string, error)
 	// Provider metadata boundaries; nil uses the production implementation.
-	agentLoginStatus          func(context.Context) error
 	agentHistoryRPC           func(context.Context, string, any) (json.RawMessage, error)
 	disposalSeen              map[string]time.Time
 	disposalNow               func() time.Time

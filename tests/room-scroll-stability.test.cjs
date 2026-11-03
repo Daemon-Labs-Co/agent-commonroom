@@ -6,7 +6,7 @@ function list(initialTop=1500,shift=0){
 function fixture(newest=false,enabled=true){
  let current=list(),nextShift=0;const classes=new Set();
  const ctx={view:'Room',roomId:'engineering',state:{messages:[{id:'latest'}],featureFlags:{roomViewportFit:enabled,newestMessagesFirst:newest}},window:{scrollTo(){}},document:{querySelector(s){return s==='.message-list'?current:{}},body:{classList:{contains(n){return classes.has(n)},toggle(n,on){if(on)classes.add(n);else classes.delete(n)}}}},render(){
-  const old=current.scrollTop;current=list(0,nextShift);current.clientHeight=550;current.scrollTop=old;current.clientHeight=500;
+  ctx.beforeRosterRebuild?.();const old=current.scrollTop;current=list(0,nextShift);current.clientHeight=550;current.scrollTop=old;current.clientHeight=500;
  }};
  vm.createContext(ctx);vm.runInContext(fs.readFileSync('web/room-viewport.js','utf8'),ctx);return {ctx,current:()=>current,setShift(n){nextShift=n}};
 }
@@ -22,4 +22,20 @@ test('new messages and room changes follow the chosen edge in both orders',()=>{
 test('top-first status refresh preserves an older message and disabling restores legacy behavior',()=>{
  const f=fixture(true);f.ctx.render();f.current().scrollTop=320;f.setShift(40);f.ctx.render();assert.equal(f.current().scrollTop,360);
  const off=fixture(false,false);off.ctx.render();assert.equal(off.current().scrollTop,1450,'disabled module leaves legacy clamping unchanged');
+});
+
+test('Squad scroll survives status refreshes and new messages but resets on room change',()=>{
+ const f=fixture();let squad={scrollTop:0};const query=f.ctx.document.querySelector;
+ f.ctx.document.querySelector=s=>s==='.squad-members'?squad:query(s);
+ f.ctx.beforeRosterRebuild=()=>{squad={scrollTop:0}};
+ f.ctx.render();squad.scrollTop=230;
+ f.ctx.render();assert.equal(squad.scrollTop,230);
+ f.ctx.state.messages=[{id:'new-message'}];f.ctx.render();assert.equal(squad.scrollTop,230);
+ f.ctx.roomId='qa';f.ctx.render();assert.equal(squad.scrollTop,0);
+});
+test('disabled viewport fitting leaves the legacy squad scroll behavior',()=>{
+ const f=fixture(false,false);let squad={scrollTop:90};const query=f.ctx.document.querySelector;
+ f.ctx.document.querySelector=s=>s==='.squad-members'?squad:query(s);
+ f.ctx.beforeRosterRebuild=()=>{squad={scrollTop:0}};
+ f.ctx.render();assert.equal(squad.scrollTop,0);
 });
