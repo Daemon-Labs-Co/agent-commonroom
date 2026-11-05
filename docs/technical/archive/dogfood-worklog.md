@@ -253,3 +253,13 @@ reservation and disposal wired into allocation; and live acceptance on a rootles
 daemon (transport interruption, crash recovery, a real provider round trip). The
 refusal in `credential_boundary.go` has no flag, owner role or entitlement that may
 remove it; it should be replaced only by a path that satisfies those gates.
+
+### 04:41 health check
+
+No changes made. `commonroom` service active with no restarts since 01:41 and no
+error, refusal or unavailable lines in the journal for that period;
+`/api/setup-status` returns `setupRequired:false`. `idle-v1` true; all five
+`verify-runtime.sh` checks pass (ready, idle, jobs, plain and chained commands
+refused). Both repositories on `integration/dogfood-mvp` with clean trees;
+AgentRuntime has no remote; AgentChat `main` still `814aef7`, equal to `origin/main`
+(its single remote is unused, nothing pushed). Commit signing works.
