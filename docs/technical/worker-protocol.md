@@ -15,6 +15,13 @@ value operand.
 | Same machine | The application executable run as `--agent-worker ACTION [VALUE]`. | Only when `COMMONROOM_SERVER_WORKER=true`; otherwise the command is empty and fails. |
 | Remote | `ssh -T` to an approved alias, running `exec ~/.local/bin/commonroom-worker ACTION 'VALUE'`. | Requires a trusted host key. Options: `BatchMode=yes`, `StrictHostKeyChecking=yes`, `ConnectTimeout=10`, `ServerAliveInterval=10`, `ServerAliveCountMax=2`. |
 
+When the worker runs under a separate account, the controller's SSH key is
+authorized only for a forced command, `commonroom-ssh-gate` in the runtime project.
+The gate accepts exactly `exec ~/.local/bin/commonroom-worker ACTION ['VALUE']`
+with a known action and a base64url/hex value, runs the installed worker directly
+with a fixed minimal environment, and refuses chained commands, plain shells and
+interactive sessions. It was verified against a real sshd with a throwaway key.
+
 The value is base64 (raw URL alphabet) JSON, hex, or a validated job identifier,
 quoted for the remote shell. Actions handled by the worker entry point in source:
 `ready-v1`, `verify-v1`, `status-v1`, `jobs-v2`, `idle-v1`, `run-v2`, `cancel-v2`,
