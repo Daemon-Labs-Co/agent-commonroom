@@ -64,6 +64,39 @@ systemctl --user restart commonroom.service
 Expected result: the test checks the container worker on the named server rather
 than asking for another machine. Provider readiness is reported separately.
 
+### Use a separate worker account on the same machine
+
+Choose this when the website's account should not have container-engine access.
+The worker runs under its own account and CommonRoom reaches it over SSH with a
+key that can run only the worker protocol, never a shell.
+
+1. An administrator sets up the container runtime project on the machine. Its
+   setup scripts create the shared directories, authorize the controller's key
+   for the restricted command only, pin the host key and add an SSH alias
+   (the examples here use `cr-space`).
+2. The operator sets `COMMONROOM_SERVER_WORKER=false`,
+   `COMMONROOM_REMOTE_WORKER=true` and `COMMONROOM_REMOTE_WORKER_ALIAS=cr-space`
+   in `runtime.env`, then restarts CommonRoom.
+3. In Connections choose **Another worker machine** and **Containerized CLI**,
+   enter the address `ssh://cr-space` (for Claude, `ssh://cr-space/claude`) and
+   pick the provider. Connections saved with an older server or alias address are
+   refused and must be edited to the new address.
+4. Sign in to the provider, then choose **Test connection**.
+
+```bash
+# Run as the account that runs CommonRoom. Read-only; starts nothing.
+ssh -T cr-space "exec ~/.local/bin/commonroom-worker ready-v1"
+# A plain command must be refused by the restricted key:
+ssh -T cr-space id
+```
+
+Expected result: the first command prints the worker's readiness (`runtimeReady`
+true; `credentials` stay false for a provider until you sign in) and the second
+prints `Forbidden worker command`. If the worker has leftover records from an older
+version it reports not idle, and CommonRoom keeps managed execution stopped until
+an administrator archives them; sign-in and the connection test still report the
+worker's state separately.
+
 ### Sign in to Codex from your browser
 
 ![Codex browser sign-in: start the isolated worker, view the verification link and code, approve at OpenAI, then test the connection](../images/user-provider-login.svg)
