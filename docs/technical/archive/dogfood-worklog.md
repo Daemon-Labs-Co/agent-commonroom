@@ -20,17 +20,28 @@ it was verified, and how to return to the prior state.
 
 ## Restore points
 
-Each restore point is a git tag on a local commit plus a git bundle under
-`/home/claude/backups/`. To return to a point: `git checkout <tag>` in the repo, or
-`git clone <bundle> <directory>` to rebuild it elsewhere. Bundles contain full history.
+Project commits could not be made unattended: commit signing is enforced by the
+host git configuration and the signing key needs a passphrase that is not available
+during the window. Signing is not bypassed in either project repository. Instead,
+restore points are snapshots kept in separate local git directories under
+`/home/claude/backups/` (`AgentChat.snap.git`, `AgentRuntime.snap.git`), which
+are never pushed and do not touch the project repositories.
 
-| Point | Repository | Tag | Notes |
-| --- | --- | --- | --- |
-| R0 | AgentChat | `restore/20261105-r0` | Design and protocol docs, before any window work. |
-| R0 | AgentRuntime | `restore/20261105-r0` | Skeleton with `ready-v1`; live check passed. |
+- Take a snapshot: `/home/claude/backups/snapshot.sh LABEL`
+- List snapshots: `/home/claude/backups/snapshot.sh --list`
+- Restore into a new directory: `/home/claude/backups/snapshot.sh --restore LABEL NEWDIR`
+  (refuses an existing directory; project `.git` directories are not included, so
+  committed history is separate and unchanged)
+
+| Label | Time | Contents |
+| --- | --- | --- |
+| `r0-20261105-0006` | 00:04 | Both working trees at the start of the window. |
 
 ## Waiting on the owner
 
+- Enabling commits: signing needs the passphrase (for example preset it in
+  gpg-agent), or an explicit decision to commit unsigned. Until then all work
+  stays uncommitted in the working trees and in the snapshots above.
 - Forced-command SSH access so the controller account can reach the worker account.
 - Confirmation that the GPL-3.0 licence copied into AgentRuntime is intended.
 - Removing paid-tier material from existing documents, if wanted.
@@ -43,3 +54,11 @@ State at the start: AgentChat on `docs/runtime-separation` with two new technica
 pages; AgentRuntime with a verified `ready-v1` worker, run live as the worker
 account (credentials false for both providers). `make test` passed on AgentChat
 earlier in the session; AgentRuntime `make check` passes.
+
+### 00:06 safety net
+
+Attempted local commits failed because signing needs a passphrase; nothing was
+committed and no signing option was changed. A concurrent `git commit` by another
+process held `.git/index.lock` in AgentChat, so git write commands were not run
+there; the lock was left alone. Snapshot tooling created and verified
+(`r0-20261105-0006`).
