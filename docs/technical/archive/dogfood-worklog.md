@@ -102,3 +102,41 @@ docker script on a PATH that excludes any real docker. Binary reinstalled at
 `/opt/commonroom-space/bin/commonroom-worker` (sha256 `8b057889…5457c`). Not yet
 verified live after this change. To roll back: `git checkout restore/20261105-r1`
 in AgentRuntime (the hand-written skeleton).
+
+### 00:16 private development instance
+
+Without administrator access, the application was brought up against a private
+PostgreSQL 17 cluster owned by the `claude` account: data in
+`~/.local/share/commonroom-dev/pg`, Unix socket only (no TCP), directory mode 0700,
+port 55433, trust authentication on that private socket. Roles follow the production
+split: `cr_owner` (migration owner) and `cr_runtime` (restricted, created with
+`deployment/postgres/create-runtime-role.sql`, granted with `runtime-grants.sql`).
+Connection URLs are in `~/.local/share/commonroom-dev/env` (mode 0600). The
+migration ran (`Audit schema migration completed`), the events table exists and is
+empty, and the controller started on `127.0.0.1:18787` with `.data/` (gitignored)
+holding the owner setup code. `GET /api/setup-status` returned
+`{"setupRequired":true}` and `/` returned 200. No owner account was created.
+
+Reproduce or stop:
+
+```bash
+D=~/.local/share/commonroom-dev; PGBIN=/usr/lib/postgresql/17/bin
+$PGBIN/pg_ctl -D $D/pg -l $D/pg.log start           # start the database
+(set -a; . $D/env; set +a; unset MIGRATION_DATABASE_URL; LISTEN_ADDR=127.0.0.1:18787 ./bin/commonroom)  # from the repo root
+pkill -f 'commonroom-dev'; $PGBIN/pg_ctl -D $D/pg stop   # stop both
+```
+
+This instance is for development checks only. The production database (system
+PostgreSQL on port 5433) was not touched; no access rule exists for this account
+there, so its setup remains an administrator step.
+
+### Scope finding: repository development is still blocked
+
+The refusal of repository-bound development (`requireCredentialSeparatedDevelopment`)
+guards the real production-dispatch gate. Lifting it needs the controller-side
+audited tool session, repository snapshot bundle, signed harness admission and
+quota assembly around `RunCodex`, plus live acceptance against a rootless daemon
+this account cannot reach. It was not attempted overnight, to avoid weakening the
+boundary without live verification. Until then the dogfooding scope that can run
+safely is: rooms and agent chat through the isolated worker, tasks, sequential
+workflows, human review, and value (not file) outputs.
