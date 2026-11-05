@@ -41,6 +41,7 @@ are never pushed and do not touch the project repositories.
 | Label | Time | Contents |
 | --- | --- | --- |
 | `r0-20261105-0006` | 00:04 | Both working trees at the start of the window (snapshot). |
+| `restore/20261105-r2` (AgentRuntime) | 00:40 | Worker protocol extracted; `make check` green. Merge `905352b` on `integration/dogfood-mvp`. |
 | `restore/20261105-r1` | 00:20 | Signed git tag in both repositories: AgentChat `5bfbcf5`, AgentRuntime `756c4dd`. |
 
 ## Waiting on the owner
@@ -81,3 +82,23 @@ fallback.
 Created `integration/dogfood-mvp` in both repositories at the current heads
 (AgentChat `e3a786d`, AgentRuntime `756c4dd`). Work branches are merged into it with
 `--no-ff`. No remote is configured for AgentRuntime; AgentChat's `origin` is not used.
+
+### 00:40 worker extraction
+
+Added the policy that each piece of work uses its own branch and merges into
+`integration/dogfood-mvp` with `--no-ff` (applied by a background agent; verified
+against git). Built a slicing tool (kept in the session scratchpad) that takes the
+transitive closure of declarations reachable from the controller's worker entry
+point, copies them verbatim, rewrites import paths and selects the existing tests
+that touch only that code. Result in AgentRuntime branch
+`feature/extract-worker-closure`: 198 declarations (about 2,950 lines, 28 files)
+and 73 test functions in `internal/workerport`, plus the internal packages they
+need. Only one application type was needed from the room package (the probe event),
+moved to the shared `protocol` package with an identical JSON shape. `make check`
+passes with the race detector. The runtime's `worker.Run` now delegates every
+action to the extracted code, replacing the hand-written `ready-v1`; its tests
+now run the real entry point in a subprocess with a temporary home and a fake
+docker script on a PATH that excludes any real docker. Binary reinstalled at
+`/opt/commonroom-space/bin/commonroom-worker` (sha256 `8b057889…5457c`). Not yet
+verified live after this change. To roll back: `git checkout restore/20261105-r1`
+in AgentRuntime (the hand-written skeleton).

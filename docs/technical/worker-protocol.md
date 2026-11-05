@@ -95,8 +95,10 @@ authorizes host execution; there is no direct-host or uncontained fallback.
 Extracting the worker into its own project must keep action names, versions and
 framing unchanged until a documented version bump.
 
-The separate runtime project currently implements `ready-v1` with identical
-checks and wire shape, and refuses every other action; its tests pin the
-controller's acceptance rule for the `ready-v1` response.
+The separate runtime project serves every action listed above using the worker
+code extracted unchanged from this repository, with the existing tests that
+exercise only that code. This repository still contains the original; until the
+controller stops using it, both must change together under a protocol version
+bump. The runtime has not been accepted against live providers.
 
 Source: [remote_worker.go](../../cmd/server/remote_worker.go) · [server_worker.go](../../cmd/server/server_worker.go).

@@ -120,11 +120,13 @@ Neither is implemented in this proposal.
 
 1. Extract the existing actions into a protocol package and complete the
    [worker protocol](worker-protocol.md) inventory.
-2. Build a `commonroom-worker` executable in the runtime project that answers
-   `ready-v1` and refuses every other action; prove a controller-to-worker round
-   trip across the account boundary with a contract test and a live check.
-3. Move the remaining actions one at a time without behavior changes, keeping
-   `make check` green at each step.
+2. Build a `commonroom-worker` executable in the runtime project; prove a
+   controller-to-worker round trip across the account boundary with a contract
+   test and a live check. Done for `ready-v1`; the executable now serves all
+   actions from code extracted unchanged from the controller.
+3. Verify the remaining actions live against the worker account, then remove the
+   controller's own copy of the worker code, keeping `make check` green at each
+   step.
 4. Replace controller-side engine calls with protocol client calls.
 5. Connect production dispatch through the verified pair, then a live provider
    acceptance on a real worker.
