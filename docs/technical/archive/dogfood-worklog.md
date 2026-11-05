@@ -221,3 +221,35 @@ then `systemctl --user restart commonroom`. To roll back to the owner's original
 environment: copy `runtime.env.orig-from-owner` over `runtime.env` (this restores the
 old same-machine worker settings, which the `claude` account cannot run) and restart.
 To stop: `systemctl --user stop commonroom`.
+
+### 02:20 dogfood-lite runbook and the production-dispatch boundary
+
+What the deployed system can do today, once the morning checklist is done, for
+developing CommonRoom with CommonRoom (agents have no repository access yet):
+
+1. Create a room for the project, with a purpose and defined outcome (optional
+   metadata), and add Codex and Claude agents from saved `ssh://cr-space` connections.
+2. Discuss designs and reviews in the room. Share excerpts of code or diffs by
+   pasting them; agents answer as text. Agent replies are bounded (structured task
+   responses at most 16 KiB), so review one file or one diff at a time.
+3. Turn agreed work into seven-part task definitions and run them with value (not
+   file) outputs: review notes, test plans, proposed patches as text. A human applies
+   a patch locally and runs `make check`. Acceptance is recorded by the human against
+   the task's criteria; agent output is never accepted automatically.
+4. Use sequential workflows with human gates for repeatable review passes.
+
+Known limits: no repository checkout, no file or bundle output, no commit or push by
+agents, no live provider acceptance recorded yet, and the first real agent turn may
+reveal provider or image problems that synthetic tests cannot.
+
+Production dispatch (agents editing a real checkout) remains refused by design. What
+exists: the paired engine/tool containers, audited tool callbacks, credential
+delivery and cleanup proof, all exercised only with synthetic peers. What is missing
+before the refusal can be lifted (from the release-readiness gates): a controller-side
+session that opens the audited tool session and supplies the repository snapshot
+bundle and signed allocation to `RunCodex`; reviewed, digest-pinned engine and tool
+images (the bridge-only engine build was in progress on another host); storage
+reservation and disposal wired into allocation; and live acceptance on a rootless
+daemon (transport interruption, crash recovery, a real provider round trip). The
+refusal in `credential_boundary.go` has no flag, owner role or entitlement that may
+remove it; it should be replaced only by a path that satisfies those gates.
