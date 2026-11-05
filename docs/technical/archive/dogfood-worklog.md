@@ -17,6 +17,11 @@ it was verified, and how to return to the prior state.
   installation, system files) are prepared as checked scripts and left for the
   owner; they are listed under "Waiting on the owner" below.
 - No paid or commercial functionality is added to either repository.
+- Git policy (owner instruction, 00:40): every commit stays local and nothing is
+  pushed, in either repository. New work goes on its own branch. Work is merged
+  locally into `integration/dogfood-mvp` with `git merge --no-ff` so branch history
+  is kept; no squashing, force operations or history rewriting. `main` is never
+  committed to or merged into; merging to `main` is left to the owner.
 
 ## Restore points
 
@@ -70,3 +75,9 @@ tags are signed annotated tags. AgentChat `5bfbcf5` (work log) follows the owner
 `756c4dd` is the skeleton. Nothing is pushed. If a commit fails because the
 passphrase cache expired, work continues uncommitted and snapshots remain the
 fallback.
+
+### 00:40 branch policy
+
+Created `integration/dogfood-mvp` in both repositories at the current heads
+(AgentChat `e3a786d`, AgentRuntime `756c4dd`). Work branches are merged into it with
+`--no-ff`. No remote is configured for AgentRuntime; AgentChat's `origin` is not used.
