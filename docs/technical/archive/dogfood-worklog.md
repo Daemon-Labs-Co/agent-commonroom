@@ -46,6 +46,20 @@ are never pushed and do not touch the project repositories.
 
 ## Waiting on the owner
 
+Morning checklist, in order (all administrator steps are scripts that check first,
+ask before replacing anything, keep backups and support `--dry-run`):
+
+1. In AgentRuntime, run `deploy/host-ssh-setup.sh --dry-run`, then without
+   `--dry-run`. It authorizes a controller key for the gate only, pins the host key
+   and adds the SSH alias, then checks `ready-v1` and a refused plain command.
+2. Production database (system PostgreSQL, port 5433): create the database, the
+   migration owner and the restricted runtime role with the templates in
+   `deployment/postgres/`, then migrate. Not scripted yet.
+3. Start the controller with `COMMONROOM_REMOTE_WORKER=true`,
+   `COMMONROOM_REMOTE_WORKER_ALIAS=cr-space`, `COMMONROOM_SERVER_WORKER=false`.
+4. Sign in the agent connections (Codex, Claude) through the interface; the worker
+   currently reports no provider credentials.
+
 - Forced-command SSH access so the controller account can reach the worker account.
 - Confirmation that the GPL-3.0 licence copied into AgentRuntime is intended.
 - Removing paid-tier material from existing documents, if wanted.
@@ -140,3 +154,19 @@ this account cannot reach. It was not attempted overnight, to avoid weakening th
 boundary without live verification. Until then the dogfooding scope that can run
 safely is: rooms and agent chat through the isolated worker, tasks, sequential
 workflows, human review, and value (not file) outputs.
+
+### 00:40 SSH gate and host wizards
+
+Built `commonroom-ssh-gate` (AgentRuntime `internal/gate`) and verified it
+against the real sshd on this host using a throwaway key added to this account's
+`authorized_keys` and removed again (file restored byte-for-byte, hashes compared;
+key material shredded). Results: allowed actions run with correct arguments and a
+clean environment; `; touch …` injection and plain `id` are refused with exit 126
+and create nothing; interactive sessions are refused. Port-forwarding refusal was
+not observed. Binaries installed in `/opt/commonroom-space/bin`: gate sha256
+`1eda9b1c…c973`, worker `9f6fcfcf…336b`. Added `deploy/host-ssh-setup.sh` and kept
+`deploy/host-space-setup.sh` in the repository. The SSH wizard cannot be run by
+this account (it needs administrator access); its syntax and argument handling
+were checked and two bugs found by reading it (a write after a declined
+confirmation, and a directory created during a dry run) were fixed before
+hand-off. Tag `restore/20261105-r3` in AgentRuntime.
