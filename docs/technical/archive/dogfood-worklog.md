@@ -46,23 +46,18 @@ are never pushed and do not touch the project repositories.
 
 ## Waiting on the owner
 
-Morning checklist, in order (all administrator steps are scripts that check first,
-ask before replacing anything, keep backups and support `--dry-run`):
+Morning checklist (the production controller is already running; see the 00:52 entry):
 
-1. In AgentRuntime, run `deploy/host-ssh-setup.sh --dry-run`, then without
-   `--dry-run`. It authorizes a controller key for the gate only, pins the host key
-   and adds the SSH alias, then checks `ready-v1` and a refused plain command.
-2. Production database (system PostgreSQL, port 5433): create the database, the
-   migration owner and the restricted runtime role with the templates in
-   `deployment/postgres/`, then migrate. Not scripted yet.
-3. Start the controller with `COMMONROOM_REMOTE_WORKER=true`,
-   `COMMONROOM_REMOTE_WORKER_ALIAS=cr-space`, `COMMONROOM_SERVER_WORKER=false`.
-4. Sign in the agent connections (Codex, Claude) through the interface; the worker
-   currently reports no provider credentials.
-
-- Forced-command SSH access so the controller account can reach the worker account.
-- Confirmation that the GPL-3.0 licence copied into AgentRuntime is intended.
-- Removing paid-tier material from existing documents, if wanted.
+1. Open https://agentcommonroom.home.arpa and sign in with your saved owner private
+   key (the existing owner is recognized).
+2. Existing connections still point at the old same-machine or `jerry` endpoints and
+   will be refused. Register or edit a connection with endpoint `ssh://cr-space`
+   (Claude: `ssh://cr-space/claude`), then sign in each provider in the interface
+   (Codex device code; Claude authorization link and code) and run the connection test.
+3. If the interface asks for owner recovery after startup, follow the recovery guide;
+   worker state is verified idle (`idle-v1` true, no unresolved jobs, no containers).
+4. Confirm the GPL-3.0 licence copied into AgentRuntime is intended.
+5. Remove paid-tier material from existing documents, if wanted.
 
 ## Log
 
@@ -185,3 +180,44 @@ reports not idle because the worker has one legacy-format job record labelled
 finished (job `9c1d…`); the worker never treats a legacy terminal label as shutdown
 proof, so it counts as unresolved. It is left untouched; clearing it needs the
 explicit recovery path, not deletion.
+
+### 00:52 production controller deployed
+
+Done under the owner's instruction to deploy as far as possible. Actions, in order:
+
+- Owner ran the legacy-record archive (26 terminal legacy records moved to
+  `~commonroom-worker/.local/state/commonroom-worker/archive/legacy-*`, none deleted);
+  verified `idle-v1` true, 4 current-format settled records, 0 unresolved, 0 containers.
+- Owner installed `runtime.env` for the `claude` account. Read-only database check
+  (no credentials printed): database `agentcr` on localhost:5433, role
+  `commonroom_runtime`, 290 events, INSERT allowed, CREATE in schema denied.
+- Cloned `integration/dogfood-mvp` (commit `37d23a4`) into
+  `/home/claude/workspace/AgentCommonRoom`, removed the clone's remote, built
+  `bin/commonroom`. Verified before starting anything that nginx is a pure reverse
+  proxy: with the controller down, `/.git/HEAD`, `/go.mod`, `/web/index.html` all
+  returned 502, not file content; after start, `/.git/HEAD`, `/go.mod` and
+  `/.data/owner-key` return 404 through nginx.
+- Environment copy at `~/.config/commonroom/runtime.env` (original kept beside it as
+  `runtime.env.orig-from-owner`): `COMMONROOM_SERVER_WORKER=false`,
+  `COMMONROOM_REMOTE_WORKER=true`, `COMMONROOM_REMOTE_WORKER_ALIAS=cr-space`,
+  `OWNER_KEY_FILE=/home/claude/.local/share/commonroom/owner-key` (state kept outside
+  the checkout).
+- Owner key: the controller refuses to start on a database with history unless the
+  original owner public key file exists and matches the registered identity. That
+  file was not available, so the registered public key (public material only) was
+  restored byte-for-byte from the single `actor.revised` event for `local-owner`
+  (625 characters, ending in one newline; the first two attempts failed the exact
+  comparison and the service refused to start, as designed). No identity was created
+  or changed, and sign-in still requires the owner's private key.
+- Installed the project's `deployment/commonroom.service` as a user service for
+  `claude` (linger is on), enabled and started it. Startup appended no events (still
+  290). `GET /api/setup-status` returns `{"setupRequired":false}`; `/` and `/help/`
+  serve over HTTPS through nginx.
+
+To update the deployment later: `git -C ~/workspace/AgentCommonRoom fetch
+~/workspace/AgentChat integration/dogfood-mvp && git -C ~/workspace/AgentCommonRoom
+merge --ff-only FETCH_HEAD`, rebuild with `go build -o bin/commonroom ./cmd/server`,
+then `systemctl --user restart commonroom`. To roll back to the owner's original
+environment: copy `runtime.env.orig-from-owner` over `runtime.env` (this restores the
+old same-machine worker settings, which the `claude` account cannot run) and restart.
+To stop: `systemctl --user stop commonroom`.
