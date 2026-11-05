@@ -263,3 +263,45 @@ error, refusal or unavailable lines in the journal for that period;
 refused). Both repositories on `integration/dogfood-mvp` with clean trees;
 AgentRuntime has no remote; AgentChat `main` still `814aef7`, equal to `origin/main`
 (its single remote is unused, nothing pushed). Commit signing works.
+
+### 07:43 final health check and end-of-window summary
+
+Health: `commonroom` service active with no restarts or error lines in the last
+three hours; `setupRequired:false`; `idle-v1` true; all five `verify-runtime.sh`
+checks pass; both repositories clean on `integration/dogfood-mvp`; AgentChat `main`
+still `814aef7`, nothing pushed; signing works. The private development PostgreSQL
+and controller (port 55433 and 18787) were stopped, identified by executable path;
+their data under `~/.local/share/commonroom-dev` is kept.
+
+**Built.** A separate container-runtime project (`AgentRuntime`) serving the whole
+worker protocol from code extracted unchanged from the controller (about 2,950
+lines plus the internal packages it needs, and 73 existing tests), a shared protocol
+package, protocol-level tests for ready, idle, jobs, status, cancel/fence and auth
+status/sign-out, an SSH forced-command gate verified against a real sshd, host
+setup, verification and legacy-record archive scripts, and design, protocol and user
+documentation in AgentChat.
+
+**Deployed.** The controller runs as the `commonroom` user service from
+`AgentCommonRoom` (commit `37d23a4`) against the production database, behind nginx,
+using the SSH worker route (`cr-space`) to a worker account with its own rootless
+Docker. The worker is idle and the legacy test records are archived, not deleted.
+
+**Owner next.** Sign in with the saved owner key; register connections with
+`ssh://cr-space` (Claude: `ssh://cr-space/claude`); sign in Codex and Claude; run
+the connection tests; follow the recovery guide if the interface asks; confirm the
+GPL-3.0 licence in AgentRuntime; decide whether to remove paid-tier material from
+the existing documents.
+
+**Known gaps.** Agents cannot edit a repository (the credential-separated bridge
+and production dispatch are not wired and need live rootless-Docker acceptance, which
+was not available). No live provider turn has been run. The controller repository
+still contains its own copy of the worker code, and the runtime copies
+`taskcontract` and `objectcustody`; both should be consolidated after live
+acceptance. 722 other controller tests were not extracted. The installed
+`commonroom-space.service` unit sets `DOCKER_HOST` and must be fixed before it is
+ever used. Port-forwarding refusal by the restricted key was not observed. The
+restored owner public key came from the database, not an independent copy. The
+scheduled check-ins live only in the assistant session.
+
+**Return points.** Tags `restore/20261105-r1` to `r3` and `restore/20261105-final` in
+both repositories; snapshots in `/home/claude/backups/` (`snapshot.sh --list`).
