@@ -170,3 +170,18 @@ this account (it needs administrator access); its syntax and argument handling
 were checked and two bugs found by reading it (a write after a declined
 confirmation, and a directory created during a dry run) were fixed before
 hand-off. Tag `restore/20261105-r3` in AgentRuntime.
+
+### 00:35 live SSH route verified
+
+The owner ran `deploy/host-ssh-setup.sh` as administrator: controller key created,
+gate-restricted line added to the worker account's `authorized_keys` (the existing
+line was kept), host key pinned after matching the on-disk fingerprint, alias
+`cr-space` added. Verified live from the `claude` account with
+`deploy/verify-runtime.sh`: `ready-v1` (configured, runtime ready; no provider
+credentials yet), `idle-v1`, `jobs-v2`, and refusal (exit 126, "Forbidden worker
+command") of a plain command and of a chained command. The wizard's own refusal check
+printed a false warning because of a `pipefail` bug (fixed). Observation: `idle-v1`
+reports not idle because the worker has one legacy-format job record labelled
+finished (job `9c1d…`); the worker never treats a legacy terminal label as shutdown
+proof, so it counts as unresolved. It is left untouched; clearing it needs the
+explicit recovery path, not deletion.
