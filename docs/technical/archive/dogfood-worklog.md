@@ -35,13 +35,11 @@ are never pushed and do not touch the project repositories.
 
 | Label | Time | Contents |
 | --- | --- | --- |
-| `r0-20261105-0006` | 00:04 | Both working trees at the start of the window. |
+| `r0-20261105-0006` | 00:04 | Both working trees at the start of the window (snapshot). |
+| `restore/20261105-r1` | 00:20 | Signed git tag in both repositories: AgentChat `5bfbcf5`, AgentRuntime `756c4dd`. |
 
 ## Waiting on the owner
 
-- Enabling commits: signing needs the passphrase (for example preset it in
-  gpg-agent), or an explicit decision to commit unsigned. Until then all work
-  stays uncommitted in the working trees and in the snapshots above.
 - Forced-command SSH access so the controller account can reach the worker account.
 - Confirmation that the GPL-3.0 licence copied into AgentRuntime is intended.
 - Removing paid-tier material from existing documents, if wanted.
@@ -62,3 +60,13 @@ committed and no signing option was changed. A concurrent `git commit` by anothe
 process held `.git/index.lock` in AgentChat, so git write commands were not run
 there; the lock was left alone. Snapshot tooling created and verified
 (`r0-20261105-0006`).
+
+### 00:20 commits enabled
+
+The owner unlocked signing in the host gpg-agent (passphrase cached; not shared
+with this session). Commits are now signed local commits on feature branches;
+tags are signed annotated tags. AgentChat `5bfbcf5` (work log) follows the owner's
+`72f3b9a`, which committed the separation and protocol documents. AgentRuntime
+`756c4dd` is the skeleton. Nothing is pushed. If a commit fails because the
+passphrase cache expired, work continues uncommitted and snapshots remain the
+fallback.
