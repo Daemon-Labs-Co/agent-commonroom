@@ -47,8 +47,13 @@ The first worker location card shows the hostname of the machine running CommonR
 1. Choose the card bearing the server hostname (for example, **debian**).
 2. Choose **Containerized CLI** and the provider. The worker address is filled
    automatically; you do not need an SSH alias for the server itself.
-3. The deployment operator must configure its isolated worker and enable
-   `COMMONROOM_SERVER_WORKER=true` in `runtime.env`, with remote worker mode off.
+3. The deployment operator must configure the isolated worker in one of two ways,
+   then restart. Either enable `COMMONROOM_SERVER_WORKER=true` in `runtime.env`
+   with remote worker mode off, or, when the worker runs under its own account on
+   this machine (see the next section), keep `COMMONROOM_SERVER_WORKER=false` and set
+   `COMMONROOM_REMOTE_WORKER=true`, `COMMONROOM_REMOTE_WORKER_ALIAS=cr-space` and
+   `COMMONROOM_SERVER_ENDPOINT_VIA_ALIAS=true` (default off). Choosing this machine's
+   card then uses that worker account and needs no address.
 4. Restart CommonRoom, then test the connection. A missing worker configuration,
    image or Docker prerequisite remains a blocking error. Sign in on the server
    when prompted; your browser machine does not host this worker.
@@ -63,6 +68,40 @@ systemctl --user restart commonroom.service
 
 Expected result: the test checks the container worker on the named server rather
 than asking for another machine. Provider readiness is reported separately.
+
+### Use a separate worker account on the same machine
+
+Choose this when the website's account should not have container-engine access.
+The worker runs under its own account and CommonRoom reaches it over SSH with a
+key that can run only the worker protocol, never a shell.
+
+1. An administrator sets up the container runtime project on the machine. Its
+   setup scripts create the shared directories, authorize the controller's key
+   for the restricted command only, pin the host key and add an SSH alias
+   (the examples here use `cr-space`).
+2. The operator sets `COMMONROOM_SERVER_WORKER=false`,
+   `COMMONROOM_REMOTE_WORKER=true` and `COMMONROOM_REMOTE_WORKER_ALIAS=cr-space`
+   in `runtime.env`, then restarts CommonRoom.
+3. With `COMMONROOM_SERVER_ENDPOINT_VIA_ALIAS=true`, choose this machine's card as
+   usual. Otherwise choose **Another worker machine** and **Containerized CLI**,
+   enter the address `ssh://cr-space` (for Claude, `ssh://cr-space/claude`) and
+   pick the provider. Connections saved with an older server or alias address are
+   refused and must be edited to the new address.
+4. Sign in to the provider, then choose **Test connection**.
+
+```bash
+# Run as the account that runs CommonRoom. Read-only; starts nothing.
+ssh -T cr-space "exec ~/.local/bin/commonroom-worker ready-v1"
+# A plain command must be refused by the restricted key:
+ssh -T cr-space id
+```
+
+Expected result: the first command prints the worker's readiness (`runtimeReady`
+true; `credentials` stay false for a provider until you sign in) and the second
+prints `Forbidden worker command`. If the worker has leftover records from an older
+version it reports not idle, and CommonRoom keeps managed execution stopped until
+an administrator archives them; sign-in and the connection test still report the
+worker's state separately.
 
 ### Sign in to Codex from your browser
 

@@ -20,6 +20,8 @@ Contracts describing input, output, functionality and properties/state changes.
 | Controller setup and preflights | [Controller setup and preflights](installation.md) |
 | Tasks, execution records and acceptance | [Tasks, execution records and acceptance](tasks.md) |
 | Isolated execution and workflows | [Isolated execution and workflows](execution.md) |
+| Application, container runtime and agent separation | [Proposed separation](runtime-separation.md) |
+| Worker protocol and transport | [Worker protocol](worker-protocol.md) |
 | Artifact capture, manifests and reads | [Artifact capture, manifests and reads](artifacts.md) |
 | Storage accounting and physical enforcement | [Storage accounting and physical enforcement](storage.md) |
 | Repository publishing | [Repository publishing](publishing.md) |

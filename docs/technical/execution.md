@@ -7,6 +7,14 @@ reserved connection endpoints `ssh://commonroom-server` (Codex) and
 `ssh://commonroom-server/claude`. These references retain the existing connection
 contract; they do not initiate SSH. Only deployment operators change this flag;
 restart is required. Enabling server and remote worker modes together refuses startup.
+Operator-controlled `COMMONROOM_SERVER_ENDPOINT_VIA_ALIAS=true|false` (default
+`false`; restart required) declares that `COMMONROOM_REMOTE_WORKER_ALIAS` names a
+worker account on this machine. When `true`, the reserved endpoints above are served
+through that alias with the remote worker protocol instead of being refused.
+It requires `COMMONROOM_REMOTE_WORKER=true` and a valid alias and refuses startup
+when combined with `COMMONROOM_SERVER_WORKER=true`, with a non-boolean value, or
+without those prerequisites. It enables no transport by itself.
+
 Worker configuration remains the private `~/.config/commonroom-worker/config.json`
 with an absolute credential directory and digest-pinned installed image.
 
@@ -33,7 +41,12 @@ Managed turns require the approved isolated worker. The current production devel
 
 ## Properties and state changes
 
-The server identity is `commonroom-server`. Disabling the flag blocks new worker
+The server identity is `commonroom-server`. With the alias setting on, connections
+saved with the reserved endpoints keep their stored address; new jobs bind to the
+configured alias as their worker identity. Setting it back to `false` makes new
+operations on those endpoints refuse again while saved connections, job records and
+history are preserved. It cannot disable containment, authorization, job fencing or
+audit checks, and it never restores direct host execution. Disabling the flag blocks new worker
 operations while retaining historical binding validation and saved data. The flag
 is a transport choice and cannot disable mandatory containment, authorization,
 job fencing or audit checks. UI registration does not prove runtime or provider
