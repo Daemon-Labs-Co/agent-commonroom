@@ -63,6 +63,9 @@ func main() {
 	if os.Getenv("COMMONROOM_SERVER_WORKER") == "true" && os.Getenv("COMMONROOM_REMOTE_WORKER") == "true" {
 		log.Fatal("Configure one worker transport: server or remote")
 	}
+	if err := serverEndpointAliasConfigError(); err != nil {
+		log.Fatal(err)
+	}
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
 		url = localConfig.DatabaseURL

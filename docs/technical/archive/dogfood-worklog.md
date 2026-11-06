@@ -305,3 +305,29 @@ scheduled check-ins live only in the assistant session.
 
 **Return points.** Tags `restore/20261105-r1` to `r3` and `restore/20261105-final` in
 both repositories; snapshots in `/home/claude/backups/` (`snapshot.sh --list`).
+
+### 2026-11-06 00:25 machine card fixed: server endpoints via the worker alias
+
+Problem reported by the owner: choosing the host machine's card with Containerized
+CLI failed with "The worker on this CommonRoom server is disabled; enable
+COMMONROOM_SERVER_WORKER…". Cause: that card maps to the legacy same-machine mode,
+which requires the website's own account to run Docker; it was disabled on purpose
+when the worker moved to its own account. Fix on branch
+`fix/server-endpoint-via-worker-alias` (not committed; see snapshot
+`fix-via-alias-wip`): an operator setting `COMMONROOM_SERVER_ENDPOINT_VIA_ALIAS`
+(default false, restart required) declares that the configured worker alias is a
+worker account on this machine; the reserved endpoints are then served through it
+with the remote worker protocol. It enables no transport by itself, is validated at
+startup (boolean; refuses with the legacy server worker or without the remote
+worker and a valid alias) and changes nothing when off. Seven tests added; documented
+in `execution.md`, the agents guide and `deployment/runtime.env.example`;
+`make check` passes. Verified before deploying by running the new build against the
+private development database and calling the real connection-test API with the
+machine's endpoint for both providers: Worker configuration and Worker runtime pass
+over SSH, leaving only sign-in. Deployed to production: previous binary kept as
+`AgentCommonRoom/bin/commonroom.prev`, environment backup
+`runtime.env.before-via-alias`; service restarted (this ends active browser
+sessions). The deployed binary was built from the uncommitted working tree, so the
+`AgentCommonRoom` checkout (commit `37d23a4`) does not match it until the branch is
+committed and merged. Rollback: copy `commonroom.prev` over `commonroom`, restore the
+environment backup, `systemctl --user restart commonroom`.

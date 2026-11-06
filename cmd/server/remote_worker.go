@@ -28,6 +28,13 @@ func validWorkerJobID(v string) bool { return workerJobPattern.MatchString(v) }
 func remoteWorkerEndpoint(endpoint, configured, enabled string) (string, string, error) {
 	if endpoint == "ssh://commonroom-server" || endpoint == "ssh://commonroom-server/claude" {
 		if os.Getenv("COMMONROOM_SERVER_WORKER") != "true" {
+			// An operator may declare that the configured worker alias is a separate
+			// worker account on this machine; the server's endpoints then use it.
+			// Containment, fencing and audit are those of the remote worker protocol.
+			if serverEndpointViaAlias(configured, enabled) {
+				_, provider, err := serverWorkerBinding(endpoint)
+				return configured, provider, err
+			}
 			return "", "", errors.New("The worker on this CommonRoom server is disabled; enable COMMONROOM_SERVER_WORKER after configuring its isolated runtime")
 		}
 		return serverWorkerBinding(endpoint)
