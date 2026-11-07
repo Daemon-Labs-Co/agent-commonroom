@@ -64,23 +64,11 @@ func (s *server) newIdleAnnouncer(ctx context.Context, jobID string) (workerIdle
 func idleNoticeMessage(n room.IdleStopNotice) room.Message {
 	return room.Message{ID: "idle-stop-" + n.ID, RoomID: n.Job.RoomID, ActorID: "commonroom-system", ActorType: "system", Author: "CommonRoom", Created: n.RecordedAt, Text: fmt.Sprintf("Idle shutdown requested for job %s after %d idle minutes under its recorded policy. This notice does not verify cleanup. Idle shutdown retains source; no capacity release or restart is authorized.", n.Job.JobID, n.Job.IdleMinutes)}
 }
-func projectIdleNoticeMessages(st *room.State) {
-	enabled, exists := st.FeatureFlags["idleStopNotices"]
-	if !exists || enabled {
-		return
-	}
-	ids := map[string]bool{}
-	for _, n := range st.IdleStopNotices {
-		ids["idle-stop-"+n.ID] = true
-	}
-	kept := st.Messages[:0]
-	for _, message := range st.Messages {
-		if !(message.ActorType == "system" && message.ActorID == "commonroom-system" && ids[message.ID]) {
-			kept = append(kept, message)
-		}
-	}
-	st.Messages = kept
-}
+
+// projectIdleNoticeMessages is intentionally a no-op: room messages are never
+// hidden or removed, so the idleStopNotices flag cannot filter an existing notice
+// out of a room transcript. Notices are appended to st.Messages when projected.
+func projectIdleNoticeMessages(st *room.State) {}
 
 // recordIdleStop is shared by the local callback and the authenticated private
 // stream adapter; all authority comes from its captured registered allocation.

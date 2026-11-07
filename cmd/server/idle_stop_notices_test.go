@@ -188,7 +188,7 @@ func TestIdleNoticeVisibilityCannotDisableAudit(t *testing.T) {
 	f.db.seed("feature.flag.updated", map[string]any{"name": "idleAgentShutdown", "enabled": false})
 	f.worker.expireIdle(f.now)
 	st, err := f.s.load(t.Context())
-	if err != nil || len(st.Messages) != 0 || len(st.IdleStopNotices) != 1 || len(f.docker.pairFakeDocker.removed) != 2 {
+	if err != nil || len(st.Messages) != 1 || len(st.IdleStopNotices) != 1 || len(f.docker.pairFakeDocker.removed) != 2 {
 		t.Fatal("visibility altered audit or admitted cleanup", err, len(st.Messages), len(st.IdleStopNotices), len(f.docker.pairFakeDocker.removed))
 	}
 	f.db.seed("feature.flag.updated", map[string]any{"name": "idleStopNotices", "enabled": true})

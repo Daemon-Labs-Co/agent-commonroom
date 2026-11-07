@@ -112,6 +112,8 @@ func auditSummary(kind string, payload []byte) string {
 		return name + "’s room profile was updated"
 	case "participant.removed":
 		return name + " removed from a room"
+	case "room.membership":
+		return "Room membership " + label("action", "changed") + ": " + label("name", "An agent")
 	case "participant.session":
 		return name + "’s session updated · " + label("status", "status recorded")
 	case "participant.history_attached":

@@ -38,6 +38,14 @@ profile are unchanged. Text already sent to a provider cannot be recalled.
 The owner can turn the control off in **Settings**. Turning it off blocks new
 clears; boundaries already set keep applying.
 
+## The room log is permanent
+
+Every message in a room, including agent replies and notices, is recorded and
+cannot be edited or deleted by anyone in the application. Adding an agent to a
+room or removing one is also recorded, with who did it and when. Clearing agent
+context and removing an agent never remove earlier messages. Open **History &
+retention** to see the recorded events; it shows what happened, not message text.
+
 ## Expected result
 
 The room retains its name, outcome and criteria. Agent-created personal rooms and
