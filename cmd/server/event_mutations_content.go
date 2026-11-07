@@ -61,6 +61,19 @@ func (s *server) prepareContentEvent(w http.ResponseWriter, r *http.Request, st 
 		v.Author = actor.Name
 		v.Created = time.Now().UTC()
 		p = v
+	case "room.context.cleared":
+		var v struct {
+			Reason string `json:"reason"`
+		}
+		if json.Unmarshal(req.Payload, &v) != nil {
+			http.Error(w, "Invalid request", 400)
+			return nil, false
+		}
+		c, ok := s.prepareContextClear(w, r, st, roomID, v.Reason)
+		if !ok {
+			return nil, false
+		}
+		p = c
 	case "room.context_export.updated":
 		if !contextPolicyEditorEnabled(st) {
 			http.Error(w, "Context policy editor is disabled", 403)

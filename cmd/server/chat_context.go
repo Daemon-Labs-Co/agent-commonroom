@@ -43,6 +43,9 @@ func chatPrompt(st room.State, p room.Participant, text string) (string, error) 
 	if start < 0 {
 		start = 0
 	}
+	if boundary := messagesAfterBoundary(st.Messages, p.RoomID, roomContextBoundary(st, p.RoomID)); boundary > start {
+		start = boundary
+	}
 	for _, msg := range st.Messages[start:] {
 		if msg.RoomID != p.RoomID || (policy != nil && policy.ExcludeMessages) {
 			continue
