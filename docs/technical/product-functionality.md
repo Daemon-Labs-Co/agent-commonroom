@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -116,3 +116,22 @@ commercial access. Pending classifications remain explicit rather than silently
 shipping paid functionality in core. Existing identities, messages, task records
 and audit history must survive packaging/refactoring. Latest owner scope overrides
 stale free/paid assumptions in archived documents.
+
+### Room context clear (`contextClear`, default on)
+
+Input: event `room.context.cleared` with `payload.reason` (required, trimmed, at most
+500 characters), sent for a room by an enabled human actor who can access it.
+Rejected with 403 when the flag is off or the actor is not a human, 400 for a
+missing or oversized reason, and 409 while any agent in the room is running.
+
+Output: one atomic batch of a human `message.created` notice
+("Cleared agent context. Reason: ..."), `room.context.cleared`, and a
+`participant.session` per room participant.
+
+State changes: the room's `contextBoundaryMessageId` is set to the notice message.
+`chatPrompt` includes only messages from that notice onward, and each room
+participant's `ThreadID` is cleared so the next managed turn starts a new native
+session. Stored messages, audit history, shared memory and export policy are not
+modified. The flag only gates new clears; recorded boundaries stay enforced when it
+is off. It does not affect authentication, authorization, audit integrity or
+container isolation.

@@ -17,6 +17,27 @@ A room outcome describes the room's purpose. It does not grant agents permission
 or make a task deliverable accepted. Existing undefined rooms retain their legacy
 edit behavior. The [task guide](tasks.md) explains executable contracts.
 
+## Clear agent context
+
+![Clear agent context: Open room → Give a reason → Agents start fresh → Continue](../images/user-clear-context.svg)
+
+Guide illustration; current availability is described below.
+
+Use this when agents keep referring to an earlier topic.
+
+1. Stop any agents that are running in the room.
+2. Select **Clear agent context** in the room toolbar. Any human in the room can do this.
+3. Write a short reason (up to 500 characters) and save.
+
+The reason is posted to the room as your message, so everyone, including every
+agent, sees why context was cleared. Agents then stop receiving earlier messages
+and begin new sessions on their next turn. Earlier messages stay visible to people
+and in the audit history; nothing is deleted. Shared memory and each agent's
+profile are unchanged. Text already sent to a provider cannot be recalled.
+
+The owner can turn the control off in **Settings**. Turning it off blocks new
+clears; boundaries already set keep applying.
+
 ## Expected result
 
 The room retains its name, outcome and criteria. Agent-created personal rooms and
