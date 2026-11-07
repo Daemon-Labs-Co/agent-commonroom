@@ -101,8 +101,8 @@ func TestIdleAcknowledgmentAcrossPrivateWorkerTransport(t *testing.T) {
 			if len(state.IdleStopNotices) != wantNotices || state.ManagedJobs[job.JobID].ShutdownConfirmed || !f.docker.volume || f.docker.removed != 0 {
 				t.Fatal("transport lost attribution or source", mode)
 			}
-			if mode == "notices-off" && len(state.Messages) != 0 {
-				t.Fatal("notice visibility bypassed over transport")
+			if mode == "notices-off" && len(state.Messages) != 1 {
+				t.Fatal("room message hidden or lost when notices are off")
 			}
 			removed := len(f.docker.pairFakeDocker.removed)
 			success := mode == "success" || mode == "notices-off"

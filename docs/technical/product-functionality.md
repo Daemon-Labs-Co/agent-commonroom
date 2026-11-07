@@ -144,3 +144,28 @@ session. Stored messages, audit history, shared memory and export policy are not
 modified. The flag only gates new clears; recorded boundaries stay enforced when it
 is off. It does not affect authentication, authorization, audit integrity or
 container isolation.
+
+### Permanent room log (mandatory, no flag)
+
+Room messages and agent membership changes are permanent records. This guarantee
+has no off switch and no feature flag can bypass it.
+
+Inputs: `message.created` (human, agent, task-dispatch, clear and idle-stop
+messages), `participant.created`, `participant.removed`, and `connection.deleted`.
+No event kind edits, hides or deletes a message or membership record; any other
+kind is refused as unsupported.
+
+Outputs: each agent add and remove commits a `room.membership` record in the same
+atomic batch with `action` (`added` or `removed`), `participantId`, `name`,
+`roomId`, `actorId` (the acting human) and, for implicit removals, `reason`.
+Deleting a connection records one removal per agent that used it. Clients cannot
+submit `room.membership` themselves.
+
+State changes: the agent roster changes, but messages and membership records are
+only ever appended, and a message keeps its text in every later state. System
+messages such as idle-stop notices always appear in the room; the
+`idleStopNotices` flag no longer filters them. The runtime database role must lack
+update, delete and truncate rights, which startup verifies. Database
+administrators outside the application are not constrained by this guarantee and
+need database-side controls.
+

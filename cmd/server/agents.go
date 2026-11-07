@@ -265,9 +265,11 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	if req.Action == "remove" {
 		found := false
 		participantName := ""
+		var removed room.Participant
 		for _, p := range st.Participants {
 			if p.ID == req.ParticipantID {
 				participantName = p.Name
+				removed = p
 				found = true
 			}
 		}
@@ -275,7 +277,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Participant not found", 404)
 			return
 		}
-		if err = s.append(r.Context(), "participant.removed", map[string]string{"id": req.ParticipantID, "actor": "human", "name": participantName}); err != nil {
+		if err = s.appendBatch(r.Context(), []auditChange{{Kind: "participant.removed", Payload: map[string]string{"id": req.ParticipantID, "actor": "human", "name": participantName, "roomId": removed.RoomID, "actorId": requestActor(r)}}, membershipChange("removed", removed, requestActor(r), "")}); err != nil {
 			http.Error(w, "Removal could not be committed", 500)
 			return
 		}
@@ -360,7 +362,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		}
 		p := room.Participant{RoomID: roomID, ID: id(), ConnectionID: c.ID, Name: name, Role: "Room assistant", Instructions: "Participate conversationally. Do not use tools or access files during this chat-only trial.", Rank: 1, ThreadID: thread, Status: "Idle", AdditionalContext: req.AdditionalContext, ContextSource: req.ContextSource}
 		ctx := withOperationResponse(r.Context(), 200, p)
-		if e = s.appendAppointmentBatch(ctx, append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}, {Kind: "participant.history_attached", Payload: map[string]string{"participantId": p.ID, "sourceThreadId": req.ThreadID, "threadId": thread, "mode": req.Mode}}}, initialGovernanceChanges(st, p, c)...)); e != nil {
+		if e = s.appendAppointmentBatch(ctx, append([]auditChange{{Kind: "connection.created", Payload: c}, {Kind: "participant.created", Payload: p}, {Kind: "participant.history_attached", Payload: map[string]string{"participantId": p.ID, "sourceThreadId": req.ThreadID, "threadId": thread, "mode": req.Mode}}, membershipChange("added", p, requestActor(r), "")}, initialGovernanceChanges(st, p, c)...)); e != nil {
 			operationError(w, e)
 			return
 		}
