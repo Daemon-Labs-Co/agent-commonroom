@@ -331,3 +331,106 @@ sessions). The deployed binary was built from the uncommitted working tree, so t
 `AgentCommonRoom` checkout (commit `37d23a4`) does not match it until the branch is
 committed and merged. Rollback: copy `commonroom.prev` over `commonroom`, restore the
 environment backup, `systemctl --user restart commonroom`.
+
+### 2026-11-06 hardening: installed worker binaries are root-owned
+
+`/opt/commonroom-space/bin` and its files (`commonroom-worker`,
+`commonroom-ssh-gate`, `archive-legacy-records.sh`) had been owned by the
+controller account for convenience while installing builds. They run as the worker
+account, which holds Docker access and provider credentials, so a controller-account
+compromise could have replaced them. The owner changed them to `root:root` mode 755;
+verified that the controller account can no longer write there and that all
+`verify-runtime.sh` checks still pass. The runtime source directory stays
+world-readable and writable only by its owner (it contains no credentials; scanned
+across full history).
+
+Update procedure: build as the controller account, then an administrator installs:
+`sudo install -o root -g root -m 755 bin/commonroom-worker bin/commonroom-ssh-gate
+/opt/commonroom-space/bin/` and re-runs `deploy/verify-runtime.sh`. The assistant can
+no longer install these itself, by design.
+
+### 2026-11-06 01:15 two-model pipeline verified up to provider sign-in; gate supervises disconnects
+
+Goal: two different models loaded in containers and instantiated in the application,
+working in a room without the owner driving each step.
+
+What "independent" means in this application (from the code): an agent turn starts
+only from a human message to one agent or to the whole room (`@room` runs every
+agent concurrently), a task dispatch, or a workflow run. An agent reply never starts
+another agent. So the supported form is: one instruction to the room, both agents
+run in parallel in their own containers; workflows and tasks can chain steps across
+different agents without a human per step (human gates optional).
+
+Verified on a private development instance (controller built from the working tree,
+real worker account, real SSH route; nothing approved at either provider):
+connections registered through the real events API for each model with the host
+machine's endpoint, then the real sign-in endpoint for each. Codex: container
+started, Codex CLI ran inside it, OpenAI returned a verification URL and one-time
+code. Claude: container started, Claude CLI returned its authorization URL. The agent
+image installs both CLIs. The remaining steps need the owner's browser: provider
+approval, connections in the production interface, adding two agents to a room.
+
+Finding: closing or cancelling a sign-in leaves the login container running until
+the worker's 15-minute login limit, because a plain SSH session does not signal its
+command on disconnect; the worker is not idle in that time and managed dispatch
+waits. Fix (AgentRuntime branch `feature/gate-supervise-disconnect`, uncommitted):
+the gate now stays as the worker's parent and terminates its process group when the
+SSH session disappears (SIGKILL after 30 seconds). Verified against a real sshd with
+a stub worker that ignores SIGPIPE and SIGHUP: the gate's SIGTERM arrived about
+0.6 seconds after the client died. Unit tests cover exit-code passthrough,
+termination on disconnect, escalation and no signal while the session lives. It
+needs installing by an administrator (the directory is root-owned):
+`sudo install -o root -g root -m 755 bin/commonroom-ssh-gate /opt/commonroom-space/bin/`
+(built binary sha256 prefix `5a39c2b5`).
+
+Two test-harness mistakes, both contained: a cleanup ordering bug left a temporary
+forced-command key line in this account's `authorized_keys`; it was removed and the
+file's hash matches the original. Two login containers started by the tests remain
+until their 15-minute limit.
+
+### 2026-11-06 01:30 correction: cancelled sign-ins leave a container until removed
+
+An earlier entry said the login containers would clear themselves after the worker's
+15-minute limit. Observed instead: both test containers were still present 21 and 23
+minutes after they started. The login container is created without auto-removal and
+its removal is a deferred step in the worker process; when the SSH session drops the
+worker process does not run it. A leftover managed container keeps `idle-v1` false,
+which blocks managed dispatch and makes a controller restart stop managed execution,
+and a repeat sign-in for the same connection collides on the container name.
+Verified effect: a development controller started in that state came up with managed
+execution stopped (the intended safety behaviour) and refused to add agents until the
+worker was clean.
+
+Administrator cleanup (inspect first; remove only the sign-in containers and volumes):
+`sudo -u commonroom-worker -H docker ps -a --filter label=commonroom.managed=true
+--format '{{.Names}} {{.Status}}'`, then
+`sudo -u commonroom-worker -H sh -c 'docker rm -f $(docker ps -aq --filter
+label=commonroom.managed=true)'` and `sudo -u commonroom-worker -H sh -c 'docker
+volume ls -q --filter name=commonroom-login | xargs -r docker volume rm'`.
+The supervising gate (branch `feature/gate-supervise-disconnect`) prevents new leaks
+by terminating the worker when the session disappears so its cleanup runs; it must be
+installed by an administrator before the owner's sign-ins.
+
+### 2026-11-06 02:05 one-command admin step
+
+Added `deploy/install-gate-and-clean.sh` to the runtime project (branch
+`feature/gate-supervise-disconnect`, uncommitted): run with `sudo`, `--dry-run`
+first. It installs the rebuilt gate (old binary kept as `.prev`), removes leftover
+sign-in containers and volumes only when every managed container is a sign-in
+container (otherwise refuses and removes nothing), then checks `idle-v1` through the
+controller's SSH alias. Its logic was exercised with a fake `docker` and temporary
+directories (dry run changes nothing; apply installs and cleans; a mixed set is
+refused); it has not been run against the real worker, which needs an administrator.
+
+### 2026-11-06 07:57 goal check-in
+
+Worker still not idle (two leftover sign-in containers), old gate (`1eda9b1c`) still
+installed, no provider signed in; production service active. Nothing changed. The
+private-copy test (add two agents, broadcast to the room) was not run because it
+requires an idle worker. Owner steps outstanding: `sudo deploy/install-gate-and-clean.sh`
+in the runtime project, then connections, provider sign-ins, two agents, one `@room`
+message.
+
+### 2026-11-06 16:03 goal check-in
+
+No change: worker not idle (2 leftover sign-in containers), old gate (1eda9b1c) still installed, production service active. Private-copy agent test not run. Owner steps outstanding: sudo deploy/install-gate-and-clean.sh, then connections, provider sign-ins, two agents, one @room message.

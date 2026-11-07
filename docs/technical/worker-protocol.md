@@ -20,7 +20,9 @@ authorized only for a forced command, `commonroom-ssh-gate` in the runtime proje
 The gate accepts exactly `exec ~/.local/bin/commonroom-worker ACTION ['VALUE']`
 with a known action and a base64url/hex value, runs the installed worker directly
 with a fixed minimal environment, and refuses chained commands, plain shells and
-interactive sessions. It was verified against a real sshd with a throwaway key.
+interactive sessions. The gate stays as the worker's parent and, when the SSH
+session disappears (a cancelled request), terminates the worker's process group so
+its cleanup runs, escalating to a kill after a grace period. It was verified against a real sshd with a throwaway key.
 
 The value is base64 (raw URL alphabet) JSON, hex, or a validated job identifier,
 quoted for the remote shell. Actions handled by the worker entry point in source:
