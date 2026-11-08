@@ -455,6 +455,14 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					}
 				}
 			}
+		case "room.context.cleared":
+			var v contextClearPayload
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].ContextBoundaryID = v.MessageID
+				}
+			}
 		case "room.context_export.updated":
 			var v struct {
 				RoomID string                   `json:"roomId"`

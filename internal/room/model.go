@@ -94,6 +94,7 @@ type Room struct {
 	CustomPersonalName   bool                 `json:"-"`
 	Revision             int                  `json:"revision"`
 	ContextExport        *ContextExportPolicy `json:"contextExport,omitempty"`
+	ContextBoundaryID    string               `json:"contextBoundaryMessageId,omitempty"`
 	PendingHumanRequests int                  `json:"pendingHumanRequests,omitempty"`
 	PersonalActorID      string               `json:"personalActorId"`
 	CompanyID            string               `json:"companyId"`

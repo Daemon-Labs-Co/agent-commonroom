@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -125,4 +125,47 @@ name so the room follows the human's profile name; an empty `humanName` otherwis
 keeps the existing one. The room form sends `useProfileName` when its name field is
 unchanged and the room was inheriting, or when the reset box is ticked. Messages
 keep the author name recorded when they were sent.
+
+### Room context clear (`contextClear`, default on)
+
+Input: event `room.context.cleared` with `payload.reason` (required, trimmed, at most
+500 characters), sent for a room by an enabled human actor who can access it.
+Rejected with 403 when the flag is off or the actor is not a human, 400 for a
+missing or oversized reason, and 409 while any agent in the room is running.
+
+Output: one atomic batch of a human `message.created` notice
+("Cleared agent context. Reason: ..."), `room.context.cleared`, and a
+`participant.session` per room participant.
+
+State changes: the room's `contextBoundaryMessageId` is set to the notice message.
+`chatPrompt` includes only messages from that notice onward, and each room
+participant's `ThreadID` is cleared so the next managed turn starts a new native
+session. Stored messages, audit history, shared memory and export policy are not
+modified. The flag only gates new clears; recorded boundaries stay enforced when it
+is off. It does not affect authentication, authorization, audit integrity or
+container isolation.
+
+### Permanent room log (mandatory, no flag)
+
+Room messages and agent membership changes are permanent records. This guarantee
+has no off switch and no feature flag can bypass it.
+
+Inputs: `message.created` (human, agent, task-dispatch, clear and idle-stop
+messages), `participant.created`, `participant.removed`, and `connection.deleted`.
+No event kind edits, hides or deletes a message or membership record; any other
+kind is refused as unsupported.
+
+Outputs: each agent add and remove commits a `room.membership` record in the same
+atomic batch with `action` (`added` or `removed`), `participantId`, `name`,
+`roomId`, `actorId` (the acting human) and, for implicit removals, `reason`.
+Deleting a connection records one removal per agent that used it. Clients cannot
+submit `room.membership` themselves.
+
+State changes: the agent roster changes, but messages and membership records are
+only ever appended, and a message keeps its text in every later state. System
+messages such as idle-stop notices always appear in the room; the
+`idleStopNotices` flag no longer filters them. The runtime database role must lack
+update, delete and truncate rights, which startup verifies. Database
+administrators outside the application are not constrained by this guarantee and
+need database-side controls.
 

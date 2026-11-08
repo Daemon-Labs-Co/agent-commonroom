@@ -114,7 +114,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if requestActor(r) != ownerID {
-		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.photo_size.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged"
+		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.photo_size.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged" || req.Kind == "room.context.cleared"
 		a, _ := member(st, requestActor(r))
 		if req.Kind == "workflow.revised" && a.Role == "Developer" {
 			allowed = true
@@ -160,7 +160,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		p, ok = s.prepareRoomsEvent(w, r, st, roomID, req)
 	case "connection.deleted", "connection.created", "connection.updated", "participant.created", "participant.updated":
 		p, ok = s.prepareAgentsEvent(w, r, st, roomID, req)
-	case "message.attention.acknowledged", "message.created", "room.context_export.updated", "memory.revised":
+	case "message.attention.acknowledged", "message.created", "room.context.cleared", "room.context_export.updated", "memory.revised":
 		p, ok = s.prepareContentEvent(w, r, st, roomID, req)
 	default:
 		http.Error(w, "Unsupported operation", 400)
@@ -186,7 +186,9 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if req.Kind == "room.context_export.updated" || req.Kind == "memory.revised" {
+	if req.Kind == "room.context.cleared" {
+		err = s.appendBatch(r.Context(), contextClearBatch(st, p.(contextClearPayload)))
+	} else if req.Kind == "room.context_export.updated" || req.Kind == "memory.revised" {
 		changes := []auditChange{{Kind: req.Kind, Payload: p}}
 		for _, member := range st.Participants {
 			if member.RoomID == roomID || req.Kind == "memory.revised" {
@@ -203,11 +205,15 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		participant := p.(room.Participant)
 		candidate := st
 		candidate.Participants = append(append([]room.Participant(nil), st.Participants...), participant)
-		changes := []auditChange{{Kind: req.Kind, Payload: p}}
+		changes := []auditChange{{Kind: req.Kind, Payload: p}, membershipChange("added", participant, requestActor(r), "")}
 		if eligibleGovernor(candidate, roomID, participant.ID) {
 			changes = append(changes, auditChange{Kind: "governance.appointed", Payload: room.GovernanceAppointment{CompanyID: st.Company.ID, RoomID: roomID, ParticipantID: participant.ID, Revision: 1}})
 		}
 		err = s.appendAppointmentBatch(r.Context(), changes)
+	} else if participant, ok := p.(room.Participant); ok && req.Kind == "participant.created" {
+		err = s.appendBatch(r.Context(), []auditChange{{Kind: req.Kind, Payload: p}, membershipChange("added", participant, requestActor(r), "")})
+	} else if req.Kind == "connection.deleted" {
+		err = s.appendBatch(r.Context(), append(connectionRemovalChanges(st, connectionIDOf(req), requestActor(r)), auditChange{Kind: req.Kind, Payload: p}))
 	} else {
 		err = s.append(r.Context(), req.Kind, p)
 	}

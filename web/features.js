@@ -57,6 +57,9 @@ render=function(){
   const policyEnabled=state.featureFlags?.contextPolicyEditor!==false;
   $('#main').insertAdjacentHTML('beforeend','<div class="card"><h3>Security · Context disclosure settings</h3><p>Owner controls for room provider access and reference sharing. Restrictions remain enforced when the editor is hidden.</p><button data-feature-flag="contextPolicyEditor" id="configure-context-policy">Context disclosure settings · '+(policyEnabled?'On':'Off')+'</button></div>');
   $('#configure-context-policy').onclick=()=>form('Context disclosure settings','<label><input type="checkbox" name="enabled" '+(policyEnabled?'checked':'')+'> Show room disclosure editor</label>',async d=>{await commit('feature.flag.updated',{name:'contextPolicyEditor',enabled:d.has('enabled')});window.location.reload()});
+  const clearEnabled=state.featureFlags?.contextClear!==false;
+  $('#main').insertAdjacentHTML('beforeend','<div class="card"><h3>Rooms · Clear agent context</h3><p>Let any human in a room start agents fresh with a stated reason. History is preserved. Turning this off blocks new clears; existing boundaries stay enforced.</p><button data-feature-flag="contextClear" id="configure-context-clear">Clear agent context · '+(clearEnabled?'On':'Off')+'</button></div>');
+  $('#configure-context-clear').onclick=()=>form('Clear agent context','<label><input type="checkbox" name="enabled" '+(clearEnabled?'checked':'')+'> Allow humans to clear agent context</label>',async d=>{await commit('feature.flag.updated',{name:'contextClear',enabled:d.has('enabled')});window.location.reload()});
   const disposalEnabled=state.featureFlags?.workspaceDisposal===true;
   $('#main').insertAdjacentHTML('beforeend','<div class="card"><h3>Security · Workspace disposal</h3><p>Off by default. Let the owner review an exact stopped workspace for one minute, then explicitly approve permanent deletion of all its contents. Only an exactly bound workspace charge is released after verified removal.</p><button data-feature-flag="workspaceDisposal" id="configure-workspace-disposal">Workspace disposal · '+(disposalEnabled?'On':'Off')+'</button></div>');
   $('#configure-workspace-disposal').onclick=()=>form('Workspace disposal','<label><input type="checkbox" name="enabled" '+(disposalEnabled?'checked':'')+'> Enable owner workspace disposal proposals</label><p>Disabling prevents new proposals and approvals. Already claimed disposal may finish; history and unresolved outcomes remain. Pending proposals can still be revoked.</p>',async d=>{await commit('feature.flag.updated',{name:'workspaceDisposal',enabled:d.has('enabled')});window.location.reload()});
@@ -84,6 +87,7 @@ render=function(){
   document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{view=b.dataset.tab;render()});
   if(view==='Room'){
    if(state.currentActorId==='local-owner'&&state.featureFlags?.contextPolicyEditor!==false){$('.toolbar .actions').insertAdjacentHTML('beforeend','<button id="context-policy">Context sharing</button>');$('#context-policy').onclick=openContextPolicy}
+   if(state.featureFlags?.contextClear!==false&&state.actors.find(a=>a.id===state.currentActorId)?.kind==='human'){$('.toolbar .actions').insertAdjacentHTML('beforeend','<button id="clear-context">Clear agent context</button>');$('#clear-context').onclick=openClearContext}
    document.querySelectorAll('.participant').forEach((row,i)=>{row.querySelector('.participant-info>span').textContent=profileTitle(state.participants[i]);row.querySelector('.participant-info>span').title=profileTitle(state.participants[i])});
    const human=state.rooms.find(r=>r.id===roomId);const squad=$('.squad');const people=state.actors.filter(a=>a.kind==='human'&&a.enabled&&(human.personalActorId?a.id===human.personalActorId:a.id==='local-owner'?human.humanPresent!==false:(a.roomIds||[]).includes(roomId)));
    for(const person of people){const self=person.id===state.currentActorId;const name=roomHumanDisplayName(person,human);const title=person.title||person.role;const rank=person.id==='local-owner'?(human.humanRank??11):11;squad.querySelector('.panel-heading').insertAdjacentHTML('afterend','<div class="participant" data-human-id="'+esc(person.id)+'"><span class="avatar human">'+esc(name.slice(0,1))+'</span><div class="participant-info"><strong>'+esc(name)+'</strong><span>'+esc(title)+' · Human · Seniority '+rank+'</span></div>'+ (self?'<button data-human-edit="'+person.id+'" aria-label="Edit your human profile">Edit</button>':'')+(self&&person.id==='local-owner'&&!human.personalActorId?'<button id="leave-room" class="danger">Leave</button>':'')+'</div>');}
@@ -141,6 +145,10 @@ const memberRender=render;render=function(){memberRender();const owner=state.cur
 // Deferred flag-save navigation is consumed only after optional settings modules
 // have loaded, so a reload returns to the requested section and category.
 window.addEventListener('load',()=>{try{if(state?.currentActorId==='local-owner'&&sessionStorage.getItem('commonroom-feature-panel'))render()}catch{}},{once:true});
+
+function openClearContext(){
+ form('Clear agent context','<p>Agents in this room will stop seeing earlier messages and start new sessions. History stays visible to people. Your reason is posted to the room and seen by every agent.</p><label class="field">Reason<textarea name="reason" required maxlength="500"></textarea></label>',async d=>{const reason=(d.get('reason')||'').trim();if(!reason)throw new Error('A reason is required');await commit('room.context.cleared',{reason});render()});
+}
 
 function openContextPolicy(){
  const room=state.rooms.find(r=>r.id===roomId),policy=room.contextExport;
