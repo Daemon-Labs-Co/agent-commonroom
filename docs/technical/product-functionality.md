@@ -116,3 +116,13 @@ commercial access. Pending classifications remain explicit rather than silently
 shipping paid functionality in core. Existing identities, messages, task records
 and audit history must survive packaging/refactoring. Latest owner scope overrides
 stale free/paid assumptions in archived documents.
+
+### Room human name (bug fix, no flag)
+
+Input: `room.updated` may carry `humanName` and `useProfileName`. Output: the room's
+stored `humanName`. State changes: `useProfileName: true` clears the room-specific
+name so the room follows the human's profile name; an empty `humanName` otherwise
+keeps the existing one. The room form sends `useProfileName` when its name field is
+unchanged and the room was inheriting, or when the reset box is ticked. Messages
+keep the author name recorded when they were sent.
+

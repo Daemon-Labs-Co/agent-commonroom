@@ -17,6 +17,17 @@ A room outcome describes the room's purpose. It does not grant agents permission
 or make a task deliverable accepted. Existing undefined rooms retain their legacy
 edit behavior. The [task guide](tasks.md) explains executable contracts.
 
+## Your name in a room
+
+By default every room shows the name from **Settings → Your profile**, so renaming
+yourself there updates all rooms. To use a different name in one room, click
+**Edit** next to your name in that room and type it under **Name in this room**.
+
+Opening that form and saving without changing the name keeps following your
+profile. If a room is stuck on an old name, open the same form, tick **Use my
+profile name in this room** and save. Earlier messages keep the name you had when
+you sent them.
+
 ## Expected result
 
 The room retains its name, outcome and criteria. Agent-created personal rooms and

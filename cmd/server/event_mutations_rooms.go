@@ -83,8 +83,16 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			http.Error(w, "Human seniority must be 1–11", 400)
 			return nil, false
 		}
+		// useProfileName clears the room-specific name so the room follows the
+		// human's profile name again; an empty name otherwise keeps the old one.
+		var nameChoice struct {
+			UseProfileName bool `json:"useProfileName"`
+		}
+		_ = json.Unmarshal(req.Payload, &nameChoice)
 		v.HumanName = strings.TrimSpace(v.HumanName)
-		if v.HumanName == "" {
+		if nameChoice.UseProfileName {
+			v.HumanName = ""
+		} else if v.HumanName == "" {
 			for _, old := range st.Rooms {
 				if old.ID == v.ID {
 					v.HumanName = old.HumanName
