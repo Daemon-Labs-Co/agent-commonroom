@@ -89,6 +89,7 @@ check: test-race
 	node tests/feature-flag-tabs.test.cjs
 	node --check web/settings-tabs.js
 	node tests/settings-tabs.test.cjs
+	node tests/sign-out-button.test.cjs
 	node --check web/organization-chart.js
 	node tests/organization-chart.test.cjs
 	node --check web/viewport-alignment.js

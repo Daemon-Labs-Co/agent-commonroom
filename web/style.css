@@ -380,3 +380,5 @@ header>strong{display:flex;align-items:center;gap:10px}header .brand-mark{object
 .conversation-wait-bubble:nth-child(2)::after{left:auto;right:5px;transform:skewY(35deg);border-left:0;border-right:2px solid var(--primary,#2e50f5)}
 @keyframes conversation-turn{0%,100%{opacity:.45;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
 @media(prefers-reduced-motion:reduce){.conversation-wait-bubble{animation:none;opacity:1}}
+nav .nav-signout{font-size:12px;color:var(--muted);text-align:left}
+@media(max-width:599px){nav .nav-signout{flex-basis:100%;margin:0;border-radius:0}}

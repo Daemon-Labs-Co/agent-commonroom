@@ -169,3 +169,12 @@ update, delete and truncate rights, which startup verifies. Database
 administrators outside the application are not constrained by this guarantee and
 need database-side controls.
 
+### Sign out navigation (UI, no flag)
+
+Input: a click on the left-navigation **Sign out** button, rendered directly after
+Settings on every page. Output: a `POST /api/logout`, then the sign-in screen; a
+failure is shown as a notice and the session remains. State changes: the server
+deletes the session (including its digest entry) and persists the removal before
+replying; if persistence fails it keeps the session and returns 503. The control
+exposes no new capability and does not alter authentication or authorization.
+
