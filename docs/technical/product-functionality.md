@@ -178,3 +178,12 @@ deletes the session (including its digest entry) and persists the removal before
 replying; if persistence fails it keeps the session and returns 503. The control
 exposes no new capability and does not alter authentication or authorization.
 
+### Browser UI revalidation (no flag)
+
+Input: any request for a UI file (page, scripts, styles) other than `/api` and the
+documentation routes. Output: the file with `Cache-Control: no-cache` and
+`Last-Modified`; a conditional request returns 304. State changes: none to the
+application. Browsers revalidate on every load, so a deployed script or page change
+is picked up without a hard refresh. Script and style URLs still carry a `?v=`
+version that must change with the file. API responses are unchanged.
+
