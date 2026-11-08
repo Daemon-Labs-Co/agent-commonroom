@@ -6,6 +6,14 @@
 
 Guide illustration; current availability is described below.
 
+## Sign out
+
+**Sign out** sits at the bottom of the left navigation, directly below Settings, on
+every page. Select it to end your session and return to the sign-in screen. Your
+owner key file stays on your computer; signing out does not delete it, and signing
+back in needs it. Signing out does not remove a stale page from your browser cache;
+use a hard refresh for that.
+
 ## Change settings deliberately
 
 1. Open Settings and choose the functionality you want to configure.

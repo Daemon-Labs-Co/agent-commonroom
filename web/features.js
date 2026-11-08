@@ -150,6 +150,11 @@ function openClearContext(){
  form('Clear agent context','<p>Agents in this room will stop seeing earlier messages and start new sessions. History stays visible to people. Your reason is posted to the room and seen by every agent.</p><label class="field">Reason<textarea name="reason" required maxlength="500"></textarea></label>',async d=>{const reason=(d.get('reason')||'').trim();if(!reason)throw new Error('A reason is required');await commit('room.context.cleared',{reason});render()});
 }
 
+// Sign out stays reachable from every page, directly below Settings.
+const signOutNavRender=render;render=function(){signOutNavRender();const settings=document.querySelector('#nav .nav-settings');if(settings&&!document.getElementById('nav-signout'))settings.insertAdjacentHTML('afterend','<button type="button" id="nav-signout" class="nav-signout">Sign out</button>')};
+document.addEventListener('click',async e=>{if(!e.target.closest||!e.target.closest('#nav-signout'))return;try{await api('logout',{});showLogin()}catch(err){note(err.message)}});
+// end sign-out navigation
+
 function openContextPolicy(){
  const room=state.rooms.find(r=>r.id===roomId),policy=room.contextExport;
  form('Context sharing','<p>Choose which providers may receive this room’s requests. Reference categories can be excluded. Previously transmitted data cannot be recalled.</p>'+['openai','claude'].map(provider=>'<label class="field"><input type="checkbox" name="'+provider+'" '+(!policy||policy.providers?.includes(provider)?'checked':'')+'> Allow '+(provider==='openai'?'OpenAI / Codex':'Claude')+'</label>').join('')+[['excludeMessages','Exclude earlier room messages'],['excludeMemory','Exclude shared memory'],['excludeReferences','Exclude imported reference context']].map(([key,label])=>'<label class="field"><input type="checkbox" name="'+key+'" '+(policy?.[key]?'checked':'')+'> '+label+'</label>').join('')+'<p>Stop room agents before saving. Saved native sessions will be reset; application history remains intact.</p>',d=>commit('room.context_export.updated',{revision:room.revision||0,policy:{providers:['openai','claude'].filter(p=>d.has(p)),excludeMessages:d.has('excludeMessages'),excludeMemory:d.has('excludeMemory'),excludeReferences:d.has('excludeReferences')}}));
