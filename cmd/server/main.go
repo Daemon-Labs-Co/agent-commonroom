@@ -158,7 +158,7 @@ func main() {
 	mux.Handle("/workflow-templates.js", optionalScriptHandler(s.templatesEnabled, "web", "workflow-templates.js"))
 	mux.Handle("/connection-editor.js", connectionEditorHandler(editorEnabled, "web"))
 	mux.Handle("/help/", documentationHandler("."))
-	mux.Handle("/", http.FileServer(http.Dir("web")))
+	mux.Handle("/", staticHandler("web"))
 	addr := os.Getenv("LISTEN_ADDR")
 	if addr == "" {
 		addr = "127.0.0.1:8787"
