@@ -33,7 +33,11 @@ render=function(){
    const edit=row.querySelector('[data-human-edit]');const leave=row.querySelector('#leave-room');
    squadProfileName(row,()=>openSquadHumanProfile(person,room,edit,leave));edit?.remove();leave?.remove();
   }else{
-   const edit=row.querySelector('[data-profile]');if(edit)squadProfileName(row,()=>edit.onclick());
+   const edit=row.querySelector('[data-profile]');
+   const agent=edit&&state.participants.find(p=>p.id===edit.dataset.profile);
+   // Selecting an agent opens the focused model overlay unless model choice is off
+   // (then the full profile opens as before).
+   if(edit)squadProfileName(row,()=>agent&&typeof openAgentModelOverlay==='function'&&state.featureFlags?.agentModelSelection!==false?openAgentModelOverlay(agent):edit.onclick());
   }
  });
 };

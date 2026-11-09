@@ -162,6 +162,19 @@ function agentModelField(value){
  const used=[...new Set((state.participants||[]).map(p=>p.model).filter(Boolean))];
  return '<label class="field">Model <span class="muted">Optional</span><input name="model" maxlength="64" list="agent-model-suggestions" autocomplete="off" value="'+esc(value||'')+'" placeholder="Provider default" pattern="[A-Za-z0-9][A-Za-z0-9._:/\\-]*" '+(state.featureFlags?.agentModelSelection===false?'readonly ':'')+'></label><datalist id="agent-model-suggestions">'+used.map(m=>'<option value="'+esc(m)+'">').join('')+'</datalist><p class="muted">Leave blank to use the provider default. A model the connection cannot use fails with a message in the room. Changing it later starts a fresh session.</p>';
 }
+// Focused overlay opened from the squad list: switch one agent's model without
+// opening the full profile. Saving an unchanged model changes nothing.
+function openAgentModelOverlay(p){
+ const current=p.model||'';
+ form('Model for '+esc(p.name),'<p>Current model: <strong>'+(current?esc(current):'provider default')+'</strong></p>'+agentModelField(current)+'<p class="muted">Switching starts a fresh provider session for this agent. Room history is kept. Stop the agent first if it is working.</p>',async d=>{
+  const next=(d.get('model')||'').trim();
+  if(next===current)return;
+  await commit('participant.updated',{...p,model:next});
+ });
+ const full=document.createElement('button');full.type='button';full.textContent='Full profile…';
+ full.onclick=()=>{$('#modal').close();profile(p)};
+ $('#modal .actions').prepend(full);
+}
 function openContextPolicy(){
  const room=state.rooms.find(r=>r.id===roomId),policy=room.contextExport;
  form('Context sharing','<p>Choose which providers may receive this room’s requests. Reference categories can be excluded. Previously transmitted data cannot be recalled.</p>'+['openai','claude'].map(provider=>'<label class="field"><input type="checkbox" name="'+provider+'" '+(!policy||policy.providers?.includes(provider)?'checked':'')+'> Allow '+(provider==='openai'?'OpenAI / Codex':'Claude')+'</label>').join('')+[['excludeMessages','Exclude earlier room messages'],['excludeMemory','Exclude shared memory'],['excludeReferences','Exclude imported reference context']].map(([key,label])=>'<label class="field"><input type="checkbox" name="'+key+'" '+(policy?.[key]?'checked':'')+'> '+label+'</label>').join('')+'<p>Stop room agents before saving. Saved native sessions will be reset; application history remains intact.</p>',d=>commit('room.context_export.updated',{revision:room.revision||0,policy:{providers:['openai','claude'].filter(p=>d.has(p)),excludeMessages:d.has('excludeMessages'),excludeMemory:d.has('excludeMemory'),excludeReferences:d.has('excludeReferences')}}));

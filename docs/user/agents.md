@@ -211,7 +211,10 @@ documents it (for example the name shown by the provider's own model list). The
 box suggests models that other agents in your company already use, so there is no
 list to keep up to date.
 
-To change it later, open the agent's **Edit profile** and edit **Model**. Changing
+To change it later, click the agent's name in the squad list. A small overlay shows
+the current model and a **Model** box; type the new name (or clear it for the
+provider default) and **Save**. **Full profile…** in the same overlay opens the
+full profile, where **Model** is also editable. Changing
 it starts a fresh provider session for that agent (history in the room is kept),
 and is refused while the agent has active or unreconciled work. If the
 connection cannot use the name, the agent replies in the room with a message such
