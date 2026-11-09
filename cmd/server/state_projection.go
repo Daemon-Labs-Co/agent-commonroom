@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -250,7 +251,14 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			json.Unmarshal(data, &v)
 			st.HumanRevision++
+			previous := strings.TrimSpace(st.HumanName)
 			st.HumanName = v.Name
+			// One name everywhere: a rename releases every room-only name.
+			if previous != strings.TrimSpace(v.Name) {
+				for i := range st.Rooms {
+					st.Rooms[i].HumanName = ""
+				}
+			}
 			if v.Title != nil {
 				st.HumanTitle = *v.Title
 			}

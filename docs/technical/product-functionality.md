@@ -117,14 +117,17 @@ shipping paid functionality in core. Existing identities, messages, task records
 and audit history must survive packaging/refactoring. Latest owner scope overrides
 stale free/paid assumptions in archived documents.
 
-### Room human name (bug fix, no flag)
+### One human name everywhere (bug fix, no flag)
 
-Input: `room.updated` may carry `humanName` and `useProfileName`. Output: the room's
-stored `humanName`. State changes: `useProfileName: true` clears the room-specific
-name so the room follows the human's profile name; an empty `humanName` otherwise
-keeps the existing one. The room form sends `useProfileName` when its name field is
-unchanged and the room was inheriting, or when the reset box is ticked. Messages
-keep the author name recorded when they were sent.
+Input: `human.profile.updated` with `name`, `title`, `revision`; the room profile form
+sends it when the typed name differs from the profile name, then sends `room.updated`
+with `useProfileName: true` and `humanRank`. Output: `humanName` in state and the
+owner actor name. State changes: a `human.profile.updated` that changes the name
+(including the first name set) clears every room's stored `humanName`, so rooms
+follow the profile; `room.updated` with `useProfileName: true` also clears that
+room's name. Title-only changes and unchanged names clear nothing. Derived on
+replay; stored events and messages are unchanged and keep the author name recorded
+when they were sent.
 
 ### Room context clear (`contextClear`, default on)
 
@@ -186,4 +189,3 @@ documentation routes. Output: the file with `Cache-Control: no-cache` and
 application. Browsers revalidate on every load, so a deployed script or page change
 is picked up without a hard refresh. Script and style URLs still carry a `?v=`
 version that must change with the file. API responses are unchanged.
-

@@ -224,7 +224,6 @@ interface. No additional setting is required.
 
 ## Your name in rooms
 
-Set your default name in **Settings → Your profile**. Rooms inherit it when their
-room-specific name is blank or still says **You** or **Change Me**. A deliberately
-customized room name is preserved. Editing **Your room profile** changes that room
-only; use Settings when you want to set your default name across rooms.
+Your name is your profile name and is the same in every room. Edit it in
+**Settings → Your profile** or from **Your room profile** inside a room; both
+change it everywhere.
