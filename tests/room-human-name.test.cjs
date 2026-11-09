@@ -7,15 +7,13 @@ const name=()=>vm.runInContext(expression,ctx);
 for(const value of ['Change Me','You','', '  Change Me  ']){ctx.human.humanName=value;assert.equal(name(),'Example Owner','placeholder must inherit saved profile')}
 ctx.human.humanName='Room-specific name';assert.equal(name(),'Room-specific name');
 ctx.person={id:'another-human',name:'Example Colleague'};assert.equal(name(),'Example Colleague');
-assert.ok(source.includes("field('Name in this room','humanName'"));assert.ok(source.includes('Settings → Your profile'));
+assert.ok(source.includes("field('Your name','humanName'"));
 console.log('Room names inherit the owner profile for placeholders and preserve intentional room/member names.');
-// Saving the room profile form must not freeze the displayed profile name.
+// The room form edits the one profile name; room-only names are released.
 const choice=vm.runInContext('roomHumanNameChoice',ctx);
-const owner={id:'local-owner',name:'New Name'};
-assert.deepEqual({...choice(owner,{humanName:''},'New Name',false)},{humanName:'',useProfileName:true},'untouched save while inheriting stays inherited');
-assert.deepEqual({...choice(owner,{humanName:'Change Me'},'New Name',false)},{humanName:'',useProfileName:true});
-assert.deepEqual({...choice(owner,{humanName:'Old Name'},'Old Name',false)},{humanName:'Old Name'},'untouched save keeps an intentional override');
-assert.deepEqual({...choice(owner,{humanName:'Old Name'},'Old Name',true)},{humanName:'',useProfileName:true},'checkbox resets a stuck override');
-assert.deepEqual({...choice(owner,{humanName:''},'Room Only',false)},{humanName:'Room Only'},'typing a name sets a room override');
-assert.deepEqual({...choice(owner,{humanName:'Old Name'},'',false)},{humanName:'Old Name'},'empty entry keeps the stored name');
-console.log('Room profile saves keep following the profile unless a room name is chosen.');
+const owner={id:'local-owner',name:'Change Me'};
+assert.deepEqual({...choice(owner,{humanName:'Mark'},'Mark')},{humanName:'',useProfileName:true,profileName:'Mark'},'a name shown only by a room override becomes the profile name');
+assert.deepEqual({...choice({id:'local-owner',name:'Mark'},{humanName:''},'Mark')},{humanName:'',useProfileName:true},'unchanged name changes no profile');
+assert.deepEqual({...choice({id:'local-owner',name:'Mark'},{humanName:''},'Mark D')},{humanName:'',useProfileName:true,profileName:'Mark D'});
+assert.deepEqual({...choice({id:'local-owner',name:'Mark'},{humanName:'Old'},'')},{humanName:'',useProfileName:true},'empty entry changes no profile');
+console.log('Room profile saves update the one profile name.');

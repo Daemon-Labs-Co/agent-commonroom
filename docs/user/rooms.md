@@ -19,14 +19,15 @@ edit behavior. The [task guide](tasks.md) explains executable contracts.
 
 ## Your name in a room
 
-By default every room shows the name from **Settings → Your profile**, so renaming
-yourself there updates all rooms. To use a different name in one room, click
-**Edit** next to your name in that room and type it under **Name in this room**.
+You have one name, and it is the same in every room. Change it either in
+**Settings → Your profile** or by clicking your name in a room and editing
+**Your name**. Both update your profile, so every room shows the new name straight
+away. Earlier messages keep the name you had when you sent them.
 
-Opening that form and saving without changing the name keeps following your
-profile. If a room is stuck on an old name, open the same form, tick **Use my
-profile name in this room** and save. Earlier messages keep the name you had when
-you sent them.
+```bash
+# After saving, confirm the profile name the server holds
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.humanName'
+```
 
 ## Clear agent context
 

@@ -2,14 +2,13 @@ function roomHumanDisplayName(person,room){
  const override=(room.humanName||'').trim();
  return person.id==='local-owner'&&override&&!['You','Change Me'].includes(override)?override:person.name;
 }
-// Decide what the room-profile form stores. Saving without touching the name must
-// not freeze the displayed profile name into a room-specific override.
-function roomHumanNameChoice(person,room,typed,useProfile){
- const stored=(room.humanName||'').trim(),shown=roomHumanDisplayName(person,room),entered=(typed||'').trim();
- const inheriting=stored===''||['You','Change Me'].includes(stored);
- if(entered==='')return{humanName:stored};
- if(entered!==shown)return{humanName:entered};
- return useProfile||inheriting?{humanName:'',useProfileName:true}:{humanName:stored};
+// A human has one name everywhere. The room form edits the profile name; the
+// room never keeps its own copy, so any older room-only name is released.
+function roomHumanNameChoice(person,room,typed){
+ const entered=(typed||'').trim();
+ const choice={humanName:'',useProfileName:true};
+ if(entered!==''&&entered!==person.name)choice.profileName=entered;
+ return choice;
 }
 // Keep the badge tied to visible room membership, including human presence.
 let squadCountObserver=null;
@@ -91,9 +90,7 @@ render=function(){
    document.querySelectorAll('.participant').forEach((row,i)=>{row.querySelector('.participant-info>span').textContent=profileTitle(state.participants[i]);row.querySelector('.participant-info>span').title=profileTitle(state.participants[i])});
    const human=state.rooms.find(r=>r.id===roomId);const squad=$('.squad');const people=state.actors.filter(a=>a.kind==='human'&&a.enabled&&(human.personalActorId?a.id===human.personalActorId:a.id==='local-owner'?human.humanPresent!==false:(a.roomIds||[]).includes(roomId)));
    for(const person of people){const self=person.id===state.currentActorId;const name=roomHumanDisplayName(person,human);const title=person.title||person.role;const rank=person.id==='local-owner'?(human.humanRank??11):11;squad.querySelector('.panel-heading').insertAdjacentHTML('afterend','<div class="participant" data-human-id="'+esc(person.id)+'"><span class="avatar human">'+esc(name.slice(0,1))+'</span><div class="participant-info"><strong>'+esc(name)+'</strong><span>'+esc(title)+' · Human · Seniority '+rank+'</span></div>'+ (self?'<button data-human-edit="'+person.id+'" aria-label="Edit your human profile">Edit</button>':'')+(self&&person.id==='local-owner'&&!human.personalActorId?'<button id="leave-room" class="danger">Leave</button>':'')+'</div>');}
-   document.querySelectorAll('[data-human-edit]').forEach(b=>b.onclick=()=>{const person=state.actors.find(a=>a.id===b.dataset.humanEdit);if(person.id!=='local-owner'){form('Your profile',field('Name','name',person.name)+'<p class="muted">Your role and room access are assigned by the owner.</p>',d=>commit('actor.name.updated',{name:d.get('name')}));return}form('Your room profile',field('Name in this room','humanName',roomHumanDisplayName(person,human))+'<label class="field"><span><input type="checkbox" name="useProfileName" '+(roomHumanNameChoice(person,human,roomHumanDisplayName(person,human),false).useProfileName?'checked':'')+'> Use my profile name in this room</span></label><p class="muted">This name applies only to this room. Set your default name for all rooms in Settings → Your profile.</p><label class="field"><span>Decision seniority <button type="button" class="seniority-help" aria-label="Help with decision seniority">?</button></span><input name="humanRank" type="number" min="1" max="11" value="'+(human.humanRank??11)+'" required></label>',d=>commit('room.updated',{...human,...roomHumanNameChoice(person,human,d.get('humanName'),d.has('useProfileName')),humanRank:Number(d.get('humanRank'))}));});
-   if($('#leave-room'))$('#leave-room').onclick=()=>commit('room.updated',{...human,humanPresent:false});
-   if(state.currentActorId==='local-owner'&&!human.personalActorId&&human.humanPresent===false){$('.toolbar .actions').insertAdjacentHTML('beforeend','<button id="join-room">Join room</button>');$('#join-room').onclick=()=>commit('room.updated',{...human,humanPresent:true});}
+   document.querySelectorAll('[data-human-edit]').forEach(b=>b.onclick=()=>{const person=state.actors.find(a=>a.id===b.dataset.humanEdit);if(person.id!=='local-owner'){form('Your profile',field('Name','name',person.name)+'<p class="muted">Your role and room access are assigned by the owner.</p>',d=>commit('actor.name.updated',{name:d.get('name')}));return}form('Your room profile',field('Your name','humanName',roomHumanDisplayName(person,human))+'<p class="muted">Your name is the same in every room. Changing it here updates your profile everywhere.</p><label class="field"><span>Decision seniority <button type="button" class="seniority-help" aria-label="Help with decision seniority">?</button></span><input name="humanRank" type="number" min="1" max="11" value="'+(human.humanRank??11)+'" required></label>',async d=>{const choice=roomHumanNameChoice(person,human,d.get('humanName'));if(choice.profileName)await api('events',{kind:'human.profile.updated',payload:{name:choice.profileName,revision:state.humanRevision||0}});await commit('room.updated',{...human,humanName:choice.humanName,useProfileName:true,humanRank:Number(d.get('humanRank'))})});
    const members=document.createElement('div');members.className='squad-members';squad.querySelector('.panel-heading').after(members);squad.querySelectorAll('.participant').forEach(row=>members.append(row));trackSquadCount(squad);
    const list=$('.message-list');state.tasks.filter(t=>['Submitted','Reviewing','Changes requested','Accepted'].includes(t.status)).forEach(t=>list.insertAdjacentHTML('beforeend',taskCard(t)));
   }
