@@ -102,6 +102,7 @@ check: test-race
 	node tests/room-presentation.test.cjs
 	node --test tests/typing-refresh.test.cjs
 	node tests/room-human-name.test.cjs
+	node tests/agent-model-field.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs

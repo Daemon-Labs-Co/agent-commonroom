@@ -203,6 +203,30 @@ both layouts use saved connections and the same server permissions.
 open https://agentcommonroom.home.arpa/
 ```
 
+## Choose an agent's model
+
+The **Add agent** form has an optional **Model** box. Leave it blank to use the
+provider's default model. To pick one, type its name exactly as the provider
+documents it (for example the name shown by the provider's own model list). The
+box suggests models that other agents in your company already use, so there is no
+list to keep up to date.
+
+To change it later, open the agent's **Edit profile** and edit **Model**. Changing
+it starts a fresh provider session for that agent (history in the room is kept),
+and is refused while the agent has active or unreconciled work. If the
+connection cannot use the name, the agent replies in the room with a message such
+as "Model X may not be available on this connection; change it in the agent's
+profile", and nothing else about the agent changes.
+
+An owner can turn model choice off under **Settings → Feature flags → Agents ·
+Model choice**. Off blocks new or changed choices; agents keep the model they
+already have.
+
+```bash
+# Show which model each agent in the current state uses (blank = provider default)
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.participants[] | "\(.name)\t\(.model // "provider default")"'
+```
+
 ## Scroll through your squad
 
 1. Place the pointer over the **Squad** member list and scroll to see more people.
