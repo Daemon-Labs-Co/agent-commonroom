@@ -204,3 +204,7 @@ mentioning the model is reported with the model name and a pointer to the agent 
 The model never affects isolation, sandbox or tool policy. Deploy order: install the
 worker change before the controller change, otherwise turns for agents with a model
 are refused by the worker.
+
+Squad list: selecting an agent's name opens a model overlay that sends `participant.updated`
+with the agent's existing fields and the new `model` (nothing is sent if unchanged). While
+`agentModelSelection` is off, selecting the name opens the full profile as before.
