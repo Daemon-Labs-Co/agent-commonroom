@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -189,3 +189,18 @@ documentation routes. Output: the file with `Cache-Control: no-cache` and
 application. Browsers revalidate on every load, so a deployed script or page change
 is picked up without a hard refresh. Script and style URLs still carry a `?v=`
 version that must change with the file. API responses are unchanged.
+
+### Agent model choice (`agentModelSelection`, default on)
+
+Input: `participant.created` / `participant.updated` may carry `model`, a name matching
+`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,63}$` after trimming; empty means the provider default.
+Output: `Participant.model`. State changes: an update that changes `model` clears
+`threadId` and is refused (409) while the agent has active or unreconciled work. Turns
+add one provider option before any resume arguments: `-m <model>` for Codex,
+`--model <model>` for Claude. The worker accepts exactly that optional pair with the same
+pattern; any other extra option is refused. With the flag off, a new or changed non-empty
+model is rejected (400); models already recorded keep being used. A provider error
+mentioning the model is reported with the model name and a pointer to the agent profile.
+The model never affects isolation, sandbox or tool policy. Deploy order: install the
+worker change before the controller change, otherwise turns for agents with a model
+are refused by the worker.

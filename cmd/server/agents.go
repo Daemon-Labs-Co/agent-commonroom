@@ -27,6 +27,7 @@ import (
 type codexAdapter struct {
 	endpoint, executionKey string
 	development            bool
+	model                  string
 }
 
 func (codexAdapter) Capabilities() room.Capabilities {
@@ -37,7 +38,7 @@ func (codexAdapter) Capabilities() room.Capabilities {
 // every turn uses it and fails closed if containment cannot be established.
 // Existing external session IDs do not confer permission to run on the host.
 func (a codexAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
-	args := providerTurnArgs("codex", a.development, false)
+	args := append(providerTurnArgs("codex", a.development, false), modelArgs("codex", a.model)...)
 	if thread != "" {
 		args = append(args, "resume", thread)
 	}
@@ -512,14 +513,14 @@ func (s *server) executeAgentTurn(ctx context.Context, p room.Participant, promp
 		prompt = "Development workspace: /workspace/repository. Work on its existing feature branch; never commit or push. Host files and unrestricted internet are unavailable.\n\n" + prompt
 	}
 
-	var adapter sessionAdapter = codexAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
+	var adapter sessionAdapter = codexAdapter{endpoint: endpoint, executionKey: key, development: repository != "", model: p.Model}
 	if endpoint == "claude" || strings.HasSuffix(endpoint, "/claude") {
-		adapter = claudeAdapter{endpoint: endpoint, executionKey: key, development: repository != ""}
+		adapter = claudeAdapter{endpoint: endpoint, executionKey: key, development: repository != "", model: p.Model}
 	}
 	text, err = adapter.Run(ctx, nativeContextThread(p), prompt, func(thread string) error {
 		return s.recordAgentSession(ctx, p, mode, thread)
 	})
-	return text, err
+	return text, explainModelFailure(p.Model, err)
 }
 
 // finishAgentTurn discards cancelled results even if dispatch has been resumed.
@@ -619,6 +620,7 @@ type sessionAdapter interface {
 type claudeAdapter struct {
 	endpoint, executionKey string
 	development            bool
+	model                  string
 }
 
 func (claudeAdapter) Capabilities() room.Capabilities {
@@ -629,7 +631,7 @@ func (claudeAdapter) Capabilities() room.Capabilities {
 // and resource limits before launch;
 // isolation failure must block execution rather than fall back to this launcher.
 func (a claudeAdapter) Run(ctx context.Context, thread, prompt string, onThread func(string) error) (string, error) {
-	args := providerTurnArgs("claude", a.development, false)
+	args := append(providerTurnArgs("claude", a.development, false), modelArgs("claude", a.model)...)
 	if thread != "" {
 		args = append(args, "--resume", thread)
 	}

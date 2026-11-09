@@ -126,6 +126,16 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 			http.Error(w, "Additional context exceeds 40,000 bytes; select an excerpt", 400)
 			return nil, false
 		}
+		var previous room.Participant
+		for _, b := range st.Participants {
+			if b.ID == v.ID && b.RoomID == roomID {
+				previous = b
+			}
+		}
+		if msg, ok := checkAgentModel(st, previous.Model, &v); !ok {
+			http.Error(w, msg, 400)
+			return nil, false
+		}
 		found := false
 		for _, c := range st.Connections {
 			if c.ID == v.ConnectionID {
@@ -158,9 +168,9 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 						return nil, false
 					}
 					v.Revision++
-					if v.ConnectionID != b.ConnectionID {
+					if v.ConnectionID != b.ConnectionID || v.Model != b.Model {
 						if participantHasUnsettledWork(st, s.active, b.ID) {
-							http.Error(w, "Cannot reassign an agent with active or unreconciled work", 409)
+							http.Error(w, "Cannot change the connection or model of an agent with active or unreconciled work", 409)
 							return nil, false
 						}
 						v.ThreadID = ""

@@ -38,6 +38,7 @@ type Participant struct {
 	Name              string               `json:"name"`
 	Role              string               `json:"role"`
 	Instructions      string               `json:"instructions"`
+	Model             string               `json:"model,omitempty"`
 	Rank              int                  `json:"rank"`
 	Accept            bool                 `json:"accept"`
 	AdditionalContext string               `json:"additionalContext"`

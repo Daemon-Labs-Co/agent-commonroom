@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('web/features.js','utf8');
+const start=source.indexOf('function agentModelField'),end=source.indexOf('function openContextPolicy');
+assert.ok(start>0&&end>start);
+const ctx={state:{participants:[{model:'m-1'},{model:'m-1'},{model:'m-2'},{}],featureFlags:{}},esc:s=>String(s)};vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
+const html=vm.runInContext('agentModelField()',ctx);
+assert.match(html,/name="model"/);assert.match(html,/Provider default/);
+assert.equal((html.match(/<option value="m-1">/g)||[]).length,1,'suggestions are de-duplicated from models in use');
+assert.match(html,/<option value="m-2">/);assert.doesNotMatch(html,/readonly/);
+ctx.state.featureFlags.agentModelSelection=false;
+assert.equal(vm.runInContext('agentModelField()',ctx),'','hidden when disabled and nothing is set');
+assert.match(vm.runInContext('agentModelField("m-1")',ctx),/readonly/,'existing model stays visible but locked when disabled');
+for(const f of ['web/features.js','web/agent-invitation.js'])assert.ok(fs.readFileSync(f,'utf8').includes('agentModelField('),f+' offers the model field');
+console.log('Agent model field offers free text with suggestions and honours its flag.');
