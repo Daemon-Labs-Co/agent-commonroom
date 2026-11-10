@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -208,3 +208,20 @@ are refused by the worker.
 Squad list: selecting an agent's name opens a model overlay that sends `participant.updated`
 with the agent's existing fields and the new `model` (nothing is sent if unchanged). While
 `agentModelSelection` is off, selecting the name opens the full profile as before.
+
+### Agent stances and objections (`agentObjections`, default off)
+
+Input: agent messages whose first line starts with `[AGREE]`, `[OBJECT]`, `[OBJECT: title]`,
+`[WITHDRAW]`, `[WITHDRAW: title]`, `[ESCALATE]`, `[PROPOSE TASK]` or `[DISCUSS]` (case-insensitive);
+`objection.resolved` with `messageId`, `decision` (`upheld` or `overruled`) and optional `note`
+(500 characters) from a human in the room. Output: `Message.stance`; `state.objections` with
+status `open` or `resolved`. Functionality: derived on replay from stored messages; human
+messages and later lines are never parsed. A title matching exactly one task, or one pending
+proposal, in the room (trimmed, case-insensitive) targets it; otherwise the objection has no
+target and blocks nothing. While open, a targeted objection refuses task dispatch (work and
+review modes) and proposal approval with 409. An agent's `[WITHDRAW]` closes only its own
+open objections; `objection.resolved` closes one objection once (404 afterwards). State
+changes: none to messages or tasks; resolutions are appended events. Enabled agents receive
+marker guidance in their prompt. Disabled: no stances, no objections, nothing blocked,
+`objection.resolved` returns 403. `[ESCALATE]`, `[PROPOSE TASK]` and `[DISCUSS]` are labelled
+only in this version.

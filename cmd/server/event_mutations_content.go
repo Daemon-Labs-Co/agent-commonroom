@@ -8,11 +8,44 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func (s *server) prepareContentEvent(w http.ResponseWriter, r *http.Request, st room.State, roomID string, req eventRequest) (any, bool) {
 	var p any
 	switch req.Kind {
+	case "objection.resolved":
+		actor, ok := member(st, requestActor(r))
+		if !ok || !actor.Enabled || actor.Kind != "human" {
+			http.Error(w, "Only a human in this room can resolve an objection", 403)
+			return nil, false
+		}
+		if !agentObjectionsEnabled(st) {
+			http.Error(w, "Agent objections are disabled", 403)
+			return nil, false
+		}
+		var v objectionResolution
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Decision != "upheld" && v.Decision != "overruled") {
+			http.Error(w, "Choose upheld or overruled", 400)
+			return nil, false
+		}
+		v.Note = strings.TrimSpace(v.Note)
+		if utf8.RuneCountInString(v.Note) > 500 {
+			http.Error(w, "Note is too long (500 characters maximum)", 400)
+			return nil, false
+		}
+		open := false
+		for _, o := range st.Objections {
+			if o.MessageID == v.MessageID && o.RoomID == roomID && o.Status == "open" {
+				open = true
+			}
+		}
+		if !open {
+			http.Error(w, "Open objection not found in this room", 404)
+			return nil, false
+		}
+		v.RoomID, v.ActorID = roomID, requestActor(r)
+		p = v
 	case "message.attention.acknowledged":
 		actor, ok := member(st, requestActor(r))
 		if !ok || actor.Kind != "human" {

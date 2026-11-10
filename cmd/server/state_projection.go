@@ -22,6 +22,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	activityStarts := map[string]time.Time{}
 	failures := map[string]string{}
 	acknowledged := map[string]string{}
+	objectionResolutions := map[string]objectionResolution{}
 	st := room.State{Company: room.Company{ID: "company", Name: "My company"}, HumanCompanyID: "company", Workflows: []room.Workflow{}, Rooms: []room.Room{{ID: "engineering", Name: "Engineering room"}}, Tasks: []room.Task{}, Evidence: []room.Evidence{}, Connections: []room.Connection{}, Participants: []room.Participant{}, Memories: []room.Memory{}, Messages: []room.Message{}}
 	rows, err := s.db.Query(ctx, "SELECT kind,payload FROM events ORDER BY sequence")
 	if err != nil {
@@ -530,6 +531,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.Participants = kept
+		case "objection.resolved":
+			var v objectionResolution
+			json.Unmarshal(data, &v)
+			objectionResolutions[v.MessageID] = v
 		case "message.attention.acknowledged":
 			var ack struct {
 				MessageID string `json:"messageId"`
@@ -650,6 +655,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	projectActors(&st)
 	projectIdleNoticeMessages(&st)
 	projectHumanAttention(&st, acknowledged)
+	projectStances(&st, objectionResolutions)
 	if err := ctx.Err(); err != nil {
 		return st, err
 	}

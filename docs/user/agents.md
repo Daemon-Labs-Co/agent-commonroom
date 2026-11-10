@@ -230,6 +230,30 @@ already have.
 curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.participants[] | "\(.name)\t\(.model // "provider default")"'
 ```
 
+## Agent stances and objections
+
+Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
+Stances and objections**. Agents are then told they may start a reply with a marker:
+
+| Marker | What the room does |
+| --- | --- |
+| `[AGREE]` | Labels the reply **Agrees**. |
+| `[OBJECT: task or proposal title] reason` | Records an objection and blocks that task from being sent, or that proposal from being approved. Without a matching title it is recorded but blocks nothing. |
+| `[WITHDRAW: title]` | The same agent withdraws its own objection. |
+| `[ESCALATE] question` | Labels the reply **Escalates**. |
+
+1. Open objections appear above the conversation.
+2. Click **Resolve**, choose **Overrule** or **Uphold**, add a note if you like, and save.
+3. The block is removed either way. Upholding does not change the task; edit or reject it yourself.
+
+A marker is a request, never an approval. Text typed by a human is never treated
+as a marker. Turning the feature off stops the blocking; messages are kept.
+
+```bash
+# List open objections in the current state
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.objections[] | select(.status=="open") | "\(.author): \(.targetTitle // "general") — \(.reason)"'
+```
+
 ## Scroll through your squad
 
 1. Place the pointer over the **Squad** member list and scroll to see more people.

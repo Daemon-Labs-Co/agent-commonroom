@@ -42,6 +42,8 @@ func auditSummary(kind string, payload []byte) string {
 		return "Agent tool action requested · " + label("operation", "action")
 	case "worker.tool.outcome":
 		return "Agent tool action · " + label("status", "outcome recorded")
+	case "objection.resolved":
+		return "Human resolved an agent objection · " + label("decision", "decision recorded")
 	case "message.attention.acknowledged":
 		return "Human acknowledged an agent attention request"
 	case "agent.activity":
