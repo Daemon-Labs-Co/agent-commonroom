@@ -66,7 +66,7 @@ func projectTaskSuggestions(st *room.State, dismissed map[string]bool) {
 		return
 	}
 	for _, m := range st.Messages {
-		if m.ActorType != "agent" {
+		if m.ActorType != "agent" && m.ActorType != "extension" {
 			continue
 		}
 		for _, s := range parseTaskSuggestions(m) {

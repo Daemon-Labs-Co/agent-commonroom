@@ -46,3 +46,16 @@ and prints the page to open. It does not enable features, send tasks or change d
 ```bash
 bash scripts/user-guide.sh settings
 ```
+
+## Extensions
+
+Off by default. An extension is a separate service that your server administrator
+lists in a registry file. With **Extensions** on, a listed service can read the
+messages of the rooms it was granted and post notices there under its own name. It
+cannot approve, send or accept work, change settings or sign in as a person. To
+remove one, delete its entry from the registry file; access stops immediately.
+
+```bash
+# Check that the registry file is private (must not be writable by group or others)
+ls -l "$COMMONROOM_EXTENSIONS_FILE"
+```

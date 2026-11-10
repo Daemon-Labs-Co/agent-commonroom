@@ -53,4 +53,6 @@ type server struct {
 	active            map[string]bool
 	cancels           map[string]context.CancelFunc
 	discussions       map[string]context.CancelFunc
+	extensionRegistry string
+	extensionLimits   extensionLimiter
 }

@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `governingSuggestions`, `managerAssignedTasks`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `governingSuggestions`, `managerAssignedTasks`, `extensions`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -296,3 +296,23 @@ assignments. Disabled: the marker is plain text and nothing starts; the limit se
 The interface offers "Approve and send" on an agent task suggestion that names a room agent and
 has criteria. It issues the existing capture, approve, `task.revised` and `task-dispatch`
 requests in order for the owner; no server behaviour is added.
+
+### Extension layer, contract version 1 (`extensions`, default off)
+
+Input: registry file named by `COMMONROOM_EXTENSIONS_FILE`: a JSON array of up to 16 entries
+`{id, name, publicKey, rooms}` (`publicKey` is a base64 Ed25519 public key; the file must be a
+regular file not writable by group or others). Requests carry `X-Extension-Id`,
+`X-Extension-Timestamp` (Unix seconds, within 60 seconds) and `X-Extension-Signature` (base64
+Ed25519 signature over `commonroom-extension-v1`, id, timestamp, method, request path with query
+and the SHA-256 of the body, joined by newlines). Output: `GET /ext/v1/rooms/{room}/messages`
+(optional `after` message id; at most 100 messages after the room's context boundary; empty when
+the room excludes messages from sharing) and `POST /ext/v1/rooms/{room}/notices` with `{text}`
+(4,000 characters), returning 201 and `messageId`. Functionality: the registry is read on every
+request, so removing an entry removes access at once. A notice is a message with actor type
+`extension`, actor `extension:{id}` and the registry name as author; its `[PROPOSE TASK]` lines
+become task suggestions when `governingSuggestions` is on. Extension text is never parsed as an
+agent stance, objection, assignment or human-attention request. Refusals: 403 disabled, unknown
+extension, bad timestamp or signature, room not granted; 429 replayed signature or more than 30
+requests a minute; 400 invalid notice; 404 any other path; 409 during an integrity incident.
+State changes: `message.created` and `extension.notice`. An extension has no session and cannot
+reach `/api/` endpoints. Disabled: every extension request returns 403; posted notices remain.
