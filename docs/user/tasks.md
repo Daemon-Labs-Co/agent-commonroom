@@ -25,7 +25,7 @@ connected. Do not change them to values merely to conceal a missing file result.
 Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
 Task suggestions**. Capturing also needs **Task proposals** to be on.
 
-1. In a room, click **Suggest tasks**. The room's governing agent (or, if none is
+1. In a room, open **Team** in the toolbar and click **Suggest tasks**. The room's governing agent (or, if none is
    appointed, the first available agent) reads the recent conversation and replies
    with lines like `[PROPOSE TASK] title :: acceptance criteria :: assignee`.
 2. Suggested tasks appear above the conversation. Any agent's reply containing such

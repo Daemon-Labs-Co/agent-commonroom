@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('web/team-menu.js','utf8');
+let renders=0;const ctx={view:'Tasks',render:()=>{renders++},document:{querySelector:()=>null}};
+vm.createContext(ctx);vm.runInContext(source,ctx);
+const items=vm.runInContext('teamMenuItems',ctx);
+const b=(id,textContent)=>({id,textContent});
+const all=[b('attach','Bring conversation'),b('agent-discussion','Start discussion'),b('agent-discussion-limit','Rounds: 3'),b('suggest-tasks','Suggest tasks'),b('manager-assignment-limit','Assignments: 0/5 today'),b('clear-context','Clear agent context')];
+assert.deepEqual(items(all).map(x=>x.id),['agent-discussion','agent-discussion-limit','suggest-tasks','manager-assignment-limit'],'only team controls move');
+assert.deepEqual(items([b('agent-discussion','Stop discussion'),b('suggest-tasks','Suggest tasks')]).map(x=>x.id),['suggest-tasks'],'Stop discussion stays in the toolbar');
+vm.runInContext('render()',ctx);assert.equal(renders,1);
+const html=fs.readFileSync('web/index.html','utf8');
+assert.ok(html.indexOf('team-menu.js')>html.indexOf('manager-assignments.js')&&html.indexOf('team-menu.js')>html.indexOf('task-suggestions.js'),'loads after the scripts that add the controls');
+assert.ok(fs.readFileSync('web/style.css','utf8').includes('.team-menu-items'));
+console.log('Team menu: groups team controls and keeps Stop discussion visible.');

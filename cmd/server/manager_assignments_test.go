@@ -114,3 +114,38 @@ func TestManagerAssignments(t *testing.T) {
 		}
 	})
 }
+
+func TestTeamLoopGuidanceMatchesEnabledFeaturesAndReportingLine(t *testing.T) {
+	t.Parallel()
+	s, db, _ := mockServer(t)
+	db.seed("connection.created", room.Connection{ID: "ca", Provider: "openai", Protocol: "CLI", Endpoint: "ssh://worker", Name: "Codex"})
+	db.seed("connection.created", room.Connection{ID: "cb", Provider: "anthropic", Protocol: "CLI", Endpoint: "ssh://worker/claude", Name: "Claude"})
+	db.seed("participant.created", room.Participant{ID: "a", RoomID: "engineering", ConnectionID: "ca", Name: "Avery", Rank: 1})
+	db.seed("participant.created", room.Participant{ID: "b", RoomID: "engineering", ConnectionID: "cb", Name: "Blake", Rank: 1})
+	db.seed("company.organization.updated", room.OrganizationChart{Revision: 1, Nodes: []room.OrganizationNode{{ActorID: "bot-ca"}, {ActorID: "bot-cb", ReportsTo: "bot-ca"}}})
+	prompts := func() (string, string) {
+		st, err := s.load(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		a, errA := chatPrompt(st, st.Participants[0], "hello")
+		b, errB := chatPrompt(st, st.Participants[1], "hello")
+		if errA != nil || errB != nil {
+			t.Fatal(errA, errB)
+		}
+		return a, b
+	}
+	if a, _ := prompts(); strings.Contains(a, "[DISCUSS]") || strings.Contains(a, "[PROPOSE TASK]") || strings.Contains(a, "[ASSIGN") {
+		t.Fatal("disabled features were advertised to an agent")
+	}
+	for _, f := range []string{"agentDiscussion", "governingSuggestions", "managerAssignedTasks"} {
+		db.seed("feature.flag.updated", map[string]any{"name": f, "enabled": true})
+	}
+	manager, report := prompts()
+	if !strings.Contains(manager, "[DISCUSS]") || !strings.Contains(manager, "[PROPOSE TASK] short title") || !strings.Contains(manager, "These agents report to you in this room: Blake") {
+		t.Fatal("manager not told what it may use")
+	}
+	if strings.Contains(report, "[ASSIGN") || !strings.Contains(report, "[DISCUSS]") {
+		t.Fatal("a report was told it may assign work, or lost the shared guidance")
+	}
+}

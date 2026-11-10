@@ -10,6 +10,8 @@ import (
 	"agentroom/internal/room"
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 )
 
 // maxAgentInitiatedPerHumanMessage bounds agent-started activity between human
@@ -167,4 +169,31 @@ func projectEscalations(st *room.State, acknowledged map[string]string) {
 			}
 		}
 	}
+}
+
+// teamLoopGuidance tells an agent which first-line markers the room will act on,
+// limited to the features that are enabled and, for assignments, to the agents
+// that actually report to it in this room. It grants nothing; the server checks
+// every marker again when it is used.
+func teamLoopGuidance(st room.State, p room.Participant) string {
+	var b strings.Builder
+	if agentDiscussionEnabled(st) {
+		b.WriteString("\nTo ask the other agents in this room to talk a question through, begin your first line with [DISCUSS] followed by the topic. To send a question to whoever you report to, begin with [ESCALATE] followed by the question. Use these sparingly; the room limits how often agents may start activity.\n")
+	}
+	if taskSuggestionsEnabled(st) {
+		b.WriteString("\nTo suggest work for a human to approve, add lines of the form: [PROPOSE TASK] short title :: acceptance criteria :: name of the agent best placed to do it. A suggestion creates nothing until a human approves it.\n")
+	}
+	if managerAssignmentsEnabled(st) {
+		reports := []string{}
+		for _, other := range st.Participants {
+			if other.RoomID == p.RoomID && other.ID != p.ID && room.OrganizationallyOutranks(st.Organization, participantActor(p), participantActor(other)) {
+				reports = append(reports, other.Name)
+			}
+		}
+		if len(reports) > 0 {
+			sort.Strings(reports)
+			b.WriteString("\nThese agents report to you in this room: " + strings.Join(reports, ", ") + ". To assign one of them a piece of work, begin your first line with [ASSIGN name] followed by a short title, and put any detail on the following lines. One assignment per reply; the room limits how many may be made each day. An assignment cannot approve, accept or publish work.\n")
+		}
+	}
+	return b.String()
 }

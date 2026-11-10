@@ -116,6 +116,8 @@ check: test-race
 	node tests/manager-assignments.test.cjs
 	node --check web/extension-settings.js
 	node tests/extension-settings.test.cjs
+	node --check web/team-menu.js
+	node tests/team-menu.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs

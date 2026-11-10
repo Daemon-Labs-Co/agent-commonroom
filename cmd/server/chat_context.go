@@ -60,6 +60,9 @@ func chatPrompt(st room.State, p room.Participant, text string) (string, error) 
 	if agentObjectionsEnabled(st) && !write(stanceGuidance) {
 		return "", errors.New("Chat context exceeds limit")
 	}
+	if !write(teamLoopGuidance(st, p)) {
+		return "", errors.New("Chat context exceeds limit")
+	}
 	if humanAttentionEnabled(st) && !write(humanAttentionGuidance) {
 		return "", errors.New("Chat context exceeds limit")
 	}

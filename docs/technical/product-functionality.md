@@ -316,3 +316,9 @@ extension, bad timestamp or signature, room not granted; 429 replayed signature 
 requests a minute; 400 invalid notice; 404 any other path; 409 during an integrity incident.
 State changes: `message.created` and `extension.notice`. An extension has no session and cannot
 reach `/api/` endpoints. Disabled: every extension request returns 403; posted notices remain.
+
+Agents receive marker guidance in chat prompts only for enabled features: `[DISCUSS]` and
+`[ESCALATE]` with `agentDiscussion`, `[PROPOSE TASK]` with `governingSuggestions`, and `[ASSIGN]`
+with `managerAssignedTasks` and only for an agent that has reports in the room, which are named.
+The room toolbar groups the discussion, round-limit, suggestion and assignment-limit controls
+under one Team menu when two or more are present; Stop discussion stays in the toolbar.

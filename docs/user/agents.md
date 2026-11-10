@@ -235,7 +235,7 @@ curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.participants[] | "\
 Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
 Discussions**. A room needs at least two available agents.
 
-1. In the room, click **Start discussion**.
+1. In the room, open **Team** in the toolbar and click **Start discussion**.
 2. Type the topic and choose the number of rounds (up to the room's limit).
 3. Click **Start discussion**. Each agent replies in turn and sees the others' replies.
 
@@ -245,8 +245,7 @@ or when you click **Stop discussion**. The room shows a notice saying why it end
 Every reply counts against the daily turn budget, and only one discussion runs in a
 room at a time.
 
-The owner can lower a room's limit with the **Rounds** button next to **Start
-discussion**. The limit is 3 and cannot be raised.
+The owner can lower a room's limit with the **Rounds** button in the **Team** menu. The limit is 3 and cannot be raised.
 
 ```bash
 # Show which rooms have a discussion running and their round limit
@@ -284,7 +283,7 @@ assign work only to an agent that reports to it, directly or through other agent
 2. When the manager agent starts a reply with `[ASSIGN name] title` (more detail may
    follow on later lines), the room announces the assignment and the named agent
    starts working on it straight away, without your approval.
-3. The **Assignments: used/limit today** button in the room shows the daily count.
+3. The **Assignments: used/limit today** button in the room's **Team** menu shows the daily count.
    Click it to change the limit at any time (0 to 50, default 5; 0 refuses all).
 
 The assigned agent keeps its own permissions and container and gains nothing new.
