@@ -50,7 +50,7 @@ bash scripts/user-guide.sh settings
 ## Extensions
 
 Off by default. An extension is a separate service that your server administrator
-lists in a registry file. With **Extensions** on, a listed service can read the
+lists in a registry file. With **Settings → Security · Extensions** on, a listed service can read the
 messages of the rooms it was granted and post notices there under its own name. It
 cannot approve, send or accept work, change settings or sign in as a person. To
 remove one, delete its entry from the registry file; access stops immediately.

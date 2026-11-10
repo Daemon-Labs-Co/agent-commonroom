@@ -331,7 +331,9 @@ func (s *server) startDiscussionLocked(w http.ResponseWriter, r *http.Request, a
 		s.discussions = map[string]context.CancelFunc{}
 	}
 	s.discussions[roomID] = cancel
+	s.inFlight.Add(1)
 	go func() {
+		defer s.inFlight.Add(-1)
 		defer cancel()
 		s.runDiscussion(ctx, d, topic, order)
 	}()

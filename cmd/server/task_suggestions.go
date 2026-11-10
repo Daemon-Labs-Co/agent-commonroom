@@ -139,7 +139,11 @@ func (s *server) suggestTasksLocked(w http.ResponseWriter, r *http.Request, all 
 		return
 	}
 	ctx := detachedInitiatorContext(r.Context())
-	go s.agentInitiatedTurn(ctx, roomID, p.ID, suggestionInstruction, "Suggesting tasks from the discussion", nil)
+	s.inFlight.Add(1)
+	go func() {
+		defer s.inFlight.Add(-1)
+		s.agentInitiatedTurn(ctx, roomID, p.ID, suggestionInstruction, "Suggesting tasks from the discussion", nil)
+	}()
 	w.WriteHeader(http.StatusAccepted)
 	reply(w, response)
 }

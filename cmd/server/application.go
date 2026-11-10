@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -54,5 +55,8 @@ type server struct {
 	cancels           map[string]context.CancelFunc
 	discussions       map[string]context.CancelFunc
 	extensionRegistry string
-	extensionLimits   extensionLimiter
+	// inFlight counts running agent turns together with the reactions that follow
+	// them, so callers can tell when a room has fully settled.
+	inFlight        atomic.Int64
+	extensionLimits extensionLimiter
 }

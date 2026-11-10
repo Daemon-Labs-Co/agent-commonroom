@@ -203,34 +203,22 @@ func TestAgentDiscussions(t *testing.T) {
 
 func awaitIdle(t *testing.T, s *server) room.State {
 	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		s.mu.Lock()
-		st, err := s.load(context.Background())
-		busy := len(s.discussions)
+		busy := len(s.discussions) + int(s.inFlight.Load())
 		for _, active := range s.active {
 			if active {
 				busy++
 			}
 		}
+		st, err := s.load(context.Background())
 		s.mu.Unlock()
 		if err != nil {
 			t.Fatal(err)
 		}
 		if busy == 0 && activeDiscussion(st, "engineering") == "" {
-			time.Sleep(5 * time.Millisecond) // let a pending reaction start, then re-check
-			s.mu.Lock()
-			again := len(s.discussions)
-			for _, active := range s.active {
-				if active {
-					again++
-				}
-			}
-			s.mu.Unlock()
-			if again == 0 {
-				st, _ = s.load(context.Background())
-				return st
-			}
+			return st
 		}
 		time.Sleep(time.Millisecond)
 	}

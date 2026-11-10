@@ -491,6 +491,8 @@ func (b *bufferResponse) WriteHeader(n int)           { b.status = n }
 func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
+	s.inFlight.Add(1)
+	defer s.inFlight.Add(-1)
 	turn := s.agentTurn
 	if turn == nil {
 		turn = s.executeAgentTurn
