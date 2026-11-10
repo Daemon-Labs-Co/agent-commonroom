@@ -112,6 +112,8 @@ check: test-race
 	node tests/agent-discussion.test.cjs
 	node --check web/task-suggestions.js
 	node tests/task-suggestions.test.cjs
+	node --check web/manager-assignments.js
+	node tests/manager-assignments.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs

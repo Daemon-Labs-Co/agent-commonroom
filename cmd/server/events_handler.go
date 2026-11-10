@@ -160,7 +160,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		p, ok = s.prepareRoomsEvent(w, r, st, roomID, req)
 	case "connection.deleted", "connection.created", "connection.updated", "participant.created", "participant.updated":
 		p, ok = s.prepareAgentsEvent(w, r, st, roomID, req)
-	case "message.attention.acknowledged", "objection.resolved", "task.suggestion.dismissed", "room.discussion_limit.updated", "message.created", "room.context.cleared", "room.context_export.updated", "memory.revised":
+	case "message.attention.acknowledged", "objection.resolved", "task.suggestion.dismissed", "room.discussion_limit.updated", "room.assignment_limit.updated", "message.created", "room.context.cleared", "room.context_export.updated", "memory.revised":
 		p, ok = s.prepareContentEvent(w, r, st, roomID, req)
 	default:
 		http.Error(w, "Unsupported operation", 400)

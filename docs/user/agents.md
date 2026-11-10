@@ -274,6 +274,29 @@ the conversation: it cannot approve, accept or publish work.
 curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.organization.nodes[] | "\(.actorId) reports to \(.reportsTo // "nobody")"'
 ```
 
+## Let a manager agent assign work
+
+Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
+Manager-assigned tasks**. It follows the company organization chart: an agent can
+assign work only to an agent that reports to it, directly or through other agents.
+
+1. Set who reports to whom in the company organization chart.
+2. When the manager agent starts a reply with `[ASSIGN name] title` (more detail may
+   follow on later lines), the room announces the assignment and the named agent
+   starts working on it straight away, without your approval.
+3. The **Assignments: used/limit today** button in the room shows the daily count.
+   Click it to change the limit at any time (0 to 50, default 5; 0 refuses all).
+
+The assigned agent keeps its own permissions and container and gains nothing new.
+It can answer with `[OBJECT]` or `[ESCALATE]`. Assigned work can never approve,
+accept or publish anything. A refused assignment (wrong reporting line, unknown
+name, or limit reached) is shown as a room notice.
+
+```bash
+# Show today's manager-assignment count and limit per room
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.rooms[] | "\(.name)\t\(.assignmentsToday // 0)/\(.assignmentLimit // 5)"'
+```
+
 ## Agent stances and objections
 
 Off by default. An owner turns it on under **Settings → Feature flags → Agents ·

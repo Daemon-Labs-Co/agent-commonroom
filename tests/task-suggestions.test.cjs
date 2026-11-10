@@ -10,6 +10,15 @@ assert.equal(vm.runInContext('suggestionLine',ctx)({author:'A',title:'T'}),'A su
 (async()=>{
  await vm.runInContext('captureTaskSuggestion',ctx)(list[0]);
  assert.equal(JSON.stringify(calls[0]),JSON.stringify(['task-proposals?room=r1',{action:'capture',sourceMessageId:'m',title:'Add login',criteria:'Users can sign in'}]),'capture uses the existing proposal endpoint');
+ const pick=vm.runInContext('suggestionAssignee',ctx);
+ const people=[{id:'p2',roomId:'r1',name:'Blake'},{id:'p9',roomId:'r2',name:'Blake'}];
+ assert.equal(pick(list[0],people).id,'p2','assignee matched by name within the room');assert.equal(pick({roomId:'r1',assignee:'Nobody'},people),null);assert.equal(pick({roomId:'r1'},people),null);
+ calls.length=0;ctx.state.tasks=[{id:'t1',title:'Add login',revision:1,status:'Draft'}];
+ ctx.api=async(p,b)=>{calls.push([p,b]);return b.action==='capture'?{id:'pr1',revision:1}:b.action==='approve'?{taskId:'t1'}:{}};
+ ctx.commit=async(k,p)=>{calls.push([k,p]);ctx.state.tasks=[{...p,revision:2}]};
+ await vm.runInContext('approveAndSendSuggestion',ctx)(list[0],people[0]);
+ assert.deepEqual(calls.filter(c=>c[0]!=='refresh'&&c[0]!=='note').map(c=>c[1].action||c[0]),['capture','approve','task.revised','task-dispatch'],'the same four human requests, in order');
+ assert.equal(calls.find(c=>c[0]==='task.revised')[1].assignee,'p2');assert.equal(calls.find(c=>c[0]==='task-dispatch')[1].revision,2,'dispatch uses the revised task');
  vm.runInContext('render()',ctx);assert.equal(renders,1);
  assert.ok(fs.readFileSync('web/index.html','utf8').includes('task-suggestions.js'));
  console.log('Task suggestions: filtering, summary and capture request passed.');

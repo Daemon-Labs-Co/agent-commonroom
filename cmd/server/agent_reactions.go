@@ -55,6 +55,9 @@ func escalationInstruction(from, question string) string {
 
 // reactToAgentReply runs after an agent's chat or discussion reply is committed.
 func (s *server) reactToAgentReply(ctx context.Context, p room.Participant, text string) {
+	if s.reactToAssignment(ctx, p, text) {
+		return
+	}
 	stance, _, detail := stanceMarker(text)
 	if stance != "escalate" && stance != "discuss" {
 		return

@@ -124,6 +124,9 @@ type Room struct {
 	DiscussionID       string `json:"discussionId,omitempty"`
 	DiscussionRounds   int    `json:"discussionRounds,omitempty"`
 	AgentInitiated     int    `json:"agentInitiated,omitempty"`
+	AssignmentLimit    *int   `json:"assignmentLimit,omitempty"`
+	AssignmentsToday   int    `json:"assignmentsToday,omitempty"`
+	AssignmentDay      string `json:"assignmentDay,omitempty"`
 	AcceptanceCriteria string `json:"acceptanceCriteria,omitempty"`
 	NameVersion        string `json:"nameVersion,omitempty"`
 	// Reconstructed from explicit name changes, never accepted from clients.

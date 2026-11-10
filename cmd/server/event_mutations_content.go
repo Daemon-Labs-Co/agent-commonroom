@@ -27,6 +27,19 @@ func (s *server) prepareContentEvent(w http.ResponseWriter, r *http.Request, st 
 		}
 		v.RoomID = roomID
 		p = v
+	case "room.assignment_limit.updated":
+		if requestActor(r) != ownerID {
+			http.Error(w, "Owner permission required", 403)
+			return nil, false
+		}
+		var raw struct {
+			Limit *int `json:"limit"`
+		}
+		if json.Unmarshal(req.Payload, &raw) != nil || raw.Limit == nil || *raw.Limit < 0 || *raw.Limit > maxManagerAssignmentLimit {
+			http.Error(w, fmt.Sprintf("Limit must be between 0 and %d", maxManagerAssignmentLimit), 400)
+			return nil, false
+		}
+		p = assignmentLimit{RoomID: roomID, Limit: *raw.Limit}
 	case "task.suggestion.dismissed":
 		actor, ok := member(st, requestActor(r))
 		if !ok || !actor.Enabled || actor.Kind != "human" {

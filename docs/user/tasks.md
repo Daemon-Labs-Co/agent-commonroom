@@ -34,6 +34,10 @@ Task suggestions**. Capturing also needs **Task proposals** to be on.
 3. The owner clicks **Capture** to turn a suggestion into a proposal, then reviews
    and approves it under **Tasks** as usual. **Dismiss** hides it.
 
+When a suggestion names an agent in the room and has acceptance criteria, the owner
+also sees **Approve and send to name**. One click captures, approves, assigns and
+sends the task, making the same four requests you would make by hand.
+
 A suggestion creates nothing by itself. Only a human's capture and approval create a
 task.
 

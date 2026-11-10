@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `governingSuggestions`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `governingSuggestions`, `managerAssignedTasks`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -275,3 +275,24 @@ proposal exists with the same source message and title; capture itself is the ex
 busy, 429 admission limits, 404 unknown or closed suggestion. State changes: a human request
 message, turn events, `task.suggestion.dismissed`, `agent.initiated` for the automatic case.
 Disabled: no suggestions are derived or requested; captured proposals remain.
+
+### Manager-assigned work (`managerAssignedTasks`, default off)
+
+Input: a committed agent chat or discussion reply whose first line is `[ASSIGN name] title`
+(later lines are detail); owner event `room.assignment_limit.updated` with `limit` 0–50.
+Output: one managed turn for the named participant; `Room.assignmentLimit`,
+`Room.assignmentsToday`, `Room.assignmentDay`. Functionality: the server requires exactly one
+participant with that name in the room and that the assigning agent outranks it in the
+organization chart (reporting ancestry, not numbered seniority). The report's turn passes the
+same checks as any agent-started turn and runs with its existing permissions and containment.
+Each room allows `assignmentLimit` assignments per UTC day (default 5; 0 refuses all); a change
+applies to the next assignment and earlier assignments that day still count. A refusal (no
+title, unknown or ambiguous name, wrong reporting line, limit reached, or the turn could not
+start) is a system notice. State changes: `agent.assignment`, a system notice, turn events. No
+task, proposal, approval, acceptance or publication is created. The report's `[ESCALATE]` goes
+to its direct manager as described above. Task dispatch and workflow turns never trigger
+assignments. Disabled: the marker is plain text and nothing starts; the limit setting is kept.
+
+The interface offers "Approve and send" on an agent task suggestion that names a room agent and
+has criteria. It issues the existing capture, approve, `task.revised` and `task-dispatch`
+requests in order for the owner; no server behaviour is added.

@@ -571,6 +571,27 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			json.Unmarshal(data, &ack)
 			acknowledged[ack.MessageID] = ack.ActorID
+		case "room.assignment_limit.updated":
+			var v assignmentLimit
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					limit := v.Limit
+					st.Rooms[i].AssignmentLimit = &limit
+				}
+			}
+		case "agent.assignment":
+			var v managerAssignment
+			json.Unmarshal(data, &v)
+			day := v.Assigned.UTC().Format("2006-01-02")
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					if st.Rooms[i].AssignmentDay != day {
+						st.Rooms[i].AssignmentDay, st.Rooms[i].AssignmentsToday = day, 0
+					}
+					st.Rooms[i].AssignmentsToday++
+				}
+			}
 		case "agent.initiated":
 			var v agentInitiated
 			json.Unmarshal(data, &v)
