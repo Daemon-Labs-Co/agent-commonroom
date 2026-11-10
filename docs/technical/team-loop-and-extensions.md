@@ -1,8 +1,14 @@
 # Agent team loop and extension layer — proposed design
 
-Proposal for review. Nothing on this page is implemented unless the
-[product inventory](product-functionality.md) says so. It does not change any flag,
-default or authority.
+Design record. Steps 1 to 6 of the build order are implemented behind default-off
+flags and specified in the [product inventory](product-functionality.md), which is
+the authority where the two differ. Step 7 is not built. Differences from this page:
+agent task suggestions are a derived list that the owner captures through the
+existing proposal request, not direct proposal records; a manager's assignment
+starts a managed turn for the report and creates no task record; approved tasks
+are sent by an owner action in the interface, so `autoDispatchApproved` does not
+exist; a report's escalation goes to its direct manager; the round ceiling of 3
+cannot yet be raised by an extension; extensions read messages and post notices.
 
 ## Input
 
