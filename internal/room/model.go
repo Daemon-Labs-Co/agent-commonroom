@@ -98,6 +98,20 @@ type Objection struct {
 	ResolvedBy  string `json:"resolvedBy,omitempty"`
 }
 
+// TaskSuggestion is derived from an agent's [PROPOSE TASK] line. It creates
+// nothing; a human captures it through the proposal flow or dismisses it.
+type TaskSuggestion struct {
+	ID        string `json:"id"`
+	RoomID    string `json:"roomId"`
+	MessageID string `json:"messageId"`
+	ActorID   string `json:"actorId"`
+	Author    string `json:"author"`
+	Title     string `json:"title"`
+	Criteria  string `json:"criteria,omitempty"`
+	Assignee  string `json:"assignee,omitempty"`
+	Status    string `json:"status"`
+}
+
 // ContextExportPolicy is owner-managed disclosure authorization, never model instructions.
 type ContextExportPolicy struct {
 	Providers         []string `json:"providers"`
@@ -434,6 +448,7 @@ type State struct {
 	Organization            OrganizationChart                      `json:"organization"`
 	FeatureFlags            map[string]bool                        `json:"featureFlags"`
 	Objections              []Objection                            `json:"objections"`
+	TaskSuggestions         []TaskSuggestion                       `json:"taskSuggestions"`
 	AgentsStopped           bool                                   `json:"agentsStopped"`
 	AgentRoomStopped        bool                                   `json:"agentRoomStopped"`
 	AgentStopRooms          []string                               `json:"-"`

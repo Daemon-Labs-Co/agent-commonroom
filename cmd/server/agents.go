@@ -380,6 +380,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Action == "suggest-tasks" {
+		s.suggestTasksLocked(w, r, allState, roomID)
+		return
+	}
 	if req.Action == "discuss" {
 		s.startDiscussionLocked(w, r, allState, st, roomID, req.Text, req.Rounds)
 		return

@@ -96,8 +96,11 @@ func (s *server) runDiscussion(ctx context.Context, d discussionStarted, topic s
 	reason := "the round limit was reached"
 	defer func() {
 		s.mu.Lock()
-		defer s.mu.Unlock()
 		s.endDiscussionLocked(d, reason, round, turns)
+		s.mu.Unlock()
+		if reason == "every agent agreed" {
+			s.suggestAfterAgreement(ctx, d.RoomID)
+		}
 	}()
 	for round = 1; round <= d.Rounds; round++ {
 		agreed := 0

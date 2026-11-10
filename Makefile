@@ -110,6 +110,8 @@ check: test-race
 	node tests/agent-stances.test.cjs
 	node --check web/agent-discussion.js
 	node tests/agent-discussion.test.cjs
+	node --check web/task-suggestions.js
+	node tests/task-suggestions.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs

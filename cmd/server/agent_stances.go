@@ -54,7 +54,7 @@ func objectionTarget(st room.State, roomID, name string) (kind, id, title string
 		}
 	}
 	for _, p := range st.TaskProposals {
-		if p.RoomID == roomID && p.Status == "pending" && strings.EqualFold(strings.TrimSpace(p.Title), name) {
+		if p.RoomID == roomID && p.Status == "Proposed" && strings.EqualFold(strings.TrimSpace(p.Title), name) {
 			kind, id, title = "proposal", p.ID, p.Title
 			matches++
 		}

@@ -50,6 +50,8 @@ func auditSummary(kind string, payload []byte) string {
 		return "Agent discussion ended · " + label("reason", "reason recorded")
 	case "room.discussion_limit.updated":
 		return "Owner changed the room discussion round limit"
+	case "task.suggestion.dismissed":
+		return "Human dismissed an agent task suggestion"
 	case "objection.resolved":
 		return "Human resolved an agent objection · " + label("decision", "decision recorded")
 	case "message.attention.acknowledged":

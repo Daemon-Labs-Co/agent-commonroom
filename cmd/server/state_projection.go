@@ -23,6 +23,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	failures := map[string]string{}
 	acknowledged := map[string]string{}
 	objectionResolutions := map[string]objectionResolution{}
+	dismissedSuggestions := map[string]bool{}
 	st := room.State{Company: room.Company{ID: "company", Name: "My company"}, HumanCompanyID: "company", Workflows: []room.Workflow{}, Rooms: []room.Room{{ID: "engineering", Name: "Engineering room"}}, Tasks: []room.Task{}, Evidence: []room.Evidence{}, Connections: []room.Connection{}, Participants: []room.Participant{}, Memories: []room.Memory{}, Messages: []room.Message{}}
 	rows, err := s.db.Query(ctx, "SELECT kind,payload FROM events ORDER BY sequence")
 	if err != nil {
@@ -555,6 +556,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.Participants = kept
+		case "task.suggestion.dismissed":
+			var v suggestionDismissed
+			json.Unmarshal(data, &v)
+			dismissedSuggestions[v.ID] = true
 		case "objection.resolved":
 			var v objectionResolution
 			json.Unmarshal(data, &v)
@@ -696,6 +701,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	projectHumanAttention(&st, acknowledged)
 	projectEscalations(&st, acknowledged)
 	projectStances(&st, objectionResolutions)
+	projectTaskSuggestions(&st, dismissedSuggestions)
 	if err := ctx.Err(); err != nil {
 		return st, err
 	}

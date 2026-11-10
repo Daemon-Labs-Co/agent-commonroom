@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `governingSuggestions`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -258,3 +258,20 @@ and either `agentObjections` or `agentDiscussion` are on, every `[ESCALATE]` rep
 human-attention item regardless of who answers. State changes: `agent.initiated`, the turn or
 discussion events, and a system notice for an agent-started discussion. Task dispatch and
 workflow turns never trigger reactions. Disabled: markers start nothing.
+
+### Agent task suggestions (`governingSuggestions`, default off)
+
+Input: agent messages containing lines that start with `[PROPOSE TASK]` in the form
+`title :: criteria :: assignee` (criteria and assignee optional; title up to 200 bytes; at most 5
+per message); `POST /api/agents` with `action: "suggest-tasks"` from a human in the room;
+`task.suggestion.dismissed` with `id` from a human in the room. Output: `state.taskSuggestions`
+with status `open`, `captured` or `dismissed`; 202 naming the agent asked. Functionality:
+suggestions are derived on replay and create no proposal or task. `suggest-tasks` runs one
+managed turn for the room's current governing agent, or the first available agent when none is
+appointed, under the normal admission checks. A discussion that ends because every agent agreed
+triggers the same turn once, counted as agent-started activity. A suggestion is `captured` when a
+proposal exists with the same source message and title; capture itself is the existing owner-only
+`task-proposals` request. Refusals: 403 disabled or not a human, 409 no available agent or agent
+busy, 429 admission limits, 404 unknown or closed suggestion. State changes: a human request
+message, turn events, `task.suggestion.dismissed`, `agent.initiated` for the automatic case.
+Disabled: no suggestions are derived or requested; captured proposals remain.

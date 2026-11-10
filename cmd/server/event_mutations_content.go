@@ -27,6 +27,30 @@ func (s *server) prepareContentEvent(w http.ResponseWriter, r *http.Request, st 
 		}
 		v.RoomID = roomID
 		p = v
+	case "task.suggestion.dismissed":
+		actor, ok := member(st, requestActor(r))
+		if !ok || !actor.Enabled || actor.Kind != "human" {
+			http.Error(w, "Only a human in this room can dismiss a suggestion", 403)
+			return nil, false
+		}
+		if !taskSuggestionsEnabled(st) {
+			http.Error(w, "Task suggestions are disabled", 403)
+			return nil, false
+		}
+		var v suggestionDismissed
+		_ = json.Unmarshal(req.Payload, &v)
+		open := false
+		for _, suggestion := range st.TaskSuggestions {
+			if suggestion.ID == v.ID && suggestion.RoomID == roomID && suggestion.Status == "open" {
+				open = true
+			}
+		}
+		if !open {
+			http.Error(w, "Open suggestion not found in this room", 404)
+			return nil, false
+		}
+		v.RoomID, v.ActorID = roomID, requestActor(r)
+		p = v
 	case "objection.resolved":
 		actor, ok := member(st, requestActor(r))
 		if !ok || !actor.Enabled || actor.Kind != "human" {

@@ -114,7 +114,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if requestActor(r) != ownerID {
-		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.chat_style.updated" || req.Kind == "actor.agent_highlight.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.photo_size.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged" || req.Kind == "objection.resolved" || req.Kind == "room.context.cleared"
+		allowed := req.Kind == "actor.help.updated" || req.Kind == "actor.chat_style.updated" || req.Kind == "actor.agent_highlight.updated" || req.Kind == "actor.image.updated" || req.Kind == "actor.photo_size.updated" || req.Kind == "actor.name.updated" || req.Kind == "message.created" || req.Kind == "memory.revised" || req.Kind == "task.revised" || req.Kind == "message.attention.acknowledged" || req.Kind == "objection.resolved" || req.Kind == "task.suggestion.dismissed" || req.Kind == "room.context.cleared"
 		a, _ := member(st, requestActor(r))
 		if req.Kind == "workflow.revised" && a.Role == "Developer" {
 			allowed = true
@@ -160,7 +160,7 @@ func (s *server) events(w http.ResponseWriter, r *http.Request) {
 		p, ok = s.prepareRoomsEvent(w, r, st, roomID, req)
 	case "connection.deleted", "connection.created", "connection.updated", "participant.created", "participant.updated":
 		p, ok = s.prepareAgentsEvent(w, r, st, roomID, req)
-	case "message.attention.acknowledged", "objection.resolved", "room.discussion_limit.updated", "message.created", "room.context.cleared", "room.context_export.updated", "memory.revised":
+	case "message.attention.acknowledged", "objection.resolved", "task.suggestion.dismissed", "room.discussion_limit.updated", "message.created", "room.context.cleared", "room.context_export.updated", "memory.revised":
 		p, ok = s.prepareContentEvent(w, r, st, roomID, req)
 	default:
 		http.Error(w, "Unsupported operation", 400)
