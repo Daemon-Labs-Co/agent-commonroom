@@ -104,6 +104,8 @@ check: test-race
 	node tests/room-human-name.test.cjs
 	node tests/agent-model-field.test.cjs
 	node tests/agent-model-overlay.test.cjs
+	node --check web/chat-display.js
+	node tests/chat-display.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs
