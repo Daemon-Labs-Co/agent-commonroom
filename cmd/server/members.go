@@ -125,6 +125,10 @@ func visibleState(st room.State, actor, rid string) room.State {
 	for _, a := range st.Actors {
 		if actor == ownerID || a.ID == actor || canAccess(st, a.ID, rid) {
 			a.PublicKey = ""
+			if a.ID != actor {
+				// Chat display preferences are private to their owner.
+				a.ChatStyle, a.HighlightedAgents = false, nil
+			}
 			actors = append(actors, a)
 		}
 	}

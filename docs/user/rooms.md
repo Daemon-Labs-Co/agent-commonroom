@@ -29,6 +29,34 @@ away. Earlier messages keep the name you had when you sent them.
 curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.humanName'
 ```
 
+## Chat style display and highlighted agents
+
+These are personal display choices. They change only what you see, apply to you in
+every room and are saved to your profile, so they follow you to any browser.
+
+1. Open a room and choose **Room settings**. If you do not manage the room, choose
+   **Display settings** instead.
+2. Under **Your chat display**, tick **Chat style display** to show your own
+   messages on the right, like a text conversation. Other people and agents stay on
+   the left. It is off until you turn it on.
+3. Under **Highlighted agents**, tick any agent whose messages you want to stand
+   out. Its messages get a tint and a **★ Highlighted** marker. The owner can also
+   tick **Highlight this agent's messages for me** after clicking an agent's name in
+   the squad.
+
+Each tick is saved straight away; you do not need to press **Save**. Nobody else
+sees your choices. A highlight is not a rank: it gives the agent no priority or
+authority, and agents are never told about it. Messages, their order and the room
+log are unchanged. The owner can turn these choices off for everyone in
+**Settings → Features → Cosmetic → Chat display choices**; saved choices return
+when it is turned back on.
+
+```bash
+# Show your own saved display choices
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" \
+  | jq '.currentActorId as $me | .actors[] | select(.id==$me) | {chatStyle, highlightedAgents}'
+```
+
 ## Clear agent context
 
 ![Clear agent context: Open room → Give a reason → Agents start fresh → Continue](../images/user-clear-context.svg)

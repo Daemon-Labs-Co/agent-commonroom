@@ -201,19 +201,22 @@ type OrganizationNode struct {
 	Y         float64 `json:"y"`
 }
 type Actor struct {
-	PhotoSize   string   `json:"photoSize,omitempty"`
-	HelpDisplay string   `json:"helpDisplay,omitempty"`
-	Image       string   `json:"image,omitempty"`
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Title       string   `json:"title"`
-	Kind        string   `json:"kind"`
-	Role        string   `json:"role"`
-	Enabled     bool     `json:"enabled"`
-	PublicKey   string   `json:"publicKey,omitempty"`
-	RoomIDs     []string `json:"roomIds"`
-	Revision    int      `json:"revision"`
-	ChangedBy   string   `json:"changedBy"`
+	PhotoSize   string `json:"photoSize,omitempty"`
+	HelpDisplay string `json:"helpDisplay,omitempty"`
+	// Personal display preferences; never sent to agents and never authority.
+	ChatStyle         bool     `json:"chatStyle,omitempty"`
+	HighlightedAgents []string `json:"highlightedAgents,omitempty"`
+	Image             string   `json:"image,omitempty"`
+	ID                string   `json:"id"`
+	Name              string   `json:"name"`
+	Title             string   `json:"title"`
+	Kind              string   `json:"kind"`
+	Role              string   `json:"role"`
+	Enabled           bool     `json:"enabled"`
+	PublicKey         string   `json:"publicKey,omitempty"`
+	RoomIDs           []string `json:"roomIds"`
+	Revision          int      `json:"revision"`
+	ChangedBy         string   `json:"changedBy"`
 }
 
 // ManagedJob is a safe, durable execution binding. Model data and arguments

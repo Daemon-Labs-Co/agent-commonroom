@@ -39,6 +39,20 @@ persists across replay, restart and profile revisions. Absent/unknown presentati
 values render at 30 pixels; large renders at 60 pixels. Disabling photos hides the
 size effect and refuses preference changes without erasing the saved choice.
 
+`actor.chat_style.updated` accepts a boolean `enabled`; `actor.agent_highlight.updated`
+accepts `agentId` and a boolean `enabled`. Both apply only to the authenticated human:
+a submitted identity is replaced with the session actor. They require the
+`chatDisplayChoices` flag (default enabled, owner-only change); while it is off the
+server refuses both events with 403, the interface ignores saved values and offers no
+controls, and saved values are kept. Adding a highlight requires an existing agent
+actor (404 otherwise) and at most 50 highlights per person (409 beyond that);
+removing is always accepted. The actor properties `chatStyle` and `highlightedAgents`
+persist across replay, restart and profile revisions, and the state response returns
+them only to their owner. They are presentation only: `chat-display.js` adds CSS
+classes and a text marker to rendered room messages, moving the viewer's own
+messages to the right and tinting highlighted agents. Message records, order,
+agent prompts, permissions and the organization chart are unaffected.
+
 View selections, draft/dirty state and documented preferences may change. Documentation reorganization adds no product execution authority or feature toggle. Legacy document IDs remain mapped to retained references; current user guide IDs are separately available.
 
 COMMONROOM_CONNECTION_EDITOR controls this presentation layer, defaults true and

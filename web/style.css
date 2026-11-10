@@ -382,3 +382,13 @@ header>strong{display:flex;align-items:center;gap:10px}header .brand-mark{object
 @media(prefers-reduced-motion:reduce){.conversation-wait-bubble{animation:none;opacity:1}}
 nav .nav-signout{font-size:12px;color:var(--muted);text-align:left}
 @media(max-width:599px){nav .nav-signout{flex-basis:100%;margin:0;border-radius:0}}
+
+/* Personal chat display choices (chat-display.js). Display only. */
+.chat-display-settings { border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:14px 0; }
+.chat-display-settings legend { font-weight:650; padding:0 6px; }
+.chat-style .message.message-own { flex-direction:row-reverse; }
+.chat-style .message.message-own .message-content { text-align:right; }
+.chat-style .message.message-own .message-meta { flex-direction:row-reverse; }
+.chat-style .message.message-own p { display:inline-block; text-align:left; max-width:min(75%,640px); background:#f1eef8; padding:8px 12px; border-radius:12px 12px 2px 12px; }
+.message.agent-highlighted:not(.attention-required) { background:#eefaf7; box-shadow:inset 3px 0 0 #1f8f7a; padding-left:12px; border-radius:6px; }
+.agent-highlight-mark { background:#d9f3ec; color:#12614f; font-weight:650; }
