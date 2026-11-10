@@ -52,4 +52,5 @@ type server struct {
 	mu                sync.Mutex
 	active            map[string]bool
 	cancels           map[string]context.CancelFunc
+	discussions       map[string]context.CancelFunc
 }

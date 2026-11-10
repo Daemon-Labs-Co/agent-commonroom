@@ -5,6 +5,7 @@ package main
 import (
 	"agentroom/internal/room"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,18 @@ import (
 func (s *server) prepareContentEvent(w http.ResponseWriter, r *http.Request, st room.State, roomID string, req eventRequest) (any, bool) {
 	var p any
 	switch req.Kind {
+	case "room.discussion_limit.updated":
+		if requestActor(r) != ownerID {
+			http.Error(w, "Owner permission required", 403)
+			return nil, false
+		}
+		var v discussionLimit
+		if json.Unmarshal(req.Payload, &v) != nil || v.Rounds < 1 || v.Rounds > discussionRoundCeiling {
+			http.Error(w, fmt.Sprintf("Rounds must be between 1 and %d", discussionRoundCeiling), 400)
+			return nil, false
+		}
+		v.RoomID = roomID
+		p = v
 	case "objection.resolved":
 		actor, ok := member(st, requestActor(r))
 		if !ok || !actor.Enabled || actor.Kind != "human" {

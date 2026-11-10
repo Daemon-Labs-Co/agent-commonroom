@@ -108,6 +108,8 @@ check: test-race
 	node tests/chat-display.test.cjs
 	node --check web/agent-stances.js
 	node tests/agent-stances.test.cjs
+	node --check web/agent-discussion.js
+	node tests/agent-discussion.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs

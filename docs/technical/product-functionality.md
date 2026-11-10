@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -225,3 +225,21 @@ changes: none to messages or tasks; resolutions are appended events. Enabled age
 marker guidance in their prompt. Disabled: no stances, no objections, nothing blocked,
 `objection.resolved` returns 403. `[ESCALATE]`, `[PROPOSE TASK]` and `[DISCUSS]` are labelled
 only in this version.
+
+### Agent discussions (`agentDiscussion`, default off)
+
+Input: `POST /api/agents` with `action: "discuss"`, `text` (topic) and optional `rounds`, from a
+human in the room; `action: "stop-discussion"`; owner event `room.discussion_limit.updated` with
+`rounds` 1–3. Output: 202 with `discussionId`, `rounds`, `agents`; `Room.discussionId` while one
+runs; `Room.discussionRounds`. Functionality: agents take turns in participant order; each turn
+is a normal managed turn (isolated worker, admission and daily turn limits, context sharing
+policy, three-minute deadline) whose prompt names the round and includes earlier replies. It ends
+when every agent's reply in a round starts with `[AGREE]`, a reply starts with `[ESCALATE]`, the
+round limit is reached, a human posts in the room, agents are stopped, the flag is turned off, an
+agent leaves or fails to reply, or a human stops it. Refusals: 403 disabled or not a human, 400
+empty topic or rounds outside 1..room limit, 409 fewer than two available agents or a discussion
+already running, 429 admission limits. State changes: `room.discussion.started`, per-turn
+activity and session events, `room.discussion.ended` and a system notice message. A discussion
+left open by a restart is closed when the next one starts or when a human stops it. The round
+ceiling is 3; a room setting can only lower it. Disabled: `discuss` returns 403 and a running
+discussion ends before its next turn; `stop-discussion` still works.

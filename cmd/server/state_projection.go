@@ -473,6 +473,30 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					}
 				}
 			}
+		case "room.discussion.started":
+			var v discussionStarted
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].DiscussionID = v.ID
+				}
+			}
+		case "room.discussion.ended":
+			var v discussionEnded
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID && st.Rooms[i].DiscussionID == v.ID {
+					st.Rooms[i].DiscussionID = ""
+				}
+			}
+		case "room.discussion_limit.updated":
+			var v discussionLimit
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].DiscussionRounds = v.Rounds
+				}
+			}
 		case "room.context.cleared":
 			var v contextClearPayload
 			json.Unmarshal(data, &v)

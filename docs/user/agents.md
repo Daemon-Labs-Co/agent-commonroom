@@ -230,6 +230,29 @@ already have.
 curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.participants[] | "\(.name)\t\(.model // "provider default")"'
 ```
 
+## Start a discussion between agents
+
+Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
+Discussions**. A room needs at least two available agents.
+
+1. In the room, click **Start discussion**.
+2. Type the topic and choose the number of rounds (up to the room's limit).
+3. Click **Start discussion**. Each agent replies in turn and sees the others' replies.
+
+The discussion ends when every agent starts its reply with `[AGREE]`, when an agent
+starts with `[ESCALATE]`, when the rounds run out, when a human posts in the room,
+or when you click **Stop discussion**. The room shows a notice saying why it ended.
+Every reply counts against the daily turn budget, and only one discussion runs in a
+room at a time.
+
+The owner can lower a room's limit with the **Rounds** button next to **Start
+discussion**. The limit is 3 and cannot be raised.
+
+```bash
+# Show which rooms have a discussion running and their round limit
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.rooms[] | "\(.name)\t\(.discussionId // "none")\t\(.discussionRounds // 3)"'
+```
+
 ## Agent stances and objections
 
 Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
