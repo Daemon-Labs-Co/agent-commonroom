@@ -566,11 +566,26 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			json.Unmarshal(data, &ack)
 			acknowledged[ack.MessageID] = ack.ActorID
+		case "agent.initiated":
+			var v agentInitiated
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].AgentInitiated++
+				}
+			}
 		case "message.created":
 			var v room.Message
 			json.Unmarshal(data, &v)
 			if v.RoomID == "" {
 				v.RoomID = "engineering"
+			}
+			if v.ActorType == "human" {
+				for i := range st.Rooms {
+					if st.Rooms[i].ID == v.RoomID {
+						st.Rooms[i].AgentInitiated = 0
+					}
+				}
 			}
 			if v.Provider == "" && v.Author != "You" {
 				for _, p := range st.Participants {
@@ -679,6 +694,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	projectActors(&st)
 	projectIdleNoticeMessages(&st)
 	projectHumanAttention(&st, acknowledged)
+	projectEscalations(&st, acknowledged)
 	projectStances(&st, objectionResolutions)
 	if err := ctx.Err(); err != nil {
 		return st, err

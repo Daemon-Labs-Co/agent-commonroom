@@ -493,6 +493,9 @@ func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room
 	}
 	text, err := turn(ctx, p, prompt, endpoint)
 	s.finishAgentTurn(ctx, p, text, endpoint, err)
+	if err == nil {
+		s.reactToAgentReply(ctx, p, text)
+	}
 }
 
 // executeAgentTurn is shared by chat and workflows. It always uses the isolated

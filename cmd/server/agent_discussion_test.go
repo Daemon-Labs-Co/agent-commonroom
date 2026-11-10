@@ -200,3 +200,144 @@ func TestAgentDiscussions(t *testing.T) {
 		}
 	})
 }
+
+func awaitIdle(t *testing.T, s *server) room.State {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		s.mu.Lock()
+		st, err := s.load(context.Background())
+		busy := len(s.discussions)
+		for _, active := range s.active {
+			if active {
+				busy++
+			}
+		}
+		s.mu.Unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if busy == 0 && activeDiscussion(st, "engineering") == "" {
+			time.Sleep(5 * time.Millisecond) // let a pending reaction start, then re-check
+			s.mu.Lock()
+			again := len(s.discussions)
+			for _, active := range s.active {
+				if active {
+					again++
+				}
+			}
+			s.mu.Unlock()
+			if again == 0 {
+				st, _ = s.load(context.Background())
+				return st
+			}
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("room did not become idle")
+	return room.State{}
+}
+
+func TestAgentReactions(t *testing.T) {
+	// Synthetic worker configuration; the scripted turn never reaches a provider.
+	t.Setenv("COMMONROOM_REMOTE_WORKER", "true")
+	t.Setenv("COMMONROOM_REMOTE_WORKER_ALIAS", "worker")
+	reportsTo := func(db *mockDB, report, manager string) {
+		db.seed("company.organization.updated", room.OrganizationChart{Revision: 1, Nodes: []room.OrganizationNode{{ActorID: manager}, {ActorID: report, ReportsTo: manager}}})
+	}
+	const toBlake = `{"action":"send","participantId":"b","text":"Should we ship today?"}`
+
+	t.Run("escalation goes to the agent manager once and stays visible to the human", func(t *testing.T) {
+		s, db, h, script := discussionFixture(t, true)
+		reportsTo(db, "bot-cb", "bot-ca")
+		script.reply = func(name string, _ int) string {
+			if name == "Blake" {
+				return "[ESCALATE] ship with the known bug?"
+			}
+			return "No. Fix it first."
+		}
+		if w := mockRequest(h, "POST", "/api/agents", toBlake); w.Code != 202 {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		st := awaitIdle(t, s)
+		if strings.Join(script.calls, ",") != "Blake,Avery" || !strings.Contains(script.prompts[1], "Blake reports to you and escalated this") || !strings.Contains(script.prompts[1], "ship with the known bug?") {
+			t.Fatal("manager did not answer the escalation", script.calls)
+		}
+		pending := 0
+		for _, m := range st.Messages {
+			if m.HumanRequest == "explicit" && strings.HasPrefix(m.Text, "[ESCALATE]") {
+				pending++
+			}
+		}
+		if pending != 1 || st.Rooms[0].PendingHumanRequests != 1 {
+			t.Fatal("escalation not shown to the human", pending, st.Rooms[0].PendingHumanRequests)
+		}
+	})
+
+	t.Run("a peer or a human manager gets no agent turn", func(t *testing.T) {
+		s, db, h, script := discussionFixture(t, true)
+		reportsTo(db, "bot-cb", ownerID)
+		script.reply = func(string, int) string { return "[ESCALATE] need a decision" }
+		mockRequest(h, "POST", "/api/agents", toBlake)
+		awaitIdle(t, s)
+		if len(script.calls) != 1 {
+			t.Fatal("escalation started a turn for a non-manager", script.calls)
+		}
+	})
+
+	t.Run("agents cannot keep each other running", func(t *testing.T) {
+		s, db, h, script := discussionFixture(t, true)
+		db.seed("company.organization.updated", room.OrganizationChart{Revision: 1, Nodes: []room.OrganizationNode{{ActorID: "bot-ca", ReportsTo: "bot-cb"}, {ActorID: "bot-cb", ReportsTo: "bot-ca"}}})
+		script.reply = func(string, int) string { return "[ESCALATE] over to you" }
+		mockRequest(h, "POST", "/api/agents", toBlake)
+		st := awaitIdle(t, s)
+		if len(script.calls) != 1+maxAgentInitiatedPerHumanMessage || st.Rooms[0].AgentInitiated != maxAgentInitiatedPerHumanMessage {
+			t.Fatal("agent-started turns were not bounded", script.calls, st.Rooms[0].AgentInitiated)
+		}
+		script.reply = func(string, int) string { return "Plain reply" }
+		mockRequest(h, "POST", "/api/agents", toBlake)
+		if st = awaitIdle(t, s); st.Rooms[0].AgentInitiated != 0 {
+			t.Fatal("a human message must reset the allowance")
+		}
+	})
+
+	t.Run("an agent starts a discussion", func(t *testing.T) {
+		s, _, h, script := discussionFixture(t, true)
+		script.reply = func(name string, call int) string {
+			if call == 1 {
+				return "[DISCUSS] which queue library?"
+			}
+			return "[AGREE] " + name
+		}
+		mockRequest(h, "POST", "/api/agents", toBlake)
+		st := awaitIdle(t, s)
+		if strings.Join(script.calls, ",") != "Blake,Avery,Blake" {
+			t.Fatal("discussion order after an agent start", script.calls)
+		}
+		found := false
+		for _, m := range st.Messages {
+			found = found || (m.ActorType == "system" && m.Text == "Blake started a discussion: which queue library?")
+		}
+		if !found || !strings.Contains(lastNotice(st), "every agent agreed") {
+			t.Fatal("agent-started discussion not announced or not closed", lastNotice(st))
+		}
+	})
+
+	t.Run("disabled: markers start nothing", func(t *testing.T) {
+		s, db, h, script := discussionFixture(t, false)
+		reportsTo(db, "bot-cb", "bot-ca")
+		script.reply = func(_ string, call int) string {
+			if call == 1 {
+				return "[ESCALATE] decide please"
+			}
+			return "[DISCUSS] anything"
+		}
+		mockRequest(h, "POST", "/api/agents", toBlake)
+		st := awaitIdle(t, s)
+		mockRequest(h, "POST", "/api/agents", toBlake)
+		st = awaitIdle(t, s)
+		if len(script.calls) != 2 || st.Rooms[0].PendingHumanRequests != 0 {
+			t.Fatal("disabled feature reacted to a marker", script.calls)
+		}
+	})
+}

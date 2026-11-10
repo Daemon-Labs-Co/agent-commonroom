@@ -243,3 +243,18 @@ activity and session events, `room.discussion.ended` and a system notice message
 left open by a restart is closed when the next one starts or when a human stops it. The round
 ceiling is 3; a room setting can only lower it. Disabled: `discuss` returns 403 and a running
 discussion ends before its next turn; `stop-discussion` still works.
+
+### Agent escalation and agent-started discussions (`agentDiscussion`)
+
+Input: a committed agent chat or discussion reply whose first line starts with `[ESCALATE]` or
+`[DISCUSS] topic`. Output: at most one further managed turn (escalation) or one discussion.
+Functionality: `[ESCALATE]` starts one turn for the participant in the same room whose actor is
+the escalating agent's direct `reportsTo` in the organization chart; a human, absent or
+out-of-room manager starts nothing. `[DISCUSS]` with a topic starts a discussion among the
+room's other available agents (the starter replies last) at the room's round limit, unless one
+is already running. Both pass the same checks as discussion turns. A room allows 2 agent-started
+activities until a human message resets the count (`Room.agentInitiated`). While `humanAttention`
+and either `agentObjections` or `agentDiscussion` are on, every `[ESCALATE]` reply is a
+human-attention item regardless of who answers. State changes: `agent.initiated`, the turn or
+discussion events, and a system notice for an agent-started discussion. Task dispatch and
+workflow turns never trigger reactions. Disabled: markers start nothing.

@@ -127,6 +127,29 @@ func (s *server) runDiscussion(ctx context.Context, d discussionStarted, topic s
 // discussionTurn runs one agent's turn and reports its stance, or why the
 // discussion must stop.
 func (s *server) discussionTurn(ctx context.Context, d discussionStarted, topic, pid string, round int) (stance, stop string) {
+	text, stop := s.agentInitiatedTurn(ctx, d.RoomID, pid, discussionInstruction(round, d.Rounds, topic), "Taking part in a room discussion", func(all, st room.State) string {
+		switch {
+		case activeDiscussion(all, d.RoomID) != d.ID:
+			return "it was replaced or closed"
+		case !agentDiscussionEnabled(all):
+			return "agent discussions were turned off"
+		case humanPostedAfter(st, d.MessageID):
+			return "a human posted in the room"
+		}
+		return ""
+	})
+	if stop != "" {
+		return "", stop
+	}
+	stance, _, _ = stanceMarker(text)
+	return stance, ""
+}
+
+// agentInitiatedTurn runs one managed turn that no human message directly asked
+// for. It applies every check a human-started turn gets (emergency stop, admission
+// and daily limits, isolation, context size) plus the caller's own precheck, and
+// returns the agent's reply or the reason no turn ran.
+func (s *server) agentInitiatedTurn(ctx context.Context, roomID, pid, instruction, activity string, precheck func(all, st room.State) string) (text, stop string) {
 	s.mu.Lock()
 	if ctx.Err() != nil {
 		s.mu.Unlock()
@@ -137,22 +160,17 @@ func (s *server) discussionTurn(ctx context.Context, d discussionStarted, topic,
 		s.mu.Unlock()
 		return "", "room state was unavailable"
 	}
-	st := scoped(all, d.RoomID)
-	switch {
-	case activeDiscussion(all, d.RoomID) != d.ID:
-		stop = "it was replaced or closed"
-	case !agentDiscussionEnabled(all):
-		stop = "agent discussions were turned off"
-	case all.Incident || s.agentsBlockedLocked(all, d.RoomID):
+	st := scoped(all, roomID)
+	if all.Incident || s.agentsBlockedLocked(all, roomID) {
 		stop = "agents were stopped"
-	case humanPostedAfter(st, d.MessageID):
-		stop = "a human posted in the room"
+	} else if precheck != nil {
+		stop = precheck(all, st)
 	}
 	var p room.Participant
 	endpoint := ""
 	if stop == "" {
 		for _, candidate := range st.Participants {
-			if candidate.ID == pid && candidate.RoomID == d.RoomID {
+			if candidate.ID == pid && candidate.RoomID == roomID {
 				p = candidate
 			}
 		}
@@ -167,7 +185,7 @@ func (s *server) discussionTurn(ctx context.Context, d discussionStarted, topic,
 		case s.active[p.ID]:
 			stop = p.Name + " was already working"
 		default:
-			if e := s.agentAdmission(all, d.RoomID, 1); e != nil {
+			if e := s.agentAdmission(all, roomID, 1); e != nil {
 				stop = e.Error()
 			} else if e := isolationAvailable(endpoint); e != nil {
 				stop = e.Error()
@@ -176,7 +194,7 @@ func (s *server) discussionTurn(ctx context.Context, d discussionStarted, topic,
 	}
 	prompt := ""
 	if stop == "" {
-		if prompt, err = chatPrompt(st, p, discussionInstruction(round, d.Rounds, topic)); err != nil {
+		if prompt, err = chatPrompt(st, p, instruction); err != nil {
 			stop = err.Error()
 		}
 	}
@@ -187,7 +205,7 @@ func (s *server) discussionTurn(ctx context.Context, d discussionStarted, topic,
 	before := len(st.Messages)
 	p.Status = "Working"
 	if err = s.appendBatch(context.Background(), []auditChange{
-		{Kind: "agent.activity", Payload: map[string]any{"participantId": p.ID, "activity": "Taking part in a room discussion", "startedAt": time.Now().UTC()}},
+		{Kind: "agent.activity", Payload: map[string]any{"participantId": p.ID, "activity": activity, "startedAt": time.Now().UTC()}},
 		{Kind: "participant.session", Payload: p},
 	}); err != nil {
 		s.mu.Unlock()
@@ -209,11 +227,10 @@ func (s *server) discussionTurn(ctx context.Context, d discussionStarted, topic,
 	if err != nil {
 		return "", "room state was unavailable"
 	}
-	after = scoped(after, d.RoomID)
+	after = scoped(after, roomID)
 	for _, m := range after.Messages[min(before, len(after.Messages)):] {
 		if m.ActorType == "agent" && m.Author == p.Name {
-			stance, _, _ = stanceMarker(m.Text)
-			return stance, ""
+			return m.Text, ""
 		}
 	}
 	return "", p.Name + " did not reply"

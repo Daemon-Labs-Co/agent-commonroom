@@ -43,7 +43,9 @@ func auditSummary(kind string, payload []byte) string {
 	case "worker.tool.outcome":
 		return "Agent tool action · " + label("status", "outcome recorded")
 	case "room.discussion.started":
-		return "Human started an agent discussion"
+		return "Agent discussion started"
+	case "agent.initiated":
+		return "Agent started " + label("kind", "activity") + " for another agent"
 	case "room.discussion.ended":
 		return "Agent discussion ended · " + label("reason", "reason recorded")
 	case "room.discussion_limit.updated":

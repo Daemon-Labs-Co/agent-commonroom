@@ -109,6 +109,7 @@ type Room struct {
 	Outcome            string `json:"outcome,omitempty"`
 	DiscussionID       string `json:"discussionId,omitempty"`
 	DiscussionRounds   int    `json:"discussionRounds,omitempty"`
+	AgentInitiated     int    `json:"agentInitiated,omitempty"`
 	AcceptanceCriteria string `json:"acceptanceCriteria,omitempty"`
 	NameVersion        string `json:"nameVersion,omitempty"`
 	// Reconstructed from explicit name changes, never accepted from clients.
