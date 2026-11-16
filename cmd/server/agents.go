@@ -136,6 +136,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		ContextSource        string `json:"contextSource"`
 		Search               string `json:"search"`
 		Cursor               string `json:"cursor"`
+		Rounds               int    `json:"rounds"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 65536)
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
@@ -288,6 +289,10 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		reply(w, map[string]bool{"removed": true})
 		return
 	}
+	if req.Action == "stop-discussion" {
+		s.stopDiscussionLocked(w, r, st, roomID)
+		return
+	}
 	if st.Incident || s.agentsBlockedLocked(st, roomID) {
 		http.Error(w, "Agent access blocked by an integrity incident or emergency stop", 409)
 		return
@@ -375,6 +380,14 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Action == "suggest-tasks" {
+		s.suggestTasksLocked(w, r, allState, roomID)
+		return
+	}
+	if req.Action == "discuss" {
+		s.startDiscussionLocked(w, r, allState, st, roomID, req.Text, req.Rounds)
+		return
+	}
 	if (req.Action != "send" && req.Action != "broadcast") || strings.TrimSpace(req.Text) == "" {
 		http.Error(w, "Message required", 400)
 		return
@@ -478,12 +491,17 @@ func (b *bufferResponse) WriteHeader(n int)           { b.status = n }
 func (b *bufferResponse) Write(v []byte) (int, error) { return b.body.Write(v) }
 func (s *server) runAgent(ctx context.Context, cancel context.CancelFunc, p room.Participant, prompt, endpoint string) {
 	defer cancel()
+	s.inFlight.Add(1)
+	defer s.inFlight.Add(-1)
 	turn := s.agentTurn
 	if turn == nil {
 		turn = s.executeAgentTurn
 	}
 	text, err := turn(ctx, p, prompt, endpoint)
 	s.finishAgentTurn(ctx, p, text, endpoint, err)
+	if err == nil {
+		s.reactToAgentReply(ctx, p, text)
+	}
 }
 
 // executeAgentTurn is shared by chat and workflows. It always uses the isolated

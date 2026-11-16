@@ -5,14 +5,97 @@ package main
 import (
 	"agentroom/internal/room"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func (s *server) prepareContentEvent(w http.ResponseWriter, r *http.Request, st room.State, roomID string, req eventRequest) (any, bool) {
 	var p any
 	switch req.Kind {
+	case "room.discussion_limit.updated":
+		if requestActor(r) != ownerID {
+			http.Error(w, "Owner permission required", 403)
+			return nil, false
+		}
+		var v discussionLimit
+		if json.Unmarshal(req.Payload, &v) != nil || v.Rounds < 1 || v.Rounds > discussionRoundCeiling {
+			http.Error(w, fmt.Sprintf("Rounds must be between 1 and %d", discussionRoundCeiling), 400)
+			return nil, false
+		}
+		v.RoomID = roomID
+		p = v
+	case "room.assignment_limit.updated":
+		if requestActor(r) != ownerID {
+			http.Error(w, "Owner permission required", 403)
+			return nil, false
+		}
+		var raw struct {
+			Limit *int `json:"limit"`
+		}
+		if json.Unmarshal(req.Payload, &raw) != nil || raw.Limit == nil || *raw.Limit < 0 || *raw.Limit > maxManagerAssignmentLimit {
+			http.Error(w, fmt.Sprintf("Limit must be between 0 and %d", maxManagerAssignmentLimit), 400)
+			return nil, false
+		}
+		p = assignmentLimit{RoomID: roomID, Limit: *raw.Limit}
+	case "task.suggestion.dismissed":
+		actor, ok := member(st, requestActor(r))
+		if !ok || !actor.Enabled || actor.Kind != "human" {
+			http.Error(w, "Only a human in this room can dismiss a suggestion", 403)
+			return nil, false
+		}
+		if !taskSuggestionsEnabled(st) {
+			http.Error(w, "Task suggestions are disabled", 403)
+			return nil, false
+		}
+		var v suggestionDismissed
+		_ = json.Unmarshal(req.Payload, &v)
+		open := false
+		for _, suggestion := range st.TaskSuggestions {
+			if suggestion.ID == v.ID && suggestion.RoomID == roomID && suggestion.Status == "open" {
+				open = true
+			}
+		}
+		if !open {
+			http.Error(w, "Open suggestion not found in this room", 404)
+			return nil, false
+		}
+		v.RoomID, v.ActorID = roomID, requestActor(r)
+		p = v
+	case "objection.resolved":
+		actor, ok := member(st, requestActor(r))
+		if !ok || !actor.Enabled || actor.Kind != "human" {
+			http.Error(w, "Only a human in this room can resolve an objection", 403)
+			return nil, false
+		}
+		if !agentObjectionsEnabled(st) {
+			http.Error(w, "Agent objections are disabled", 403)
+			return nil, false
+		}
+		var v objectionResolution
+		if json.Unmarshal(req.Payload, &v) != nil || (v.Decision != "upheld" && v.Decision != "overruled") {
+			http.Error(w, "Choose upheld or overruled", 400)
+			return nil, false
+		}
+		v.Note = strings.TrimSpace(v.Note)
+		if utf8.RuneCountInString(v.Note) > 500 {
+			http.Error(w, "Note is too long (500 characters maximum)", 400)
+			return nil, false
+		}
+		open := false
+		for _, o := range st.Objections {
+			if o.MessageID == v.MessageID && o.RoomID == roomID && o.Status == "open" {
+				open = true
+			}
+		}
+		if !open {
+			http.Error(w, "Open objection not found in this room", 404)
+			return nil, false
+		}
+		v.RoomID, v.ActorID = roomID, requestActor(r)
+		p = v
 	case "message.attention.acknowledged":
 		actor, ok := member(st, requestActor(r))
 		if !ok || actor.Kind != "human" {

@@ -226,6 +226,10 @@ func (s *server) taskProposals(w http.ResponseWriter, r *http.Request) {
 		response.Revision++
 		response.ReviewedBy = ownerID
 		if req.Action == "approve" {
+			if o, blocked := openObjection(st, "proposal", p.ID); blocked {
+				http.Error(w, objectionBlockMessage(o), 409)
+				return
+			}
 			if !proposalText(req.Title, req.Criteria) || strings.TrimSpace(req.Criteria) == "" {
 				http.Error(w, "Review a title and acceptance criteria before approval", 400)
 				return

@@ -85,6 +85,10 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 409)
 		return
 	}
+	if o, blocked := openObjection(st, "task", task.ID); blocked && req.Mode != "reconcile" {
+		http.Error(w, objectionBlockMessage(o), 409)
+		return
+	}
 	if req.Mode == "reconcile" {
 		if task.DispatchStatus != "pending" {
 			http.Error(w, "No pending task dispatch", 409)

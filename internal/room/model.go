@@ -69,6 +69,7 @@ type Memory struct {
 }
 type Message struct {
 	HumanRequest            string    `json:"humanRequest,omitempty"`
+	Stance                  string    `json:"stance,omitempty"`
 	AttentionAcknowledgedBy string    `json:"attentionAcknowledgedBy,omitempty"`
 	ActorID                 string    `json:"actorId"`
 	ActorType               string    `json:"actorType"`
@@ -80,6 +81,37 @@ type Message struct {
 	Created                 time.Time `json:"created"`
 }
 
+// Objection is derived from an agent's [OBJECT] message. It blocks only its
+// target and is closed by a human decision or the agent's own withdrawal.
+type Objection struct {
+	MessageID   string `json:"messageId"`
+	RoomID      string `json:"roomId"`
+	ActorID     string `json:"actorId"`
+	Author      string `json:"author"`
+	Reason      string `json:"reason"`
+	TargetKind  string `json:"targetKind,omitempty"`
+	TargetID    string `json:"targetId,omitempty"`
+	TargetTitle string `json:"targetTitle,omitempty"`
+	Status      string `json:"status"`
+	Decision    string `json:"decision,omitempty"`
+	Note        string `json:"note,omitempty"`
+	ResolvedBy  string `json:"resolvedBy,omitempty"`
+}
+
+// TaskSuggestion is derived from an agent's [PROPOSE TASK] line. It creates
+// nothing; a human captures it through the proposal flow or dismisses it.
+type TaskSuggestion struct {
+	ID        string `json:"id"`
+	RoomID    string `json:"roomId"`
+	MessageID string `json:"messageId"`
+	ActorID   string `json:"actorId"`
+	Author    string `json:"author"`
+	Title     string `json:"title"`
+	Criteria  string `json:"criteria,omitempty"`
+	Assignee  string `json:"assignee,omitempty"`
+	Status    string `json:"status"`
+}
+
 // ContextExportPolicy is owner-managed disclosure authorization, never model instructions.
 type ContextExportPolicy struct {
 	Providers         []string `json:"providers"`
@@ -89,6 +121,12 @@ type ContextExportPolicy struct {
 }
 type Room struct {
 	Outcome            string `json:"outcome,omitempty"`
+	DiscussionID       string `json:"discussionId,omitempty"`
+	DiscussionRounds   int    `json:"discussionRounds,omitempty"`
+	AgentInitiated     int    `json:"agentInitiated,omitempty"`
+	AssignmentLimit    *int   `json:"assignmentLimit,omitempty"`
+	AssignmentsToday   int    `json:"assignmentsToday,omitempty"`
+	AssignmentDay      string `json:"assignmentDay,omitempty"`
 	AcceptanceCriteria string `json:"acceptanceCriteria,omitempty"`
 	NameVersion        string `json:"nameVersion,omitempty"`
 	// Reconstructed from explicit name changes, never accepted from clients.
@@ -412,6 +450,8 @@ type State struct {
 	ToolCalls               map[string]ToolCallAudit               `json:"-"`
 	Organization            OrganizationChart                      `json:"organization"`
 	FeatureFlags            map[string]bool                        `json:"featureFlags"`
+	Objections              []Objection                            `json:"objections"`
+	TaskSuggestions         []TaskSuggestion                       `json:"taskSuggestions"`
 	AgentsStopped           bool                                   `json:"agentsStopped"`
 	AgentRoomStopped        bool                                   `json:"agentRoomStopped"`
 	AgentStopRooms          []string                               `json:"-"`

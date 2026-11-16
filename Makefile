@@ -106,6 +106,18 @@ check: test-race
 	node tests/agent-model-overlay.test.cjs
 	node --check web/chat-display.js
 	node tests/chat-display.test.cjs
+	node --check web/agent-stances.js
+	node tests/agent-stances.test.cjs
+	node --check web/agent-discussion.js
+	node tests/agent-discussion.test.cjs
+	node --check web/task-suggestions.js
+	node tests/task-suggestions.test.cjs
+	node --check web/manager-assignments.js
+	node tests/manager-assignments.test.cjs
+	node --check web/extension-settings.js
+	node tests/extension-settings.test.cjs
+	node --check web/team-menu.js
+	node tests/team-menu.test.cjs
 	node --test tests/room-message-order.test.cjs
 	node --check web/room-viewport.js
 	node --test tests/room-scroll-stability.test.cjs

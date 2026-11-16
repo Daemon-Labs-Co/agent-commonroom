@@ -87,6 +87,7 @@ func main() {
 	}
 	cancelStartup()
 	s := &server{dailyTurnLimit: dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
+	s.extensionRegistry = os.Getenv("COMMONROOM_EXTENSIONS_FILE")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/instance-label.js", instanceLabel)
 	mux.HandleFunc("/api/members", s.members)
@@ -102,6 +103,7 @@ func main() {
 	mux.HandleFunc("/api/integrity", s.integrity)
 	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
+	mux.HandleFunc("/ext/v1/", s.extensionAPI)
 	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
 	mux.HandleFunc("/api/task-executions", s.taskExecutions)
 	mux.HandleFunc("/api/task-definition-history", s.taskDefinitionHistory)

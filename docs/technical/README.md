@@ -14,6 +14,7 @@ Contracts describing input, output, functionality and properties/state changes.
 | Contract | Reference |
 | --- | --- |
 | MVC responsibilities | [Proposed mapping](mvc-organization.md) |
+| Agent team loop and extension layer | [Proposed design](team-loop-and-extensions.md) |
 | Free core and paid add-on functionality | [Product inventory](product-functionality.md) |
 | Documentation rules | [Audience contract](documentation-policy.md) |
 | Identity, settings and access | [Identity, settings and access](identity.md) |

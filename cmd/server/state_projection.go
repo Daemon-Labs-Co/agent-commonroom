@@ -22,6 +22,8 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	activityStarts := map[string]time.Time{}
 	failures := map[string]string{}
 	acknowledged := map[string]string{}
+	objectionResolutions := map[string]objectionResolution{}
+	dismissedSuggestions := map[string]bool{}
 	st := room.State{Company: room.Company{ID: "company", Name: "My company"}, HumanCompanyID: "company", Workflows: []room.Workflow{}, Rooms: []room.Room{{ID: "engineering", Name: "Engineering room"}}, Tasks: []room.Task{}, Evidence: []room.Evidence{}, Connections: []room.Connection{}, Participants: []room.Participant{}, Memories: []room.Memory{}, Messages: []room.Message{}}
 	rows, err := s.db.Query(ctx, "SELECT kind,payload FROM events ORDER BY sequence")
 	if err != nil {
@@ -472,6 +474,30 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					}
 				}
 			}
+		case "room.discussion.started":
+			var v discussionStarted
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].DiscussionID = v.ID
+				}
+			}
+		case "room.discussion.ended":
+			var v discussionEnded
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID && st.Rooms[i].DiscussionID == v.ID {
+					st.Rooms[i].DiscussionID = ""
+				}
+			}
+		case "room.discussion_limit.updated":
+			var v discussionLimit
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].DiscussionRounds = v.Rounds
+				}
+			}
 		case "room.context.cleared":
 			var v contextClearPayload
 			json.Unmarshal(data, &v)
@@ -530,6 +556,14 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.Participants = kept
+		case "task.suggestion.dismissed":
+			var v suggestionDismissed
+			json.Unmarshal(data, &v)
+			dismissedSuggestions[v.ID] = true
+		case "objection.resolved":
+			var v objectionResolution
+			json.Unmarshal(data, &v)
+			objectionResolutions[v.MessageID] = v
 		case "message.attention.acknowledged":
 			var ack struct {
 				MessageID string `json:"messageId"`
@@ -537,11 +571,47 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 			}
 			json.Unmarshal(data, &ack)
 			acknowledged[ack.MessageID] = ack.ActorID
+		case "room.assignment_limit.updated":
+			var v assignmentLimit
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					limit := v.Limit
+					st.Rooms[i].AssignmentLimit = &limit
+				}
+			}
+		case "agent.assignment":
+			var v managerAssignment
+			json.Unmarshal(data, &v)
+			day := v.Assigned.UTC().Format("2006-01-02")
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					if st.Rooms[i].AssignmentDay != day {
+						st.Rooms[i].AssignmentDay, st.Rooms[i].AssignmentsToday = day, 0
+					}
+					st.Rooms[i].AssignmentsToday++
+				}
+			}
+		case "agent.initiated":
+			var v agentInitiated
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].AgentInitiated++
+				}
+			}
 		case "message.created":
 			var v room.Message
 			json.Unmarshal(data, &v)
 			if v.RoomID == "" {
 				v.RoomID = "engineering"
+			}
+			if v.ActorType == "human" {
+				for i := range st.Rooms {
+					if st.Rooms[i].ID == v.RoomID {
+						st.Rooms[i].AgentInitiated = 0
+					}
+				}
 			}
 			if v.Provider == "" && v.Author != "You" {
 				for _, p := range st.Participants {
@@ -650,6 +720,9 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 	projectActors(&st)
 	projectIdleNoticeMessages(&st)
 	projectHumanAttention(&st, acknowledged)
+	projectEscalations(&st, acknowledged)
+	projectStances(&st, objectionResolutions)
+	projectTaskSuggestions(&st, dismissedSuggestions)
 	if err := ctx.Err(); err != nil {
 		return st, err
 	}

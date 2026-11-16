@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('web/agent-stances.js','utf8');
+const commits=[];let renders=0;
+const ctx={view:'Tasks',roomId:'r1',state:{featureFlags:{},objections:[],messages:[],actors:[]},render:()=>{renders++},esc:s=>String(s),commit:async(k,p)=>commits.push([k,p]),form:(t,h,save)=>{ctx.formTitle=t;ctx.formHtml=h;ctx.save=save},document:{querySelector:()=>null,querySelectorAll:()=>[]}};
+vm.createContext(ctx);vm.runInContext(source,ctx);
+const objections=[{roomId:'r1',status:'open',author:'Avery',targetKind:'task',targetTitle:'Login',reason:'no tests',messageId:'m1'},{roomId:'r1',status:'resolved',author:'Avery',messageId:'m2'},{roomId:'r2',status:'open',author:'Blake',messageId:'m3'},{roomId:'r1',status:'open',author:'Blake',reason:'',messageId:'m4'}];
+const open=vm.runInContext('openRoomObjections',ctx)(objections,'r1');
+assert.equal(open.length,2,'only open objections in this room');
+const summary=vm.runInContext('objectionSummary',ctx);
+assert.equal(summary(objections[0]),'Avery objects to "Login": no tests');
+assert.equal(summary(objections[3]),'Blake objects (blocks nothing): no reason given');
+(async()=>{
+ vm.runInContext('resolveObjection',ctx)(objections[0]);
+ assert.equal(ctx.formTitle,'Resolve objection');assert.match(ctx.formHtml,/name="decision"/);assert.match(ctx.formHtml,/does not change the task/);
+ await ctx.save({get:k=>({decision:'upheld',note:'agreed'})[k]});
+ assert.equal(JSON.stringify(commits),JSON.stringify([['objection.resolved',{messageId:'m1',decision:'upheld',note:'agreed'}]]));
+ vm.runInContext('render()',ctx);assert.equal(renders,1,'wraps the existing render and stays quiet when the flag is off');
+ assert.ok(fs.readFileSync('web/index.html','utf8').includes('agent-stances.js'),'script is loaded');
+ console.log('Agent stances: objection filtering, summary and resolution request passed.');
+})();

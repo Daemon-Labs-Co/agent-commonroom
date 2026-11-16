@@ -107,7 +107,7 @@ functionality inventory and use one authoritative core.
 
 Current core feature-flag inventory (configuration is not a commercial entitlement):
 
-`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
+`taskRepositoryLinks`, `taskProgress`, `taskAcceptanceReview`, `taskValueDependencies`, `taskDefinitions`, `roomOutcomeReview`, `roomOutcomeContext`, `roomOutcomes`, `automaticAgentRooms`, `taskDelegation`, `taskProposals`, `agentCoordination`, `idleStopNotices`, `idleAgentShutdown`, `workspaceDisposal`, `taskDispatch`, `contextPolicyEditor`, `contextClear`, `agentModelSelection`, `agentObjections`, `agentDiscussion`, `governingSuggestions`, `managerAssignedTasks`, `extensions`, `jobDiagnostics`, `agentRecovery`, `agentBackgroundWork`, `agentSafetyControls`, `humanProfileImages`, `connectionSignIn`, `connectionTesting`, `helpWindowChoice`, `chatDisplayChoices`, `squadProfileActions`, `agentInvitationLayout`, `standardHelpIcons`, `featureFlagTabs`, `historyDateGroups`, `settingsTabs`, `roomSections`, `humanProfileDetails`, `topAlignedViews`, `compactProfileOverlays`, `companyOrgChart`, `newestMessagesFirst`, `roomViewportFit`, `featureFlagSwitches`, `workflowExecution`, `agentStatusDetails`, `squadMenuLayout`, `humanAttention`, `historyRefinement`.
 
 ## Properties and state changes
 
@@ -208,3 +208,117 @@ are refused by the worker.
 Squad list: selecting an agent's name opens a model overlay that sends `participant.updated`
 with the agent's existing fields and the new `model` (nothing is sent if unchanged). While
 `agentModelSelection` is off, selecting the name opens the full profile as before.
+
+### Agent stances and objections (`agentObjections`, default off)
+
+Input: agent messages whose first line starts with `[AGREE]`, `[OBJECT]`, `[OBJECT: title]`,
+`[WITHDRAW]`, `[WITHDRAW: title]`, `[ESCALATE]`, `[PROPOSE TASK]` or `[DISCUSS]` (case-insensitive);
+`objection.resolved` with `messageId`, `decision` (`upheld` or `overruled`) and optional `note`
+(500 characters) from a human in the room. Output: `Message.stance`; `state.objections` with
+status `open` or `resolved`. Functionality: derived on replay from stored messages; human
+messages and later lines are never parsed. A title matching exactly one task, or one pending
+proposal, in the room (trimmed, case-insensitive) targets it; otherwise the objection has no
+target and blocks nothing. While open, a targeted objection refuses task dispatch (work and
+review modes) and proposal approval with 409. An agent's `[WITHDRAW]` closes only its own
+open objections; `objection.resolved` closes one objection once (404 afterwards). State
+changes: none to messages or tasks; resolutions are appended events. Enabled agents receive
+marker guidance in their prompt. Disabled: no stances, no objections, nothing blocked,
+`objection.resolved` returns 403. `[ESCALATE]`, `[PROPOSE TASK]` and `[DISCUSS]` are labelled
+only in this version.
+
+### Agent discussions (`agentDiscussion`, default off)
+
+Input: `POST /api/agents` with `action: "discuss"`, `text` (topic) and optional `rounds`, from a
+human in the room; `action: "stop-discussion"`; owner event `room.discussion_limit.updated` with
+`rounds` 1–3. Output: 202 with `discussionId`, `rounds`, `agents`; `Room.discussionId` while one
+runs; `Room.discussionRounds`. Functionality: agents take turns in participant order; each turn
+is a normal managed turn (isolated worker, admission and daily turn limits, context sharing
+policy, three-minute deadline) whose prompt names the round and includes earlier replies. It ends
+when every agent's reply in a round starts with `[AGREE]`, a reply starts with `[ESCALATE]`, the
+round limit is reached, a human posts in the room, agents are stopped, the flag is turned off, an
+agent leaves or fails to reply, or a human stops it. Refusals: 403 disabled or not a human, 400
+empty topic or rounds outside 1..room limit, 409 fewer than two available agents or a discussion
+already running, 429 admission limits. State changes: `room.discussion.started`, per-turn
+activity and session events, `room.discussion.ended` and a system notice message. A discussion
+left open by a restart is closed when the next one starts or when a human stops it. The round
+ceiling is 3; a room setting can only lower it. Disabled: `discuss` returns 403 and a running
+discussion ends before its next turn; `stop-discussion` still works.
+
+### Agent escalation and agent-started discussions (`agentDiscussion`)
+
+Input: a committed agent chat or discussion reply whose first line starts with `[ESCALATE]` or
+`[DISCUSS] topic`. Output: at most one further managed turn (escalation) or one discussion.
+Functionality: `[ESCALATE]` starts one turn for the participant in the same room whose actor is
+the escalating agent's direct `reportsTo` in the organization chart; a human, absent or
+out-of-room manager starts nothing. `[DISCUSS]` with a topic starts a discussion among the
+room's other available agents (the starter replies last) at the room's round limit, unless one
+is already running. Both pass the same checks as discussion turns. A room allows 2 agent-started
+activities until a human message resets the count (`Room.agentInitiated`). While `humanAttention`
+and either `agentObjections` or `agentDiscussion` are on, every `[ESCALATE]` reply is a
+human-attention item regardless of who answers. State changes: `agent.initiated`, the turn or
+discussion events, and a system notice for an agent-started discussion. Task dispatch and
+workflow turns never trigger reactions. Disabled: markers start nothing.
+
+### Agent task suggestions (`governingSuggestions`, default off)
+
+Input: agent messages containing lines that start with `[PROPOSE TASK]` in the form
+`title :: criteria :: assignee` (criteria and assignee optional; title up to 200 bytes; at most 5
+per message); `POST /api/agents` with `action: "suggest-tasks"` from a human in the room;
+`task.suggestion.dismissed` with `id` from a human in the room. Output: `state.taskSuggestions`
+with status `open`, `captured` or `dismissed`; 202 naming the agent asked. Functionality:
+suggestions are derived on replay and create no proposal or task. `suggest-tasks` runs one
+managed turn for the room's current governing agent, or the first available agent when none is
+appointed, under the normal admission checks. A discussion that ends because every agent agreed
+triggers the same turn once, counted as agent-started activity. A suggestion is `captured` when a
+proposal exists with the same source message and title; capture itself is the existing owner-only
+`task-proposals` request. Refusals: 403 disabled or not a human, 409 no available agent or agent
+busy, 429 admission limits, 404 unknown or closed suggestion. State changes: a human request
+message, turn events, `task.suggestion.dismissed`, `agent.initiated` for the automatic case.
+Disabled: no suggestions are derived or requested; captured proposals remain.
+
+### Manager-assigned work (`managerAssignedTasks`, default off)
+
+Input: a committed agent chat or discussion reply whose first line is `[ASSIGN name] title`
+(later lines are detail); owner event `room.assignment_limit.updated` with `limit` 0–50.
+Output: one managed turn for the named participant; `Room.assignmentLimit`,
+`Room.assignmentsToday`, `Room.assignmentDay`. Functionality: the server requires exactly one
+participant with that name in the room and that the assigning agent outranks it in the
+organization chart (reporting ancestry, not numbered seniority). The report's turn passes the
+same checks as any agent-started turn and runs with its existing permissions and containment.
+Each room allows `assignmentLimit` assignments per UTC day (default 5; 0 refuses all); a change
+applies to the next assignment and earlier assignments that day still count. A refusal (no
+title, unknown or ambiguous name, wrong reporting line, limit reached, or the turn could not
+start) is a system notice. State changes: `agent.assignment`, a system notice, turn events. No
+task, proposal, approval, acceptance or publication is created. The report's `[ESCALATE]` goes
+to its direct manager as described above. Task dispatch and workflow turns never trigger
+assignments. Disabled: the marker is plain text and nothing starts; the limit setting is kept.
+
+The interface offers "Approve and send" on an agent task suggestion that names a room agent and
+has criteria. It issues the existing capture, approve, `task.revised` and `task-dispatch`
+requests in order for the owner; no server behaviour is added.
+
+### Extension layer, contract version 1 (`extensions`, default off)
+
+Input: registry file named by `COMMONROOM_EXTENSIONS_FILE`: a JSON array of up to 16 entries
+`{id, name, publicKey, rooms}` (`publicKey` is a base64 Ed25519 public key; the file must be a
+regular file not writable by group or others). Requests carry `X-Extension-Id`,
+`X-Extension-Timestamp` (Unix seconds, within 60 seconds) and `X-Extension-Signature` (base64
+Ed25519 signature over `commonroom-extension-v1`, id, timestamp, method, request path with query
+and the SHA-256 of the body, joined by newlines). Output: `GET /ext/v1/rooms/{room}/messages`
+(optional `after` message id; at most 100 messages after the room's context boundary; empty when
+the room excludes messages from sharing) and `POST /ext/v1/rooms/{room}/notices` with `{text}`
+(4,000 characters), returning 201 and `messageId`. Functionality: the registry is read on every
+request, so removing an entry removes access at once. A notice is a message with actor type
+`extension`, actor `extension:{id}` and the registry name as author; its `[PROPOSE TASK]` lines
+become task suggestions when `governingSuggestions` is on. Extension text is never parsed as an
+agent stance, objection, assignment or human-attention request. Refusals: 403 disabled, unknown
+extension, bad timestamp or signature, room not granted; 429 replayed signature or more than 30
+requests a minute; 400 invalid notice; 404 any other path; 409 during an integrity incident.
+State changes: `message.created` and `extension.notice`. An extension has no session and cannot
+reach `/api/` endpoints. Disabled: every extension request returns 403; posted notices remain.
+
+Agents receive marker guidance in chat prompts only for enabled features: `[DISCUSS]` and
+`[ESCALATE]` with `agentDiscussion`, `[PROPOSE TASK]` with `governingSuggestions`, and `[ASSIGN]`
+with `managerAssignedTasks` and only for an agent that has reports in the room, which are named.
+The room toolbar groups the discussion, round-limit, suggestion and assignment-limit controls
+under one Team menu when two or more are present; Stop discussion stays in the toolbar.

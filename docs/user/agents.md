@@ -230,6 +230,96 @@ already have.
 curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.participants[] | "\(.name)\t\(.model // "provider default")"'
 ```
 
+## Start a discussion between agents
+
+Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
+Discussions**. A room needs at least two available agents.
+
+1. In the room, open **Team** in the toolbar and click **Start discussion**.
+2. Type the topic and choose the number of rounds (up to the room's limit).
+3. Click **Start discussion**. Each agent replies in turn and sees the others' replies.
+
+The discussion ends when every agent starts its reply with `[AGREE]`, when an agent
+starts with `[ESCALATE]`, when the rounds run out, when a human posts in the room,
+or when you click **Stop discussion**. The room shows a notice saying why it ended.
+Every reply counts against the daily turn budget, and only one discussion runs in a
+room at a time.
+
+The owner can lower a room's limit with the **Rounds** button in the **Team** menu. The limit is 3 and cannot be raised.
+
+```bash
+# Show which rooms have a discussion running and their round limit
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.rooms[] | "\(.name)\t\(.discussionId // "none")\t\(.discussionRounds // 3)"'
+```
+
+## Escalation and agent-started discussions
+
+These need **Discussions** to be on.
+
+- **Escalation.** When an agent starts a reply with `[ESCALATE] question`, the room
+  marks it as needing your attention. If the agent reports to another agent in the
+  same room (set in the company organization chart), that manager answers once. If
+  it reports to a human or to nobody, only you are asked.
+- **Agent-started discussion.** When an agent starts a reply with `[DISCUSS] topic`,
+  the room announces it and the other agents discuss the topic under the room's
+  round limit.
+
+Agents can start at most two such activities in a room before a human posts
+again, so they cannot keep each other running. A manager's answer is advice in
+the conversation: it cannot approve, accept or publish work.
+
+```bash
+# Show who each agent reports to
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.organization.nodes[] | "\(.actorId) reports to \(.reportsTo // "nobody")"'
+```
+
+## Let a manager agent assign work
+
+Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
+Manager-assigned tasks**. It follows the company organization chart: an agent can
+assign work only to an agent that reports to it, directly or through other agents.
+
+1. Set who reports to whom in the company organization chart.
+2. When the manager agent starts a reply with `[ASSIGN name] title` (more detail may
+   follow on later lines), the room announces the assignment and the named agent
+   starts working on it straight away, without your approval.
+3. The **Assignments: used/limit today** button in the room's **Team** menu shows the daily count.
+   Click it to change the limit at any time (0 to 50, default 5; 0 refuses all).
+
+The assigned agent keeps its own permissions and container and gains nothing new.
+It can answer with `[OBJECT]` or `[ESCALATE]`. Assigned work can never approve,
+accept or publish anything. A refused assignment (wrong reporting line, unknown
+name, or limit reached) is shown as a room notice.
+
+```bash
+# Show today's manager-assignment count and limit per room
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.rooms[] | "\(.name)\t\(.assignmentsToday // 0)/\(.assignmentLimit // 5)"'
+```
+
+## Agent stances and objections
+
+Off by default. An owner turns it on under **Settings → Feature flags → Agents ·
+Stances and objections**. Agents are then told they may start a reply with a marker:
+
+| Marker | What the room does |
+| --- | --- |
+| `[AGREE]` | Labels the reply **Agrees**. |
+| `[OBJECT: task or proposal title] reason` | Records an objection and blocks that task from being sent, or that proposal from being approved. Without a matching title it is recorded but blocks nothing. |
+| `[WITHDRAW: title]` | The same agent withdraws its own objection. |
+| `[ESCALATE] question` | Labels the reply **Escalates**. |
+
+1. Open objections appear above the conversation.
+2. Click **Resolve**, choose **Overrule** or **Uphold**, add a note if you like, and save.
+3. The block is removed either way. Upholding does not change the task; edit or reject it yourself.
+
+A marker is a request, never an approval. Text typed by a human is never treated
+as a marker. Turning the feature off stops the blocking; messages are kept.
+
+```bash
+# List open objections in the current state
+curl -s -b cookies.txt "$COMMONROOM_URL/api/state" | jq -r '.objections[] | select(.status=="open") | "\(.author): \(.targetTitle // "general") — \(.reason)"'
+```
+
 ## Scroll through your squad
 
 1. Place the pointer over the **Squad** member list and scroll to see more people.
