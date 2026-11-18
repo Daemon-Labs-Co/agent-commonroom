@@ -26,7 +26,9 @@ the runtime role neither owns `events` nor holds SUPERUSER or BYPASSRLS. Before 
 migration the previous single-history layout is served unchanged, and existing events
 become workspace `default` and keep verifying. `scripts/check-workspace-isolation.sql`
 proves the database behaviour against a scratch database. Sequence numbers are shared
-across workspaces (see ADR 0004).
+across workspaces (see ADR 0004). Upgrade order is part of the contract: deploy the controller
+first, then stop it, migrate, grant and start it again (see the deployment guide); an older
+controller, or this controller left running across the migration, cannot insert once 002 applies.
 
 ## Properties and state changes
 

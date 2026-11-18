@@ -55,6 +55,22 @@ on restart without deleting application history. User-service startup at boot
 without a login depends on the server's existing user-manager policy. No coding
 execution or publishing readiness is implied by a successful HTTP check.
 
+## Upgrading an existing installation to workspace storage
+
+Order matters, because migration 002 makes every insert require a workspace setting that only
+this version of the controller supplies, and the controller decides at startup whether to supply it:
+
+1. Deploy this version of the controller. Before the migration it serves the previous layout unchanged.
+2. Stop the controller. Run `commonroom --migrate` with the migration owner (or apply
+   `migrations/002.sql` and `migrations/003.sql` as the database administrator), then the current
+   `postgres/runtime-grants.sql` for the runtime role. Existing history becomes workspace `default`.
+3. Start the controller. It detects workspace storage, refuses to start if the runtime role could
+   bypass row-level security, and from then on scopes every transaction.
+
+Never apply migration 002 while an older controller is running, and never leave the new controller
+running across the migration: either way inserts fail until it restarts. Take a backup first
+(`pg_dump -Fc`). Single-workspace installations behave exactly as before afterwards.
+
 ## Hosting many workspaces
 
 Set `COMMONROOM_TENANCY=multi` and `COMMONROOM_WORKSPACE_DOMAIN` (see
