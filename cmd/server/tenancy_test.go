@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTenancySettings(t *testing.T) {
@@ -79,10 +80,11 @@ func TestWorkspaceFromHost(t *testing.T) {
 func TestDatabaseWorkspaceRegistry(t *testing.T) {
 	t.Parallel()
 	db := newMockDB(t)
-	db.workspaces = map[string][]any{"acme": {"acme", "Acme Ltd", "active"}, "old": {"old", "Old", "deleted"}}
+	created := time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC)
+	db.workspaces = map[string][]any{"acme": {"acme", "Acme Ltd", "active", `{"rooms":7}`, created}, "old": {"old", "Old", "deleted", `{}`, created}}
 	r := databaseWorkspaceRegistry{db: db}
 	rec, found, err := r.Lookup(t.Context(), "acme")
-	if err != nil || !found || rec.Name != "Acme Ltd" || rec.Status != workspaceActive {
+	if err != nil || !found || rec.Name != "Acme Ltd" || rec.Status != workspaceActive || rec.Limits.Rooms != 7 || rec.Limits.Members != defaultWorkspaceLimits.Members {
 		t.Fatal(rec, found, err)
 	}
 	if _, found, err := r.Lookup(t.Context(), "nobody"); found || err != nil {

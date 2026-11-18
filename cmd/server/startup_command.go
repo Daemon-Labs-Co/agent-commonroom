@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
 // Validate command intent before controller leases, configuration or DB startup.
@@ -19,6 +20,10 @@ func startupCommand(args []string, stdout, stderr io.Writer) (handled bool, code
 		return true, 2
 	}
 	switch args[0] {
+	case "--platform-keygen":
+		return true, platformKeygenMain(args[1:], stdout, stderr)
+	case "--platform-request":
+		return true, platformRequestMain(args[1:], stdout, stderr, time.Now)
 	case "--setup-link":
 		home, _ := os.UserHomeDir()
 		return true, setupLinkMain(args[1:], os.Getenv, home, stdout, stderr)
@@ -32,7 +37,7 @@ func startupCommand(args []string, stdout, stderr io.Writer) (handled bool, code
 		if len(args) != 1 {
 			return usage()
 		}
-		_, err := fmt.Fprintln(stdout, "Usage: commonroom [command]\nNo command: start the controller.\n--check-reader-profiles ABSOLUTE_PATH: offline private profile validation.\n--check-capture-profiles ABSOLUTE_PATH: offline private capture profile validation.\n--check-worker-storage ABSOLUTE_PATH: read-only local storage observations.\n--setup-link: print the link that claims a new installation.\n--migrate: explicitly run database migration.\n--agent-worker: internal isolated worker protocol.\n--help: show this help without starting services.")
+		_, err := fmt.Fprintln(stdout, "Usage: commonroom [command]\nNo command: start the controller.\n--check-reader-profiles ABSOLUTE_PATH: offline private profile validation.\n--check-capture-profiles ABSOLUTE_PATH: offline private capture profile validation.\n--check-worker-storage ABSOLUTE_PATH: read-only local storage observations.\n--setup-link: print the link that claims a new installation.\n--platform-keygen KEYFILE ID: create a platform API signing key.\n--platform-request KEYFILE ID METHOD URL [BODY]: send one signed platform API request.\n--migrate: explicitly run database migration.\n--agent-worker: internal isolated worker protocol.\n--help: show this help without starting services.")
 		if err != nil {
 			return true, 1
 		}

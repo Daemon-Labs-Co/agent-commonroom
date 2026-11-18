@@ -113,6 +113,13 @@ func main() {
 		}
 		return newWorkspaceRuntime(settings, tenancy, scoped, id)
 	})
+	if tenancy.Mode == tenancyMulti {
+		keyFile := os.Getenv("COMMONROOM_PLATFORM_KEYS_FILE")
+		host.platform = &platformAPI{tenancy: tenancy, store: databaseWorkspaceRegistry{db: db}, host: host, keyFile: keyFile, now: time.Now}
+		if keyFile == "" {
+			log.Print("COMMONROOM_PLATFORM_KEYS_FILE is not set: the platform API at platform." + tenancy.Domain + " refuses every request")
+		}
+	}
 	if tenancy.Mode == tenancySingle {
 		if err = host.preload(); err != nil {
 			log.Fatal(err)

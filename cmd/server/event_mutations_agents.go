@@ -147,6 +147,10 @@ func (s *server) prepareAgentsEvent(w http.ResponseWriter, r *http.Request, st r
 			return nil, false
 		}
 		if req.Kind == "participant.created" {
+			if msg := s.limitRefusal("agents", len(st.Participants)); msg != "" {
+				http.Error(w, msg, http.StatusConflict)
+				return nil, false
+			}
 			v.DisclosureVersion = 0
 			v.Revision = 1
 			v.ThreadID = ""

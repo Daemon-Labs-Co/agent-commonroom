@@ -53,6 +53,16 @@ func (s *server) prepareRoomsEvent(w http.ResponseWriter, r *http.Request, st ro
 			return nil, false
 		}
 		if req.Kind == "room.created" {
+			shared := 0
+			for _, existing := range st.Rooms {
+				if existing.PersonalActorID == "" {
+					shared++
+				}
+			}
+			if msg := s.limitRefusal("rooms", shared); msg != "" {
+				http.Error(w, msg, http.StatusConflict)
+				return nil, false
+			}
 			v.Revision = 1
 			v.ContextExport = nil
 			v.NameVersion = ""

@@ -59,6 +59,7 @@ type server struct {
 	// single-workspace installation). hostedExecutionBlocked refuses all managed
 	// agent execution until it is namespaced per workspace.
 	workspaceID            string
+	limits                 *workspaceLimits // nil: unlimited (single-workspace installation)
 	hostedExecutionBlocked bool
 	// inFlight counts running agent turns together with the reactions that follow
 	// them, so callers can tell when a room has fully settled.

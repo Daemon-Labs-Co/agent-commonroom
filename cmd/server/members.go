@@ -256,6 +256,16 @@ func (s *server) members(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if v.ID == "" {
+		humans := 0
+		for _, other := range st.Actors {
+			if other.Kind == "human" && other.ID != ownerID {
+				humans++
+			}
+		}
+		if msg := s.limitRefusal("members", humans); msg != "" {
+			http.Error(w, msg, http.StatusConflict)
+			return
+		}
 		block, _ := pem.Decode([]byte(v.PublicKey))
 		if block == nil {
 			http.Error(w, "Public key required", 400)

@@ -1,6 +1,6 @@
 # Workspaces: many customers in one installation
 
-Design record; stages are implemented in order, each default-off. Stages 1 (storage) and 2 (runtime)
+Design record; stages are implemented in order, each default-off. Stages 1 (storage), 2 (runtime) and 3 (platform)
 are implemented: see [events and persistence](persistence.md) and the runtime notes below. See ADRs
 [0004](archive/adr/0004-many-workspaces-in-one-installation.md),
 [0005](archive/adr/0005-workspace-chosen-by-host-name.md),
@@ -97,6 +97,32 @@ diagnostics and recovery, workspace disposal or conversation import (503).
 Known limits of stage 2: every built workspace runs its own 30-second integrity replay
 and each request still replays that workspace's history (no snapshot cache yet), and
 workspace servers are not evicted when idle.
+
+**Stage 3 as built - platform API.** Served only on `platform.<domain>` and refused unless
+`COMMONROOM_PLATFORM_KEYS_FILE` lists the caller's Ed25519 key (same registry format and
+permission rules as extensions; the signing input is `commonroom-platform-v1`, so an
+extension signature never works here). Headers: `X-Platform-Id`, `X-Platform-Timestamp`
+(within 60 seconds), `X-Platform-Signature`; replayed signatures and more than 120
+requests a minute are refused; every authentication failure returns the same 403.
+
+| Request | Effect |
+| --- | --- |
+| `POST /platform/v1/workspaces` `{id, name, limits?}` | Create (201) or return the existing one with the same name (200); different name 409; deleted ids are never reused. Returns the setup link. |
+| `GET /platform/v1/workspaces?limit=&after=` | Page of up to 100, ordered by id. |
+| `GET /platform/v1/workspaces/{id}` | Status, name, limits, whether setup is pending (never a link). |
+| `POST .../{id}/suspend`, `/resume`, `/delete` | Takes effect on the next request. Delete is terminal and keeps a registry tombstone. |
+| `PUT .../{id}/limits` | Replaces limits live; unknown fields and out-of-range values refused. |
+| `POST .../{id}/setup-link` | Replaces a pending workspace's setup code (old code stops at once); 409 once claimed. |
+
+Each action is also appended to the workspace's own history as `platform.workspace.action`,
+so its owner can see what the operator did. The API returns no rooms, messages, members or
+settings. Hosted setup codes expire after 24 hours (restart or reissue renews).
+
+Limits (defaults members 5 besides the owner, rooms 20, agents 10, 600 API requests a
+minute, 200 daily turns) refuse the next creation with 409, or exceed the request rate
+with 429 and `Retry-After`; they never change another workspace. Operator tools:
+`commonroom --platform-keygen` and `commonroom --platform-request`. Deleted workspaces'
+history is removed only by the administrator-run `scripts/purge-workspace.sql`.
 
 ## Properties and state changes
 

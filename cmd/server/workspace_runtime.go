@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -93,13 +94,19 @@ type workspaceRuntime struct {
 // hostedGate refuses worker-touching routes in a hosted installation until
 // execution is namespaced per workspace.
 func hostedGate(hosted bool, next http.HandlerFunc) http.HandlerFunc {
+	return hostedGateWith(hosted, hostedExecutionMessage, next)
+}
+
+func hostedGateWith(hosted bool, message string, next http.HandlerFunc) http.HandlerFunc {
 	if !hosted {
 		return next
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, hostedExecutionMessage, 503)
+		http.Error(w, message, 503)
 	}
 }
+
+const hostedExtensionMessage = "Extensions are not yet available for hosted workspaces"
 
 // newWorkspaceRuntime builds one workspace's complete server and HTTP handler.
 func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventDatabase, id string) (*workspaceRuntime, error) {
@@ -124,7 +131,7 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 	mux.HandleFunc("/api/integrity", s.integrity)
 	mux.HandleFunc("/api/agent-safety", s.agentSafety)
 	mux.HandleFunc("/api/agents", s.agents)
-	mux.HandleFunc("/ext/v1/", s.extensionAPI)
+	mux.HandleFunc("/ext/v1/", hostedGateWith(hosted, hostedExtensionMessage, s.extensionAPI))
 	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
 	mux.HandleFunc("/api/task-executions", s.taskExecutions)
 	mux.HandleFunc("/api/task-definition-history", s.taskDefinitionHistory)
@@ -184,6 +191,11 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 		return nil, err
 	}
 	s.auth.keyExpires = keyExpires
+	if hosted && keyExpires.IsZero() {
+		// A hosted setup link that is never claimed must not stay valid forever; the
+		// platform operator reissues it, and a restart renews the window.
+		s.auth.keyExpires = time.Now().Add(setupLinkTTL)
+	}
 	if err := s.auth.configurePublicOrigin(ps.publicOrigin(id, tenancy)); err != nil {
 		return nil, err
 	}
@@ -223,6 +235,8 @@ type workspaceHost struct {
 	registry workspaceRegistry
 	build    func(id string) (*workspaceRuntime, error)
 	now      func() time.Time
+	platform http.Handler // served on platform.<domain>; nil when not configured
+	meter    requestMeter
 
 	mu      sync.Mutex
 	entries map[string]*workspaceEntry
@@ -235,6 +249,7 @@ type workspaceEntry struct {
 	err     error
 	checked time.Time
 	status  string
+	limits  workspaceLimits
 }
 
 const (
@@ -262,6 +277,16 @@ var errWorkspaceUnknown = errors.New("workspace not found")
 var errWorkspaceUnavailable = errors.New("workspace unavailable")
 
 func (h *workspaceHost) runtimeFor(ctx context.Context, id string) (*workspaceRuntime, error) {
+	return h.resolve(ctx, id, false)
+}
+
+// adminRuntime is runtimeFor for the platform operator: a suspended workspace can still
+// be reached so the action can be recorded in its history; it is never served to users.
+func (h *workspaceHost) adminRuntime(ctx context.Context, id string) (*workspaceRuntime, error) {
+	return h.resolve(ctx, id, true)
+}
+
+func (h *workspaceHost) resolve(ctx context.Context, id string, allowInactive bool) (*workspaceRuntime, error) {
 	now := h.now()
 	h.mu.Lock()
 	if until, ok := h.missing[id]; ok {
@@ -295,16 +320,27 @@ func (h *workspaceHost) runtimeFor(ctx context.Context, id string) (*workspaceRu
 			h.mu.Unlock()
 			return nil, errWorkspaceUnknown
 		}
-		entry.checked, entry.status = now, rec.Status
+		entry.checked, entry.status, entry.limits = now, rec.Status, rec.Limits
+		rt := entry.runtime
 		h.mu.Unlock()
+		if rt != nil {
+			limits := rec.Limits
+			rt.s.setLimits(&limits)
+		}
 	}
 	h.mu.Lock()
 	status := entry.status
 	h.mu.Unlock()
-	if h.tenancy.Mode == tenancyMulti && status != workspaceActive {
+	if h.tenancy.Mode == tenancyMulti && status != workspaceActive && !(allowInactive && status == workspaceSuspended) {
 		return nil, errWorkspaceUnavailable
 	}
-	entry.once.Do(func() { entry.runtime, entry.err = h.build(id) })
+	entry.once.Do(func() {
+		entry.runtime, entry.err = h.build(id)
+		if entry.err == nil && h.tenancy.Mode == tenancyMulti {
+			limits := entry.limits
+			entry.runtime.s.setLimits(&limits)
+		}
+	})
 	if entry.err != nil {
 		h.mu.Lock()
 		if h.entries[id] == entry {
@@ -317,7 +353,26 @@ func (h *workspaceHost) runtimeFor(ctx context.Context, id string) (*workspaceRu
 	return entry.runtime, nil
 }
 
+// platformHost reports whether the request is for the operator's platform API.
+func (h *workspaceHost) platformHost(host string) bool {
+	if h.tenancy.Mode != tenancyMulti {
+		return false
+	}
+	if bare, _, err := net.SplitHostPort(host); err == nil {
+		host = bare
+	}
+	return strings.ToLower(strings.TrimSuffix(host, ".")) == "platform."+h.tenancy.Domain
+}
+
 func (h *workspaceHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.platformHost(r.Host) {
+		if h.platform == nil {
+			http.Error(w, "Not found", 404)
+			return
+		}
+		h.platform.ServeHTTP(w, r)
+		return
+	}
 	id, ok := h.tenancy.workspaceFromHost(r.Host)
 	if !ok {
 		http.Error(w, "Not found", 404)
@@ -330,7 +385,38 @@ func (h *workspaceHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		http.Error(w, "This workspace is unavailable", 503)
 	default:
+		if h.tenancy.Mode == tenancyMulti && strings.HasPrefix(r.URL.Path, "/api/") {
+			h.mu.Lock()
+			limit := h.entries[id].limits.RequestsPerMinute
+			h.mu.Unlock()
+			if !h.meter.admit(id, limit, h.now()) {
+				tooManyRequests(w)
+				return
+			}
+		}
 		rt.handler.ServeHTTP(w, r)
+	}
+}
+
+// invalidate makes the next request recheck the registry (after a status or limits change).
+func (h *workspaceHost) invalidate(id string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.missing, id)
+	if e := h.entries[id]; e != nil {
+		e.checked = time.Time{}
+	}
+}
+
+// evict stops a workspace's server and forgets it; it is rebuilt only if the registry allows.
+func (h *workspaceHost) evict(id string) {
+	h.mu.Lock()
+	e := h.entries[id]
+	delete(h.entries, id)
+	delete(h.missing, id)
+	h.mu.Unlock()
+	if e != nil && e.runtime != nil {
+		e.runtime.stop()
 	}
 }
 
@@ -343,4 +429,8 @@ func (h *workspaceHost) stopAll() {
 			e.runtime.stop()
 		}
 	}
+}
+
+func logPlatformAuditGap(id, action string) {
+	log.Printf("Workspace %s: platform action %q changed the registry but could not be recorded in the workspace history", id, action)
 }

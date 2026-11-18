@@ -173,3 +173,35 @@ func parseServiceSettings(text string) map[string]string {
 	}
 	return out
 }
+
+// reissueSetupCode replaces a pending workspace's setup code with a fresh one that
+// expires after ttl, for a platform operator resending a setup link. The previous code
+// stops working immediately. It refuses once the owner key has been claimed.
+func (a *ownerAuth) reissueSetupCode(ttl time.Duration, now time.Time) (string, time.Time, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.setupPending || a.setupPath == "" {
+		return "", time.Time{}, errors.New("setup is not pending")
+	}
+	code := id() + id()
+	tmp := a.setupPath + ".new"
+	if err := os.WriteFile(tmp, []byte(code+"\n"), 0o600); err != nil {
+		return "", time.Time{}, errors.New("setup code could not be saved")
+	}
+	if err := os.Rename(tmp, a.setupPath); err != nil {
+		os.Remove(tmp)
+		return "", time.Time{}, errors.New("setup code could not be saved")
+	}
+	a.key, a.keyExpires, a.attempts = code, now.Add(ttl), 0
+	return code, a.keyExpires, nil
+}
+
+// setupSnapshot returns the pending setup code and expiry, if setup is pending.
+func (a *ownerAuth) setupSnapshot() (code string, expires time.Time, pending bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.setupPending {
+		return "", time.Time{}, false
+	}
+	return a.key, a.keyExpires, true
+}

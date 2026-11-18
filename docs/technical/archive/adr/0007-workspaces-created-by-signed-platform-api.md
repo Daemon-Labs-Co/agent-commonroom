@@ -12,6 +12,7 @@ link. A simple built-in sign-up page exists only when the operator sets
 ## Consequences
 
 - The core carries no payment, plan or email logic and no mention of editions.
-- Deleting a workspace is a platform action that removes its stream through a
-  privileged path and records a tombstone in the registry; a workspace's own owner
-  cannot erase its audit history.
+- Deleting a workspace through the API stops serving it at once and leaves a registry
+  tombstone so the id is never reused; its append-only history is removed only by an
+  administrator running `scripts/purge-workspace.sql`. A workspace's own owner cannot
+  erase its audit history, and the application's database role cannot either.

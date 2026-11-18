@@ -35,11 +35,11 @@ func (f *fakeRegistry) Lookup(_ context.Context, id string) (workspaceRecord, bo
 func (f *fakeRegistry) set(id, status string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.records[id] = workspaceRecord{ID: id, Name: id, Status: status}
+	f.records[id] = workspaceRecord{ID: id, Name: id, Status: status, Limits: defaultWorkspaceLimits}
 }
 
 func identityRuntime(id string) (*workspaceRuntime, error) {
-	return &workspaceRuntime{id: id, stop: func() {}, handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return &workspaceRuntime{id: id, s: &server{}, stop: func() {}, handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("workspace:" + id))
 	})}, nil
 }
