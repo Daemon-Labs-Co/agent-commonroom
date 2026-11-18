@@ -316,7 +316,7 @@ func (s *server) beginOIDC(w http.ResponseWriter, r *http.Request, pending oidcP
 	// Bind this flow to this browser so a callback URL cannot be replayed into another one.
 	binding := oidc.Random()
 	pending.Binding = invitationID(binding)
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_oidc", Value: binding, Path: "/api/oidc", HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteLaxMode, MaxAge: int(oidcPendingTTL.Seconds())})
+	http.SetCookie(w, &http.Cookie{Name: s.auth.oidcCookie, Value: binding, Path: s.auth.oidcCookiePath, HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteLaxMode, MaxAge: int(oidcPendingTTL.Seconds())})
 	state, ok := s.identityStore.putPending(pending, time.Now())
 	if !ok {
 		http.Error(w, "Too many sign-ins in progress", 429)
@@ -398,9 +398,9 @@ func (s *server) oidcCallback(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	back := func(result string) { http.Redirect(w, r, "/#signin="+result, http.StatusSeeOther) }
 	pending, ok := s.identityStore.takePending(r.URL.Query().Get("state"), now)
-	cookie, cookieErr := r.Cookie("commonroom_oidc")
+	cookie, cookieErr := r.Cookie(s.auth.oidcCookie)
 	bound := cookieErr == nil && ok && subtle.ConstantTimeCompare([]byte(invitationID(cookie.Value)), []byte(pending.Binding)) == 1
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_oidc", Value: "", Path: "/api/oidc", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: s.auth.oidcCookie, Value: "", Path: s.auth.oidcCookiePath, MaxAge: -1, Secure: s.auth.publicOrigin != ""})
 	code := r.URL.Query().Get("code")
 	if !ok || !bound || code == "" || len(code) > 2048 || r.URL.Query().Get("error") != "" {
 		s.auth.countFailure()

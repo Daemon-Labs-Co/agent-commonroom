@@ -1,7 +1,7 @@
 # Workspaces: many customers in one installation
 
-Design record; stages are implemented in order, each default-off. Stages 1 (storage), 2 (runtime), 3 (platform), 4 (identity) and 5 (execution controls)
-are implemented: see [events and persistence](persistence.md) and the runtime notes below. See ADRs
+Design record; stages are implemented in order, each default-off. Stages 1 to 6 (storage, runtime, platform, identity, execution controls and the
+verification suite) are implemented: see [events and persistence](persistence.md) and the runtime notes below. See ADRs
 [0004](archive/adr/0004-many-workspaces-in-one-installation.md),
 [0005](archive/adr/0005-workspace-chosen-by-host-name.md),
 [0006](archive/adr/0006-passkeys-and-oidc-without-new-dependencies.md) and
@@ -144,6 +144,32 @@ a brief overshoot is possible: the limits protect resources and are not a securi
 **Not verified live:** nothing in this stage has run against the real worker, containers or a
 provider; verify on a staging installation before enabling it. Per-workspace quotas inside the
 worker (and the worker protocol) were not changed.
+
+**Stage 6 as built - verification.** `workspace_isolation_suite_test.go` builds two hosted workspaces,
+each holding recognisable data (a room, a message, a member with a passkey, an invitation), and
+attacks every route a workspace serves (`routeMux` records them, so a new route is attacked
+automatically) with the other workspace's owner and member sessions under both cookie names, five
+HTTP methods and the other workspace's identifiers, then checks that none of its content appears and
+that no refused request wrote to history. A second test uses a valid owner of one workspace with
+the other's room, invitation, passkey and member identifiers; a third shows one identity can belong
+to two workspaces as independent accounts; a fourth fails when a new route answers an anonymous
+request with success. Boundary breaks (every host served by one workspace, shared sessions, shared
+credential lookup) were each confirmed to fail the suite. Hardening found by reviewing the design as
+an attacker: hosted cookies use the `__Host-` prefix (Secure, Path=/, no Domain) so a sibling
+workspace cannot plant a cookie for another ("cookie tossing"); labels with hyphens in the third and
+fourth positions (`xn--` look-alike names) are refused; cross-site and foreign-origin requests to the
+public identity endpoints are refused; forwarding headers never choose the workspace.
+
+The database policy is verified on a real PostgreSQL server by `scripts/check-workspace-database.sh`
+(excluded from `make check`, which must not touch a database): migration idempotence, the isolation
+proof for a restricted role, per-workspace hash chains, the upgrade of existing history and the
+registry.
+
+Known limits: every built workspace runs a 30-second integrity replay and each request replays its
+history (no snapshot cache) and workspaces are never evicted, so cost grows with active workspaces;
+a request-rate limit is per workspace, not per client address; the platform API's replay memory is
+in process, so a replay inside its 60-second window is possible across a restart; a dedicated
+external review (for example the red-team review) has not been run.
 
 ## Properties and state changes
 

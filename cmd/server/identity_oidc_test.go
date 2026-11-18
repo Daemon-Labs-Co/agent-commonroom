@@ -35,11 +35,11 @@ func (f *ssoFixture) start(ws, path string, s *idSession) (authURL string, bindi
 		f.t.Fatal("start", path, w.Code, w.Body.String())
 	}
 	for _, c := range w.Result().Cookies() {
-		if c.Name == "commonroom_oidc" {
+		if c.Name == hostedOIDCCookie {
 			binding = c
 		}
 	}
-	if binding == nil || !binding.HttpOnly || binding.SameSite != http.SameSiteLaxMode || binding.Path != "/api/oidc" {
+	if binding == nil || !binding.HttpOnly || binding.SameSite != http.SameSiteLaxMode || binding.Path != "/" || binding.Domain != "" || !binding.Secure || binding.Name != hostedOIDCCookie {
 		f.t.Fatal("the flow is not bound to the browser", binding)
 	}
 	return w.Header().Get("Location"), binding
@@ -64,7 +64,7 @@ func (f *ssoFixture) callback(ws, callbackURL string, binding *http.Cookie, muta
 		r.Header.Del("Origin")
 		r.Header.Set("Sec-Fetch-Site", "cross-site") // the browser arrives from the identity provider
 		if binding != nil {
-			r.AddCookie(&http.Cookie{Name: "commonroom_oidc", Value: binding.Value})
+			r.AddCookie(&http.Cookie{Name: hostedOIDCCookie, Value: binding.Value})
 		}
 		if mutate != nil {
 			mutate(r)
@@ -74,7 +74,7 @@ func (f *ssoFixture) callback(ws, callbackURL string, binding *http.Cookie, muta
 
 func sessionCookie(w *httptest.ResponseRecorder) string {
 	for _, c := range w.Result().Cookies() {
-		if c.Name == "commonroom_session" && c.Value != "" {
+		if c.Name == hostedSessionCookie && c.Value != "" {
 			return c.Value
 		}
 	}
@@ -272,7 +272,7 @@ func TestSessionIsReplacedWhenSigningInAgain(t *testing.T) {
 	old := sessionCookie(first)
 	f.resetThrottle("acme")
 	authURL, binding = f.start(f.ws, "/api/oidc/login", nil)
-	second := f.callback(f.ws, f.approve(authURL), binding, func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: old}) })
+	second := f.callback(f.ws, f.approve(authURL), binding, func(r *http.Request) { r.AddCookie(&http.Cookie{Name: hostedSessionCookie, Value: old}) })
 	if sessionCookie(second) == "" || sessionCookie(second) == old {
 		t.Fatal("no fresh session was issued")
 	}

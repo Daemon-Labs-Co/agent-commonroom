@@ -57,6 +57,11 @@ func loadTenancySettings(getenv func(string) string) (tenancySettings, error) {
 
 // validHostedWorkspaceID is a workspace id that may be served in multi mode.
 func validHostedWorkspaceID(id string) bool {
+	// Labels with hyphens in the third and fourth positions are reserved for internationalised
+	// names (xn--...). Refusing them stops look-alike names that impersonate another brand.
+	if len(id) >= 4 && id[2] == '-' && id[3] == '-' {
+		return false
+	}
 	return validWorkspaceID(id) && id != defaultWorkspaceID && !reservedWorkspaceIDs[id]
 }
 

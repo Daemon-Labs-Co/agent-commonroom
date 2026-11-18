@@ -147,6 +147,24 @@ type workspaceRuntime struct {
 	s       *server
 	handler http.Handler
 	stop    context.CancelFunc
+	routes  []string // every pattern the workspace serves; used by the isolation tests
+}
+
+// routeMux is a ServeMux that remembers what was registered, so tests can attack every route.
+type routeMux struct {
+	*http.ServeMux
+	patterns []string
+}
+
+func newRouteMux() *routeMux { return &routeMux{ServeMux: http.NewServeMux()} }
+
+func (m *routeMux) Handle(pattern string, h http.Handler) {
+	m.patterns = append(m.patterns, pattern)
+	m.ServeMux.Handle(pattern, h)
+}
+
+func (m *routeMux) HandleFunc(pattern string, f func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, http.HandlerFunc(f))
 }
 
 // hostedGate refuses worker-touching routes in a hosted installation until
@@ -184,7 +202,7 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 		s.pool = ps.pool
 	}
 	s.identity = identitySettings{provider: ps.oidc, name: ps.oidcName, hostedDefault: hosted}
-	mux := http.NewServeMux()
+	mux := newRouteMux()
 	mux.HandleFunc("/instance-label.js", instanceLabel)
 	mux.HandleFunc("/api/members", s.members)
 	mux.HandleFunc("/api/auth/methods", s.authMethods)
@@ -274,6 +292,9 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 		return nil, err
 	}
 	s.auth.keyExpires = keyExpires
+	if hosted {
+		s.auth.useHostCookies()
+	}
 	if hosted && keyExpires.IsZero() {
 		// A hosted setup link that is never claimed must not stay valid forever; the
 		// platform operator reissues it, and a restart renews the window.
@@ -306,7 +327,7 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 		}
 		s.auth.protect(s.actorGuard(mux)).ServeHTTP(w, r)
 	})
-	return &workspaceRuntime{id: id, s: s, handler: h, stop: stopWatching}, nil
+	return &workspaceRuntime{id: id, s: s, handler: h, stop: stopWatching, routes: mux.patterns}, nil
 }
 
 // workspaceHost routes each request to its workspace's handler. In single mode

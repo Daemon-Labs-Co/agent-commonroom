@@ -243,7 +243,7 @@ func TestHostedWorkspacesAreFullyIndependentServers(t *testing.T) {
 		r.Header.Set("Origin", "https://"+hostName)
 		r.Header.Set("Content-Type", "application/json")
 		if cookie != "" {
-			r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: cookie})
+			r.AddCookie(&http.Cookie{Name: hostedSessionCookie, Value: cookie})
 		}
 		w := httptest.NewRecorder()
 		host.ServeHTTP(w, r)
@@ -284,7 +284,7 @@ func TestHostedWorkspacesAreFullyIndependentServers(t *testing.T) {
 	}
 	var token string
 	for _, c := range login.Result().Cookies() {
-		if c.Name == "commonroom_session" {
+		if c.Name == hostedSessionCookie {
 			token = c.Value
 			if c.Domain != "" || !c.Secure || !c.HttpOnly || c.SameSite != http.SameSiteStrictMode {
 				t.Fatal("session cookie must be host-only, secure, HttpOnly and strict", c)
@@ -369,3 +369,8 @@ func TestHostedExecutionIsRefusedAtEveryAdmissionPoint(t *testing.T) {
 		t.Fatal("the gate must not affect a single-workspace installation")
 	}
 }
+
+const (
+	hostedSessionCookie = "__Host-commonroom_session"
+	hostedOIDCCookie    = "__Host-commonroom_oidc"
+)

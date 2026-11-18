@@ -56,7 +56,7 @@ func (f *idFixture) request(ws, method, path string, body any, s *idSession, mut
 	r.Header.Set("Origin", "https://"+h)
 	r.Header.Set("Content-Type", "application/json")
 	if s != nil {
-		r.AddCookie(&http.Cookie{Name: "commonroom_session", Value: s.cookie})
+		r.AddCookie(&http.Cookie{Name: hostedSessionCookie, Value: s.cookie})
 		r.Header.Set("X-CSRF-Token", s.csrf)
 	}
 	if mutate != nil {
@@ -78,7 +78,7 @@ func sessionFrom(t *testing.T, w *httptest.ResponseRecorder) idSession {
 	}
 	json.Unmarshal(w.Body.Bytes(), &out)
 	for _, c := range w.Result().Cookies() {
-		if c.Name == "commonroom_session" && c.Value != "" {
+		if c.Name == hostedSessionCookie && c.Value != "" {
 			return idSession{cookie: c.Value, csrf: out.CSRF}
 		}
 	}

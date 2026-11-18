@@ -35,6 +35,10 @@ type ownerAuth struct {
 	window                 time.Time
 	port                   string
 	publicOrigin           string
+	// Cookie names. A hosted installation uses the __Host- prefix so a sibling workspace
+	// cannot plant a cookie for this one (cookie tossing): browsers refuse a __Host- cookie
+	// that sets a Domain, and only the exact host can set it.
+	sessionCookie, oidcCookie, oidcCookiePath string
 }
 
 // The local bootstrap code is never served through HTTP or included in audit payloads.
@@ -77,7 +81,7 @@ func newOwnerAuth(key, addr string) (*ownerAuth, error) {
 	if ip == nil || !ip.IsLoopback() {
 		return nil, fmt.Errorf("only numeric loopback LISTEN_ADDR is supported until secure remote authentication is implemented")
 	}
-	return &ownerAuth{key: key, port: port, sessions: map[string]ownerSession{}, challenges: map[string]ownerChallenge{}}, nil
+	return &ownerAuth{key: key, port: port, sessions: map[string]ownerSession{}, challenges: map[string]ownerChallenge{}, sessionCookie: "commonroom_session", oidcCookie: "commonroom_oidc", oidcCookiePath: "/api/oidc"}, nil
 }
 
 // configurePublicOrigin admits one operator-configured HTTPS origin behind a
@@ -123,7 +127,7 @@ func (a *ownerAuth) trustedRequest(r *http.Request) bool {
 	return true
 }
 func (a *ownerAuth) session(r *http.Request) (ownerSession, bool) {
-	cookie, e := r.Cookie("commonroom_session")
+	cookie, e := r.Cookie(a.sessionCookie)
 	if e != nil {
 		return ownerSession{}, false
 	}
@@ -247,7 +251,7 @@ func (a *ownerAuth) startSessionLocked(w http.ResponseWriter, r *http.Request, a
 		}
 	}
 	previous := map[string]ownerSession{}
-	if old, e := r.Cookie("commonroom_session"); e == nil {
+	if old, e := r.Cookie(a.sessionCookie); e == nil {
 		for _, key := range []string{old.Value, sessionDigest(old.Value)} {
 			if existing, ok := a.sessions[key]; ok {
 				previous[key] = existing
@@ -272,7 +276,7 @@ func (a *ownerAuth) startSessionLocked(w http.ResponseWriter, r *http.Request, a
 		http.Error(w, "Unable to save private session", 503)
 		return ownerSession{}, false
 	}
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: token, Path: "/", HttpOnly: true, Secure: a.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
+	http.SetCookie(w, &http.Cookie{Name: a.sessionCookie, Value: token, Path: "/", HttpOnly: true, Secure: a.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
 	return session, true
 }
 func (s *server) logout(w http.ResponseWriter, r *http.Request) {
@@ -284,7 +288,7 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request token", 403)
 		return
 	}
-	if cookie, e := r.Cookie("commonroom_session"); e == nil {
+	if cookie, e := r.Cookie(s.auth.sessionCookie); e == nil {
 		s.auth.mu.Lock()
 		previous := s.auth.sessions[cookie.Value]
 		hashed, hasHash := s.auth.sessions[sessionDigest(cookie.Value)]
@@ -302,7 +306,7 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 		}
 		s.auth.mu.Unlock()
 	}
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: "", Path: "/", HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: s.auth.sessionCookie, Value: "", Path: "/", HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: -1})
 	reply(w, map[string]bool{"signedOut": true})
 }
 
@@ -333,4 +337,10 @@ func (a *ownerAuth) trustedOIDCReturn(r *http.Request) bool {
 	clone.Header.Del("Sec-Fetch-Site")
 	clone.Header.Del("Origin")
 	return a.trustedRequest(clone)
+}
+
+// useHostCookies switches to __Host- cookies: Secure, Path=/ and no Domain. It is applied to
+// hosted workspaces, which always sit behind HTTPS on their own host name.
+func (a *ownerAuth) useHostCookies() {
+	a.sessionCookie, a.oidcCookie, a.oidcCookiePath = "__Host-commonroom_session", "__Host-commonroom_oidc", "/"
 }

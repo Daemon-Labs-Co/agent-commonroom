@@ -81,6 +81,9 @@ Set `COMMONROOM_TENANCY=multi` and `COMMONROOM_WORKSPACE_DOMAIN` (see
      https://platform.rooms.example.com/platform/v1/workspaces '{"id":"acme","name":"Acme Ltd"}'
    ```
 
+To verify the database side on a scratch PostgreSQL server you own, run
+`scripts/check-workspace-database.sh` (it creates and drops its own throwaway database).
+
 Hosted workspaces cannot run agents unless you set `COMMONROOM_HOSTED_EXECUTION=true`
 (chat-only agents on your isolated worker; see
 [the workspaces design](../docs/technical/multi-tenancy.md) and verify on a staging
