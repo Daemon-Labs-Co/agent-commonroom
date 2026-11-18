@@ -20,7 +20,8 @@ func startupCommand(args []string, stdout, stderr io.Writer) (handled bool, code
 	}
 	switch args[0] {
 	case "--setup-link":
-		return true, setupLinkMain(args[1:], os.Getenv, stdout, stderr)
+		home, _ := os.UserHomeDir()
+		return true, setupLinkMain(args[1:], os.Getenv, home, stdout, stderr)
 	case "--check-capture-profiles":
 		return true, captureProfileCheckMain(args[1:], stdout, stderr)
 	case "--check-reader-profiles":

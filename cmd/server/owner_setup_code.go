@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -54,10 +55,15 @@ func loadSetupCode(path string, getenv func(string) string, now time.Time) (code
 // setupLinkMain prints the address an owner opens to claim a pending
 // installation. The code travels after "#", which browsers never send to the
 // server or to a proxy, so it stays out of access logs.
-func setupLinkMain(args []string, getenv func(string) string, stdout, stderr io.Writer) int {
+func setupLinkMain(args []string, getenv func(string) string, home string, stdout, stderr io.Writer) int {
 	if len(args) != 0 {
 		fmt.Fprintln(stderr, "--setup-link takes no arguments")
 		return 2
+	}
+	getenv, err := withServiceSettings(getenv, home)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
 	code := strings.TrimSpace(getenv(setupCodeEnv))
 	path := getenv("OWNER_KEY_FILE")
@@ -70,8 +76,8 @@ func setupLinkMain(args []string, getenv func(string) string, stdout, stderr io.
 			return 1
 		}
 	} else {
-		raw, err := readPrivateBounded(path, 128)
-		if err != nil {
+		raw, readErr := readPrivateBounded(path, 128)
+		if readErr != nil {
 			fmt.Fprintln(stderr, "No setup is pending: no setup code file was found. If the owner key was already claimed, sign in with it.")
 			return 1
 		}
@@ -99,4 +105,71 @@ func setupLinkMain(args []string, getenv func(string) string, stdout, stderr io.
 	fmt.Fprintf(stdout, "%s/#setup=%s\n", strings.TrimRight(origin, "/"), code)
 	fmt.Fprintln(stderr, "Open this link in a browser to claim the installation. Treat it like a password.")
 	return 0
+}
+
+// Settings the setup link needs, read from the service's settings file when the
+// command is run from an ordinary shell. Nothing else in that file is ever read
+// or returned: it also holds the database login and other secrets.
+var serviceSettingNames = map[string]bool{
+	"OWNER_KEY_FILE":           true,
+	"COMMONROOM_PUBLIC_ORIGIN": true,
+	"LISTEN_ADDR":              true,
+	setupCodeEnv:               true,
+}
+
+// withServiceSettings lets `commonroom --setup-link` work with no arguments and
+// no exported variables, the same way on a personal machine and on a host. A
+// value in the process environment wins (containers); otherwise the settings
+// file the service itself starts from is used: COMMONROOM_ENV_FILE if set, else
+// ~/.config/commonroom/runtime.env, the location the deployment guide installs.
+// A missing file is fine; an unsafe one is refused like any private file.
+func withServiceSettings(getenv func(string) string, home string) (func(string) string, error) {
+	path := getenv("COMMONROOM_ENV_FILE")
+	explicit := path != ""
+	if !explicit {
+		if home == "" {
+			return getenv, nil
+		}
+		path = filepath.Join(home, ".config", "commonroom", "runtime.env")
+	}
+	raw, err := readPrivateBounded(path, 64*1024)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) && !explicit {
+			return getenv, nil
+		}
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.New("The settings file named by COMMONROOM_ENV_FILE was not found")
+		}
+		return nil, errors.New("The settings file must be owned by you and readable only by you (chmod 600): " + path)
+	}
+	file := parseServiceSettings(string(raw))
+	return func(name string) string {
+		if v := getenv(name); v != "" {
+			return v
+		}
+		return file[name]
+	}, nil
+}
+
+// parseServiceSettings reads KEY=VALUE lines like a systemd EnvironmentFile:
+// full-line # and ; comments, optional matching quotes, no expansion.
+func parseServiceSettings(text string) map[string]string {
+	out := map[string]string{}
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "export "))
+		if line == "" || line[0] == '#' || line[0] == ';' {
+			continue
+		}
+		name, value, found := strings.Cut(line, "=")
+		name = strings.TrimSpace(name)
+		if !found || !serviceSettingNames[name] {
+			continue
+		}
+		value = strings.TrimSpace(value)
+		if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') && value[len(value)-1] == value[0] {
+			value = value[1 : len(value)-1]
+		}
+		out[name] = value
+	}
+	return out
 }
