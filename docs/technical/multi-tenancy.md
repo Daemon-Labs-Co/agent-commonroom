@@ -1,7 +1,7 @@
 # Workspaces: many customers in one installation
 
-Design record; stages are implemented in order, each default-off. Stage 1 (storage) is
-implemented: see [events and persistence](persistence.md). See ADRs
+Design record; stages are implemented in order, each default-off. Stages 1 (storage) and 2 (runtime)
+are implemented: see [events and persistence](persistence.md) and the runtime notes below. See ADRs
 [0004](archive/adr/0004-many-workspaces-in-one-installation.md),
 [0005](archive/adr/0005-workspace-chosen-by-host-name.md),
 [0006](archive/adr/0006-passkeys-and-oidc-without-new-dependencies.md) and
@@ -76,6 +76,27 @@ per workspace and installation-wide.
 workspace's session against another's host and identifiers, checks the database refuses
 cross-workspace reads and writes with the application filter removed, and an
 adversarial review attempts escapes before release.
+
+**Stage 2 as built.** `newWorkspaceRuntime` (cmd/server/workspace_runtime.go) builds a
+workspace's complete `server`, routes, owner identity, sessions and integrity watcher;
+`main` only reads process settings and starts a `workspaceHost`. In `single` mode the
+host serves the one default workspace for every Host header, builds it at startup and
+behaves as before (same key and session locations). In `multi` mode the host maps
+`<id>.<COMMONROOM_WORKSPACE_DOMAIN>` to a workspace (exactly one lowercase DNS label,
+reserved names refused), asks the registry (`workspaces` table, migration 003) whether it
+exists and is active, trusts that answer for 5 seconds, builds the workspace server on
+first use exactly once, remembers unknown workspaces for 30 seconds (bounded) so probing
+cannot hammer the database, and answers unknown or deleted workspaces with a bare 404
+and suspended or failing ones with a generic 503. Each workspace keeps its files in
+`.data/workspaces/<id>/` and has its own setup code, session store, mutex, stop and
+incident flags, request budgets and Origin (`https://<id>.<domain>`). Until execution is
+namespaced per workspace (stage 5), hosted workspaces refuse all managed agent
+execution at admission and do not expose provider sign-in, connection tests, job
+diagnostics and recovery, workspace disposal or conversation import (503).
+
+Known limits of stage 2: every built workspace runs its own 30-second integrity replay
+and each request still replays that workspace's history (no snapshot cache yet), and
+workspace servers are not evicted when idle.
 
 ## Properties and state changes
 

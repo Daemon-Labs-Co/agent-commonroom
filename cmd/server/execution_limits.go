@@ -13,6 +13,9 @@ const maxRoomAgentTurns = 4
 // This mandatory resource boundary covers chat and workflow model turns on a
 // single controller. It is not a durable queue or a multi-controller quota.
 func (s *server) agentAdmission(st room.State, rid string, requested int) error {
+	if s.hostedExecutionBlocked {
+		return errors.New(hostedExecutionMessage)
+	}
 	if err := s.admitDailyTurns(st, time.Now(), requested); err != nil {
 		return err
 	}

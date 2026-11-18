@@ -143,6 +143,12 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	// Importing a conversation reads provider history from this machine, which a
+	// hosted installation must never expose.
+	if s.hostedExecutionBlocked && (req.Action == "list-conversations" || req.Action == "read-context" || req.Action == "attach") {
+		http.Error(w, hostedExecutionMessage, 503)
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st, err := s.load(r.Context())

@@ -11,4 +11,7 @@ REVOKE ALL ON TABLE public.events FROM :"runtime_role";
 GRANT SELECT, INSERT ON TABLE public.events TO :"runtime_role";
 REVOKE ALL ON SEQUENCE public.events_sequence_seq FROM :"runtime_role";
 GRANT USAGE ON SEQUENCE public.events_sequence_seq TO :"runtime_role";
+-- Workspace registry (migrations/003.sql): read and update, never delete or truncate.
+REVOKE ALL ON TABLE public.workspaces FROM :"runtime_role";
+GRANT SELECT, INSERT, UPDATE ON TABLE public.workspaces TO :"runtime_role";
 COMMIT;

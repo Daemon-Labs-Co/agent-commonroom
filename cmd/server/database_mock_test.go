@@ -28,6 +28,7 @@ type mockDB struct {
 	mu                sync.Mutex
 	events            []mockEvent
 	workspaceStorage  []any
+	workspaces        map[string][]any
 	failAt            string
 	failInsertAt      int
 	streamErr         error
@@ -93,6 +94,10 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 	events := d.snapshot()
 	values := [][]any{}
 	switch sql {
+	case workspaceLookupSQL:
+		if row, ok := d.workspaces[args[0].(string)]; ok {
+			values = append(values, row)
+		}
 	case workspaceStorageSQL:
 		row := d.workspaceStorage
 		if row == nil {

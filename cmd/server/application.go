@@ -55,6 +55,11 @@ type server struct {
 	cancels           map[string]context.CancelFunc
 	discussions       map[string]context.CancelFunc
 	extensionRegistry string
+	// workspaceID names the workspace this server value belongs to ("default" for a
+	// single-workspace installation). hostedExecutionBlocked refuses all managed
+	// agent execution until it is namespaced per workspace.
+	workspaceID            string
+	hostedExecutionBlocked bool
 	// inFlight counts running agent turns together with the reactions that follow
 	// them, so callers can tell when a room has fully settled.
 	inFlight        atomic.Int64
