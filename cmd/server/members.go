@@ -258,12 +258,9 @@ func (s *server) members(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if v.ID == "" {
-		humans := 0
-		for _, other := range st.Actors {
-			if other.Kind == "human" && other.ID != ownerID {
-				humans++
-			}
-		}
+		// Open invitations hold a seat, so a direct add cannot take the seat of an
+		// invitation that is still waiting to be redeemed.
+		humans := humanMembers(st, time.Now().UTC())
 		if msg := s.limitRefusal("members", humans); msg != "" {
 			http.Error(w, msg, http.StatusConflict)
 			return

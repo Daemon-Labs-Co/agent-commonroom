@@ -22,6 +22,9 @@ type workspaceLimits struct {
 	ConcurrentTurns   int `json:"concurrentTurns"`
 }
 
+// noDailyTurns is the dailyTurnLimit value that refuses every managed turn.
+const noDailyTurns = -1
+
 var defaultWorkspaceLimits = workspaceLimits{Members: 5, Rooms: 20, Agents: 10, RequestsPerMinute: 600, DailyTurns: 200, ConcurrentTurns: 2}
 
 // parseWorkspaceLimits overlays the supplied fields on the defaults. Unknown
@@ -57,6 +60,10 @@ func (s *server) setLimits(l *workspaceLimits) {
 	s.limits = l
 	if l != nil {
 		s.dailyTurnLimit = l.DailyTurns
+		if l.DailyTurns == 0 {
+			// Zero means "no managed turns", not "unset"; zero itself would select the default.
+			s.dailyTurnLimit = noDailyTurns
+		}
 	}
 }
 

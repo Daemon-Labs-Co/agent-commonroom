@@ -231,6 +231,10 @@ func (s *server) redeemInvitationLocked(ctx context.Context, st room.State, invi
 	if !found {
 		return room.Actor{}, 404, "This invitation is not valid"
 	}
+	// The invitation's own seat is not counted: only people who already exist.
+	if msg := s.limitRefusal("members", humanMembers(st, now)-openInvitationCount(st, now)); msg != "" {
+		return room.Actor{}, 409, msg
+	}
 	rooms := []string{}
 	for _, rid := range inv.RoomIDs {
 		for _, rm := range st.Rooms {

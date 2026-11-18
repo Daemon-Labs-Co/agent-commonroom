@@ -243,6 +243,11 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 // startSessionLocked issues a new session cookie for an already authenticated actor,
 // replacing any session the browser presented. The caller holds a.mu. On failure it
 // writes the refusal and returns false.
+const (
+	maxSessionsPerActor = 8
+	maxSessions         = 64
+)
+
 func (a *ownerAuth) startSessionLocked(w http.ResponseWriter, r *http.Request, actorID string, now time.Time) (ownerSession, bool) {
 	// Keep the memory/session count bounded and expire old sessions.
 	for token, session := range a.sessions {
@@ -258,12 +263,44 @@ func (a *ownerAuth) startSessionLocked(w http.ResponseWriter, r *http.Request, a
 			}
 		}
 	}
-	if len(a.sessions)-len(previous) >= 32 {
-		http.Error(w, "Too many active sessions; sign out of another session or wait for expiry", 429)
-		return ownerSession{}, false
-	}
 	for key := range previous {
 		delete(a.sessions, key)
+	}
+	// Never refuse a sign-in because of other people's sessions: a member who opens
+	// many sessions would otherwise lock the owner out. Each person keeps at most
+	// maxSessionsPerActor (their oldest is replaced), and when the workspace is full
+	// the person holding the most sessions loses their oldest one.
+	oldestOf := func(match func(ownerSession) bool) string {
+		oldest := ""
+		for key, candidate := range a.sessions {
+			if match(candidate) && (oldest == "" || candidate.Expires.Before(a.sessions[oldest].Expires)) {
+				oldest = key
+			}
+		}
+		return oldest
+	}
+	evict := func(key string) {
+		if key != "" {
+			previous[key] = a.sessions[key]
+			delete(a.sessions, key)
+		}
+	}
+	counts := map[string]int{}
+	for _, candidate := range a.sessions {
+		counts[candidate.ActorID]++
+	}
+	if counts[actorID] >= maxSessionsPerActor {
+		evict(oldestOf(func(c ownerSession) bool { return c.ActorID == actorID }))
+		counts[actorID]--
+	}
+	if len(a.sessions) >= maxSessions {
+		heaviest := ""
+		for who, n := range counts {
+			if heaviest == "" || n > counts[heaviest] {
+				heaviest = who
+			}
+		}
+		evict(oldestOf(func(c ownerSession) bool { return c.ActorID == heaviest }))
 	}
 	token := id() + id()
 	session := ownerSession{ActorID: actorID, CSRF: id() + id(), Expires: now.Add(8 * time.Hour)}

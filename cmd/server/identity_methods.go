@@ -71,7 +71,26 @@ func (st *identityStore) putChallenge(c identityChallenge, now time.Time) (strin
 		}
 	}
 	if len(st.challenges) >= maxPendingIdentity {
-		return "", false
+		// Never refuse: anonymous requests create challenges, so refusing would let
+		// a flood block every sign-in. Drop the oldest challenge of the purpose that
+		// holds the most, which is the flood and not the few people mid sign-in.
+		counts := map[string]int{}
+		for _, old := range st.challenges {
+			counts[old.Purpose]++
+		}
+		busiest := ""
+		for purpose, n := range counts {
+			if busiest == "" || n > counts[busiest] {
+				busiest = purpose
+			}
+		}
+		oldest := ""
+		for id, old := range st.challenges {
+			if old.Purpose == busiest && (oldest == "" || old.Expires.Before(st.challenges[oldest].Expires)) {
+				oldest = id
+			}
+		}
+		delete(st.challenges, oldest)
 	}
 	id := oidc.Random()
 	c.Expires = now.Add(identityChallengeTTL)
@@ -103,7 +122,14 @@ func (st *identityStore) putPending(p oidcPending, now time.Time) (string, bool)
 		}
 	}
 	if len(st.pending) >= maxPendingIdentity {
-		return "", false
+		// Same reasoning as putChallenge: replace the oldest instead of refusing.
+		oldest := ""
+		for id, old := range st.pending {
+			if oldest == "" || old.Expires.Before(st.pending[oldest].Expires) {
+				oldest = id
+			}
+		}
+		delete(st.pending, oldest)
 	}
 	id := oidc.Random()
 	p.Expires = now.Add(oidcPendingTTL)

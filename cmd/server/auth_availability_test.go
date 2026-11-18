@@ -101,8 +101,9 @@ func TestSessionRenewalAtCapacityAndFailureRollback(t *testing.T) {
 				}
 				original := ownerSession{ActorID: ownerID, CSRF: strings.Repeat("b", 64), Expires: time.Now().Add(time.Hour)}
 				a.sessions[oldkey] = original
-				for i := 0; i < 31; i++ {
-					a.sessions[fmt.Sprintf("other-%d", i)] = original
+				for i := 0; i < maxSessions-1; i++ {
+					// Distinct people, so the workspace is full but nobody is over their own limit.
+					a.sessions[fmt.Sprintf("other-%d", i)] = ownerSession{ActorID: fmt.Sprintf("person-%d", i), CSRF: original.CSRF, Expires: original.Expires}
 				}
 				if fail {
 					a.sessionPath = filepath.Join(t.TempDir(), "sessions")
@@ -115,11 +116,11 @@ func TestSessionRenewalAtCapacityAndFailureRollback(t *testing.T) {
 				w := httptest.NewRecorder()
 				s.login(w, r)
 				if fail {
-					if w.Code != 503 || a.sessions[oldkey] != original || len(a.sessions) != 32 || len(w.Result().Cookies()) != 0 {
+					if w.Code != 503 || a.sessions[oldkey] != original || len(a.sessions) != maxSessions || len(w.Result().Cookies()) != 0 {
 						t.Fatal("failed replacement lost old session", w.Code)
 					}
 				} else {
-					if w.Code != 200 || len(a.sessions) != 32 {
+					if w.Code != 200 || len(a.sessions) != maxSessions {
 						t.Fatal("renewal at capacity rejected", w.Code)
 					}
 					if _, ok := a.sessions[oldkey]; ok {

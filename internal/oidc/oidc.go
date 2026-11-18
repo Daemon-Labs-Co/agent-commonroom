@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -77,7 +78,13 @@ func New(cfg Config) (*Provider, error) {
 		cfg.Now = time.Now
 	}
 	if cfg.HTTP == nil {
-		cfg.HTTP = &http.Client{Timeout: 10 * time.Second}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		if !cfg.AllowLoopbackForTests {
+			// Checked when the connection is made, so a name that resolves to an
+			// internal address (or changes after the name check) is still refused.
+			transport.DialContext = (&net.Dialer{Timeout: 10 * time.Second, Control: refuseInternalAddress}).DialContext
+		}
+		cfg.HTTP = &http.Client{Timeout: 10 * time.Second, Transport: transport}
 	}
 	// Redirects from an identity provider are never followed: a redirect could point the
 	// server at an internal address.
@@ -96,11 +103,44 @@ func (p *Provider) allowedURL(raw string) bool {
 	if err != nil || u.User != nil || u.Host == "" || u.Fragment != "" {
 		return false
 	}
-	host := u.Hostname()
 	if p.cfg.AllowLoopbackForTests {
 		return u.Scheme == "https" || u.Scheme == "http"
 	}
-	return u.Scheme == "https" && host != "" && net.ParseIP(host) == nil && host != "localhost" && !strings.HasSuffix(host, ".localhost")
+	return u.Scheme == "https" && publicDNSName(u.Hostname())
+}
+
+// publicDNSName accepts only a real DNS name. Host names are case-insensitive and may
+// end in a dot, and many spellings of an IP address are not recognised by ParseIP
+// (decimal, hex, short forms, zoned IPv6), so the rule is positive: the final label
+// must start with a letter, which no numeric address form does.
+func publicDNSName(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if host == "" || len(host) > 253 || strings.ContainsAny(host, ":%[]") || net.ParseIP(host) != nil {
+		return false
+	}
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return false
+	}
+	labels := strings.Split(host, ".")
+	last := labels[len(labels)-1]
+	if len(labels) < 2 || last == "" || last[0] < 'a' || last[0] > 'z' {
+		return false
+	}
+	return true
+}
+
+// refuseInternalAddress is a net.Dialer Control hook that refuses connections to
+// loopback, private, link-local and other non-public addresses.
+func refuseInternalAddress(_, address string, _ syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return ErrUnavailable
+	}
+	ip := net.ParseIP(host)
+	if ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() {
+		return ErrUnavailable
+	}
+	return nil
 }
 
 func (p *Provider) get(ctx context.Context, target string) ([]byte, error) {

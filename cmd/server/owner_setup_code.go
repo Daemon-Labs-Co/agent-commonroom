@@ -193,6 +193,16 @@ func (a *ownerAuth) reissueSetupCode(ttl time.Duration, now time.Time) (string, 
 		return "", time.Time{}, errors.New("setup code could not be saved")
 	}
 	a.key, a.keyExpires, a.attempts = code, now.Add(ttl), 0
+	// The old code is revoked, so anything it signed in is revoked too. While setup
+	// is pending the only sessions that can exist are owner sessions from the code.
+	for token, session := range a.sessions {
+		if session.ActorID == ownerID {
+			delete(a.sessions, token)
+		}
+	}
+	if err := a.persistSessionsLocked(); err != nil {
+		return "", time.Time{}, errors.New("old sessions could not be revoked")
+	}
 	return code, a.keyExpires, nil
 }
 
