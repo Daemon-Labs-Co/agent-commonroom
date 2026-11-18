@@ -19,9 +19,10 @@ type workspaceLimits struct {
 	Agents            int `json:"agents"`
 	RequestsPerMinute int `json:"requestsPerMinute"`
 	DailyTurns        int `json:"dailyTurns"`
+	ConcurrentTurns   int `json:"concurrentTurns"`
 }
 
-var defaultWorkspaceLimits = workspaceLimits{Members: 5, Rooms: 20, Agents: 10, RequestsPerMinute: 600, DailyTurns: 200}
+var defaultWorkspaceLimits = workspaceLimits{Members: 5, Rooms: 20, Agents: 10, RequestsPerMinute: 600, DailyTurns: 200, ConcurrentTurns: 2}
 
 // parseWorkspaceLimits overlays the supplied fields on the defaults. Unknown
 // fields and out-of-range values are refused so a typo cannot silently lift a cap.
@@ -33,14 +34,14 @@ func parseWorkspaceLimits(raw []byte) (workspaceLimits, error) {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&limits); err != nil || dec.More() {
-		return workspaceLimits{}, errors.New("limits must be a JSON object with members, rooms, agents, requestsPerMinute and dailyTurns")
+		return workspaceLimits{}, errors.New("limits must be a JSON object with members, rooms, agents, requestsPerMinute, dailyTurns and concurrentTurns")
 	}
 	for _, c := range []struct {
 		name          string
 		value, lo, hi int
 	}{
 		{"members", limits.Members, 1, 1000}, {"rooms", limits.Rooms, 1, 1000}, {"agents", limits.Agents, 0, 200},
-		{"requestsPerMinute", limits.RequestsPerMinute, 10, 100000}, {"dailyTurns", limits.DailyTurns, 0, 100000},
+		{"requestsPerMinute", limits.RequestsPerMinute, 10, 100000}, {"dailyTurns", limits.DailyTurns, 0, 100000}, {"concurrentTurns", limits.ConcurrentTurns, 1, 16},
 	} {
 		if c.value < c.lo || c.value > c.hi {
 			return workspaceLimits{}, errors.New(c.name + " is outside its allowed range")

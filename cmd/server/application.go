@@ -63,6 +63,9 @@ type server struct {
 	identityStore          identityStore
 	limits                 *workspaceLimits // nil: unlimited (single-workspace installation)
 	hostedExecutionBlocked bool
+	// hosted is true in a multi-workspace installation; pool is the shared turn counter.
+	hosted bool
+	pool   *executionPool
 	// inFlight counts running agent turns together with the reactions that follow
 	// them, so callers can tell when a room has fully settled.
 	inFlight        atomic.Int64

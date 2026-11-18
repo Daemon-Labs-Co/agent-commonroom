@@ -81,8 +81,10 @@ Set `COMMONROOM_TENANCY=multi` and `COMMONROOM_WORKSPACE_DOMAIN` (see
      https://platform.rooms.example.com/platform/v1/workspaces '{"id":"acme","name":"Acme Ltd"}'
    ```
 
-Hosted workspaces cannot run agents yet; see the
-[workspaces design](../docs/technical/multi-tenancy.md). Deleting a workspace stops
+Hosted workspaces cannot run agents unless you set `COMMONROOM_HOSTED_EXECUTION=true`
+(chat-only agents on your isolated worker; see
+[the workspaces design](../docs/technical/multi-tenancy.md) and verify on a staging
+installation first). Deleting a workspace stops
 serving it at once; `scripts/purge-workspace.sql` removes its history afterwards.
 
 For a worker on the application machine, copy `worker-config.json.example` to

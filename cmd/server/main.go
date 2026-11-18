@@ -98,6 +98,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if tenancy.Mode == tenancyMulti && settings.hostedExecution {
+		if err = validateHostedExecution(os.Getenv); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("Hosted agent execution is ENABLED: chat-only agents run on the configured worker for every workspace, within per-workspace and installation limits")
+	}
 	// With workspace storage in place every query runs inside a transaction scoped to
 	// one workspace; before the migration the previous layout is served unchanged.
 	workspaceDatabase := func(id string) (eventDatabase, error) {
@@ -126,7 +132,7 @@ func main() {
 		}
 		log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", settings.listenAddr)
 	} else {
-		log.Printf("Commonroom: hosting workspaces at *.%s behind the HTTPS proxy on %s (agent execution disabled for hosted workspaces)", tenancy.Domain, settings.listenAddr)
+		log.Printf("Commonroom: hosting workspaces at *.%s behind the HTTPS proxy on %s (hosted agent execution is off unless COMMONROOM_HOSTED_EXECUTION=true)", tenancy.Domain, settings.listenAddr)
 	}
 	h := host
 	log.Fatal(newHTTPServer(settings.listenAddr, h).ListenAndServe())

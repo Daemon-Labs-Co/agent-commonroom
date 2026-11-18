@@ -53,7 +53,7 @@ func (s *server) managedVerification(ctx context.Context, c room.Connection, rid
 		s.mu.Unlock()
 		return nil, err
 	}
-	s.active[p.ID] = true
+	s.setActive(p.ID)
 	if s.verificationRooms == nil {
 		s.verificationRooms = map[string]string{}
 	}
@@ -64,7 +64,7 @@ func (s *server) managedVerification(ctx context.Context, c room.Connection, rid
 	defer func() {
 		cancel()
 		s.mu.Lock()
-		delete(s.active, p.ID)
+		s.clearActive(p.ID)
 		delete(s.cancels, p.ID)
 		delete(s.verificationRooms, p.ID)
 		s.mu.Unlock()

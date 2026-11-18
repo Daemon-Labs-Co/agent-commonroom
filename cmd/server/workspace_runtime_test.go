@@ -342,6 +342,7 @@ func TestHostedExecutionIsRefusedAtEveryAdmissionPoint(t *testing.T) {
 	t.Parallel()
 	s, _, _ := mockServer(t)
 	s.hostedExecutionBlocked = true
+	s.hosted = true
 	st, loadErr := s.load(t.Context())
 	if loadErr != nil {
 		t.Fatal(loadErr)

@@ -1,6 +1,6 @@
 # Workspaces: many customers in one installation
 
-Design record; stages are implemented in order, each default-off. Stages 1 (storage), 2 (runtime), 3 (platform) and 4 (identity)
+Design record; stages are implemented in order, each default-off. Stages 1 (storage), 2 (runtime), 3 (platform), 4 (identity) and 5 (execution controls)
 are implemented: see [events and persistence](persistence.md) and the runtime notes below. See ADRs
 [0004](archive/adr/0004-many-workspaces-in-one-installation.md),
 [0005](archive/adr/0005-workspace-chosen-by-host-name.md),
@@ -89,10 +89,10 @@ first use exactly once, remembers unknown workspaces for 30 seconds (bounded) so
 cannot hammer the database, and answers unknown or deleted workspaces with a bare 404
 and suspended or failing ones with a generic 503. Each workspace keeps its files in
 `.data/workspaces/<id>/` and has its own setup code, session store, mutex, stop and
-incident flags, request budgets and Origin (`https://<id>.<domain>`). Until execution is
-namespaced per workspace (stage 5), hosted workspaces refuse all managed agent
-execution at admission and do not expose provider sign-in, connection tests, job
-diagnostics and recovery, workspace disposal or conversation import (503).
+incident flags, request budgets and Origin (`https://<id>.<domain>`). By default hosted workspaces refuse all managed agent execution at admission and do not
+expose provider sign-in, connection tests, job diagnostics and recovery (503); stage 5
+describes the operator opt-in. Workspace disposal, extensions and conversation import
+are refused for hosted workspaces whatever the operator chooses.
 
 Known limits of stage 2: every built workspace runs its own 30-second integrity replay
 and each request still replays that workspace's history (no snapshot cache yet), and
@@ -119,7 +119,7 @@ so its owner can see what the operator did. The API returns no rooms, messages, 
 settings. Hosted setup codes expire after 24 hours (restart or reissue renews).
 
 Limits (defaults members 5 besides the owner, rooms 20, agents 10, 600 API requests a
-minute, 200 daily turns) refuse the next creation with 409, or exceed the request rate
+minute, 200 daily turns, 2 concurrent turns) refuse the next creation with 409, or exceed the request rate
 with 429 and `Retry-After`; they never change another workspace. Operator tools:
 `commonroom --platform-keygen` and `commonroom --platform-request`. Deleted workspaces'
 history is removed only by the administrator-run `scripts/purge-workspace.sql`.
@@ -129,6 +129,21 @@ specified in [identity](identity.md) and the sign-in [user guide](../user/sign-i
 workspaces start with passkeys and invitations on. One installation-wide OpenID Connect
 provider is supported; it must allow a redirect URI per workspace host (wildcard redirect URIs,
 or a provider that permits them), which not every provider does.
+
+**Stage 5 as built - execution controls.** Hosted agent execution is off unless the operator
+sets `COMMONROOM_HOSTED_EXECUTION=true`; startup then requires an isolated worker and refuses
+to start while repository workspaces, isolated commands or worker development are enabled,
+because those read the host's disk through process-wide settings: hosted agents are chat-only.
+Running turns are counted per workspace and across the installation
+(`COMMONROOM_HOSTED_MAX_TURNS`, default 8, at most 256) by one shared pool; a workspace is also
+held to its `concurrentTurns` limit (default 2, 1-16). A refusal says only that this workspace
+or the installation is at capacity and names no other workspace. Provider credentials stay in
+per-connection folders keyed by server-assigned 128-bit connection ids, so two workspaces cannot
+share one; this was not re-pathed. The pool check and the later start are not one atomic step, so
+a brief overshoot is possible: the limits protect resources and are not a security boundary.
+**Not verified live:** nothing in this stage has run against the real worker, containers or a
+provider; verify on a staging installation before enabling it. Per-workspace quotas inside the
+worker (and the worker protocol) were not changed.
 
 ## Properties and state changes
 

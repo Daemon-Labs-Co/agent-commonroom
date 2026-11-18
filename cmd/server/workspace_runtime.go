@@ -15,12 +15,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-const hostedExecutionMessage = "Agent execution is not yet available for hosted workspaces"
+const hostedExecutionMessage = "Agent execution is not available for hosted workspaces on this installation"
 
 // platformSettings are process-wide inputs read once at startup.
 type platformSettings struct {
@@ -30,7 +31,10 @@ type platformSettings struct {
 	listenAddr, dataRoot, defaultKeyPath      string
 	configuredOrigin, extensionRegistry       string
 	oidc                                      *oidc.Provider
-	oidcName                                  string
+	// Hosted execution is off unless the operator opts in (see validateHostedExecution).
+	hostedExecution bool
+	pool            *executionPool
+	oidcName        string
 }
 
 func loadPlatformSettings(getenv func(string) string, dailyTurnLimit int) (platformSettings, error) {
@@ -59,6 +63,22 @@ func loadPlatformSettings(getenv func(string) string, dailyTurnLimit int) (platf
 	}
 	ps.configuredOrigin = getenv("COMMONROOM_PUBLIC_ORIGIN")
 	ps.extensionRegistry = getenv("COMMONROOM_EXTENSIONS_FILE")
+	switch getenv("COMMONROOM_HOSTED_EXECUTION") {
+	case "", "false":
+	case "true":
+		ps.hostedExecution = true
+	default:
+		return ps, errors.New("COMMONROOM_HOSTED_EXECUTION must be true or false")
+	}
+	maxTurns := 8
+	if raw := strings.TrimSpace(getenv("COMMONROOM_HOSTED_MAX_TURNS")); raw != "" {
+		n, convErr := strconv.Atoi(raw)
+		if convErr != nil || n < 1 || n > 256 {
+			return ps, errors.New("COMMONROOM_HOSTED_MAX_TURNS must be a whole number from 1 to 256")
+		}
+		maxTurns = n
+	}
+	ps.pool = newExecutionPool(maxTurns)
 	if ps.oidc, ps.oidcName, err = loadOIDCSettings(getenv); err != nil {
 		return ps, err
 	}
@@ -146,14 +166,23 @@ func hostedGateWith(hosted bool, message string, next http.HandlerFunc) http.Han
 
 const hostedExtensionMessage = "Extensions are not yet available for hosted workspaces"
 
+const hostedAlwaysMessage = "This is not available for hosted workspaces"
+
 // newWorkspaceRuntime builds one workspace's complete server and HTTP handler.
 func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventDatabase, id string) (*workspaceRuntime, error) {
 	if !validWorkspaceID(id) {
 		return nil, errors.New("invalid workspace id")
 	}
 	hosted := tenancy.Mode == tenancyMulti
-	s := &server{hostedExecutionBlocked: hosted, dailyTurnLimit: ps.dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}, workspaceID: id}
+	// Worker-touching routes stay refused in a hosted installation until the operator opts
+	// in to hosted execution. Workspace disposal, extensions and conversation import stay
+	// refused regardless: they reach the host's disk or a registry that is not per workspace.
+	executionBlocked := hosted && !ps.hostedExecution
+	s := &server{hosted: hosted, hostedExecutionBlocked: hosted && !ps.hostedExecution, dailyTurnLimit: ps.dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}, workspaceID: id}
 	s.extensionRegistry = ps.extensionRegistry
+	if hosted {
+		s.pool = ps.pool
+	}
 	s.identity = identitySettings{provider: ps.oidc, name: ps.oidcName, hostedDefault: hosted}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/instance-label.js", instanceLabel)
@@ -198,12 +227,12 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 	mux.HandleFunc("/api/task-delegations", s.taskDelegations)
 	mux.HandleFunc("/api/room-outcome-review", s.roomOutcomeReview)
 	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
-	mux.HandleFunc("/api/agent-recovery", hostedGate(hosted, s.agentRecovery))
-	mux.HandleFunc("/api/job-diagnostics", hostedGate(hosted, s.jobDiagnostics))
-	mux.HandleFunc("/api/job-recovery", hostedGate(hosted, s.jobRecovery))
-	mux.HandleFunc("/api/workspace-disposal", hostedGate(hosted, s.workspaceDisposal))
-	mux.HandleFunc("/api/provider-auth", hostedGate(hosted, s.providerAuth))
-	mux.HandleFunc("/api/connections/test", hostedGate(hosted, s.connectionTest))
+	mux.HandleFunc("/api/agent-recovery", hostedGate(executionBlocked, s.agentRecovery))
+	mux.HandleFunc("/api/job-diagnostics", hostedGate(executionBlocked, s.jobDiagnostics))
+	mux.HandleFunc("/api/job-recovery", hostedGate(executionBlocked, s.jobRecovery))
+	mux.HandleFunc("/api/workspace-disposal", hostedGateWith(hosted, hostedAlwaysMessage, s.workspaceDisposal))
+	mux.HandleFunc("/api/provider-auth", hostedGate(executionBlocked, s.providerAuth))
+	mux.HandleFunc("/api/connections/test", hostedGate(executionBlocked, s.connectionTest))
 	editorEnabled := ps.editorEnabled
 	s.templatesEnabled = ps.templatesEnabled
 	s.safetyUIDefault = ps.safetyUI
@@ -487,4 +516,19 @@ func (h *workspaceHost) stopAll() {
 
 func logPlatformAuditGap(id, action string) {
 	log.Printf("Workspace %s: platform action %q changed the registry but could not be recorded in the workspace history", id, action)
+}
+
+// validateHostedExecution is checked at startup when hosted execution is switched on. Hosted
+// agents are chat-only: repository workspaces and isolated commands read the host's disk
+// through process-wide settings, so they must be off, and a worker must be configured.
+func validateHostedExecution(getenv func(string) string) error {
+	for _, name := range []string{"COMMONROOM_DEVELOPMENT_WORKSPACES", "COMMONROOM_ISOLATED_COMMANDS", "COMMONROOM_WORKER_DEVELOPMENT"} {
+		if v := getenv(name); v != "" && v != "false" {
+			return errors.New("COMMONROOM_HOSTED_EXECUTION=true runs chat-only agents: unset " + name + " (it gives agents access to the host's repositories or commands)")
+		}
+	}
+	if getenv("COMMONROOM_REMOTE_WORKER") != "true" && getenv("COMMONROOM_SERVER_WORKER") != "true" {
+		return errors.New("COMMONROOM_HOSTED_EXECUTION=true needs an isolated worker: set COMMONROOM_REMOTE_WORKER or COMMONROOM_SERVER_WORKER to true")
+	}
+	return nil
 }

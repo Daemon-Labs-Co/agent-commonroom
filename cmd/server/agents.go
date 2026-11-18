@@ -145,7 +145,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 	}
 	// Importing a conversation reads provider history from this machine, which a
 	// hosted installation must never expose.
-	if s.hostedExecutionBlocked && (req.Action == "list-conversations" || req.Action == "read-context" || req.Action == "attach") {
+	if s.hosted && (req.Action == "list-conversations" || req.Action == "read-context" || req.Action == "attach") {
 		http.Error(w, hostedExecutionMessage, 503)
 		return
 	}
@@ -468,7 +468,7 @@ func (s *server) agents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, p := range targets {
-		s.active[p.ID] = true
+		s.setActive(p.ID)
 		prompt := prompts[p.ID]
 		parent := detachedInitiatorContext(r.Context())
 		if binding, bound := r.Context().Value(coordinationContextKey{}).(coordinationBinding); bound {
@@ -555,7 +555,7 @@ func (s *server) finishAgentTurn(ctx context.Context, p room.Participant, text, 
 func (s *server) finishAgentTurnWithTask(ctx context.Context, p room.Participant, text, endpoint string, err error, taskID, dispatchID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	defer delete(s.active, p.ID)
+	defer s.clearActive(p.ID)
 	defer delete(s.cancels, p.ID)
 	defer delete(s.coordinationTurns, p.ID)
 	defer delete(s.delegationTurns, p.ID)
