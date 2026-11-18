@@ -120,7 +120,7 @@ func TestSetupLinkCommand(t *testing.T) {
 	t.Parallel()
 	run := func(values map[string]string, args ...string) (int, string, string) {
 		var out, diagnostic bytes.Buffer
-		code := setupLinkMain(args, envMap(values), &out, &diagnostic)
+		code := setupLinkMain(args, envMap(values), t.TempDir(), &out, &diagnostic)
 		return code, out.String(), diagnostic.String()
 	}
 	dir := t.TempDir()
@@ -162,5 +162,66 @@ func TestSetupLinkCommand(t *testing.T) {
 	var out2, diagnostic bytes.Buffer
 	if handled, code := startupCommand([]string{"--setup-link", "x"}, &out2, &diagnostic); !handled || code != 2 || out2.Len() != 0 {
 		t.Fatal("startup dispatch accepted arguments")
+	}
+}
+
+func TestSetupLinkFindsServiceSettingsWithoutArguments(t *testing.T) {
+	t.Parallel()
+	home := t.TempDir()
+	dir := filepath.Join(home, ".config", "commonroom")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	keyFile := filepath.Join(home, "state", "owner-key")
+	generated, err := loadOwnerKey(keyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings := "# service settings\nexport OWNER_KEY_FILE=" + keyFile + "\nCOMMONROOM_PUBLIC_ORIGIN=\"https://rooms.example.test\"\n" +
+		"DATABASE_URL=postgres://user:hunter2@db/x\n; comment\nLISTEN_ADDR='127.0.0.1:9100'\n"
+	envPath := filepath.Join(dir, "runtime.env")
+	if err := os.WriteFile(envPath, []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run := func(values map[string]string) (int, string, string) {
+		var out, diagnostic bytes.Buffer
+		code := setupLinkMain(nil, envMap(values), home, &out, &diagnostic)
+		return code, out.String(), diagnostic.String()
+	}
+	// No arguments and an empty environment: settings come from the service's file.
+	code, out, diagnostic := run(nil)
+	if code != 0 || out != "https://rooms.example.test/#setup="+generated+"\n" {
+		t.Fatal(code, out, diagnostic)
+	}
+	if strings.Contains(out+diagnostic, "hunter2") || strings.Contains(out+diagnostic, "postgres") {
+		t.Fatal("unrelated secrets were read or disclosed")
+	}
+	// A value in the process environment wins over the file.
+	if _, out, _ = run(map[string]string{"COMMONROOM_PUBLIC_ORIGIN": "https://override.example.test"}); !strings.HasPrefix(out, "https://override.example.test/#setup=") {
+		t.Fatal("process environment did not take precedence", out)
+	}
+	// Only the whitelisted names are ever returned.
+	lookup, err := withServiceSettings(envMap(nil), home)
+	if err != nil || lookup("DATABASE_URL") != "" || lookup("OWNER_KEY_FILE") != keyFile || lookup("LISTEN_ADDR") != "127.0.0.1:9100" {
+		t.Fatal("settings lookup is not restricted to the setup settings", err)
+	}
+	// An explicit settings file, a missing one and an unsafe one.
+	other := filepath.Join(home, "hosted.env")
+	os.WriteFile(other, []byte(setupCodeEnv+"="+suppliedCode+"\nCOMMONROOM_PUBLIC_ORIGIN=https://hosted.example.test\n"), 0o600)
+	if code, out, _ = run(map[string]string{"COMMONROOM_ENV_FILE": other}); code != 0 || out != "https://hosted.example.test/#setup="+suppliedCode+"\n" {
+		t.Fatal("explicit settings file ignored", out)
+	}
+	if code, out, diagnostic = run(map[string]string{"COMMONROOM_ENV_FILE": filepath.Join(home, "absent.env")}); code != 1 || out != "" || !strings.Contains(diagnostic, "was not found") {
+		t.Fatal(code, out, diagnostic)
+	}
+	if err := os.Chmod(envPath, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, out, diagnostic = run(nil); code != 1 || out != "" || !strings.Contains(diagnostic, "chmod 600") || strings.Contains(diagnostic, generated) {
+		t.Fatal("unsafe settings file accepted", code, out, diagnostic)
+	}
+	os.Remove(envPath)
+	if code, _, _ = run(map[string]string{"OWNER_KEY_FILE": keyFile}); code != 0 {
+		t.Fatal("a missing default settings file must not block the command")
 	}
 }

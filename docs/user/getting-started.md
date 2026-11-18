@@ -39,30 +39,37 @@ provider credentials outside documents and screenshots.
 
 An empty installation shows **Set up your owner account**, not a request for a PEM
 you do not yet have. CommonRoom generates an RSA-3072 key pair and records the
-public key in the database. You claim the installation with a **setup link** or
-**setup code**, then download your generated private PEM. The code proves you were
-given access; it prevents another browser visitor claiming the installation first.
+public key in the database. You claim the installation with a **setup link**, then download your generated
+private PEM. The link proves you were given access; it prevents another browser
+visitor claiming the installation first. Setup works the same way on your own
+machine and on a hosted server:
 
-- **Hosted service:** your provider sends you a setup link. Open it, check the
-  code is filled in, choose **Set up owner access** and download your key. A link
-  that is not claimed expires after 24 hours; ask your provider for a new one.
-- **Installed on your own machine or server:** run this where CommonRoom runs, with
-  the same settings as the service, and open the link it prints:
+1. **Whoever runs CommonRoom** gets the link with one command, run on the server
+   with no arguments or settings to supply:
 
-  ```bash
-  commonroom --setup-link
-  ```
+   ```bash
+   commonroom --setup-link
+   ```
 
-  The link looks like `http://127.0.0.1:8787/#setup=...`. The code after `#` is
-  never sent to the server or recorded in proxy logs. Treat the link like a password.
-  If you prefer, paste just the code into **Server setup code**.
-- **Running it for other people (operators):** instead of the generated file, set
-  `COMMONROOM_SETUP_CODE` to 64 lowercase hexadecimal characters
-  (`openssl rand -hex 32`) before starting the service, and give the owner
-  `https://your-address/#setup=<that code>`. It works once, then stops. Set
-  `COMMONROOM_SETUP_CODE_TTL_HOURS` (1 to 168, default 24) to change how long it
-  stays valid; restarting with a new code issues a fresh link. Leave both unset to
-  keep the generated private file on the server.
+   It reads the same settings file the service starts from
+   (`~/.config/commonroom/runtime.env`, or the file named by `COMMONROOM_ENV_FILE`)
+   and only the settings it needs: where the key is kept, the public address and
+   the listen address. It never reads your database login. If you run it from the
+   folder CommonRoom was installed in, a relative key path resolves correctly.
+2. **If you run it yourself,** open the link it prints. **If you host it for
+   someone else,** send them the link. The link looks like
+   `https://your-address/#setup=...`. The code after `#` is never sent to the
+   server or recorded in proxy logs. Treat the link like a password.
+3. **The owner** opens the link. The setup page fills in the code; choose
+   **Set up owner access**, download the key and keep it safe.
+
+A host that provisions many installations can supply the code instead of reading
+it back: set `COMMONROOM_SETUP_CODE` to 64 lowercase hexadecimal characters
+(`openssl rand -hex 32`) before starting the service, and send
+`https://your-address/#setup=<that code>`. A supplied code works once, then stops,
+and is valid for 24 hours unless `COMMONROOM_SETUP_CODE_TTL_HOURS` (1 to 168) says
+otherwise; restart with a new code to issue a fresh link. A pasted code works in
+**Server setup code** too. A generated code has no expiry.
 
 Choose **Sign in with saved key** to verify your download. The temporary server
 private-key copy and setup code are removed after successful key sign-in.

@@ -17,8 +17,8 @@ async function screen({setupRequired=true,expired=false,hash='',useSavedKey=fals
  let r=await screen();
  assert.doesNotMatch(r.html,/\.data\/owner-key|on this server/);
  assert.match(r.html,/setup link or setup code you were given/);
- assert.match(r.html,/hosted service sends you a setup link/);
- assert.match(r.html,/commonroom --setup-link/);
+ assert.match(r.html,/Whoever runs this CommonRoom gets your setup link/);
+ assert.match(r.html,/<code>commonroom --setup-link<\/code>/);assert.doesNotMatch(r.html,/hosted|\byour own\b/i,'one wording for every kind of installation');
  assert.doesNotMatch(r.html,/has expired/);
  assert.equal(r.field?.value??'',''); // nothing prefilled without a link
  // A setup link fills the code in and removes it from the address bar.

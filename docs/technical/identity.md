@@ -47,9 +47,13 @@ code is never written to a file, expires `COMMONROOM_SETUP_CODE_TTL_HOURS` hours
 after process start (whole hours, 1 to 168, default 24) and is refused at sign-in
 once expired. Invalid values stop startup with a message that does not echo them.
 Either code is cleared at startup once the owner private key has been claimed, so
-it cannot act as a standing owner password. `commonroom --setup-link` prints
+it cannot act as a standing owner password. `commonroom --setup-link` takes no arguments and prints
 `<origin>/#setup=<code>` using `COMMONROOM_PUBLIC_ORIGIN` or `LISTEN_ADDR`; it
-refuses when no setup is pending. The browser reads the code from the URL fragment,
+refuses when no setup is pending. It takes `OWNER_KEY_FILE`, `COMMONROOM_PUBLIC_ORIGIN`,
+`LISTEN_ADDR` and `COMMONROOM_SETUP_CODE` from the process environment, else from
+the service settings file (`COMMONROOM_ENV_FILE`, default
+`~/.config/commonroom/runtime.env`), which must be private, owned by the caller and
+at most 64 KiB; no other setting in that file is read or returned. The browser reads the code from the URL fragment,
 fills the field without submitting, and removes the fragment from the address bar;
 fragments are never sent to the server or proxies. Both variables are operator
 process configuration read at startup; unset keeps the previous behavior. They do
