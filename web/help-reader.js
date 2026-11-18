@@ -6,7 +6,7 @@ function destination(value,entry,image=false){
   const url=new URL(value,'https://documentation.invalid/'+entry.path);
   if(url.origin==='https://documentation.invalid'){
    const path=decodeURIComponent(url.pathname.slice(1));
-   if(image){const name=path.split('/').pop();return ['docs/screenshots/room.jpg','docs/screenshots/workflow.jpg','docs/screenshots/connections.jpg','docs/images/user-agents.svg','docs/images/user-getting-started.svg','docs/images/user-recovery.svg','docs/images/user-results.svg','docs/images/user-rooms.svg','docs/images/user-settings.svg','docs/images/user-storage.svg','docs/images/user-tasks.svg','docs/images/user-workflows.svg'].includes(path)?'/help/image/'+name:null}
+   if(image){const name=path.split('/').pop();return ['docs/screenshots/room.jpg','docs/screenshots/workflow.jpg','docs/screenshots/connections.jpg','docs/images/user-agents.svg','docs/images/user-getting-started.svg','docs/images/user-recovery.svg','docs/images/user-results.svg','docs/images/user-rooms.svg','docs/images/user-settings.svg','docs/images/user-sign-in.svg','docs/images/user-storage.svg','docs/images/user-tasks.svg','docs/images/user-workflows.svg'].includes(path)?'/help/image/'+name:null}
    const found=catalog.find(item=>item.path===path);return found?'/help/?doc='+encodeURIComponent(found.id)+url.hash:null;
   }
   return !image&&['http:','https:'].includes(url.protocol)?url.href:null;

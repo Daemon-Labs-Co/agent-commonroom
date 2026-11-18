@@ -1,6 +1,7 @@
 // Settings tabs reorganize existing controls; they do not change capabilities.
 function settingsCardCategory(title){
- if(/^Your profile|^Your room profile/.test(title))return 'Profile';
+ if(/^Your profile|^Your room profile|^Your sign-in methods/.test(title))return 'Profile';
+ if(/^Sign-in options and invitations/.test(title))return 'Company';
  if(/^Company/.test(title))return 'Company';
  if(title==='Agent rooms'||title==='Feature flags'||title==='Room presentation'||/^(Security|Cosmetic|Connections|Workflows) ·/.test(title))return 'Features';
  if(title==='Retention')return 'Retention';

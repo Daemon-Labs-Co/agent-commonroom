@@ -204,7 +204,7 @@ func (s *server) authMethods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	reply(w, map[string]any{"passkeys": s.identityFlag(st, flagPasskeys), "oidc": s.oidcAvailable(st), "oidcName": s.identity.name, "invitations": s.identityFlag(st, flagInvitations)})
+	reply(w, map[string]any{"passkeys": s.identityFlag(st, flagPasskeys), "oidc": s.oidcAvailable(st), "oidcConfigured": s.identity.provider != nil, "oidcName": s.identity.name, "invitations": s.identityFlag(st, flagInvitations)})
 }
 
 func attestationDeny(w http.ResponseWriter) { http.Error(w, "Passkey could not be registered", 400) }

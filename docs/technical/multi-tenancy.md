@@ -1,6 +1,6 @@
 # Workspaces: many customers in one installation
 
-Design record; stages are implemented in order, each default-off. Stages 1 (storage), 2 (runtime) and 3 (platform)
+Design record; stages are implemented in order, each default-off. Stages 1 (storage), 2 (runtime), 3 (platform) and 4 (identity)
 are implemented: see [events and persistence](persistence.md) and the runtime notes below. See ADRs
 [0004](archive/adr/0004-many-workspaces-in-one-installation.md),
 [0005](archive/adr/0005-workspace-chosen-by-host-name.md),
@@ -123,6 +123,12 @@ minute, 200 daily turns) refuse the next creation with 409, or exceed the reques
 with 429 and `Retry-After`; they never change another workspace. Operator tools:
 `commonroom --platform-keygen` and `commonroom --platform-request`. Deleted workspaces'
 history is removed only by the administrator-run `scripts/purge-workspace.sql`.
+
+**Stage 4 as built - identity.** Passkeys, single sign-on and invitation links per workspace,
+specified in [identity](identity.md) and the sign-in [user guide](../user/sign-in.md). Hosted
+workspaces start with passkeys and invitations on. One installation-wide OpenID Connect
+provider is supported; it must allow a redirect URI per workspace host (wildcard redirect URIs,
+or a provider that permits them), which not every provider does.
 
 ## Properties and state changes
 
