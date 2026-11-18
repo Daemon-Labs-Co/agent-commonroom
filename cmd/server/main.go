@@ -143,5 +143,11 @@ func main() {
 		log.Printf("Commonroom: hosting workspaces at *.%s behind the HTTPS proxy on %s (hosted agent execution is off unless COMMONROOM_HOSTED_EXECUTION=true)", tenancy.Domain, settings.listenAddr)
 	}
 	h := host
+	if tenancy.Mode == tenancyMulti && settings.projectionCache && settings.workspaceIdle > 0 {
+		go host.runIdleJanitor(context.Background(), settings.workspaceIdle)
+		log.Printf("Projection cache is ON: idle workspaces are released after %v; chain verification is incremental every %v and full every %v", settings.workspaceIdle, settings.integrity.incrementalEvery, settings.integrity.fullEvery)
+	} else if settings.projectionCache {
+		log.Printf("Projection cache is ON: chain verification is incremental every %v and full every %v", settings.integrity.incrementalEvery, settings.integrity.fullEvery)
+	}
 	log.Fatal(newHTTPServer(settings.listenAddr, h).ListenAndServe())
 }

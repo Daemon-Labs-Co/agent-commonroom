@@ -11,6 +11,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -160,4 +161,54 @@ func TestScratchWorkspaceRegistry(t *testing.T) {
 	if _, err := pool.Exec(ctx, "DELETE FROM workspaces WHERE id='beta'"); err == nil {
 		t.Fatal("the runtime role deleted a registry row")
 	}
+}
+
+// scratchProjectionAgreement proves, on a real server, that the incremental cache and the
+// incremental integrity check give the same answers as the full replay and the full check.
+func scratchProjectionAgreement(t *testing.T, db eventDatabase, appends int) {
+	t.Helper()
+	ctx := context.Background()
+	full := &server{db: db, active: map[string]bool{}}
+	cached := &server{db: db, active: map[string]bool{}}
+	cached.projection.enabled = true
+	cached.integritySettings = integritySettings{incrementalEvery: time.Hour, fullEvery: 24 * time.Hour}
+	same := func(step string) {
+		want, wantErr := full.loadAt(ctx, equivalenceNow)
+		got, gotErr := cached.loadCached(ctx, equivalenceNow)
+		if msg := compareStates(want, wantErr, got, gotErr); msg != "" {
+			t.Fatalf("%s: %s", step, msg)
+		}
+	}
+	same("empty or existing history")
+	start := time.Now()
+	cached.checkIntegrityScheduledAt(start) // full, sets the checkpoint
+	for i := 0; i < appends; i++ {
+		if err := full.append(ctx, "message.created", room.Message{RoomID: "engineering", ID: "proj" + string(rune('a'+i)), Author: "A", Text: "incremental", ActorType: "human"}); err != nil {
+			t.Fatal(err)
+		}
+		same("after append")
+	}
+	cached.checkIntegrityScheduledAt(start.Add(time.Hour)) // incremental, from the checkpoint
+	if cached.integrityFault || cached.integrityPlan.checkpoint == nil || cached.integrityPlan.checkpoint.records < appends {
+		t.Fatalf("incremental verification on a real database: fault=%v checkpoint=%+v", cached.integrityFault, cached.integrityPlan.checkpoint)
+	}
+	cached.checkIntegrityScheduledAt(start.Add(25 * time.Hour)) // full again
+	if cached.integrityFault {
+		t.Fatal("the full verification failed after incremental ones")
+	}
+}
+
+func TestScratchProjectionCacheBeforeMigration(t *testing.T) {
+	pool := scratchPool(t, "pre")
+	// Read-only here: the phases that follow count the history written before the migration.
+	scratchProjectionAgreement(t, pool, 0)
+}
+
+func TestScratchProjectionCacheAfterMigration(t *testing.T) {
+	pool := scratchPool(t, "post")
+	db, err := newScopedDatabase(pool, "projection")
+	if err != nil {
+		t.Fatal(err)
+	}
+	scratchProjectionAgreement(t, db, 5)
 }

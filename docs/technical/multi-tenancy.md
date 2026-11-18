@@ -25,6 +25,7 @@ Configuration (operator process settings, read at startup):
 | `COMMONROOM_SIGNUP_CODE` | none | If set (8-128 characters), sign-up also requires this shared code. |
 | `COMMONROOM_SIGNUP_DAILY_LIMIT` | 50 | New workspaces accepted in any 24 hours (1-100000). |
 | `COMMONROOM_SIGNUP_MAX_WORKSPACES` | 1000 | Live workspaces after which sign-up refuses (1-1000000). |
+| `COMMONROOM_PROJECTION_CACHE` | `off` | `on` caches the replayed state per workspace, schedules chain verification (hourly incremental, daily full) and, in multi mode, releases workspaces idle for `COMMONROOM_WORKSPACE_IDLE_MINUTES` (default 30; see [persistence](persistence.md)). |
 | `COMMONROOM_OIDC_*` | none | Per-installation OIDC provider settings for workspace sign-in. |
 
 Current single-tenant assumptions this changes: one `events` table and hash chain, a

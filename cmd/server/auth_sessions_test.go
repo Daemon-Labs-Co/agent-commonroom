@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -154,5 +155,31 @@ func TestPersistentSessionFlagParsing(t *testing.T) {
 				t.Fatal(enabled, err)
 			}
 		})
+	}
+}
+
+// A full session table (the per-workspace cap) must survive a restart. The store once refused
+// anything over 32 while the table could hold more, which would have stopped the workspace
+// starting after a busy day.
+func TestAFullSessionTableSurvivesRestart(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "sessions.json")
+	key := strings.Repeat("a", 64)
+	a, _ := newOwnerAuth(key, "127.0.0.1:8787")
+	if err := a.configureSessionPersistence(path, true); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < maxSessions; i++ {
+		a.sessions[fmt.Sprintf("sha256:%064d", i)] = ownerSession{ActorID: fmt.Sprintf("person-%d", i), CSRF: strings.Repeat("b", 64), Expires: time.Now().Add(time.Hour)}
+	}
+	if err := a.persistSessionsLocked(); err != nil {
+		t.Fatal(err)
+	}
+	fresh, _ := newOwnerAuth(key, "127.0.0.1:8787")
+	if err := fresh.configureSessionPersistence(path, true); err != nil {
+		t.Fatalf("a full session table did not survive restart: %v", err)
+	}
+	if len(fresh.sessions) != maxSessions {
+		t.Fatalf("%d sessions restored, want %d", len(fresh.sessions), maxSessions)
 	}
 }

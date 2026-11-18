@@ -35,7 +35,12 @@ type mockDB struct {
 	runtimePrivileges []any
 }
 
-func newMockDB(t *testing.T) *mockDB { return &mockDB{t: t} }
+func newMockDB(t *testing.T) *mockDB {
+	d := &mockDB{t: t}
+	// Every test that produces events also checks the projection against the reference replay.
+	t.Cleanup(d.checkProjectionEquivalence)
+	return d
+}
 func (d *mockDB) snapshot() []mockEvent {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -124,9 +129,21 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 				break
 			}
 		}
+	case projectionDeltaSQL:
+		for _, e := range events {
+			if e.sequence >= args[0].(int64) {
+				values = append(values, []any{e.sequence, e.kind, []byte(e.payload), e.hash})
+			}
+		}
 	case "SELECT kind,payload FROM events ORDER BY sequence":
 		for _, e := range events {
 			values = append(values, []any{e.kind, []byte(e.payload)})
+		}
+	case integrityFromSQL:
+		for _, e := range events {
+			if e.sequence >= args[0].(int64) {
+				values = append(values, []any{e.id, e.sequence, e.at, e.kind, e.payload, e.previous, e.hash})
+			}
 		}
 	case "SELECT id,sequence,committed_at,kind,payload::text,previous_hash,hash FROM events ORDER BY sequence":
 		for _, e := range events {

@@ -13,6 +13,11 @@ import (
 )
 
 type server struct {
+	// projection is the optional incremental cache of the replayed state (projection_cache.go).
+	projection projectionCache
+	// integrityPlan schedules chain verification when the projection cache is on (integrity_schedule.go).
+	integrityPlan        integrityState
+	integritySettings    integritySettings
 	delegationRepository func(string) (string, error)
 	taskDefinitionTurns  map[string]string
 	delegationTurns      map[string]string
