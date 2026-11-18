@@ -21,7 +21,10 @@ Configuration (operator process settings, read at startup):
 | `COMMONROOM_TENANCY` | `single` | `single`: one workspace named `default`, behaviour unchanged. `multi`: workspaces resolved from the host name. |
 | `COMMONROOM_WORKSPACE_DOMAIN` | none | Base domain in `multi` mode; a workspace is served at `<slug>.<domain>`. Requires HTTPS origins and wildcard DNS/certificate. |
 | `COMMONROOM_PLATFORM_KEYS_FILE` | none | Registry of Ed25519 public keys allowed to call `/platform/v1/`. |
-| `COMMONROOM_SIGNUP` | `closed` | `open` enables the built-in rate-limited sign-up page. |
+| `COMMONROOM_SIGNUP` | `closed` | `open` serves the built-in sign-up page on the bare domain (multi mode only; startup fails otherwise). |
+| `COMMONROOM_SIGNUP_CODE` | none | If set (8-128 characters), sign-up also requires this shared code. |
+| `COMMONROOM_SIGNUP_DAILY_LIMIT` | 50 | New workspaces accepted in any 24 hours (1-100000). |
+| `COMMONROOM_SIGNUP_MAX_WORKSPACES` | 1000 | Live workspaces after which sign-up refuses (1-1000000). |
 | `COMMONROOM_OIDC_*` | none | Per-installation OIDC provider settings for workspace sign-in. |
 
 Current single-tenant assumptions this changes: one `events` table and hash chain, a
@@ -171,8 +174,23 @@ a request-rate limit is per workspace, not per client address; the platform API'
 in process, so a replay inside its 60-second window is possible across a restart; a dedicated
 external review (for example the red-team review) has not been run.
 
+**Built-in sign-up.** With `COMMONROOM_SIGNUP=open` the bare domain `<domain>` serves one
+page and two routes, and nothing else (every other path is 404; the workspace app is never
+served there): `GET /api/signup/config` returns `{domain, codeRequired}`, and
+`POST /api/signup {id, name, code?}` (same-origin JSON only, 2 KB) creates a workspace with the
+default limits and returns `201 {id, name, origin, setupLink, setupExpires}`. The id and name rules
+are the platform API's (reserved and look-alike names refused). A taken id returns 409 and never
+reveals the existing workspace or its setup link, unlike the platform API's idempotent create.
+Protections, because there is no email check: a per-address limit of 5 creations and 20
+attempts an hour (wrong codes and taken names count; the address comes from `X-Real-IP` only when
+the direct peer is loopback, i.e. the proxy), the daily and total caps above (create-and-delete
+cycling still counts towards the day), and the optional shared code compared in constant time.
+Checks and creation run under one lock so the caps cannot be raced. The first request is
+recorded in the new workspace's history as `platform.workspace.action` with `by: signup`.
+
 ## Properties and state changes
 
+- Defaults: `single` tenancy, `closed` sign-up, no platform keys. Sign-up adds no state of its own: its rate and cap counters are in memory and reset on restart (the daily and total caps are recomputed from the registry).
 - Defaults: `single` tenancy, `closed` sign-up, no platform keys. Without `multi` no new
   route is registered and behaviour is byte-for-byte today's.
 - Persistent state: `events.workspace_id`, the `workspaces` registry, per-workspace

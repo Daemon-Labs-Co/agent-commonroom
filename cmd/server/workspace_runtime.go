@@ -339,7 +339,8 @@ type workspaceHost struct {
 	registry workspaceRegistry
 	build    func(id string) (*workspaceRuntime, error)
 	now      func() time.Time
-	platform http.Handler // served on platform.<domain>; nil when not configured
+	platform http.Handler   // served on platform.<domain>; nil when not configured
+	signup   *signupService // served on the bare domain; nil unless COMMONROOM_SIGNUP=open
 	meter    requestMeter
 
 	mu      sync.Mutex
@@ -473,6 +474,10 @@ func (h *workspaceHost) platformHost(host string) bool {
 }
 
 func (h *workspaceHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.signupHost(r.Host) {
+		h.signup.ServeHTTP(w, r)
+		return
+	}
 	if h.platformHost(r.Host) {
 		if h.platform == nil {
 			http.Error(w, "Not found", 404)

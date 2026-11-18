@@ -85,6 +85,12 @@ The party that runs an installation hosting many workspaces and may create, susp
 or delete them. The role has no access to a workspace's rooms through the product.
 _Avoid_: Admin, super user
 
+**Sign-up**:
+A visitor to an installation's bare domain creating a new workspace of their own and
+becoming its first owner. It is distinct from an invitation, which adds a person to an
+existing workspace.
+_Avoid_: Registration, account creation
+
 **Workspace owner**:
 The human who claimed a workspace and holds its highest permission inside it.
 _Avoid_: Root, administrator

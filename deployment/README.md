@@ -97,6 +97,13 @@ Set `COMMONROOM_TENANCY=multi` and `COMMONROOM_WORKSPACE_DOMAIN` (see
      https://platform.rooms.example.com/platform/v1/workspaces '{"id":"acme","name":"Acme Ltd"}'
    ```
 
+5. Optional: let visitors create their own workspace. Set `COMMONROOM_SIGNUP=open` (and, for
+   a private beta, `COMMONROOM_SIGNUP_CODE`) and restart. The bare domain then serves the
+   sign-up page, so the proxy and certificate must also cover `rooms.example.com` itself (the
+   example configuration does) and must set `X-Real-IP`, which the per-address limits use.
+   There is no email check: keep `COMMONROOM_SIGNUP_DAILY_LIMIT` and
+   `COMMONROOM_SIGNUP_MAX_WORKSPACES` low until you trust the traffic.
+
 To verify the database side on a scratch PostgreSQL server you own, run
 `scripts/check-workspace-database.sh` (it creates and drops its own throwaway database).
 

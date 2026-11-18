@@ -12,6 +12,22 @@ you run yourself offers them only after its owner turns them on (see
 [Turn methods on or off](#turn-methods-on-or-off)). The owner key file always works for
 the owner and is the way to recover access.
 
+## Create your own workspace
+
+Some installations let anyone create a workspace. If yours does, open its main address
+(for example `https://rooms.example.com`):
+
+1. Enter a workspace name. The address fills in from it; change it if you like (2-63
+   lowercase letters, digits or hyphens).
+2. Enter the sign-up code if the page asks for one.
+3. Choose **Create workspace**, then open the setup link shown. It works for the first
+   owner only, so open it on the device you will use and keep it private.
+4. Create your passkey on the next screen. You can then invite others (see below).
+
+If the address is taken you are asked to choose another. If you see "try again later",
+sign-up is limited to protect the service; wait and retry. The page does not exist when
+the operator has not turned sign-up on.
+
 ## Accept an invitation
 
 1. Open the invitation link the owner sent you. It looks like
