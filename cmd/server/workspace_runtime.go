@@ -6,6 +6,7 @@ package main
 // process settings are shared (ADR 0004).
 
 import (
+	"agentroom/internal/oidc"
 	"context"
 	"errors"
 	"fmt"
@@ -28,6 +29,8 @@ type platformSettings struct {
 	persistentSessions, verifyWorker          bool
 	listenAddr, dataRoot, defaultKeyPath      string
 	configuredOrigin, extensionRegistry       string
+	oidc                                      *oidc.Provider
+	oidcName                                  string
 }
 
 func loadPlatformSettings(getenv func(string) string, dailyTurnLimit int) (platformSettings, error) {
@@ -56,7 +59,42 @@ func loadPlatformSettings(getenv func(string) string, dailyTurnLimit int) (platf
 	}
 	ps.configuredOrigin = getenv("COMMONROOM_PUBLIC_ORIGIN")
 	ps.extensionRegistry = getenv("COMMONROOM_EXTENSIONS_FILE")
+	if ps.oidc, ps.oidcName, err = loadOIDCSettings(getenv); err != nil {
+		return ps, err
+	}
 	return ps, nil
+}
+
+// loadOIDCSettings reads the installation-wide identity provider, if one is configured.
+// The client secret comes from the environment or, preferably, a private file.
+func loadOIDCSettings(getenv func(string) string) (*oidc.Provider, string, error) {
+	issuer, clientID := strings.TrimSpace(getenv("COMMONROOM_OIDC_ISSUER")), strings.TrimSpace(getenv("COMMONROOM_OIDC_CLIENT_ID"))
+	secret, secretFile := getenv("COMMONROOM_OIDC_CLIENT_SECRET"), getenv("COMMONROOM_OIDC_CLIENT_SECRET_FILE")
+	if issuer == "" && clientID == "" && secret == "" && secretFile == "" {
+		return nil, "", nil
+	}
+	if secret != "" && secretFile != "" {
+		return nil, "", errors.New("set only one of COMMONROOM_OIDC_CLIENT_SECRET and COMMONROOM_OIDC_CLIENT_SECRET_FILE")
+	}
+	if secretFile != "" {
+		raw, err := readPrivateBounded(secretFile, 1024)
+		if err != nil {
+			return nil, "", errors.New("COMMONROOM_OIDC_CLIENT_SECRET_FILE must be a private file owned by this account")
+		}
+		secret = strings.TrimSpace(string(raw))
+	}
+	provider, err := oidc.New(oidc.Config{Issuer: issuer, ClientID: clientID, ClientSecret: secret})
+	if err != nil {
+		return nil, "", err
+	}
+	name := strings.TrimSpace(getenv("COMMONROOM_OIDC_NAME"))
+	if name == "" {
+		name = "Single sign-on"
+	}
+	if !validWorkspaceName(name) || len(name) > 40 {
+		return nil, "", errors.New("COMMONROOM_OIDC_NAME must be 1-40 visible characters")
+	}
+	return provider, name, nil
 }
 
 // keyPath is where a workspace keeps its owner key, sessions and stop marker. The
@@ -116,9 +154,25 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 	hosted := tenancy.Mode == tenancyMulti
 	s := &server{hostedExecutionBlocked: hosted, dailyTurnLimit: ps.dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}, workspaceID: id}
 	s.extensionRegistry = ps.extensionRegistry
+	s.identity = identitySettings{provider: ps.oidc, name: ps.oidcName, hostedDefault: hosted}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/instance-label.js", instanceLabel)
 	mux.HandleFunc("/api/members", s.members)
+	mux.HandleFunc("/api/auth/methods", s.authMethods)
+	mux.HandleFunc("/api/webauthn/login/options", s.passkeyLoginOptions)
+	mux.HandleFunc("/api/webauthn/login/verify", s.passkeyLoginVerify)
+	mux.HandleFunc("/api/webauthn/register/options", s.passkeyRegisterOptions)
+	mux.HandleFunc("/api/webauthn/register/verify", s.passkeyRegisterVerify)
+	mux.HandleFunc("/api/webauthn/remove", s.passkeyRemove)
+	mux.HandleFunc("/api/invitations", s.createInvitation)
+	mux.HandleFunc("/api/invitations/revoke", s.revokeInvitation)
+	mux.HandleFunc("/api/invitations/lookup", s.lookupInvitation)
+	mux.HandleFunc("/api/invitations/passkey/options", s.invitationPasskeyOptions)
+	mux.HandleFunc("/api/invitations/passkey/complete", s.invitationPasskeyComplete)
+	mux.HandleFunc("/api/invitations/oidc/start", s.oidcInviteStart)
+	mux.HandleFunc("/api/oidc/login", s.oidcLogin)
+	mux.HandleFunc("/api/oidc/link", s.oidcLink)
+	mux.HandleFunc("/api/oidc/callback", s.oidcCallback)
 	mux.HandleFunc("/api/login", s.login)
 	mux.HandleFunc("/api/setup-status", s.setupStatus)
 	mux.HandleFunc("/api/challenge", s.challenge)

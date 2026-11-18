@@ -108,7 +108,7 @@ func (f *fakeIdP) sign(alg, kid string, claims map[string]any) string {
 }
 
 func (f *fakeIdP) provider() *Provider {
-	p, err := New(Config{Issuer: f.server.URL, ClientID: clientID, ClientSecret: "s3cret", HTTP: f.server.Client(), allowLoopback: true})
+	p, err := New(Config{Issuer: f.server.URL, ClientID: clientID, ClientSecret: "s3cret", HTTP: f.server.Client(), AllowLoopbackForTests: true})
 	if err != nil {
 		f.t.Fatal(err)
 	}
@@ -328,7 +328,7 @@ func TestDiscoveryAndTransportSafety(t *testing.T) {
 		mux.Handle("/", h.server.Config.Handler)
 		redirecting := httptest.NewServer(mux)
 		h.server = redirecting
-		p, _ := New(Config{Issuer: redirecting.URL, ClientID: clientID, HTTP: redirecting.Client(), allowLoopback: true})
+		p, _ := New(Config{Issuer: redirecting.URL, ClientID: clientID, HTTP: redirecting.Client(), AllowLoopbackForTests: true})
 		p.AuthURL(t.Context(), "https://a.example.com/cb", "s", "n", "c")
 		p.Verify(t.Context(), h.sign("RS256", "rsa-1", h.claims("n")), "n")
 		redirecting.Close()

@@ -112,6 +112,24 @@ func auditSummary(kind string, payload []byte) string {
 		return "Owner recovered an agent session · " + label("action", "recovery")
 	case "workflow.run.updated":
 		return "Workflow execution · " + label("status", "updated")
+	case "invitation.created":
+		return "Owner created an invitation for a " + label("role", "member")
+	case "invitation.revoked":
+		return "Owner revoked an invitation"
+	case "invitation.redeemed":
+		return "An invitation was accepted and its account created"
+	case "actor.credential.added":
+		return "A passkey was added to an account"
+	case "actor.credential.used":
+		return "Signed in with a passkey"
+	case "actor.credential.removed":
+		return "A passkey was removed from an account"
+	case "actor.oidc.linked":
+		return "Single sign-on was linked to an account"
+	case "actor.oidc.unlinked":
+		return "Single sign-on was unlinked from an account"
+	case "platform.workspace.action":
+		return "Platform operator action: " + label("action", "update")
 	case "room.created":
 		return "Room created: " + label("name", "Room")
 	case "room.updated":

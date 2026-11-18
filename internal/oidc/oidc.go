@@ -44,8 +44,9 @@ type Config struct {
 	ClientSecret string // empty for a public client (PKCE only)
 	HTTP         *http.Client
 	Now          func() time.Time
-	// allowLoopback lets tests use a local http or IP-literal provider.
-	allowLoopback bool
+	// AllowLoopbackForTests lets tests use a local http or IP-literal provider. The server
+	// never sets it and no setting can.
+	AllowLoopbackForTests bool
 }
 
 type Claims struct {
@@ -96,7 +97,7 @@ func (p *Provider) allowedURL(raw string) bool {
 		return false
 	}
 	host := u.Hostname()
-	if p.cfg.allowLoopback {
+	if p.cfg.AllowLoopbackForTests {
 		return u.Scheme == "https" || u.Scheme == "http"
 	}
 	return u.Scheme == "https" && host != "" && net.ParseIP(host) == nil && host != "localhost" && !strings.HasSuffix(host, ".localhost")

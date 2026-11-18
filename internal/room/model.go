@@ -238,23 +238,58 @@ type OrganizationNode struct {
 	X         float64 `json:"x"`
 	Y         float64 `json:"y"`
 }
+
+// Credential is a passkey: only its public key is stored.
+type Credential struct {
+	ID        string    `json:"id"` // base64url credential id
+	Name      string    `json:"name"`
+	PublicKey string    `json:"publicKey"` // base64 PKIX DER
+	Alg       int       `json:"alg"`
+	SignCount uint32    `json:"signCount"`
+	Created   time.Time `json:"created"`
+}
+
+// OIDCLink binds an actor to an identity at the installation's identity provider. It is
+// matched on issuer and subject only, never on email.
+type OIDCLink struct {
+	Issuer  string `json:"issuer"`
+	Subject string `json:"subject"`
+	Email   string `json:"email,omitempty"`
+}
+
+// Invitation lets one person create their own account. Only a hash of its secret is
+// stored; the secret exists only in the link the owner copies.
+type Invitation struct {
+	ID         string    `json:"id"` // hex SHA-256 of the secret
+	Role       string    `json:"role"`
+	RoomIDs    []string  `json:"roomIds"`
+	Expires    time.Time `json:"expires"`
+	Created    time.Time `json:"created"`
+	CreatedBy  string    `json:"createdBy"`
+	Status     string    `json:"status"` // open, redeemed, revoked
+	RedeemedBy string    `json:"redeemedBy,omitempty"`
+}
+
 type Actor struct {
 	PhotoSize   string `json:"photoSize,omitempty"`
 	HelpDisplay string `json:"helpDisplay,omitempty"`
 	// Personal display preferences; never sent to agents and never authority.
 	ChatStyle         bool     `json:"chatStyle,omitempty"`
 	HighlightedAgents []string `json:"highlightedAgents,omitempty"`
-	Image             string   `json:"image,omitempty"`
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	Title             string   `json:"title"`
-	Kind              string   `json:"kind"`
-	Role              string   `json:"role"`
-	Enabled           bool     `json:"enabled"`
-	PublicKey         string   `json:"publicKey,omitempty"`
-	RoomIDs           []string `json:"roomIds"`
-	Revision          int      `json:"revision"`
-	ChangedBy         string   `json:"changedBy"`
+	// Sign-in methods beyond the key file. Visible only to their owner.
+	Credentials []Credential `json:"credentials,omitempty"`
+	OIDCLinks   []OIDCLink   `json:"oidcLinks,omitempty"`
+	Image       string       `json:"image,omitempty"`
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	Title       string       `json:"title"`
+	Kind        string       `json:"kind"`
+	Role        string       `json:"role"`
+	Enabled     bool         `json:"enabled"`
+	PublicKey   string       `json:"publicKey,omitempty"`
+	RoomIDs     []string     `json:"roomIds"`
+	Revision    int          `json:"revision"`
+	ChangedBy   string       `json:"changedBy"`
 }
 
 // ManagedJob is a safe, durable execution binding. Model data and arguments
@@ -419,6 +454,7 @@ type TaskDefinitionRevision struct {
 }
 
 type State struct {
+	Invitations             []Invitation                           `json:"invitations,omitempty"`
 	WorkspaceCaptures       map[string]WorkspaceCaptureReservation `json:"-"`
 	ObjectReads             map[string]ObjectReadReservation       `json:"-"`
 	WorkspaceProbes         map[string]WorkspaceProbeReservation   `json:"-"`
