@@ -150,7 +150,9 @@ check: test-race
 	node tests/first-owner-login.test.cjs
 	node tests/setup-link.test.cjs
 	node --check web/identity.js
+	node --check web/signup.js
 	node tests/identity-ui.test.cjs
+	node tests/signup-ui.test.cjs
 	node --check web/help-reader.js
 	node tests/help-reader.test.cjs
 

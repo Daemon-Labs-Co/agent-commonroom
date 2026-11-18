@@ -126,6 +126,14 @@ func main() {
 			log.Print("COMMONROOM_PLATFORM_KEYS_FILE is not set: the platform API at platform." + tenancy.Domain + " refuses every request")
 		}
 	}
+	signup, err := loadSignupSettings(os.Getenv, tenancy)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if signup.enabled {
+		host.signup = newSignupService(signup, tenancy, databaseWorkspaceRegistry{db: db}, host)
+		log.Printf("Built-in sign-up is ENABLED at https://%s (limits: %d new workspaces a day, %d in total; sign-up code %s)", tenancy.Domain, signup.dailyLimit, signup.maxTotal, map[bool]string{true: "required", false: "not required"}[signup.code != ""])
+	}
 	if tenancy.Mode == tenancySingle {
 		if err = host.preload(); err != nil {
 			log.Fatal(err)

@@ -7,7 +7,7 @@ private control plane. The open core exposes `/platform/v1/` (Ed25519-signed
 requests, the same scheme as the extension contract) to create, suspend, resume and
 delete workspaces and to set their limits; a created workspace returns its setup
 link. A simple built-in sign-up page exists only when the operator sets
-`COMMONROOM_SIGNUP=open`, is rate limited and off by default.
+`COMMONROOM_SIGNUP=open` in multi mode, is rate limited and capped, and is off by default.
 
 ## Consequences
 
