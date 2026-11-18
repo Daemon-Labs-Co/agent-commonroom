@@ -10,6 +10,25 @@ The existing `connectionSignIn` flag defaults enabled; disabling it rejects new
 requests without deleting credentials. Active/unresolved connection work,
 integrity incidents and emergency stops block login.
 
+Sign-in methods (ADR 0006), all per workspace and all ending in the same session cookie
+as key-file sign-in:
+
+| Request | Auth | Effect |
+| --- | --- | --- |
+| `GET /api/auth/methods` | none | `passkeys`, `oidc`, `oidcConfigured`, `oidcName`, `invitations` (configuration only). |
+| `POST /api/webauthn/login/options` / `login/verify` | none | Passkey sign-in with a discoverable credential. |
+| `POST /api/webauthn/register/options` / `register/verify`, `POST /api/webauthn/remove` | session, CSRF | Add or remove your own passkey (at most 10; never your last sign-in method). |
+| `POST /api/invitations` (create), `/api/invitations/revoke` | owner, CSRF | Single-use link, 1-168 hours (default 72), role Developer or QA, shared rooms only, at most 50 open. |
+| `POST /api/invitations/lookup`, `/passkey/options`, `/passkey/complete`, `GET /api/invitations/oidc/start` | none | The invitee names themselves and registers a passkey or signs in with single sign-on. |
+| `GET /api/oidc/login`, `GET /api/oidc/link` (session), `GET /api/oidc/callback` | none / session | Single sign-on sign-in and linking; the callback alone accepts a cross-site navigation. |
+
+Flags `passkeySignIn`, `oidcSignIn` and `memberInvitations` default on for hosted workspaces
+and off otherwise; an explicit owner setting always wins. Operator settings for single
+sign-on: `COMMONROOM_OIDC_ISSUER` (https, DNS host), `COMMONROOM_OIDC_CLIENT_ID`,
+`COMMONROOM_OIDC_CLIENT_SECRET` or `COMMONROOM_OIDC_CLIENT_SECRET_FILE` (private file) and
+optional `COMMONROOM_OIDC_NAME`; the provider must allow the redirect
+`<workspace origin>/api/oidc/callback` for every workspace host.
+
 ## Output
 
 Authorized state views, accepted mutations or explicit authentication/permission failures.
@@ -81,6 +100,23 @@ The owner then checks saved credentials separately from actual provider access.
 Successful dialogs hide Start/Check sign-in, show Done, and ignore stale status
 responses that would otherwise overwrite completion. Claude password entry and
 approval remain on the provider website; no custom token exchange is implemented.
+
+Passkey and single sign-on verification uses only the standard library (`internal/webauthn`,
+`internal/oidc`). Passkeys: `none` attestation only, ES256 or RS256 (RSA 2048-4096 bits),
+user presence and verification required, exact origin and relying-party id (the workspace
+host), single-use challenges bound to one purpose that expire after 5 minutes, a signature
+counter that may not go backwards, and cross-origin or embedded use refused. CBOR input is
+bounded (definite lengths, depth 8, 64 items, no tags or floats). Single sign-on: authorization
+code with PKCE and nonce; ID tokens must be RS256 or ES256 with matching issuer, audience,
+authorized party, expiry (60 seconds of skew), not-before and nonce; unknown keys trigger at most
+one key-set refresh a minute; redirects from the provider are never followed; identities link by
+issuer and subject, never email, and one identity belongs to one account. Each flow is bound to
+its browser by a Lax cookie scoped to `/api/oidc`, and its state is single use and expires after
+10 minutes. Invitation secrets are 256-bit random values stored only as a SHA-256 hash; every
+refusal is the same 404; failures share the key-file sign-in budget (5 a minute); redemption
+creates the member, records the credential or link and spends the invitation in one atomic batch.
+A new session replaces any session the browser presented. Unused invitations count towards the
+workspace member limit.
 
 ## Properties and state changes
 

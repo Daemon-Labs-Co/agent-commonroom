@@ -399,3 +399,11 @@ nav .nav-signout{font-size:12px;color:var(--muted);text-align:left}
 .team-menu-items{position:absolute;right:0;top:calc(100% + 6px);z-index:20;display:flex;flex-direction:column;gap:6px;min-width:230px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(20,30,25,.12)}
 .team-menu-items button{width:100%;text-align:left}
 @media (max-width:700px){.team-menu-items{right:auto;left:0}}
+
+/* Sign-in methods and invitations (identity.js). */
+.identity-signin { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+.identity-signin .actions { display:flex; gap:8px; flex-wrap:wrap; }
+.identity-signin a.button, .identity-card a.button { display:inline-flex; align-items:center; padding:7px 12px; border:1px solid #dce3db; border-radius:7px; text-decoration:none; color:#33483b; background:white; }
+.id-list { list-style:none; padding:0; margin:8px 0; }
+.id-list li { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); }
+#invite-link { width:100%; max-width:560px; font-family:monospace; }

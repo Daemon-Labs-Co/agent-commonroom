@@ -215,7 +215,7 @@ func (s *server) taskDispatch(w http.ResponseWriter, r *http.Request) {
 		operationError(w, err)
 		return
 	}
-	s.active[p.ID] = true
+	s.setActive(p.ID)
 	definitionEpoch := 0
 	if execution != nil {
 		definitionEpoch = st.TaskDefinitionEpoch

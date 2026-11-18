@@ -168,6 +168,10 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 				}
 			}
 			st.ManagedJobs[job.JobID] = job
+		case "invitation.created", "invitation.revoked", "invitation.redeemed", "actor.credential.added", "actor.credential.used", "actor.credential.removed", "actor.oidc.linked", "actor.oidc.unlinked":
+			if err := projectIdentityEvent(&st, kind, data); err != nil {
+				return st, err
+			}
 		case "actor.chat_style.updated":
 			if err := projectChatStyle(&st, data); err != nil {
 				return st, err
@@ -242,6 +246,7 @@ func (s *server) load(ctx context.Context) (room.State, error) {
 					v.HelpDisplay = a.HelpDisplay
 					v.PhotoSize = a.PhotoSize
 					v.ChatStyle, v.HighlightedAgents = a.ChatStyle, a.HighlightedAgents
+					v.Credentials, v.OIDCLinks = a.Credentials, a.OIDCLinks
 					st.Actors[i] = v
 					found = true
 				}

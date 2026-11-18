@@ -35,6 +35,10 @@ type ownerAuth struct {
 	window                 time.Time
 	port                   string
 	publicOrigin           string
+	// Cookie names. A hosted installation uses the __Host- prefix so a sibling workspace
+	// cannot plant a cookie for this one (cookie tossing): browsers refuse a __Host- cookie
+	// that sets a Domain, and only the exact host can set it.
+	sessionCookie, oidcCookie, oidcCookiePath string
 }
 
 // The local bootstrap code is never served through HTTP or included in audit payloads.
@@ -77,7 +81,7 @@ func newOwnerAuth(key, addr string) (*ownerAuth, error) {
 	if ip == nil || !ip.IsLoopback() {
 		return nil, fmt.Errorf("only numeric loopback LISTEN_ADDR is supported until secure remote authentication is implemented")
 	}
-	return &ownerAuth{key: key, port: port, sessions: map[string]ownerSession{}, challenges: map[string]ownerChallenge{}}, nil
+	return &ownerAuth{key: key, port: port, sessions: map[string]ownerSession{}, challenges: map[string]ownerChallenge{}, sessionCookie: "commonroom_session", oidcCookie: "commonroom_oidc", oidcCookiePath: "/api/oidc"}, nil
 }
 
 // configurePublicOrigin admits one operator-configured HTTPS origin behind a
@@ -123,7 +127,7 @@ func (a *ownerAuth) trustedRequest(r *http.Request) bool {
 	return true
 }
 func (a *ownerAuth) session(r *http.Request) (ownerSession, bool) {
-	cookie, e := r.Cookie("commonroom_session")
+	cookie, e := r.Cookie(a.sessionCookie)
 	if e != nil {
 		return ownerSession{}, false
 	}
@@ -146,11 +150,11 @@ func (s *server) validCSRF(r *http.Request) bool {
 }
 func (a *ownerAuth) protect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !a.trustedRequest(r) {
+		if !a.trustedRequest(r) && !a.trustedOIDCReturn(r) {
 			http.Error(w, "Untrusted request origin or host", 403)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api/login" && r.URL.Path != "/api/challenge" && r.URL.Path != "/api/setup-status" {
+		if strings.HasPrefix(r.URL.Path, "/api/") && !publicAuthPath(r.URL.Path) {
 			if _, ok := a.session(r); !ok {
 				http.Error(w, "Sign in required", 401)
 				return
@@ -229,6 +233,17 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	session, ok := a.startSessionLocked(w, r, actorID, now)
+	if !ok {
+		return
+	}
+	reply(w, map[string]any{"csrf": session.CSRF, "actorId": actorID, "actorType": "human", "keySetupPending": a.setupPending && actorID == ownerID})
+}
+
+// startSessionLocked issues a new session cookie for an already authenticated actor,
+// replacing any session the browser presented. The caller holds a.mu. On failure it
+// writes the refusal and returns false.
+func (a *ownerAuth) startSessionLocked(w http.ResponseWriter, r *http.Request, actorID string, now time.Time) (ownerSession, bool) {
 	// Keep the memory/session count bounded and expire old sessions.
 	for token, session := range a.sessions {
 		if !now.Before(session.Expires) {
@@ -236,7 +251,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	previous := map[string]ownerSession{}
-	if old, e := r.Cookie("commonroom_session"); e == nil {
+	if old, e := r.Cookie(a.sessionCookie); e == nil {
 		for _, key := range []string{old.Value, sessionDigest(old.Value)} {
 			if existing, ok := a.sessions[key]; ok {
 				previous[key] = existing
@@ -245,7 +260,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(a.sessions)-len(previous) >= 32 {
 		http.Error(w, "Too many active sessions; sign out of another session or wait for expiry", 429)
-		return
+		return ownerSession{}, false
 	}
 	for key := range previous {
 		delete(a.sessions, key)
@@ -259,10 +274,10 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 			a.sessions[key] = value
 		}
 		http.Error(w, "Unable to save private session", 503)
-		return
+		return ownerSession{}, false
 	}
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: token, Path: "/", HttpOnly: true, Secure: a.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
-	reply(w, map[string]any{"csrf": session.CSRF, "actorId": actorID, "actorType": "human", "keySetupPending": a.setupPending && actorID == ownerID})
+	http.SetCookie(w, &http.Cookie{Name: a.sessionCookie, Value: token, Path: "/", HttpOnly: true, Secure: a.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: 8 * 60 * 60})
+	return session, true
 }
 func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -273,7 +288,7 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request token", 403)
 		return
 	}
-	if cookie, e := r.Cookie("commonroom_session"); e == nil {
+	if cookie, e := r.Cookie(s.auth.sessionCookie); e == nil {
 		s.auth.mu.Lock()
 		previous := s.auth.sessions[cookie.Value]
 		hashed, hasHash := s.auth.sessions[sessionDigest(cookie.Value)]
@@ -291,6 +306,41 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 		}
 		s.auth.mu.Unlock()
 	}
-	http.SetCookie(w, &http.Cookie{Name: "commonroom_session", Value: "", Path: "/", HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: s.auth.sessionCookie, Value: "", Path: "/", HttpOnly: true, Secure: s.auth.publicOrigin != "", SameSite: http.SameSiteStrictMode, MaxAge: -1})
 	reply(w, map[string]bool{"signedOut": true})
+}
+
+// publicAuthPath lists the API paths reachable without a session: the original sign-in
+// endpoints and the identity endpoints for passkey and single sign-on sign-in and for
+// redeeming an invitation. Each enforces its own checks.
+func publicAuthPath(path string) bool {
+	switch path {
+	case "/api/login", "/api/challenge", "/api/setup-status", "/api/auth/methods",
+		"/api/webauthn/login/options", "/api/webauthn/login/verify",
+		"/api/invitations/lookup", "/api/invitations/passkey/options", "/api/invitations/passkey/complete", "/api/invitations/oidc/start",
+		"/api/oidc/login", "/api/oidc/callback":
+		return true
+	}
+	return false
+}
+
+// trustedOIDCReturn admits the browser's top-level navigation back from the identity
+// provider: it is cross-site by nature, so only this one GET skips the cross-site check.
+// It still must arrive on this workspace's own host, and its state parameter, bound to
+// a server-side record, is what defends it.
+func (a *ownerAuth) trustedOIDCReturn(r *http.Request) bool {
+	if r.Method != "GET" || r.URL.Path != "/api/oidc/callback" {
+		return false
+	}
+	clone := r.Clone(r.Context())
+	clone.Header = r.Header.Clone()
+	clone.Header.Del("Sec-Fetch-Site")
+	clone.Header.Del("Origin")
+	return a.trustedRequest(clone)
+}
+
+// useHostCookies switches to __Host- cookies: Secure, Path=/ and no Domain. It is applied to
+// hosted workspaces, which always sit behind HTTPS on their own host name.
+func (a *ownerAuth) useHostCookies() {
+	a.sessionCookie, a.oidcCookie, a.oidcCookiePath = "__Host-commonroom_session", "__Host-commonroom_oidc", "/"
 }

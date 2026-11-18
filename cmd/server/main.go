@@ -6,10 +6,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
-	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -85,131 +82,58 @@ func main() {
 	if err = verifyRuntimeDatabaseStartup(ctx, db.Ping, db); err != nil {
 		log.Fatal(err)
 	}
+	storage, err := verifyWorkspaceStorage(ctx, db)
+	if err != nil {
+		log.Fatal(err)
+	}
 	cancelStartup()
-	s := &server{dailyTurnLimit: dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
-	s.extensionRegistry = os.Getenv("COMMONROOM_EXTENSIONS_FILE")
-	mux := http.NewServeMux()
-	mux.HandleFunc("/instance-label.js", instanceLabel)
-	mux.HandleFunc("/api/members", s.members)
-	mux.HandleFunc("/api/login", s.login)
-	mux.HandleFunc("/api/setup-status", s.setupStatus)
-	mux.HandleFunc("/api/challenge", s.challenge)
-	mux.HandleFunc("/api/owner-key/download", s.downloadOwnerKey)
-	mux.HandleFunc("/api/logout", s.logout)
-	mux.HandleFunc("/api/session", s.session)
-	mux.HandleFunc("/api/company/organization", s.organization)
-	mux.HandleFunc("/api/state", s.state)
-	mux.HandleFunc("/api/events", s.events)
-	mux.HandleFunc("/api/integrity", s.integrity)
-	mux.HandleFunc("/api/agent-safety", s.agentSafety)
-	mux.HandleFunc("/api/agents", s.agents)
-	mux.HandleFunc("/ext/v1/", s.extensionAPI)
-	mux.HandleFunc("/api/task-dispatch", s.taskDispatch)
-	mux.HandleFunc("/api/task-executions", s.taskExecutions)
-	mux.HandleFunc("/api/task-definition-history", s.taskDefinitionHistory)
-	mux.HandleFunc("/api/task-input-sources", s.taskInputSources)
-	mux.HandleFunc("/api/task-acceptance", s.taskAcceptance)
-	mux.HandleFunc("/api/task-progress", s.taskProgress)
-	mux.HandleFunc("/api/task-repository-links", s.taskRepositoryLinks)
-	mux.HandleFunc("/api/governance", s.governance)
-	mux.HandleFunc("/api/task-proposals", s.taskProposals)
-	mux.HandleFunc("/api/task-delegations", s.taskDelegations)
-	mux.HandleFunc("/api/room-outcome-review", s.roomOutcomeReview)
-	mux.HandleFunc("/api/workflow-runs", s.workflowRuns)
-	mux.HandleFunc("/api/agent-recovery", s.agentRecovery)
-	mux.HandleFunc("/api/job-diagnostics", s.jobDiagnostics)
-	mux.HandleFunc("/api/job-recovery", s.jobRecovery)
-	mux.HandleFunc("/api/workspace-disposal", s.workspaceDisposal)
-	mux.HandleFunc("/api/provider-auth", s.providerAuth)
-	mux.HandleFunc("/api/connections/test", s.connectionTest)
-	editorEnabled, err := connectionEditorEnabled()
-	if err != nil {
-		log.Fatal("COMMONROOM_CONNECTION_EDITOR must be true or false")
-	}
-	s.templatesEnabled, err = workflowTemplatesEnabled()
-	if err != nil {
-		log.Fatal("COMMONROOM_WORKFLOW_TEMPLATES must be true or false")
-	}
-	safetyUI, err := agentSafetyUIEnabled()
-	if err != nil {
-		log.Fatal("COMMONROOM_AGENT_SAFETY_UI must be true or false")
-	}
-	s.safetyUIDefault = safetyUI
-	mux.Handle("/organization-chart.js", s.roomPresentationScript("web", "organization-chart.js", "companyOrgChart"))
-	mux.Handle("/viewport-alignment.js", s.roomPresentationScript("web", "viewport-alignment.js", "topAlignedViews"))
-	mux.Handle("/overlay-layout.js", s.roomPresentationScript("web", "overlay-layout.js", "compactProfileOverlays"))
-	mux.Handle("/human-profile-details.js", s.roomPresentationScript("web", "human-profile-details.js", "humanProfileDetails"))
-	mux.Handle("/room-sections.js", s.roomPresentationScript("web", "room-sections.js", "roomSections"))
-	mux.Handle("/settings-tabs.js", s.roomPresentationScript("web", "settings-tabs.js", "settingsTabs"))
-	mux.Handle("/history-presentation.js", s.roomPresentationScript("web", "history-presentation.js", "historyRefinement"))
-	mux.Handle("/human-attention.js", s.roomPresentationScript("web", "human-attention.js", "humanAttention"))
-	mux.Handle("/squad-menus.js", s.roomPresentationScript("web", "squad-menus.js", "squadMenuLayout"))
-	mux.Handle("/agent-status.js", s.roomPresentationScript("web", "agent-status.js", "agentStatusDetails"))
-	mux.Handle("/agent-recovery.js", s.roomPresentationScript("web", "agent-recovery.js", "agentRecovery"))
-	mux.Handle("/job-diagnostics.js", s.roomPresentationScript("web", "job-diagnostics.js", "jobDiagnostics"))
-	mux.Handle("/background-work.js", s.roomPresentationScript("web", "background-work.js", "agentBackgroundWork"))
-	mux.Handle("/room-viewport.js", s.roomPresentationScript("web", "room-viewport.js", "roomViewportFit"))
-	mux.Handle("/feature-switches.js", s.roomPresentationScript("web", "feature-switches.js", "featureFlagSwitches"))
-	mux.Handle("/room-message-order.js", s.roomPresentationScript("web", "room-message-order.js", "newestMessagesFirst"))
-	mux.Handle("/history-date-groups.js", s.roomPresentationScript("web", "history-date-groups.js", "historyDateGroups"))
-	mux.Handle("/feature-flag-tabs.js", s.roomPresentationScript("web", "feature-flag-tabs.js", "featureFlagTabs"))
-	mux.Handle("/help-icons.js", s.roomPresentationScript("web", "help-icons.js", "standardHelpIcons"))
-	mux.Handle("/squad-profiles.js", s.roomPresentationScript("web", "squad-profiles.js", "squadProfileActions"))
-	mux.Handle("/agent-invitation.js", s.roomPresentationScript("web", "agent-invitation.js", "agentInvitationLayout"))
-	mux.Handle("/agent-safety.js", s.agentSafetyScript("web"))
-	mux.Handle("/workflow-templates.js", optionalScriptHandler(s.templatesEnabled, "web", "workflow-templates.js"))
-	mux.Handle("/connection-editor.js", connectionEditorHandler(editorEnabled, "web"))
-	mux.Handle("/help/", documentationHandler("."))
-	mux.Handle("/", staticHandler("web"))
-	addr := os.Getenv("LISTEN_ADDR")
-	if addr == "" {
-		addr = "127.0.0.1:8787"
-	}
-	keyPath := os.Getenv("OWNER_KEY_FILE")
-	if keyPath == "" {
-		keyPath = ".data/owner-key"
-	}
-	s.integrityStopPath = filepath.Join(filepath.Dir(keyPath), "integrity-stop")
-	s.restoreIntegrityStop()
-	key, keyExpires, err := loadSetupCode(keyPath, os.Getenv, time.Now())
+	tenancy, err := loadTenancySettings(os.Getenv)
 	if err != nil {
 		log.Fatal(err)
 	}
-	s.auth, err = newOwnerAuth(key, addr)
+	if tenancy.Mode == tenancyMulti && !storage.Present {
+		log.Fatal("COMMONROOM_TENANCY=multi requires workspace storage: run --migrate (migrations/002.sql and 003.sql) first")
+	}
+	settings, err := loadPlatformSettings(os.Getenv, dailyTurnLimit)
 	if err != nil {
 		log.Fatal(err)
 	}
-	s.auth.keyExpires = keyExpires
-	if err := s.auth.configurePublicOrigin(os.Getenv("COMMONROOM_PUBLIC_ORIGIN")); err != nil {
-		log.Fatal(err)
-	}
-	if err = s.prepareOwnerIdentity(context.Background(), keyPath); err != nil {
-		log.Fatal(err)
-	}
-	persistentSessions, err := persistentHumanSessionsEnabled()
-	if err != nil {
-		log.Fatal("COMMONROOM_PERSISTENT_SESSIONS must be true or false")
-	}
-	if err = s.auth.configureSessionPersistence(filepath.Join(filepath.Dir(keyPath), "human-sessions.json"), persistentSessions); err != nil {
-		log.Fatal("Private session storage unavailable: ", err)
-	}
-	log.Printf("Owner setup code file: %s (keep private)", keyPath)
-	log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", addr)
-	s.checkIntegrityNow()
-	if os.Getenv("COMMONROOM_REMOTE_WORKER") == "true" || os.Getenv("COMMONROOM_SERVER_WORKER") == "true" {
-		s.verifyWorkerAtStartup(context.Background(), approvedWorkerEndpoint())
-	}
-	go s.watchIntegrity(context.Background(), 30*time.Second)
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
-		if strings.HasPrefix(r.URL.Path, "/help/") {
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'self'")
+	if tenancy.Mode == tenancyMulti && settings.hostedExecution {
+		if err = validateHostedExecution(os.Getenv); err != nil {
+			log.Fatal(err)
 		}
-		if strings.HasPrefix(r.URL.Path, "/api/") {
-			w.Header().Set("Cache-Control", "no-store")
+		log.Print("Hosted agent execution is ENABLED: chat-only agents run on the configured worker for every workspace, within per-workspace and installation limits")
+	}
+	// With workspace storage in place every query runs inside a transaction scoped to
+	// one workspace; before the migration the previous layout is served unchanged.
+	workspaceDatabase := func(id string) (eventDatabase, error) {
+		if !storage.Present {
+			return db, nil
 		}
-		s.auth.protect(s.actorGuard(mux)).ServeHTTP(w, r)
+		return newScopedDatabase(db, id)
+	}
+	host := newWorkspaceHost(tenancy, databaseWorkspaceRegistry{db: db}, func(id string) (*workspaceRuntime, error) {
+		scoped, scopeErr := workspaceDatabase(id)
+		if scopeErr != nil {
+			return nil, scopeErr
+		}
+		return newWorkspaceRuntime(settings, tenancy, scoped, id)
 	})
-	log.Fatal(newHTTPServer(addr, h).ListenAndServe())
+	if tenancy.Mode == tenancyMulti {
+		keyFile := os.Getenv("COMMONROOM_PLATFORM_KEYS_FILE")
+		host.platform = &platformAPI{tenancy: tenancy, store: databaseWorkspaceRegistry{db: db}, host: host, keyFile: keyFile, now: time.Now}
+		if keyFile == "" {
+			log.Print("COMMONROOM_PLATFORM_KEYS_FILE is not set: the platform API at platform." + tenancy.Domain + " refuses every request")
+		}
+	}
+	if tenancy.Mode == tenancySingle {
+		if err = host.preload(); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Commonroom: http://%s (local audit protection; external immutable archive not configured)", settings.listenAddr)
+	} else {
+		log.Printf("Commonroom: hosting workspaces at *.%s behind the HTTPS proxy on %s (hosted agent execution is off unless COMMONROOM_HOSTED_EXECUTION=true)", tenancy.Domain, settings.listenAddr)
+	}
+	h := host
+	log.Fatal(newHTTPServer(settings.listenAddr, h).ListenAndServe())
 }

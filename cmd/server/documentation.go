@@ -27,6 +27,7 @@ var documentationCatalog = []documentationEntry{
 	{"user-results", "Inspect outputs and accept work", "docs/user/results.md"},
 	{"user-rooms", "Rooms and defined outcomes", "docs/user/rooms.md"},
 	{"user-settings", "Settings, history and sharing", "docs/user/settings.md"},
+	{"user-sign-in", "Sign in, passkeys and invitations", "docs/user/sign-in.md"},
 	{"user-storage", "Storage limits and retained work", "docs/user/storage.md"},
 	{"user-tasks", "Create and dispatch a task", "docs/user/tasks.md"},
 	{"user-workflows", "Run a workflow and human gates", "docs/user/workflows.md"},
@@ -161,7 +162,7 @@ func documentationHandler(root string) http.Handler {
 					break
 				}
 			}
-			for _, asset := range []string{"user-claude-login.svg", "user-provider-login.svg", "user-agents.svg", "user-getting-started.svg", "user-recovery.svg", "user-results.svg", "user-rooms.svg", "user-settings.svg", "user-storage.svg", "user-tasks.svg", "user-workflows.svg"} {
+			for _, asset := range []string{"user-claude-login.svg", "user-provider-login.svg", "user-agents.svg", "user-getting-started.svg", "user-recovery.svg", "user-results.svg", "user-rooms.svg", "user-settings.svg", "user-sign-in.svg", "user-storage.svg", "user-tasks.svg", "user-workflows.svg"} {
 				if r.URL.Path == "/help/image/"+asset {
 					name, contentType = "docs/images/"+asset, "image/svg+xml"
 				}

@@ -14,7 +14,7 @@ Started loopback controller, offline validation result, or nonzero refusal. Offl
 
 ## Functionality
 
---migrate performs explicit schema migration. --check-reader-profiles and --check-capture-profiles read private policies/identities before controller or DB startup. --check-worker-storage reads pre-provisioned quota observations. Invalid command intent refuses rather than starting the controller.
+--migrate performs explicit schema migration by applying every `migrations/NNN.sql` in order; files are idempotent, `002.sql` adds workspace storage with row-level security (the serving role must not own the table or bypass row-level security) and `003.sql` adds the workspace registry (the runtime grants file gives the serving role SELECT, INSERT and UPDATE on it, never DELETE). `COMMONROOM_TENANCY` (`single` default, or `multi` with `COMMONROOM_WORKSPACE_DOMAIN`) is read at startup; `multi` refuses to start without workspace storage. --check-reader-profiles and --check-capture-profiles read private policies/identities before controller or DB startup. --check-worker-storage reads pre-provisioned quota observations. Invalid command intent refuses rather than starting the controller.
 
 Database setup uses one dedicated database with separate migration-owner and
 restricted runtime logins. Runtime grants apply only after migration, on a

@@ -612,7 +612,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 				s.mu.Unlock()
 				return
 			}
-			s.active[p.ID] = true
+			s.setActive(p.ID)
 			s.cancels[p.ID] = stop
 		}
 		s.mu.Unlock()
@@ -638,7 +638,7 @@ func (s *server) driveWorkflow(ctx context.Context, cancel context.CancelFunc, r
 		}
 		stop()
 		s.mu.Lock()
-		delete(s.active, p.ID)
+		s.clearActive(p.ID)
 		delete(s.cancels, p.ID)
 		current, loadErr := s.load(context.Background())
 		if loadErr != nil {

@@ -53,7 +53,7 @@ func canAccess(st room.State, actor, rid string) bool {
 }
 func (s *server) actorGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/api/login" || r.URL.Path == "/api/challenge" || r.URL.Path == "/api/setup-status" {
+		if !strings.HasPrefix(r.URL.Path, "/api/") || publicAuthPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -93,7 +93,7 @@ func (s *server) actorGuard(next http.Handler) http.Handler {
 		}
 		path := r.URL.Path
 		if actor != ownerID {
-			if path == "/api/members" || path == "/api/owner-key/download" || path == "/api/integrity" || path == "/api/events" && r.Method == "GET" {
+			if path == "/api/members" || path == "/api/invitations" || path == "/api/invitations/revoke" || path == "/api/owner-key/download" || path == "/api/integrity" || path == "/api/events" && r.Method == "GET" {
 				http.Error(w, "Owner permission required", 403)
 				return
 			}
@@ -126,14 +126,16 @@ func visibleState(st room.State, actor, rid string) room.State {
 		if actor == ownerID || a.ID == actor || canAccess(st, a.ID, rid) {
 			a.PublicKey = ""
 			if a.ID != actor {
-				// Chat display preferences are private to their owner.
+				// Display preferences and sign-in methods are private to their owner.
 				a.ChatStyle, a.HighlightedAgents = false, nil
+				a.Credentials, a.OIDCLinks = nil, nil
 			}
 			actors = append(actors, a)
 		}
 	}
 	st.Actors = actors
 	if actor != ownerID {
+		st.Invitations = nil
 		st.Organization = room.OrganizationChart{}
 		st.WorkflowRuns = nil
 		cs := []room.Connection{}
@@ -256,6 +258,16 @@ func (s *server) members(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if v.ID == "" {
+		humans := 0
+		for _, other := range st.Actors {
+			if other.Kind == "human" && other.ID != ownerID {
+				humans++
+			}
+		}
+		if msg := s.limitRefusal("members", humans); msg != "" {
+			http.Error(w, msg, http.StatusConflict)
+			return
+		}
 		block, _ := pem.Decode([]byte(v.PublicKey))
 		if block == nil {
 			http.Error(w, "Public key required", 400)

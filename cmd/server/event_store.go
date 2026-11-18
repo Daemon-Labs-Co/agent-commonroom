@@ -32,7 +32,7 @@ func (s *server) appendBatch(ctx context.Context, changes []auditChange) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(878701)"); err != nil {
+	if _, err = tx.Exec(ctx, appendLockSQL); err != nil {
 		return err
 	}
 	previous := ""

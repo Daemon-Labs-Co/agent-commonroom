@@ -149,6 +149,8 @@ check: test-race
 	node tests/help-preferences.test.cjs
 	node tests/first-owner-login.test.cjs
 	node tests/setup-link.test.cjs
+	node --check web/identity.js
+	node tests/identity-ui.test.cjs
 	node --check web/help-reader.js
 	node tests/help-reader.test.cjs
 

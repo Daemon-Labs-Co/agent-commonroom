@@ -214,7 +214,7 @@ func (s *server) agentInitiatedTurn(ctx context.Context, roomID, pid, instructio
 		s.mu.Unlock()
 		return "", "the turn could not be recorded"
 	}
-	s.active[p.ID] = true
+	s.setActive(p.ID)
 	turnCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	s.cancels[p.ID] = cancel
 	s.mu.Unlock()
