@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 )
 
 // Validate command intent before controller leases, configuration or DB startup.
@@ -18,6 +19,8 @@ func startupCommand(args []string, stdout, stderr io.Writer) (handled bool, code
 		return true, 2
 	}
 	switch args[0] {
+	case "--setup-link":
+		return true, setupLinkMain(args[1:], os.Getenv, stdout, stderr)
 	case "--check-capture-profiles":
 		return true, captureProfileCheckMain(args[1:], stdout, stderr)
 	case "--check-reader-profiles":
@@ -28,7 +31,7 @@ func startupCommand(args []string, stdout, stderr io.Writer) (handled bool, code
 		if len(args) != 1 {
 			return usage()
 		}
-		_, err := fmt.Fprintln(stdout, "Usage: commonroom [command]\nNo command: start the controller.\n--check-reader-profiles ABSOLUTE_PATH: offline private profile validation.\n--check-capture-profiles ABSOLUTE_PATH: offline private capture profile validation.\n--check-worker-storage ABSOLUTE_PATH: read-only local storage observations.\n--migrate: explicitly run database migration.\n--agent-worker: internal isolated worker protocol.\n--help: show this help without starting services.")
+		_, err := fmt.Fprintln(stdout, "Usage: commonroom [command]\nNo command: start the controller.\n--check-reader-profiles ABSOLUTE_PATH: offline private profile validation.\n--check-capture-profiles ABSOLUTE_PATH: offline private capture profile validation.\n--check-worker-storage ABSOLUTE_PATH: read-only local storage observations.\n--setup-link: print the link that claims a new installation.\n--migrate: explicitly run database migration.\n--agent-worker: internal isolated worker protocol.\n--help: show this help without starting services.")
 		if err != nil {
 			return true, 1
 		}

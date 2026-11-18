@@ -171,7 +171,7 @@ func main() {
 	}
 	s.integrityStopPath = filepath.Join(filepath.Dir(keyPath), "integrity-stop")
 	s.restoreIntegrityStop()
-	key, err := loadOwnerKey(keyPath)
+	key, keyExpires, err := loadSetupCode(keyPath, os.Getenv, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -179,6 +179,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	s.auth.keyExpires = keyExpires
 	if err := s.auth.configurePublicOrigin(os.Getenv("COMMONROOM_PUBLIC_ORIGIN")); err != nil {
 		log.Fatal(err)
 	}

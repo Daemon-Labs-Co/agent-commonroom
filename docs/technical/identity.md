@@ -34,10 +34,26 @@ key file refuses automatic replacement; pending setup with other human accounts
 also refuses. A registered database public key must match the local key. Private
 PEM bytes and the bootstrap code never enter event records.
 
-GET /api/setup-status exposes only a no-store setupRequired boolean, under normal
-Host/Origin checks. It grants no session or setup authority. First-owner setup
-requires the existing private bootstrap code, followed by private-key download and
-proof of possession. Returning-user PEM failures do not initiate registration.
+GET /api/setup-status exposes only no-store `setupRequired` and `setupCodeExpired`
+booleans, under normal Host/Origin checks. It grants no session or setup authority.
+First-owner setup requires the private bootstrap code, followed by private-key
+download and proof of possession. Returning-user PEM failures do not initiate
+registration.
+
+The bootstrap code is the generated private file named by `OWNER_KEY_FILE`
+(default `.data/owner-key`, no expiry) unless the operator sets
+`COMMONROOM_SETUP_CODE` to exactly 64 lowercase hexadecimal characters. A supplied
+code is never written to a file, expires `COMMONROOM_SETUP_CODE_TTL_HOURS` hours
+after process start (whole hours, 1 to 168, default 24) and is refused at sign-in
+once expired. Invalid values stop startup with a message that does not echo them.
+Either code is cleared at startup once the owner private key has been claimed, so
+it cannot act as a standing owner password. `commonroom --setup-link` prints
+`<origin>/#setup=<code>` using `COMMONROOM_PUBLIC_ORIGIN` or `LISTEN_ADDR`; it
+refuses when no setup is pending. The browser reads the code from the URL fragment,
+fills the field without submitting, and removes the fragment from the address bar;
+fragments are never sent to the server or proxies. Both variables are operator
+process configuration read at startup; unset keeps the previous behavior. They do
+not bypass authentication, the empty-history check or audit integrity.
 
 Enforce actor/room checks on the server. Feature flags retain their individual defaults and disabled-state behavior. Provider credentials remain outside model tools. Paid organization/multi-user/billing placement does not make security checks optional.
 

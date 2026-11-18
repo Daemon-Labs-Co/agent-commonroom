@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"time"
 )
 
 // prepareOwnerIdentity never treats missing key files on an established database
@@ -52,7 +53,8 @@ func (s *server) setupStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auth.mu.Lock()
 	pending := s.auth.setupPending
+	expired := pending && s.auth.key != "" && !s.auth.keyExpires.IsZero() && !time.Now().Before(s.auth.keyExpires)
 	s.auth.mu.Unlock()
 	w.Header().Set("Cache-Control", "no-store")
-	reply(w, map[string]bool{"setupRequired": pending})
+	reply(w, map[string]bool{"setupRequired": pending, "setupCodeExpired": expired})
 }
