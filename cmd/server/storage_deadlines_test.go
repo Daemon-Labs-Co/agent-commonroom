@@ -61,7 +61,7 @@ func (r stalledRows) Err() error { return r.ctx.Err() }
 type stalledTransaction struct{ pgx.Tx }
 
 func (tx stalledTransaction) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
-	if sql != "SELECT pg_advisory_xact_lock(878701)" {
+	if sql != appendLockSQL {
 		<-ctx.Done()
 		return pgconn.CommandTag{}, ctx.Err()
 	}

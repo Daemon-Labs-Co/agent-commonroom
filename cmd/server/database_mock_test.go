@@ -27,6 +27,7 @@ type mockDB struct {
 	t                 *testing.T
 	mu                sync.Mutex
 	events            []mockEvent
+	workspaceStorage  []any
 	failAt            string
 	failInsertAt      int
 	streamErr         error
@@ -92,6 +93,12 @@ func (d *mockDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, 
 	events := d.snapshot()
 	values := [][]any{}
 	switch sql {
+	case workspaceStorageSQL:
+		row := d.workspaceStorage
+		if row == nil {
+			row = []any{false, false, false, false}
+		}
+		values = append(values, row)
 	case runtimePrivilegeSQL:
 		row := d.runtimePrivileges
 		if row == nil {
@@ -159,7 +166,7 @@ func (tx *mockTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.Com
 		return pgconn.CommandTag{}, err
 	}
 	switch sql {
-	case "SELECT pg_advisory_xact_lock(878701)":
+	case appendLockSQL:
 		if tx.db.failAt == "lock" {
 			return pgconn.CommandTag{}, errors.New("mock lock failure")
 		}

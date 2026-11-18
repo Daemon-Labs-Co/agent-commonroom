@@ -1,6 +1,7 @@
 # Workspaces: many customers in one installation
 
-Design record; stages are implemented in order, each default-off. See ADRs
+Design record; stages are implemented in order, each default-off. Stage 1 (storage) is
+implemented: see [events and persistence](persistence.md). See ADRs
 [0004](archive/adr/0004-many-workspaces-in-one-installation.md),
 [0005](archive/adr/0005-workspace-chosen-by-host-name.md),
 [0006](archive/adr/0006-passkeys-and-oidc-without-new-dependencies.md) and

@@ -85,8 +85,22 @@ func main() {
 	if err = verifyRuntimeDatabaseStartup(ctx, db.Ping, db); err != nil {
 		log.Fatal(err)
 	}
+	storage, err := verifyWorkspaceStorage(ctx, db)
+	if err != nil {
+		log.Fatal(err)
+	}
 	cancelStartup()
-	s := &server{dailyTurnLimit: dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
+	// With workspace storage in place every query runs inside a transaction scoped to
+	// this workspace; before the migration the previous layout is served unchanged.
+	var eventDB eventDatabase = db
+	if storage.Present {
+		scoped, scopeErr := newScopedDatabase(db, defaultWorkspaceID)
+		if scopeErr != nil {
+			log.Fatal(scopeErr)
+		}
+		eventDB = scoped
+	}
+	s := &server{dailyTurnLimit: dailyTurnLimit, db: eventDB, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}}
 	s.extensionRegistry = os.Getenv("COMMONROOM_EXTENSIONS_FILE")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/instance-label.js", instanceLabel)

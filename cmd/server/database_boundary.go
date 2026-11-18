@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -79,6 +81,58 @@ func validateRuntimeDatabase(ctx context.Context, db catalogQuerier) error {
 	return nil
 }
 
+// workspaceStorageSQL reports whether the workspace migration is applied, whether
+// row-level security is enabled on events, and whether the serving role could
+// bypass it (superuser, BYPASSRLS or owner of the table).
+const workspaceStorageSQL = `SELECT
+ EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='events' AND column_name='workspace_id'),
+ COALESCE((SELECT relrowsecurity FROM pg_class WHERE oid='public.events'::regclass), false),
+ COALESCE((SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname=current_user), true),
+ COALESCE((SELECT pg_has_role(current_user, relowner, 'USAGE') FROM pg_class WHERE oid='public.events'::regclass), true)`
+
+type workspaceStorage struct{ Present, Protected bool }
+
+// verifyWorkspaceStorage fails closed: once the workspace column exists the
+// database must actually enforce isolation against this role. Before the
+// migration the previous single-history layout is still served unchanged.
+func verifyWorkspaceStorage(ctx context.Context, db catalogQuerier) (workspaceStorage, error) {
+	rows, err := db.Query(ctx, workspaceStorageSQL)
+	if err != nil {
+		return workspaceStorage{}, errors.New("workspace storage could not be verified")
+	}
+	defer rows.Close()
+	var present, rls, bypass, owner bool
+	if !rows.Next() || rows.Scan(&present, &rls, &bypass, &owner) != nil || rows.Err() != nil {
+		return workspaceStorage{}, errors.New("workspace storage could not be verified")
+	}
+	if !present {
+		return workspaceStorage{}, nil
+	}
+	if !rls || bypass || owner {
+		return workspaceStorage{Present: true}, errors.New("workspace storage is not protected: enable row-level security on events and serve with a role that is not its owner and has no BYPASSRLS or SUPERUSER")
+	}
+	return workspaceStorage{Present: true, Protected: true}, nil
+}
+
+// applyMigrations runs every NNN.sql in dir in name order. Files are idempotent.
+func applyMigrations(ctx context.Context, dir string, exec func(context.Context, string) error) error {
+	names, err := filepath.Glob(filepath.Join(dir, "[0-9][0-9][0-9].sql"))
+	if err != nil || len(names) == 0 {
+		return errors.New("migration source unavailable")
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			return errors.New("migration source unavailable")
+		}
+		if err = exec(ctx, string(raw)); err != nil {
+			return errors.New("migration failed; inspect database administration logs")
+		}
+	}
+	return nil
+}
+
 // runDatabaseMigration uses a distinct administrator-supplied URL. It never
 // falls back to runtime credentials, and emits no credential-bearing errors.
 func runDatabaseMigration(ctx context.Context) error {
@@ -91,12 +145,11 @@ func runDatabaseMigration(ctx context.Context) error {
 		return errors.New("migration database configuration unavailable")
 	}
 	defer db.Close()
-	raw, err := os.ReadFile("migrations/001.sql")
-	if err != nil {
-		return errors.New("migration source unavailable")
-	}
-	if _, err = db.Exec(ctx, string(raw)); err != nil {
-		return errors.New("migration failed; inspect database administration logs")
+	if err = applyMigrations(ctx, "migrations", func(ctx context.Context, sql string) error {
+		_, err := db.Exec(ctx, sql)
+		return err
+	}); err != nil {
+		return err
 	}
 	return nil
 }
