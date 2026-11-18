@@ -12,9 +12,12 @@ TEST_PARALLEL ?= 8
 
 test:
 	go test -parallel $(TEST_PARALLEL) -timeout 90s ./...
+	# The same controller tests again with the incremental projection cache forced on.
+	COMMONROOM_TEST_PROJECTION_CACHE=1 go test -parallel $(TEST_PARALLEL) -timeout 90s ./cmd/server
 
 test-race:
 	go test -race -parallel $(TEST_PARALLEL) -timeout 90s ./...
+	COMMONROOM_TEST_PROJECTION_CACHE=1 go test -race -parallel $(TEST_PARALLEL) -timeout 90s ./cmd/server
 
 # Pending cases are visible here; this does not prove release readiness.
 test-p0-plan:

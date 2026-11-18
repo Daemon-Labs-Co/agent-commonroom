@@ -56,7 +56,7 @@ func (a *ownerAuth) configureSessionPersistence(path string, enabled bool) error
 		return err
 	}
 	var saved savedHumanSessions
-	if json.Unmarshal(raw, &saved) != nil || saved.Version != 1 || len(saved.Sessions) > 32 {
+	if json.Unmarshal(raw, &saved) != nil || saved.Version != 1 || len(saved.Sessions) > maxSessions {
 		return errors.New("Invalid private session store")
 	}
 	if saved.Identity != a.sessionIdentity() {

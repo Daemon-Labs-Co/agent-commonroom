@@ -1,0 +1,741 @@
+package main
+
+// referenceLoad is the original, unrefactored replay, frozen as the oracle that the
+// reducer-based projection and the incremental cache are compared against (see
+// projection_equivalence_test.go). It is a verbatim copy of the function as it stood before
+// the projection was split into reducers; the only change is that the clock is a parameter,
+// so two replays can be compared exactly. Do not "tidy" it: its value is that it is different
+// code from the production path.
+
+import (
+	"agentroom/internal/room"
+	"agentroom/internal/toolbroker"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+)
+
+func (s *server) referenceLoad(ctx context.Context, now time.Time) (room.State, error) {
+	ctx, cancel := s.storageContext(ctx)
+	defer cancel()
+	referencedAgentRooms := map[string]bool{}
+	activities := map[string]string{}
+	background := map[string][]room.BackgroundActivity{}
+	activityStarts := map[string]time.Time{}
+	failures := map[string]string{}
+	acknowledged := map[string]string{}
+	objectionResolutions := map[string]objectionResolution{}
+	dismissedSuggestions := map[string]bool{}
+	st := room.State{Company: room.Company{ID: "company", Name: "My company"}, HumanCompanyID: "company", Workflows: []room.Workflow{}, Rooms: []room.Room{{ID: "engineering", Name: "Engineering room"}}, Tasks: []room.Task{}, Evidence: []room.Evidence{}, Connections: []room.Connection{}, Participants: []room.Participant{}, Memories: []room.Memory{}, Messages: []room.Message{}}
+	rows, err := s.db.Query(ctx, "SELECT kind,payload FROM events ORDER BY sequence")
+	if err != nil {
+		return st, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		if err := ctx.Err(); err != nil {
+			return st, err
+		}
+		var kind string
+		var data []byte
+		if err = rows.Scan(&kind, &data); err != nil {
+			return st, err
+		}
+		rememberAgentRoomReferences(data, referencedAgentRooms)
+		st.EventCount++
+		switch kind {
+		case "task.repository_links.updated":
+			if err := projectTaskRepositoryLinks(&st, data); err != nil {
+				return st, err
+			}
+		case "task.acceptance.reviewed":
+			if err := projectTaskAcceptanceReview(&st, data); err != nil {
+				return st, err
+			}
+		case "task.execution.started", "task.execution.finished":
+			if err := projectTaskExecution(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "room.outcome.reviewed":
+			if err := projectRoomOutcomeReview(&st, data); err != nil {
+				return st, err
+			}
+		case "task.delegation.proposed", "task.delegation.approved", "task.delegation.rejected":
+			if err := projectDelegation(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "governance.appointed":
+			if err := projectGovernance(&st, data); err != nil {
+				return st, err
+			}
+		case "worker.idle_stop.announced":
+			if err := projectIdleNotice(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.disposal.proposed", "workspace.disposal.claimed", "workspace.disposal.revoked", "workspace.disposal.succeeded", "workspace.disposal.unconfirmed":
+			if err := projectWorkspaceDisposal(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "artifact.reader.acknowledged":
+			if err := projectControllerObjectRead(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.capture.acknowledged":
+			if err := projectControllerCapture(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.capture.authorized":
+			if err := projectControllerCaptureAuthorization(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.probe.authorized":
+			if err := projectControllerProbeAuthorization(&st, data); err != nil {
+				return st, err
+			}
+		case "workspace.probe.acknowledged":
+			if err := projectControllerProbe(&st, data); err != nil {
+				return st, err
+			}
+		case "artifact.manifest.recorded":
+			if err := projectArtifactManifest(&st, data); err != nil {
+				return st, err
+			}
+		case "artifact.custody.reserved", "artifact.custody.ready", "artifact.custody.sealed", "artifact.custody.read":
+			if err := projectArtifactCustody(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "storage.inventory.recorded", "storage.reserved", "storage.released":
+			if err := projectManagedStorage(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "worker.tool.intent", "worker.tool.outcome":
+			if err := projectToolAudit(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "operation.receipt":
+			var receipt room.OperationReceipt
+			if json.Unmarshal(data, &receipt) != nil || len(receipt.Key) != 64 || len(receipt.Fingerprint) != 64 || receipt.Status < 200 || receipt.Status >= 300 || !json.Valid(receipt.Response) {
+				return st, errors.New("Invalid operation receipt")
+			}
+			if st.OperationReceipts == nil {
+				st.OperationReceipts = map[string]room.OperationReceipt{}
+			}
+			st.OperationReceipts[receipt.Key] = receipt
+		case "tool.call.intent":
+			var intent toolbroker.Intent
+			// ValidAuditIntent's deadline check is admission-time-relative; replay
+			// happens long after that deadline passed, so validate shape as of the
+			// intent's own deadline instant rather than wall-clock now (see its doc
+			// comment: "outcome persistence may instead use the original intent's
+			// admission instant" — the same reasoning applies to replaying history).
+			if json.Unmarshal(data, &intent) != nil || !toolbroker.ValidAuditIntent(intent, intent.Scope.Deadline.Add(-time.Nanosecond)) {
+				return st, errors.New("invalid tool call intent event")
+			}
+			if st.ToolCalls == nil {
+				st.ToolCalls = map[string]room.ToolCallAudit{}
+			}
+			st.ToolCalls[intent.CallID] = room.ToolCallAudit{
+				CallID: intent.CallID, JobID: intent.Scope.JobID, RoomID: intent.Scope.Room,
+				ParticipantID: intent.Scope.Participant, ConnectionID: intent.Scope.Connection,
+				Provider: intent.Scope.Provider, Operation: intent.Operation,
+				PayloadDigest: intent.PayloadDigest, Status: "pending",
+			}
+		case "tool.call.outcome":
+			var record toolCallOutcomeRecord
+			if json.Unmarshal(data, &record) != nil || !toolbroker.ValidAuditOutcome(record.Outcome) {
+				return st, errors.New("invalid tool call outcome event")
+			}
+			existing, ok := st.ToolCalls[record.Intent.CallID]
+			if !ok {
+				return st, errors.New("tool call outcome has no recorded intent")
+			}
+			existing.Status, existing.OutputBytes, existing.OutputDigest = record.Outcome.Status, record.Outcome.OutputBytes, record.Outcome.OutputDigest
+			st.ToolCalls[record.Intent.CallID] = existing
+		case "worker.job.updated":
+			var job room.ManagedJob
+			if json.Unmarshal(data, &job) != nil || !validManagedJob(job) {
+				return st, errors.New("invalid managed job event")
+			}
+			if st.ManagedJobs == nil {
+				st.ManagedJobs = map[string]room.ManagedJob{}
+			}
+			if _, exists := st.ManagedJobs[job.JobID]; !exists && job.GovernanceRevision > 0 && !coordinationJobAllowed(st, job) {
+				return st, errors.New("invalid initial coordination dependency")
+			}
+			if prior, exists := st.ManagedJobs[job.JobID]; exists {
+				binding := job
+				binding.Status, binding.DiagnosticCode, binding.UpdatedAt, binding.ShutdownConfirmed = prior.Status, prior.DiagnosticCode, prior.UpdatedAt, prior.ShutdownConfirmed
+				if binding != prior || prior.ShutdownConfirmed && !job.ShutdownConfirmed {
+					return st, errors.New("managed job binding changed")
+				}
+			}
+			st.ManagedJobs[job.JobID] = job
+		case "invitation.created", "invitation.revoked", "invitation.redeemed", "actor.credential.added", "actor.credential.used", "actor.credential.removed", "actor.oidc.linked", "actor.oidc.unlinked":
+			if err := projectIdentityEvent(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "actor.chat_style.updated":
+			if err := projectChatStyle(&st, data); err != nil {
+				return st, err
+			}
+		case "actor.agent_highlight.updated":
+			if err := projectAgentHighlight(&st, data); err != nil {
+				return st, err
+			}
+		case "actor.help.updated":
+			var v struct {
+				ID   string `json:"id"`
+				Mode string `json:"mode"`
+			}
+			if err := json.Unmarshal(data, &v); err != nil {
+				return st, err
+			}
+			projectActors(&st)
+			for i := range st.Actors {
+				if st.Actors[i].ID == v.ID {
+					st.Actors[i].HelpDisplay = v.Mode
+				}
+			}
+		case "actor.photo_size.updated":
+			var v struct {
+				ID   string `json:"id"`
+				Size string `json:"size"`
+			}
+			if err := json.Unmarshal(data, &v); err != nil {
+				return st, err
+			}
+			projectActors(&st)
+			for i := range st.Actors {
+				if st.Actors[i].ID == v.ID {
+					st.Actors[i].PhotoSize = v.Size
+				}
+			}
+		case "actor.image.updated":
+			var v struct {
+				ID    string `json:"id"`
+				Image string `json:"image"`
+			}
+			if err := json.Unmarshal(data, &v); err != nil {
+				return st, err
+			}
+			projectActors(&st)
+			for i := range st.Actors {
+				if st.Actors[i].ID == v.ID {
+					st.Actors[i].Image = v.Image
+				}
+			}
+		case "actor.name.updated":
+			var v struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			}
+			if e := json.Unmarshal(data, &v); e != nil {
+				return st, e
+			}
+			for i, a := range st.Actors {
+				if a.ID == v.ID {
+					st.Actors[i].Name = v.Name
+				}
+			}
+		case "actor.revised":
+			var v room.Actor
+			if e := json.Unmarshal(data, &v); e != nil {
+				return st, e
+			}
+			found := false
+			for i, a := range st.Actors {
+				if a.ID == v.ID {
+					v.HelpDisplay = a.HelpDisplay
+					v.PhotoSize = a.PhotoSize
+					v.ChatStyle, v.HighlightedAgents = a.ChatStyle, a.HighlightedAgents
+					v.Credentials, v.OIDCLinks = a.Credentials, a.OIDCLinks
+					st.Actors[i] = v
+					found = true
+				}
+			}
+			if !found {
+				st.Actors = append(st.Actors, v)
+			}
+		case "company.organization.updated":
+			if err := json.Unmarshal(data, &st.Organization); err != nil {
+				return st, err
+			}
+		case "company.updated":
+			json.Unmarshal(data, &st.Company)
+		case "human.profile.updated":
+			var v struct {
+				Name  string  `json:"name"`
+				Title *string `json:"title"`
+			}
+			json.Unmarshal(data, &v)
+			st.HumanRevision++
+			previous := strings.TrimSpace(st.HumanName)
+			st.HumanName = v.Name
+			// One name everywhere: a rename releases every room-only name.
+			if previous != strings.TrimSpace(v.Name) {
+				for i := range st.Rooms {
+					st.Rooms[i].HumanName = ""
+				}
+			}
+			if v.Title != nil {
+				st.HumanTitle = *v.Title
+			}
+		case "workflow.run.updated":
+			var run room.WorkflowRun
+			if json.Unmarshal(data, &run) != nil {
+				return st, fmt.Errorf("Invalid workflow run event")
+			}
+			found := false
+			for i, old := range st.WorkflowRuns {
+				if old.ID == run.ID {
+					st.WorkflowRuns[i] = run
+					found = true
+					break
+				}
+			}
+			if !found {
+				st.WorkflowRuns = append(st.WorkflowRuns, run)
+			}
+		case "workflow.revised":
+			var v room.Workflow
+			json.Unmarshal(data, &v)
+			found := false
+			for i, old := range st.Workflows {
+				if old.ID == v.ID {
+					st.Workflows[i] = v
+					found = true
+				}
+			}
+			if !found {
+				st.Workflows = append(st.Workflows, v)
+			}
+
+		case "room.created", "room.updated":
+			if kind == "room.updated" {
+				projectActors(&st)
+			}
+			var v room.Room
+			json.Unmarshal(data, &v)
+			if kind == "room.created" {
+				st.Rooms = append(st.Rooms, v)
+			} else {
+				for i, old := range st.Rooms {
+					if old.ID == v.ID {
+						if old.PersonalActorID != "" {
+							// A changed saved name is an explicit override.
+							// Saving other settings keeps automatic labels derived.
+							v.CustomPersonalName = old.CustomPersonalName || v.Name != old.Name
+							v.PersonalActorID = old.PersonalActorID
+						}
+						st.Rooms[i] = v
+					}
+				}
+			}
+		case "task.proposal.captured", "task.proposal.approved", "task.proposal.rejected":
+			if err := projectTaskProposal(&st, kind, data); err != nil {
+				return st, err
+			}
+		case "task.revised":
+			var v room.Task
+			json.Unmarshal(data, &v)
+			if err := validateTaskDefinitionProjection(st, v, data); err != nil {
+				return st, err
+			}
+			if v.DelegationID != "" {
+				d, ok := st.Delegations[v.DelegationID]
+				if !ok || d.Status != "Approved" || d.TaskID != v.ID || d.RoomID != v.RoomID || d.TaskDigest != delegationTaskDigest(v) || v.Assignee != d.DelegateID {
+					return st, errors.New("invalid delegated task scope")
+				}
+			}
+			if v.ProposalID != "" {
+				proposal, ok := st.TaskProposals[v.ProposalID]
+				if !ok || proposal.Status != "Approved" || proposal.TaskID != v.ID || proposal.RoomID != v.RoomID {
+					return st, errors.New("invalid task proposal provenance")
+				}
+			}
+			found := false
+			for i, t := range st.Tasks {
+				if t.ID == v.ID {
+					if t.DelegationID != v.DelegationID || t.ProposalID != v.ProposalID {
+						return st, errors.New("task proposal provenance changed")
+					}
+					st.Tasks[i] = v
+					found = true
+				}
+			}
+			if !found {
+				st.Tasks = append(st.Tasks, v)
+			}
+			recordTaskDefinitionRevision(&st, v)
+		case "evidence.created":
+			var v room.Evidence
+			json.Unmarshal(data, &v)
+			st.Evidence = append(st.Evidence, v)
+
+		case "connection.created":
+			var v room.Connection
+			json.Unmarshal(data, &v)
+			st.Connections = append(st.Connections, v)
+			st.Actors = append(st.Actors, room.Actor{ID: "bot-" + v.ID, Name: v.Name, Kind: "agent", Role: "Agent", Enabled: true, Revision: 1})
+
+		case "connection.deleted":
+			var v struct {
+				ID string `json:"id"`
+			}
+			json.Unmarshal(data, &v)
+			connections := st.Connections[:0]
+			for _, c := range st.Connections {
+				if c.ID != v.ID {
+					connections = append(connections, c)
+				}
+			}
+			st.Connections = connections
+			participants := st.Participants[:0]
+			for _, member := range st.Participants {
+				if member.ConnectionID != v.ID {
+					participants = append(participants, member)
+				}
+			}
+			st.Participants = participants
+		case "connection.updated":
+			var v room.Connection
+			json.Unmarshal(data, &v)
+			for i, old := range st.Connections {
+				if old.ID != v.ID {
+					continue
+				}
+				st.Connections[i] = v
+				if old.Endpoint != v.Endpoint || old.Protocol != v.Protocol {
+					for j, member := range st.Participants {
+						if member.ConnectionID == v.ID {
+							st.Participants[j].ThreadID = ""
+							st.Participants[j].ExecutionMode = ""
+							st.Participants[j].Status = ""
+							if room.SupportsAgent(v) {
+								st.Participants[j].Status = "Idle"
+							}
+						}
+					}
+				}
+			}
+		case "participant.created":
+			var v room.Participant
+			json.Unmarshal(data, &v)
+			if v.RoomID == "" {
+				v.RoomID = "engineering"
+			}
+			st.Participants = append(st.Participants, v)
+		case "agent.activity":
+			var activity struct {
+				ParticipantID string    `json:"participantId"`
+				Activity      string    `json:"activity"`
+				StartedAt     time.Time `json:"startedAt"`
+			}
+			json.Unmarshal(data, &activity)
+			activities[activity.ParticipantID] = activity.Activity
+			activityStarts[activity.ParticipantID] = activity.StartedAt
+		case "agent.background":
+			var event room.BackgroundActivity
+			if json.Unmarshal(data, &event) == nil && backgroundLabels[event.Stage] != "" {
+				event.Label = backgroundLabels[event.Stage]
+				background[event.ParticipantID] = append(background[event.ParticipantID], event)
+				if len(background[event.ParticipantID]) > 64 {
+					background[event.ParticipantID] = background[event.ParticipantID][1:]
+				}
+			}
+		case "agent.error":
+			var failure struct {
+				ParticipantID string `json:"participantId"`
+				Error         string `json:"error"`
+			}
+			json.Unmarshal(data, &failure)
+			failures[failure.ParticipantID] = failure.Error
+		case "agent.recovered":
+			var recovered struct {
+				Participant room.Participant `json:"participant"`
+			}
+			if json.Unmarshal(data, &recovered) == nil {
+				for i, p := range st.Participants {
+					if p.ID == recovered.Participant.ID && p.RoomID == recovered.Participant.RoomID {
+						st.Participants[i] = recovered.Participant
+						delete(failures, p.ID)
+					}
+				}
+			}
+		case "participant.updated", "participant.session":
+			var v room.Participant
+			json.Unmarshal(data, &v)
+			if v.RoomID == "" {
+				v.RoomID = "engineering"
+			}
+			for i, p := range st.Participants {
+				if p.ID == v.ID {
+					st.Participants[i] = v
+					if kind == "participant.session" && v.Status != "Blocked" {
+						delete(failures, v.ID)
+					}
+					if v.ConnectionID != p.ConnectionID {
+						delete(failures, v.ID)
+						delete(activities, v.ID)
+						delete(activityStarts, v.ID)
+					}
+				}
+			}
+		case "room.discussion.started":
+			var v discussionStarted
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].DiscussionID = v.ID
+				}
+			}
+		case "room.discussion.ended":
+			var v discussionEnded
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID && st.Rooms[i].DiscussionID == v.ID {
+					st.Rooms[i].DiscussionID = ""
+				}
+			}
+		case "room.discussion_limit.updated":
+			var v discussionLimit
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].DiscussionRounds = v.Rounds
+				}
+			}
+		case "room.context.cleared":
+			var v contextClearPayload
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].ContextBoundaryID = v.MessageID
+				}
+			}
+		case "room.context_export.updated":
+			var v struct {
+				RoomID string                   `json:"roomId"`
+				Policy room.ContextExportPolicy `json:"policy"`
+			}
+			json.Unmarshal(data, &v)
+			if !hasRoom(st, v.RoomID) {
+				projectActors(&st)
+			}
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					if st.TaskContextPolicyEpochs == nil {
+						st.TaskContextPolicyEpochs = map[string]int{}
+					}
+					if st.TaskContextPolicyEpochs[v.RoomID] == int(^uint(0)>>1) {
+						return st, errors.New("context policy generation exhausted")
+					}
+					st.TaskContextPolicyEpochs[v.RoomID]++
+					st.Rooms[i].ContextExport = &v.Policy
+					st.Rooms[i].Revision++
+				}
+			}
+		case "memory.revised":
+			var v room.Memory
+			json.Unmarshal(data, &v)
+			if v.RoomID == "" {
+				v.RoomID = "engineering"
+			}
+			found := false
+			for i, m := range st.Memories {
+				if m.ID == v.ID {
+					st.Memories[i] = v
+					found = true
+				}
+			}
+			if !found {
+				st.Memories = append(st.Memories, v)
+			}
+		case "participant.removed":
+			var v struct {
+				ID string `json:"id"`
+			}
+			json.Unmarshal(data, &v)
+			kept := st.Participants[:0]
+			for _, p := range st.Participants {
+				if p.ID != v.ID {
+					kept = append(kept, p)
+				}
+			}
+			st.Participants = kept
+		case "task.suggestion.dismissed":
+			var v suggestionDismissed
+			json.Unmarshal(data, &v)
+			dismissedSuggestions[v.ID] = true
+		case "objection.resolved":
+			var v objectionResolution
+			json.Unmarshal(data, &v)
+			objectionResolutions[v.MessageID] = v
+		case "message.attention.acknowledged":
+			var ack struct {
+				MessageID string `json:"messageId"`
+				ActorID   string `json:"actorId"`
+			}
+			json.Unmarshal(data, &ack)
+			acknowledged[ack.MessageID] = ack.ActorID
+		case "room.assignment_limit.updated":
+			var v assignmentLimit
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					limit := v.Limit
+					st.Rooms[i].AssignmentLimit = &limit
+				}
+			}
+		case "agent.assignment":
+			var v managerAssignment
+			json.Unmarshal(data, &v)
+			day := v.Assigned.UTC().Format("2006-01-02")
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					if st.Rooms[i].AssignmentDay != day {
+						st.Rooms[i].AssignmentDay, st.Rooms[i].AssignmentsToday = day, 0
+					}
+					st.Rooms[i].AssignmentsToday++
+				}
+			}
+		case "agent.initiated":
+			var v agentInitiated
+			json.Unmarshal(data, &v)
+			for i := range st.Rooms {
+				if st.Rooms[i].ID == v.RoomID {
+					st.Rooms[i].AgentInitiated++
+				}
+			}
+		case "message.created":
+			var v room.Message
+			json.Unmarshal(data, &v)
+			if v.RoomID == "" {
+				v.RoomID = "engineering"
+			}
+			if v.ActorType == "human" {
+				for i := range st.Rooms {
+					if st.Rooms[i].ID == v.RoomID {
+						st.Rooms[i].AgentInitiated = 0
+					}
+				}
+			}
+			if v.Provider == "" && v.Author != "You" {
+				for _, p := range st.Participants {
+					if p.Name == v.Author && p.RoomID == v.RoomID {
+						for _, c := range st.Connections {
+							if c.ID == p.ConnectionID {
+								v.Provider = c.Provider
+								if v.Provider == "" && room.SupportsAgent(c) {
+									v.Provider = providerForEndpoint(c.Endpoint)
+								}
+							}
+						}
+					}
+				}
+			}
+			st.Messages = append(st.Messages, v)
+		case "agents.idle_policy.updated":
+			if err := projectIdleSettings(&st, data); err != nil {
+				return st, err
+			}
+		case "feature.flag.updated":
+			var v struct {
+				Name    string `json:"name"`
+				Enabled bool   `json:"enabled"`
+			}
+			if e := json.Unmarshal(data, &v); e != nil {
+				return st, e
+			}
+			if st.FeatureFlags == nil {
+				st.FeatureFlags = map[string]bool{}
+			}
+			if v.Name == "agentCoordination" && !v.Enabled {
+				if st.CoordinationEpoch == int(^uint(0)>>1) {
+					return st, errors.New("coordination generation exhausted")
+				}
+				st.CoordinationEpoch++
+			}
+			if v.Name == "taskAcceptanceReview" && !v.Enabled {
+				if st.TaskAcceptanceEpoch == int(^uint(0)>>1) {
+					return st, errors.New("task acceptance epoch exhausted")
+				}
+				st.TaskAcceptanceEpoch++
+			}
+			if v.Name == "taskValueDependencies" && !v.Enabled {
+				if st.ValueDependencyEpoch == int(^uint(0)>>1) {
+					return st, errors.New("value dependency epoch exhausted")
+				}
+				st.ValueDependencyEpoch++
+			}
+			if v.Name == "taskDefinitions" && !v.Enabled {
+				if st.TaskDefinitionEpoch == int(^uint(0)>>1) {
+					return st, errors.New("task definition epoch exhausted")
+				}
+				st.TaskDefinitionEpoch++
+			}
+			if v.Name == "taskDelegation" && !v.Enabled {
+				if st.DelegationEpoch == int(^uint(0)>>1) {
+					return st, errors.New("delegation generation exhausted")
+				}
+				st.DelegationEpoch++
+			}
+			st.FeatureFlags[v.Name] = v.Enabled
+		case "agents.stop", "agents.resume":
+			var v struct {
+				Scope  string `json:"scope"`
+				RoomID string `json:"roomId"`
+			}
+			if e := json.Unmarshal(data, &v); e != nil {
+				return st, e
+			}
+			if v.Scope == "application" {
+				st.AgentsStopped = kind == "agents.stop"
+			} else if v.Scope == "room" {
+				kept := []string{}
+				for _, rid := range st.AgentStopRooms {
+					if rid != v.RoomID {
+						kept = append(kept, rid)
+					}
+				}
+				if kind == "agents.stop" {
+					kept = append(kept, v.RoomID)
+				}
+				st.AgentStopRooms = kept
+			}
+		case "incident.opened":
+			st.Incident = true
+		case "incident.recovered":
+			st.Incident = false
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return st, err
+	}
+	projectAgentStatusDetails(&st, activities, failures)
+	projectAgentElapsed(&st, activityStarts, now)
+	projectBackground(&st, background)
+	for i := range st.Rooms {
+		st.Rooms[i].CompanyID = st.Company.ID
+	}
+	for i := range st.Connections {
+		st.Connections[i].CompanyID = st.Company.ID
+	}
+	for i := range st.Participants {
+		st.Participants[i].CompanyID = st.Company.ID
+	}
+	projectActors(&st)
+	projectIdleNoticeMessages(&st)
+	projectHumanAttention(&st, acknowledged)
+	projectEscalations(&st, acknowledged)
+	projectStances(&st, objectionResolutions)
+	projectTaskSuggestions(&st, dismissedSuggestions)
+	if err := ctx.Err(); err != nil {
+		return st, err
+	}
+	omitUnusedAgentRooms(&st, referencedAgentRooms)
+	return st, rows.Err()
+}

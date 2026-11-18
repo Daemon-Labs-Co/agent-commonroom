@@ -121,6 +121,10 @@ func (s *server) recoverIntegrityLocked(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *server) checkIntegrityNow() {
+	if s.projection.active() {
+		s.checkIntegrityScheduledAt(time.Now())
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	s.mu.Lock()

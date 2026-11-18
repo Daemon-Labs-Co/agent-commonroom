@@ -33,6 +33,10 @@ type platformSettings struct {
 	oidc                                      *oidc.Provider
 	// Hosted execution is off unless the operator opts in (see validateHostedExecution).
 	hostedExecution bool
+	// Incremental replay cache and the integrity schedule that goes with it (off by default).
+	projectionCache bool
+	integrity       integritySettings
+	workspaceIdle   time.Duration
 	pool            *executionPool
 	oidcName        string
 }
@@ -69,6 +73,19 @@ func loadPlatformSettings(getenv func(string) string, dailyTurnLimit int) (platf
 		ps.hostedExecution = true
 	default:
 		return ps, errors.New("COMMONROOM_HOSTED_EXECUTION must be true or false")
+	}
+	switch getenv("COMMONROOM_PROJECTION_CACHE") {
+	case "", "off":
+	case "on":
+		ps.projectionCache = true
+	default:
+		return ps, errors.New("COMMONROOM_PROJECTION_CACHE must be on or off")
+	}
+	if ps.integrity, err = parseIntegritySettings(getenv); err != nil {
+		return ps, err
+	}
+	if ps.workspaceIdle, err = parseWorkspaceIdle(getenv("COMMONROOM_WORKSPACE_IDLE_MINUTES")); err != nil {
+		return ps, err
 	}
 	maxTurns := 8
 	if raw := strings.TrimSpace(getenv("COMMONROOM_HOSTED_MAX_TURNS")); raw != "" {
@@ -197,6 +214,10 @@ func newWorkspaceRuntime(ps platformSettings, tenancy tenancySettings, db eventD
 	// refused regardless: they reach the host's disk or a registry that is not per workspace.
 	executionBlocked := hosted && !ps.hostedExecution
 	s := &server{hosted: hosted, hostedExecutionBlocked: hosted && !ps.hostedExecution, dailyTurnLimit: ps.dailyTurnLimit, db: db, active: map[string]bool{}, cancels: map[string]context.CancelFunc{}, workspaceID: id}
+	s.projection.enabled = ps.projectionCache
+	s.projection.onHistoryChanged = s.requestFullIntegrity
+	s.integritySettings = ps.integrity
+	s.integrityPlan.jitterFull, s.integrityPlan.jitterIncremental = newIntegrityJitter(ps.integrity)
 	s.extensionRegistry = ps.extensionRegistry
 	if hosted {
 		s.pool = ps.pool
@@ -355,6 +376,9 @@ type workspaceEntry struct {
 	checked time.Time
 	status  string
 	limits  workspaceLimits
+	// lastUsed and inflight let the idle janitor release workspaces nobody is using.
+	lastUsed time.Time
+	inflight int
 }
 
 const (
@@ -459,6 +483,9 @@ func (h *workspaceHost) resolve(ctx context.Context, id string, allowInactive bo
 		log.Printf("Workspace %s could not start: %v", id, entry.err)
 		return nil, errWorkspaceUnavailable
 	}
+	h.mu.Lock()
+	entry.lastUsed = h.now()
+	h.mu.Unlock()
 	return entry.runtime, nil
 }
 
@@ -516,6 +543,19 @@ func (h *workspaceHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		h.mu.Lock()
+		if current := h.entries[id]; current != nil {
+			current.inflight++
+		}
+		h.mu.Unlock()
+		defer func() {
+			h.mu.Lock()
+			if current := h.entries[id]; current != nil && current.inflight > 0 {
+				current.inflight--
+				current.lastUsed = h.now()
+			}
+			h.mu.Unlock()
+		}()
 		rt.handler.ServeHTTP(w, r)
 	}
 }
