@@ -116,7 +116,14 @@ its browser by a Lax cookie scoped to `/api/oidc`, and its state is single use a
 refusal is the same 404; failures share the key-file sign-in budget (5 a minute); redemption
 creates the member, records the credential or link and spends the invitation in one atomic batch.
 A new session replaces any session the browser presented. Unused invitations count towards the
-workspace member limit.
+workspace member limit, and the limit is checked again when an invitation is redeemed, so
+direct adds and invitations together never exceed it. A person keeps at most 8 sessions (their
+oldest is replaced) and a workspace at most 64 (the person holding the most loses their oldest),
+so one member cannot lock others out. Pending passkey challenges and single sign-on flows are
+capped at 512 each; when full the oldest of the busiest kind is dropped instead of refusing, so
+anonymous requests cannot block sign-in. Reissuing a setup link also ends sessions made with the
+old code. The OpenID Connect issuer must be a DNS name (any letter-case, no numeric address
+form), and connections to loopback, private or link-local addresses are refused when made.
 
 ## Properties and state changes
 

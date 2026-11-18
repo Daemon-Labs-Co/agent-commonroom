@@ -107,7 +107,15 @@ type extensionLimiter struct {
 }
 
 // admit enforces the per-extension rate and refuses a replayed signature.
+// signature must be the DECODED signature bytes: base64 accepts several
+// spellings of one signature, so keying on the header text lets a captured
+// request be replayed by re-encoding it.
 func (l *extensionLimiter) admit(id, signature string, now time.Time) error {
+	return l.admitLimit(id, signature, now, extensionRequestsPerMin)
+}
+
+// admitLimit is admit with an explicit per-minute request limit.
+func (l *extensionLimiter) admitLimit(id, signature string, now time.Time, perMinute int) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.window == nil {
@@ -127,7 +135,7 @@ func (l *extensionLimiter) admit(id, signature string, now time.Time) error {
 			recent = append(recent, at)
 		}
 	}
-	if len(recent) >= extensionRequestsPerMin {
+	if len(recent) >= perMinute {
 		l.window[id] = recent
 		return errors.New("Extension request rate exceeded")
 	}
@@ -170,7 +178,7 @@ func (s *server) authenticateExtension(w http.ResponseWriter, r *http.Request, s
 		http.Error(w, "Invalid extension signature", 403)
 		return extensionEntry{}, nil, false
 	}
-	if err = s.extensionLimits.admit(entry.ID, r.Header.Get("X-Extension-Signature"), now); err != nil {
+	if err = s.extensionLimits.admit(entry.ID, string(signature), now); err != nil {
 		http.Error(w, err.Error(), http.StatusTooManyRequests)
 		return extensionEntry{}, nil, false
 	}

@@ -21,3 +21,19 @@ func TestRedteamIssuerHostFilterAcceptsLoopbackSpellings(t *testing.T) {
 		}
 	}
 }
+
+// RT-6 (dial time): a name that resolves to an internal address is refused when the
+// connection is made, whatever the name looks like.
+func TestRedteamInternalAddressesRefusedAtDialTime(t *testing.T) {
+	t.Parallel()
+	for _, address := range []string{"127.0.0.1:443", "10.1.2.3:443", "192.168.0.9:443", "169.254.169.254:80", "[::1]:443", "[fe80::1]:443", "0.0.0.0:443", "[fd00::1]:443"} {
+		if refuseInternalAddress("tcp", address, nil) == nil {
+			t.Errorf("%s was allowed", address)
+		}
+	}
+	for _, address := range []string{"93.184.216.34:443", "[2606:2800:220:1:248:1893:25c8:1946]:443"} {
+		if err := refuseInternalAddress("tcp", address, nil); err != nil {
+			t.Errorf("%s was refused: %v", address, err)
+		}
+	}
+}

@@ -102,7 +102,7 @@ workspace servers are not evicted when idle.
 `COMMONROOM_PLATFORM_KEYS_FILE` lists the caller's Ed25519 key (same registry format and
 permission rules as extensions; the signing input is `commonroom-platform-v1`, so an
 extension signature never works here). Headers: `X-Platform-Id`, `X-Platform-Timestamp`
-(within 60 seconds), `X-Platform-Signature`; replayed signatures and more than 120
+(within 60 seconds), `X-Platform-Signature`; replayed signatures (compared by decoded bytes, so re-encoding one does not help) and more than 120
 requests a minute are refused; every authentication failure returns the same 403.
 
 | Request | Effect |
@@ -112,7 +112,7 @@ requests a minute are refused; every authentication failure returns the same 403
 | `GET /platform/v1/workspaces/{id}` | Status, name, limits, whether setup is pending (never a link). |
 | `POST .../{id}/suspend`, `/resume`, `/delete` | Takes effect on the next request. Delete is terminal and keeps a registry tombstone. |
 | `PUT .../{id}/limits` | Replaces limits live; unknown fields and out-of-range values refused. |
-| `POST .../{id}/setup-link` | Replaces a pending workspace's setup code (old code stops at once); 409 once claimed. |
+| `POST .../{id}/setup-link` | Replaces a pending workspace's setup code (old code and any session it created stop at once); 409 once claimed. |
 
 Each action is also appended to the workspace's own history as `platform.workspace.action`,
 so its owner can see what the operator did. The API returns no rooms, messages, members or

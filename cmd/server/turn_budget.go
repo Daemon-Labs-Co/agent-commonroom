@@ -41,6 +41,9 @@ func (s *server) dailyTurnBudget(st room.State, now time.Time) turnBudget {
 	if limit == 0 {
 		limit = defaultDailyTurnLimit
 	}
+	if limit == noDailyTurns {
+		limit = 0
+	}
 	budget := turnBudget{Limit: limit, ResetsAt: start.AddDate(0, 0, 1)}
 	for _, job := range st.ManagedJobs {
 		if !job.AllocatedAt.Before(start) && job.AllocatedAt.Before(budget.ResetsAt) {

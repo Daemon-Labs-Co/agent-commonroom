@@ -85,7 +85,7 @@ func (p *platformAPI) authenticate(w http.ResponseWriter, r *http.Request) ([]by
 	if err != nil || !ed25519.Verify(entry.key, platformSigningInput(entry.ID, stamp, r.Method, r.URL.RequestURI(), body), signature) {
 		return deny()
 	}
-	if err = p.limiter.admit("platform:"+entry.ID, r.Header.Get("X-Platform-Signature"), now); err != nil {
+	if err = p.limiter.admitLimit("platform:"+entry.ID, string(signature), now, platformRequestsPerMin); err != nil {
 		http.Error(w, "Platform request rate exceeded or request already used", http.StatusTooManyRequests)
 		return nil, false
 	}

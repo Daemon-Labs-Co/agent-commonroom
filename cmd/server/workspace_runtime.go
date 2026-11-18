@@ -439,10 +439,14 @@ func (h *workspaceHost) resolve(ctx context.Context, id string, allowInactive bo
 		return nil, errWorkspaceUnavailable
 	}
 	entry.once.Do(func() {
-		entry.runtime, entry.err = h.build(id)
-		if entry.err == nil && h.tenancy.Mode == tenancyMulti {
-			limits := entry.limits
-			entry.runtime.s.setLimits(&limits)
+		built, buildErr := h.build(id)
+		// The registry recheck reads these fields under h.mu, so they are written under it.
+		h.mu.Lock()
+		entry.runtime, entry.err = built, buildErr
+		limits := entry.limits
+		h.mu.Unlock()
+		if buildErr == nil && h.tenancy.Mode == tenancyMulti {
+			built.s.setLimits(&limits)
 		}
 	})
 	if entry.err != nil {
@@ -491,8 +495,17 @@ func (h *workspaceHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		if h.tenancy.Mode == tenancyMulti && strings.HasPrefix(r.URL.Path, "/api/") {
 			h.mu.Lock()
-			limit := h.entries[id].limits.RequestsPerMinute
+			current := h.entries[id]
+			limit := 0
+			if current != nil {
+				limit = current.limits.RequestsPerMinute
+			}
 			h.mu.Unlock()
+			if current == nil {
+				// Evicted (suspended or deleted) between resolving and routing: fail closed.
+				http.Error(w, "This workspace is unavailable", 503)
+				return
+			}
 			if !h.meter.admit(id, limit, h.now()) {
 				tooManyRequests(w)
 				return
