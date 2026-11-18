@@ -72,3 +72,34 @@ _Avoid_: Manual source label, model completion claim
 The human owner’s recorded criterion decisions about exact returned values from
 a particular task execution. It does not authorize new execution.
 _Avoid_: Schema validation, agent review, observed check
+
+## Workspaces and people
+
+**Workspace**:
+One customer's isolated CommonRoom: its people, rooms, agents, history, keys and
+limits. Nothing in one workspace is visible to another.
+_Avoid_: Tenant, account, organization (use Company for the org chart inside a workspace)
+
+**Platform operator**:
+The party that runs an installation hosting many workspaces and may create, suspend
+or delete them. The role has no access to a workspace's rooms through the product.
+_Avoid_: Admin, super user
+
+**Workspace owner**:
+The human who claimed a workspace and holds its highest permission inside it.
+_Avoid_: Root, administrator
+
+**Member**:
+A human with an account in one workspace, invited by its owner and limited to the rooms
+assigned. The same person in two workspaces is two members.
+_Avoid_: User (ambiguous with agent users), seat
+
+**Invitation**:
+A single-use, expiring link from a workspace owner that lets one person create their
+own account and sign-in method in that workspace.
+_Avoid_: Key file, signup
+
+**Sign-in method**:
+A way a member proves identity to a workspace: an owner or member key file, a passkey
+or an OpenID Connect identity.
+_Avoid_: Login type, auth mode

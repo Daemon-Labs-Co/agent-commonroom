@@ -1,0 +1,90 @@
+# Workspaces: many customers in one installation
+
+Design record; stages are implemented in order, each default-off. See ADRs
+[0004](archive/adr/0004-many-workspaces-in-one-installation.md),
+[0005](archive/adr/0005-workspace-chosen-by-host-name.md),
+[0006](archive/adr/0006-passkeys-and-oidc-without-new-dependencies.md) and
+[0007](archive/adr/0007-workspaces-created-by-signed-platform-api.md).
+
+## Input
+
+Goal: one installation serves many independent **workspaces**. People sign up or are
+invited, each workspace keeps today's guarantees (permanent audit log, mandatory
+container isolation, owner approval of agent work) and no workspace can read, write,
+stop or slow another beyond its stated limits.
+
+Configuration (operator process settings, read at startup):
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `COMMONROOM_TENANCY` | `single` | `single`: one workspace named `default`, behaviour unchanged. `multi`: workspaces resolved from the host name. |
+| `COMMONROOM_WORKSPACE_DOMAIN` | none | Base domain in `multi` mode; a workspace is served at `<slug>.<domain>`. Requires HTTPS origins and wildcard DNS/certificate. |
+| `COMMONROOM_PLATFORM_KEYS_FILE` | none | Registry of Ed25519 public keys allowed to call `/platform/v1/`. |
+| `COMMONROOM_SIGNUP` | `closed` | `open` enables the built-in rate-limited sign-up page. |
+| `COMMONROOM_OIDC_*` | none | Per-installation OIDC provider settings for workspace sign-in. |
+
+Current single-tenant assumptions this changes: one `events` table and hash chain, a
+full replay of that table per request, one global lock, one `server` value holding
+stop, incident, budget and run state, the constant owner actor, and one `.data`
+folder for the owner key, sessions, agent credentials and local configuration.
+
+## Output
+
+A workspace is a complete, independent `server` instance created on first use and
+cached. Requests are routed to it by host name. Refusals are explicit and
+non-revealing: an unknown host returns 404 with no workspace information; a valid
+session for another workspace's host is simply unauthenticated; a suspended
+workspace returns 503 with a fixed message.
+
+## Functionality
+
+**Stage 1 - storage (migration 002, administrator-run).** `events` gains
+`workspace_id` (existing rows become `default`), an index on
+`(workspace_id, sequence)` and row-level security forced for the runtime role: rows
+are visible and writable only when `workspace_id = current_setting('app.workspace_id',
+true)`. A scoped database wrapper starts every transaction with
+`set_config('app.workspace_id', $1, true)`; no setting means no rows and no inserts.
+The hash chain, previous-hash lookup, count checks and integrity verification are
+therefore per workspace with unchanged SQL; the append lock becomes per workspace.
+A `workspaces` registry table (id, slug, name, status, limits, timestamps) is the
+only cross-workspace table.
+
+**Stage 2 - runtime.** The body of `main` that builds a `server`, its routes, owner
+identity, sessions and integrity watcher becomes `newWorkspace(...)`, called once for
+`default` in `single` mode or lazily per workspace in `multi` mode. Each instance has
+its own mutex, run maps, stop and incident flags, request budgets, auth and data
+folder `.data/workspaces/<id>/`. A top-level handler resolves host to workspace, adds
+security headers and dispatches. Session cookies are host-only; the Origin check uses
+the workspace's exact origin.
+
+**Stage 3 - platform.** `/platform/v1/workspaces` (create, list, suspend, resume,
+delete, set limits) with signed requests, replay refusal and a rate limit. Creating a
+workspace returns its setup link. Limits per workspace: members, rooms, agents,
+requests per minute, daily agent turns, concurrent containers and stored bytes;
+reaching one is a visible refusal.
+
+**Stage 4 - identity.** Owner-created invitations (single use, expiring, role and
+rooms fixed); passkey registration and assertion; OIDC sign-in linked to an
+invitation or an existing member; the key-file methods remain.
+
+**Stage 5 - execution.** Container names, credential volumes and workspaces are
+namespaced by workspace in the worker; controller admission counts running containers
+per workspace and installation-wide.
+
+**Stage 6 - verification.** A cross-workspace attack suite runs every route with one
+workspace's session against another's host and identifiers, checks the database refuses
+cross-workspace reads and writes with the application filter removed, and an
+adversarial review attempts escapes before release.
+
+## Properties and state changes
+
+- Defaults: `single` tenancy, `closed` sign-up, no platform keys. Without `multi` no new
+  route is registered and behaviour is byte-for-byte today's.
+- Persistent state: `events.workspace_id`, the `workspaces` registry, per-workspace
+  files. All workspace history stays append-only; deleting a workspace is a platform
+  action that leaves a tombstone, never an owner action.
+- Isolation properties: database refuses cross-workspace access even if application code
+  forgets a filter; a session, CSRF token and setup link are bound to one host; an
+  incident, stop or budget exhaustion in one workspace never changes another.
+- Not covered by these stages: billing and plans, email delivery, custom domains,
+  per-workspace encryption keys, and moving a workspace between installations.

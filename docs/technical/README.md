@@ -29,6 +29,7 @@ Contracts describing input, output, functionality and properties/state changes.
 | Cancellation, cleanup and recovery | [Cancellation, cleanup and recovery](recovery.md) |
 | Events, state projection and atomic operations | [Events, state projection and atomic operations](persistence.md) |
 | Browser and documentation interface | [Browser and documentation interface](interface.md) |
+| Workspaces (multi-tenancy) | [Workspaces: many customers in one installation](multi-tenancy.md) |
 
 [Generated source reference](reference/README.md) indexes declarations and source
 properties. [Archived reference](archive/documentation-index.md) retains previous
