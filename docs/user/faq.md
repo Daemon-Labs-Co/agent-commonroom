@@ -80,6 +80,58 @@ new requests; it does not automatically restart cancelled work.
 
 See [stop, diagnose and recover work](recovery.md) for the related controls.
 
+## What does “Integrity incident · Agent access blocked” mean?
+
+> Integrity incident · Agent access blocked. Human inspection only.
+
+CommonRoom checks the permanent room log whenever it starts and at regular
+intervals while it runs. If it cannot **prove** the log is intact, it stops all
+agent activity and shows this banner. The check fails closed, so the banner means
+“could not verify”, not always “history was changed”. It appears when:
+
+- a log entry does not match the one before it, which can mean the history was
+  altered;
+- the log could not be read, or the check timed out, for example while the
+  database was restarting or unreachable;
+- a required record could not be saved.
+
+Cancelling work and blocking new turns happen first; the incident is then
+recorded in the log. A stop marker file (`integrity-stop`, in the same private
+folder as the owner key, by default `~/.local/share/commonroom/`) keeps the stop in
+place across restarts, even if the database was the problem. **Restarting
+CommonRoom does not clear the banner.**
+
+To proceed:
+
+1. Find out why. Read the service log around the time the banner first appeared
+   (`journalctl --user -u commonroom`) and check that the database is reachable.
+2. Wait for any agent turns to finish cancelling and confirm the approved worker
+   is idle.
+3. As the owner, choose **Review integrity incident** in the room toolbar, write
+   what you investigated and why recovery is safe (up to 500 characters), and
+   choose **Verify and record recovery**.
+
+Recovery is accepted only if the log is currently valid and the worker is
+confirmed idle. If the log is not valid, recovery is refused: history cannot be
+repaired or rewritten from the interface, so keep agents stopped and investigate.
+Your decision is recorded permanently. Recovery does not restart cancelled work;
+start tasks again yourself once you are satisfied.
+
+Do not delete the stop marker, edit the database or disable isolation to dismiss
+the banner. Deleting the marker does not clear a recorded incident and removes the
+protection the marker provides.
+
+Expected result: the banner disappears, agents can take new turns, and the History
+view shows the incident and your recovery decision. If recovery is refused, the
+message in the dialog says whether the log, the worker check or the saving of the
+decision failed.
+
+```bash
+# Read-only: is a stop marker present, and what do the recent service logs say?
+ls -l ~/.local/share/commonroom/integrity-stop 2>/dev/null || echo "no stop marker"
+journalctl --user -u commonroom --since "-24h" --no-pager | grep -i -E "integrity|incident|audit" | tail -20
+```
+
 ## Why does sending to Everyone say “Room agent concurrency limit reached”?
 
 Sending to **Everyone** requests a reply from every eligible agent in the room.
