@@ -148,6 +148,7 @@ check: test-race
 	node --check web/help.js
 	node tests/help-preferences.test.cjs
 	node tests/first-owner-login.test.cjs
+	node tests/setup-link.test.cjs
 	node --check web/help-reader.js
 	node tests/help-reader.test.cjs
 

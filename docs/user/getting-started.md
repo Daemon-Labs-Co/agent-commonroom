@@ -39,15 +39,37 @@ provider credentials outside documents and screenshots.
 
 An empty installation shows **Set up your owner account**, not a request for a PEM
 you do not yet have. CommonRoom generates an RSA-3072 key pair and records the
-public key in the database. Read the private setup code from `.data/owner-key`
-on the server, enter it, and download your generated private PEM. The code proves
-you control the installation; it prevents another browser visitor claiming it.
+public key in the database. You claim the installation with a **setup link** or
+**setup code**, then download your generated private PEM. The code proves you were
+given access; it prevents another browser visitor claiming the installation first.
+
+- **Hosted service:** your provider sends you a setup link. Open it, check the
+  code is filled in, choose **Set up owner access** and download your key. A link
+  that is not claimed expires after 24 hours; ask your provider for a new one.
+- **Installed on your own machine or server:** run this where CommonRoom runs, with
+  the same settings as the service, and open the link it prints:
+
+  ```bash
+  commonroom --setup-link
+  ```
+
+  The link looks like `http://127.0.0.1:8787/#setup=...`. The code after `#` is
+  never sent to the server or recorded in proxy logs. Treat the link like a password.
+  If you prefer, paste just the code into **Server setup code**.
+- **Running it for other people (operators):** instead of the generated file, set
+  `COMMONROOM_SETUP_CODE` to 64 lowercase hexadecimal characters
+  (`openssl rand -hex 32`) before starting the service, and give the owner
+  `https://your-address/#setup=<that code>`. It works once, then stops. Set
+  `COMMONROOM_SETUP_CODE_TTL_HOURS` (1 to 168, default 24) to change how long it
+  stays valid; restarting with a new code issues a fresh link. Leave both unset to
+  keep the generated private file on the server.
+
 Choose **Sign in with saved key** to verify your download. The temporary server
 private-key copy and setup code are removed after successful key sign-in.
 
 A returning installation shows normal PEM sign-in, including on a new device.
 A failed PEM never creates a replacement owner. Existing database history with
-missing owner-key files refuses automatic key creation instead of resetting access.
+missing owner key files refuses automatic key creation instead of resetting access.
 Keep the private PEM and its backup secure; it is never stored in database events.
 The header displays the server address you are actually using. **Help** remains
 available before sign-in. Header and sign-in Help links show a box-and-arrow icon

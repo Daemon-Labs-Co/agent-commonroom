@@ -29,6 +29,7 @@ type ownerAuth struct {
 	setupPending           bool
 	challenges             map[string]ownerChallenge
 	key                    string
+	keyExpires             time.Time // zero: the code never expires (generated file)
 	sessions               map[string]ownerSession
 	attempts               int
 	window                 time.Time
@@ -204,7 +205,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 			delete(a.challenges, request.ChallengeID)
 		}
 	}
-	bootstrap := actorID == ownerID && a.key != "" && subtle.ConstantTimeCompare([]byte(request.Key), []byte(a.key)) == 1
+	bootstrap := actorID == ownerID && a.key != "" && (a.keyExpires.IsZero() || now.Before(a.keyExpires)) && subtle.ConstantTimeCompare([]byte(request.Key), []byte(a.key)) == 1
 	if !signed && !bootstrap {
 		if a.attempts >= 5 {
 			w.Header().Set("Retry-After", "60")

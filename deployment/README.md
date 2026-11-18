@@ -32,6 +32,9 @@ DNS and HTTPS administrators configure their services through their normal acces
    Configure exactly `COMMONROOM_PUBLIC_ORIGIN=https://agentcommonroom.home.arpa`
    for this hostname. Leave it unset for local-only browser access. It is read on
    restart and can be changed only by the operator controlling service configuration.
+   For a hosted service, set `COMMONROOM_SETUP_CODE` (see the example file) and send the
+   owner `https://<address>/#setup=<code>`; on your own server run
+   `commonroom --setup-link` instead. See [getting started](../docs/user/getting-started.md).
 5. Point DNS at the server, configure the existing HTTPS proxy using
    [the nginx template](nginx/commonroom.conf), and install a browser-trusted
    certificate for that name. Keep the application listener on loopback. Forward
